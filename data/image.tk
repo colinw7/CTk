@@ -1,0 +1,10 @@
+image create photo gorilla -file gorilla.gif
+
+button .b
+label  .l
+
+.b configure -image gorilla
+.l configure -image gorilla
+
+pack .b
+pack .l

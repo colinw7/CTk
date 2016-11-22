@@ -1,0 +1,9 @@
+labelframe .lbl -text "Steps:"
+
+checkbutton .c1 -text Lights  -variable lights
+checkbutton .c2 -text Cameras -variable cameras
+checkbutton .c3 -text Action! -variable action
+
+pack .c1 .c2 .c3 -in .lbl
+
+pack .lbl

@@ -1,0 +1,10 @@
+. config -bg black
+
+frame .prop -bg white -height 80 -width 20
+frame .base -width 120 -height 20 -bg grey50
+
+label .foo -text Foo
+
+pack .base -side bottom
+
+pack .prop .foo -side right -expand true

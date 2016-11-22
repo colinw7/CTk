@@ -1,0 +1,7 @@
+set a 3
+set b Hello
+
+entry .e1 -textvariable a
+entry .e2 -textvariable b
+
+pack .e1 .e2

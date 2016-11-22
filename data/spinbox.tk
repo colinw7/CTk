@@ -1,0 +1,5 @@
+set a 5
+
+spinbox .sp -textvariable a
+
+pack .sp

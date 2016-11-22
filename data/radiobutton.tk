@@ -1,0 +1,9 @@
+labelframe .lbl -text "Steps:"
+
+radiobutton .c1 -text Lights  -variable lights
+radiobutton .c2 -text Cameras -variable cameras
+radiobutton .c3 -text Action! -variable action
+
+pack .c1 .c2 .c3 -in .lbl
+
+pack .lbl
