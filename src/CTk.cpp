@@ -208,15 +208,15 @@ processOption(CTkOption *opts, const std::vector<CTclValueRef> &args, uint &i,
 
     CTkOptionValue &value = values[arg];
 
-    if      (option.type == CTkFlagOpt)
+    if      (option.type == CTkOptionType::Flag)
       value.i = 1;
-    else if (option.type == CTkStringOpt) {
+    else if (option.type == CTkOptionType::String) {
       if (i < numArgs - 1)
         value.s = args[++i]->toString();
       else
         return false;
     }
-    else if (option.type == CTkIntOpt) {
+    else if (option.type == CTkOptionType::Int) {
       if (i < numArgs - 1) {
         bool ok = args[++i]->toInt(value.i);
 
@@ -226,7 +226,7 @@ processOption(CTkOption *opts, const std::vector<CTclValueRef> &args, uint &i,
       else
         return false;
     }
-    else if (option.type == CTkRealOpt) {
+    else if (option.type == CTkOptionType::Real) {
       if (i < numArgs - 1) {
         bool ok = args[++i]->toReal(value.r);
 
@@ -1080,17 +1080,17 @@ CTkGridCommand::
 exec(const std::vector<CTclValueRef> &args)
 {
   static CTkOption opts[] = {
-    { "-column"    , CTkIntOpt   , 0 },
-    { "-columnspan", CTkIntOpt   , 0 },
-    { "-in"        , CTkStringOpt, 0 },
-    { "-ipadx"     , CTkIntOpt   , 0 },
-    { "-ipady"     , CTkIntOpt   , 0 },
-    { "-padx"      , CTkIntOpt   , 0 },
-    { "-pady"      , CTkIntOpt   , 0 },
-    { "-row"       , CTkIntOpt   , 0 },
-    { "-rowspan"   , CTkIntOpt   , 0 },
-    { "-sticky"    , CTkStringOpt, 0 },
-    { 0            , CTkNoOpt    , 0 },
+    { "-column"    , CTkOptionType::Int   , 0 },
+    { "-columnspan", CTkOptionType::Int   , 0 },
+    { "-in"        , CTkOptionType::String, 0 },
+    { "-ipadx"     , CTkOptionType::Int   , 0 },
+    { "-ipady"     , CTkOptionType::Int   , 0 },
+    { "-padx"      , CTkOptionType::Int   , 0 },
+    { "-pady"      , CTkOptionType::Int   , 0 },
+    { "-row"       , CTkOptionType::Int   , 0 },
+    { "-rowspan"   , CTkOptionType::Int   , 0 },
+    { "-sticky"    , CTkOptionType::String, 0 },
+    { 0            , CTkOptionType::None  , 0 },
   };
 
   uint numArgs = args.size();
@@ -1693,18 +1693,18 @@ CTkPackCommand::
 exec(const std::vector<CTclValueRef> &args)
 {
   static CTkOption opts[] = {
-    { "-after" , CTkStringOpt, 0 },
-    { "-anchor", CTkStringOpt, 0 },
-    { "-before", CTkStringOpt, 0 },
-    { "-expand", CTkStringOpt, 0 },
-    { "-fill"  , CTkStringOpt, 0 },
-    { "-in"    , CTkStringOpt, 0 },
-    { "-ipadx" , CTkIntOpt   , 0 },
-    { "-ipady" , CTkIntOpt   , 0 },
-    { "-padx"  , CTkIntOpt   , 0 },
-    { "-pady"  , CTkIntOpt   , 0 },
-    { "-side"  , CTkStringOpt, 0 },
-    { 0        , CTkNoOpt    , 0 },
+    { "-after" , CTkOptionType::String, 0 },
+    { "-anchor", CTkOptionType::String, 0 },
+    { "-before", CTkOptionType::String, 0 },
+    { "-expand", CTkOptionType::String, 0 },
+    { "-fill"  , CTkOptionType::String, 0 },
+    { "-in"    , CTkOptionType::String, 0 },
+    { "-ipadx" , CTkOptionType::Int   , 0 },
+    { "-ipady" , CTkOptionType::Int   , 0 },
+    { "-padx"  , CTkOptionType::Int   , 0 },
+    { "-pady"  , CTkOptionType::Int   , 0 },
+    { "-side"  , CTkOptionType::String, 0 },
+    { 0        , CTkOptionType::None  , 0 },
   };
 
   uint numArgs = args.size();
@@ -1977,18 +1977,18 @@ CTkPlaceCommand::
 exec(const std::vector<CTclValueRef> &args)
 {
   static CTkOption opts[] = {
-    { "-anchor"    , CTkStringOpt, 0 },
-    { "-bordermode", CTkStringOpt, 0 },
-    { "-height"    , CTkIntOpt   , 0 },
-    { "-in"        , CTkStringOpt, 0 },
-    { "-relheight" , CTkStringOpt, 0 },
-    { "-relwidth"  , CTkStringOpt, 0 },
-    { "-relx"      , CTkRealOpt  , 0 },
-    { "-rely"      , CTkRealOpt  , 0 },
-    { "-width"     , CTkIntOpt   , 0 },
-    { "-x"         , CTkIntOpt   , 0 },
-    { "-y"         , CTkIntOpt   , 0 },
-    { 0            , CTkNoOpt    , 0 },
+    { "-anchor"    , CTkOptionType::String, 0 },
+    { "-bordermode", CTkOptionType::String, 0 },
+    { "-height"    , CTkOptionType::Int   , 0 },
+    { "-in"        , CTkOptionType::String, 0 },
+    { "-relheight" , CTkOptionType::String, 0 },
+    { "-relwidth"  , CTkOptionType::String, 0 },
+    { "-relx"      , CTkOptionType::Real  , 0 },
+    { "-rely"      , CTkOptionType::Real  , 0 },
+    { "-width"     , CTkOptionType::Int   , 0 },
+    { "-x"         , CTkOptionType::Int   , 0 },
+    { "-y"         , CTkOptionType::Int   , 0 },
+    { 0            , CTkOptionType::None  , 0 },
   };
 
   uint numArgs = args.size();

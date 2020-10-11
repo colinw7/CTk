@@ -35,38 +35,36 @@ class QBoxLayout;
 class CTk;
 class CTkImage;
 
-typedef CRefPtr<CTkImage> CTkImageRef;
+using CTkImageRef = CRefPtr<CTkImage>;
 
-enum CTkOptionType {
-  CTkNoOpt,
-  CTkFlagOpt,
-  CTkStringOpt,
-  CTkIntOpt,
-  CTkRealOpt
+enum class CTkOptionType {
+  None,
+  Flag,
+  String,
+  Int,
+  Real
 };
 
 struct CTkOptionValue {
-  int         i;
-  double      r;
+  int         i { 0 };
+  double      r { 0.0 };
   std::string s;
-
-  CTkOptionValue() : i(0), r(0.0), s() { }
 };
 
 struct CTkOption {
-  const char    *name;
-  CTkOptionType  type;
-  const char    *alias;
+  const char*   name  { nullptr };
+  CTkOptionType type  { CTkOptionType::None };
+  const char*   alias { nullptr };
 };
 
 struct CTkOpt {
-  const char *name;  // option name
-  const char *dname; // database name
-  const char *cname; // class name
-  const char *def;   // default value
+  const char*name  { nullptr }; // option name
+  const char*dname { nullptr }; // database name
+  const char*cname { nullptr }; // class name
+  const char*def   { nullptr }; // default value
 };
 
-typedef std::map<std::string,CTkOptionValue> CTkOptionValueMap;
+using CTkOptionValueMap = std::map<std::string,CTkOptionValue>;
 
 class CTkOptData {
  public:
@@ -83,9 +81,9 @@ class CTkOptData {
   bool setOptValue(const std::string &name, const std::string &value, const CTkOpt **opt);
 
  private:
-  CTk               *tk_;
-  const CTkOpt      *opts_;
-  CTkOptionValueMap  values_;
+  CTk*              tk_   { nullptr };
+  const CTkOpt*     opts_ { nullptr };
+  CTkOptionValueMap values_;
 };
 
 //-----
@@ -137,15 +135,15 @@ class CTk {
   void purgeWidgets();
 
  private:
-  typedef std::map<std::string,CTkImageRef> ImageMap;
-  typedef std::vector<CTkTopLevel *>        TopLevelArray;
-  typedef std::map<std::string,std::string> EventMap;
-  typedef std::map<std::string,EventMap>    TagEventMap;
-  typedef std::set<CTkWidget *>             WidgetSet;
-  typedef std::vector<CTkWidget *>          WidgetArray;
+  using ImageMap      = std::map<std::string,CTkImageRef>;
+  using TopLevelArray = std::vector<CTkTopLevel *>;
+  using EventMap      = std::map<std::string,std::string>;
+  using TagEventMap   = std::map<std::string,EventMap>;
+  using WidgetSet     = std::set<CTkWidget *>;
+  using WidgetArray   = std::vector<CTkWidget *>;
 
-  CTcl          *tcl_;
-  CTkRootWidget *root_;
+  CTcl*          tcl_  { nullptr };
+  CTkRootWidget* root_ { nullptr };
   TopLevelArray  toplevels_;
   ImageMap       images_;
   TagEventMap    events_;
@@ -181,7 +179,7 @@ class CTkCommand : public CTclCommand {
   CTk *getTk() const { return tk_; }
 
  protected:
-  CTk *tk_;
+  CTk* tk_ { nullptr };
 };
 
 class CTkBellCommand : public CTkCommand {
@@ -400,8 +398,8 @@ class CTkWidgetCommand : public CTkCommand {
   bool setOptValue(const std::string &name, const std::string &value);
 
  private:
-  CTkCommand *command_;
-  CTkWidget  *w_;
+  CTkCommand* command_ { nullptr };
+  CTkWidget*  w_       { nullptr };
   CTkOptData  opts_;
 };
 
@@ -471,18 +469,21 @@ class CTkWidget : public QObject {
   void deleteLater();
 
  protected:
-  typedef std::map<std::string,CTkWidget *> WidgetMap;
-  typedef std::map<std::string,std::string> EventMap;
+  using WidgetMap = std::map<std::string, CTkWidget *>;
+  using EventMap  = std::map<std::string, std::string>;
 
-  CTk         *tk_;
-  CTkWidget   *parent_;
-  std::string  name_;
-  int          w_, h_;
-  bool         deleted_;
-  QWidget     *qwidget_;
-  WidgetMap    children_;
-  EventMap     events_;
+  CTk*        tk_      { nullptr };
+  CTkWidget*  parent_  { nullptr };
+  std::string name_;
+  int         w_       { 0 };
+  int         h_       { 0 };
+  bool        deleted_ { false };
+  QWidget*    qwidget_ { nullptr };
+  WidgetMap   children_;
+  EventMap    events_;
 };
+
+//---
 
 class CTkWidgetEventFilter :  public QObject {
   Q_OBJECT
@@ -494,8 +495,10 @@ class CTkWidgetEventFilter :  public QObject {
   bool eventFilter(QObject *obj, QEvent *event);
 
  private:
-  CTkWidget *w_;
+  CTkWidget* w_ { nullptr };
 };
+
+//---
 
 class CTkRootWidget : public CTkWidget {
  public:
@@ -506,8 +509,10 @@ class CTkRootWidget : public CTkWidget {
   bool notifyValueChanged(const std::string &name, const std::string &value);
 
  private:
-  QFrame *qframe_;
+  QFrame* qframe_ { nullptr };
 };
+
+//---
 
 class CTkButton : public CTkWidget {
   Q_OBJECT
@@ -533,9 +538,11 @@ class CTkButton : public CTkWidget {
   void runCommandSlot();
 
  private:
-  QPushButton *qbutton_;
+  QPushButton* qbutton_ { nullptr };
   std::string  command_;
 };
+
+//---
 
 class CTkCanvas : public CTkWidget {
  public:
@@ -546,8 +553,10 @@ class CTkCanvas : public CTkWidget {
   bool notifyValueChanged(const std::string &name, const std::string &value);
 
  private:
-  QWidget *qcanvas_;
+  QWidget* qcanvas_ { nullptr };
 };
+
+//---
 
 class CTkCheckButton : public CTkWidget {
  public:
@@ -560,8 +569,10 @@ class CTkCheckButton : public CTkWidget {
   void setText(const std::string &text);
 
  private:
-  QCheckBox *qcheck_;
+  QCheckBox* qcheck_ { nullptr };
 };
+
+//---
 
 class CTkEntry : public CTkWidget {
   Q_OBJECT
@@ -579,9 +590,11 @@ class CTkEntry : public CTkWidget {
   void valueChangedSlot();
 
  private:
-  QLineEdit   *qedit_;
-  std::string  varName_;
+  QLineEdit*  qedit_ { nullptr };
+  std::string varName_;
 };
+
+//---
 
 class CTkFrame : public CTkWidget {
  public:
@@ -592,8 +605,10 @@ class CTkFrame : public CTkWidget {
   bool notifyValueChanged(const std::string &name, const std::string &value);
 
  private:
-  QFrame *qframe_;
+  QFrame* qframe_ { nullptr };
 };
+
+//---
 
 class CTkLabel : public CTkWidget {
  public:
@@ -608,8 +623,10 @@ class CTkLabel : public CTkWidget {
   void setImage(CImagePtr image);
 
  private:
-  QLabel *qlabel_;
+  QLabel* qlabel_ { nullptr };
 };
+
+//---
 
 class CTkLabelFrame : public CTkWidget {
  public:
@@ -622,8 +639,10 @@ class CTkLabelFrame : public CTkWidget {
   void setText(const std::string &text);
 
  private:
-  QGroupBox *qframe_;
+  QGroupBox* qframe_ { nullptr };
 };
+
+//---
 
 class CTkListBox : public CTkWidget {
  public:
@@ -634,8 +653,10 @@ class CTkListBox : public CTkWidget {
   bool notifyValueChanged(const std::string &name, const std::string &value);
 
  private:
-  QListWidget *qlist_;
+  QListWidget* qlist_ { nullptr };
 };
+
+//---
 
 class CTkPanedWindow : public CTkWidget {
  public:
@@ -648,8 +669,10 @@ class CTkPanedWindow : public CTkWidget {
   CTclValueRef iexec(const std::vector<CTclValueRef> &args);
 
  private:
-  QSplitter *qpane_;
+  QSplitter* qpane_ { nullptr };
 };
+
+//---
 
 class CTkRadioButton : public CTkWidget {
  public:
@@ -662,8 +685,10 @@ class CTkRadioButton : public CTkWidget {
   void setText(const std::string &text);
 
  private:
-  QRadioButton *qradio_;
+  QRadioButton* qradio_ { nullptr };
 };
+
+//---
 
 class CTkScale : public CTkWidget {
  public:
@@ -676,8 +701,10 @@ class CTkScale : public CTkWidget {
   void setText(const std::string &text);
 
  private:
-  QSlider *qscale_;
+  QSlider* qscale_ { nullptr };
 };
+
+//---
 
 class CTkScrollBar : public CTkWidget {
  public:
@@ -688,8 +715,10 @@ class CTkScrollBar : public CTkWidget {
   bool notifyValueChanged(const std::string &name, const std::string &value);
 
  private:
-  QScrollBar *qscrollbar_;
+  QScrollBar* qscrollbar_ { nullptr };
 };
+
+//---
 
 class CTkSpinBox : public CTkWidget {
  public:
@@ -700,8 +729,10 @@ class CTkSpinBox : public CTkWidget {
   bool notifyValueChanged(const std::string &name, const std::string &value);
 
  private:
-  QSpinBox *qspin_;
+  QSpinBox* qspin_ { nullptr };
 };
+
+//---
 
 class CTkText : public CTkWidget {
  public:
@@ -714,8 +745,10 @@ class CTkText : public CTkWidget {
   void setText(const std::string &text);
 
  private:
-  QTextEdit *qtext_;
+  QTextEdit* qtext_ { nullptr };
 };
+
+//---
 
 class CTkTopLevel : public CTkWidget {
  public:
@@ -726,7 +759,7 @@ class CTkTopLevel : public CTkWidget {
   bool notifyValueChanged(const std::string &name, const std::string &value);
 
  private:
-  QFrame *qframe_;
+  QFrame* qframe_ { nullptr };
 };
 
 #endif
