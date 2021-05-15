@@ -9,7 +9,13 @@ QT += widgets
 CONFIG += staticlib
 CONFIG += debug
 
-QMAKE_CXXFLAGS += -std=c++14
+QMAKE_CXXFLAGS += \
+-std=c++14 \
+-DCQUTIL_PEN \
+-DCQUTIL_BRUSH \
+-DCQUTIL_FONT \
+-DCQUTIL_IMAGE \
+-DCBRUSH_IMAGE \
 
 MOC_DIR = .moc
 
@@ -40,3 +46,4 @@ INCLUDEPATH += \
 ../../CMath/include \
 ../../CStrUtil/include \
 ../../CUtil/include \
+../../COS/include \
