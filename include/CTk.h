@@ -492,7 +492,7 @@ class CTkWidgetEventFilter :  public QObject {
   CTkWidgetEventFilter(CTkWidget *w) : w_(w) { }
 
  protected:
-  bool eventFilter(QObject *obj, QEvent *event);
+  bool eventFilter(QObject *obj, QEvent *event) override;
 
  private:
   CTkWidget* w_ { nullptr };
