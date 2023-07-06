@@ -20,7 +20,7 @@ CTkApp::
 CTkApp(int argc, char **argv) :
  CTclApp(argc, argv)
 {
-  root_ = new CTkRootWidget(this);
+  root_ = new CTkAppRoot(this);
 
   initInterp();
 
@@ -79,7 +79,7 @@ CTkApp::
 lookupWidgetByName(const std::string &widgetName) const
 {
   if (widgetName == ".")
-    return getRootWidget();
+    return root();
 
   CTkWidget*  parent = nullptr;
   std::string childName;
@@ -359,7 +359,7 @@ bool
 CTkApp::
 wrongNumArgs(const std::string &msg) const
 {
-  std::cerr << msg << "\n";
+  std::cerr << "wrong # args: should be \"" << msg << "\"\n";
 
   return false;
 }

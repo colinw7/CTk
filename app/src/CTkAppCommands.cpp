@@ -1,6 +1,9 @@
 #include <CTkAppCommands.h>
 #include <CTkApp.h>
 #include <CTkAppWidget.h>
+#include <CTkAppPackLayout.h>
+#include <CTkAppPlaceLayout.h>
+#include <CTkAppGridLayout.h>
 #include <CTkAppLayout.h>
 #include <CTkAppImage.h>
 #include <CTkAppOptionValue.h>
@@ -41,7 +44,7 @@ class CTkAppCommand : public CTclAppCommand {
 
   virtual bool run(const Args &args) = 0;
 
-  CTkRootWidget *root() const { return tk_->getRootWidget(); }
+  CTkAppRoot *root() const { return tk_->root(); }
 
  protected: \
   CTkApp *tk_ { nullptr };
@@ -153,9 +156,9 @@ class CTkWidgetCommand : public CTkAppCommand {
 
 //---
 
-class CTkRootWidgetCommand :  public CTkAppCommand {
+class CTkAppRootCommand :  public CTkAppCommand {
  public:
-  CTkRootWidgetCommand(CTkApp *tk);
+  CTkAppRootCommand(CTkApp *tk);
 
   bool run(const Args &args) override;
 
@@ -208,7 +211,7 @@ addCommands(CTkApp *tk)
 
   //---
 
-  (void) new CTkRootWidgetCommand(tk);
+  (void) new CTkAppRootCommand(tk);
 }
 
 }
@@ -577,7 +580,7 @@ run(const Args &args)
   else if (opt == "append") {
     // -option value ... data
     if (numArgs < 2)
-      return tk_->wrongNumArgs("should be \"clipboard append ?-option value ...? data\"");
+      return tk_->wrongNumArgs("clipboard append ?-option value ...? data");
 
     clipboard->setText(clipboard->text(QClipboard::Clipboard) + QString::fromStdString(args[1]));
   }
@@ -919,7 +922,7 @@ run(const Args &args)
     auto *layout = child->getParent()->getTkGridLayout();
     if (layout == nullptr) return false;
 
-    CTkGridLayout::Info info;
+    CTkAppGridLayout::Info info;
 
     layout->getChildInfo(child, info);
 
@@ -1020,7 +1023,7 @@ run(const Args &args)
       }
     }
 
-    CTkGridLayout::Info info;
+    CTkAppGridLayout::Info info;
 
     {
     auto p = optValues.find("-row");
@@ -1655,7 +1658,30 @@ run(const Args &args)
   const auto &arg = args[0];
 
   if      (arg == "propagate") {
-    return false;
+    if (numArgs < 2 || numArgs > 3)
+      return tk_->wrongNumArgs("pack option arg ?arg ...?");
+
+    const auto &arg = args[1];
+
+    auto *w = tk_->lookupWidgetByName(arg);
+    if (! w) return tk_->throwError("Invalid widget '" + arg + "'");
+
+    auto *layout = w->getTkPackLayout();
+
+    if (numArgs == 0)
+      setIntegerResult(layout->isPropagate());
+    else {
+      const auto &value = args[2];
+
+      bool b;
+
+      if (! CTkAppUtil::stringToBool(value, b))
+        return tk_->throwError("Invalid bool '" + value + "'");
+
+      layout->setPropagate(b);
+    }
+
+    return true;
   }
   else if (arg == "info") {
     if (numArgs != 2)
@@ -1676,7 +1702,7 @@ run(const Args &args)
 
     auto *layout = parent->getTkPackLayout();
 
-    CTkPackLayout::Info info;
+    CTkAppPackLayout::Info info;
 
     layout->getChildInfo(child, info);
 
@@ -1692,8 +1718,8 @@ run(const Args &args)
     return true;
   }
   else {
-    CTkPackLayout::Side      side     = CTkPackLayout::SIDE_NONE;
-    CTkPackLayout::Fill      fill     = CTkPackLayout::FILL_NONE;
+    CTkAppPackLayout::Side      side     = CTkAppPackLayout::SIDE_NONE;
+    CTkAppPackLayout::Fill      fill     = CTkAppPackLayout::FILL_NONE;
     bool                     expand   = false;
     CTkWidget*               inparent = nullptr;
     int                      padx     = 0;
@@ -1734,9 +1760,9 @@ run(const Args &args)
     auto p = optValues.find("-fill");
 
     if (p != optValues.end()) {
-      if      ((*p).second.s == "x"   ) fill = CTkPackLayout::FILL_X;
-      else if ((*p).second.s == "y"   ) fill = CTkPackLayout::FILL_Y;
-      else if ((*p).second.s == "both") fill = CTkPackLayout::FILL_BOTH;
+      if      ((*p).second.s == "x"   ) fill = CTkAppPackLayout::FILL_X;
+      else if ((*p).second.s == "y"   ) fill = CTkAppPackLayout::FILL_Y;
+      else if ((*p).second.s == "both") fill = CTkAppPackLayout::FILL_BOTH;
     }
     }
 
@@ -1744,8 +1770,8 @@ run(const Args &args)
     auto p = optValues.find("-expand");
 
     if (p != optValues.end()) {
-      if ((*p).second.s == "1" || (*p).second.s == "yes" || (*p).second.s == "true")
-        expand = true;
+      if (! CTkAppUtil::stringToBool((*p).second.s, expand))
+        return tk_->throwError("Invalid -expand value");
     }
     }
 
@@ -1781,14 +1807,14 @@ run(const Args &args)
     auto p = optValues.find("-side");
 
     if (p != optValues.end()) {
-      if      ((*p).second.s == "left"  ) side = CTkPackLayout::SIDE_LEFT;
-      else if ((*p).second.s == "right" ) side = CTkPackLayout::SIDE_RIGHT;
-      else if ((*p).second.s == "bottom") side = CTkPackLayout::SIDE_BOTTOM;
-      else if ((*p).second.s == "top"   ) side = CTkPackLayout::SIDE_TOP;
+      if      ((*p).second.s == "left"  ) side = CTkAppPackLayout::SIDE_LEFT;
+      else if ((*p).second.s == "right" ) side = CTkAppPackLayout::SIDE_RIGHT;
+      else if ((*p).second.s == "bottom") side = CTkAppPackLayout::SIDE_BOTTOM;
+      else if ((*p).second.s == "top"   ) side = CTkAppPackLayout::SIDE_TOP;
     }
     else {
-      if (! expand && fill == CTkPackLayout::FILL_NONE)
-        side = CTkPackLayout::SIDE_TOP;
+      if (! expand && fill == CTkAppPackLayout::FILL_NONE)
+        side = CTkAppPackLayout::SIDE_TOP;
     }
     }
 
@@ -1813,7 +1839,7 @@ run(const Args &args)
 
     auto *layout = parent->getTkPackLayout();
 
-    CTkPackLayout::Info info(side, fill, expand, padx, pady, ipadx, ipady);
+    CTkAppPackLayout::Info info(side, fill, expand, padx, pady, ipadx, ipady);
 
     layout->addWidgets(children, info);
 
@@ -1939,7 +1965,7 @@ run(const Args &args)
 
     auto *layout = parent->getTkPlaceLayout();
 
-    CTkPlaceLayout::Info info;
+    CTkAppPlaceLayout::Info info;
 
     layout->getChildInfo(child, info);
 
@@ -1983,7 +2009,7 @@ run(const Args &args)
       }
     }
 
-    CTkPlaceLayout::Info info;
+    CTkAppPlaceLayout::Info info;
 
     {
     auto p = optValues.find("-relx");
@@ -2296,7 +2322,7 @@ run(const Args &args)
   else if (opt == "append") {
     // -option value ... data
     if (numArgs < 2)
-      return tk_->wrongNumArgs("should be \"selection append ?-option value ...? data\"");
+      return tk_->wrongNumArgs("selection append ?-option value ...? data");
 
     clipboard->setText(clipboard->text(QClipboard::Selection) + QString::fromStdString(args[1]));
   }
@@ -2832,7 +2858,7 @@ run(const Args &args)
       setStringResult(res);
     }
     else if (numArgs != 4) {
-      return tk_->throwError("wrong # args: should be \"wm minsize window ?width height?\"");
+      return tk_->wrongNumArgs("wm minsize window ?width height?");
     }
     else {
       long sw, sh;
@@ -2895,8 +2921,8 @@ run(const Args &args)
 
 //---
 
-CTkRootWidgetCommand::
-CTkRootWidgetCommand(CTkApp *tk) :
+CTkAppRootCommand::
+CTkAppRootCommand(CTkApp *tk) :
  CTkAppCommand(tk, "."), opts_(tk)
 {
   static CTkOpt opts[] = {
@@ -2928,7 +2954,7 @@ CTkRootWidgetCommand(CTkApp *tk) :
 }
 
 bool
-CTkRootWidgetCommand::
+CTkAppRootCommand::
 run(const Args &args)
 {
   uint numArgs = args.size();

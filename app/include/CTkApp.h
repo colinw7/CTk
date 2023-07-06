@@ -10,7 +10,7 @@
 #include <set>
 #include <map>
 
-class CTkRootWidget;
+class CTkAppRoot;
 class CTkTopLevel;
 class CTkWidget;
 class CTkImage;
@@ -28,7 +28,7 @@ class CTkApp : public CTclApp {
 
   std::string getTclStr() override;
 
-  CTkRootWidget *getRootWidget() const { return root_; }
+  CTkAppRoot *root() const { return root_; }
 
   //---
 
@@ -96,12 +96,12 @@ class CTkApp : public CTclApp {
   using WidgetSet     = std::set<CTkWidget *>;
   using WidgetArray   = std::vector<CTkWidget *>;
 
-  CTkRootWidget* root_ { nullptr };
-  TopLevelArray  toplevels_;
-  ImageMap       images_;
-  TagEventMap    events_;
-  WidgetSet      widgets_;
-  WidgetArray    deleteWidgets_;
+  CTkAppRoot*   root_ { nullptr };
+  TopLevelArray toplevels_;
+  ImageMap      images_;
+  TagEventMap   events_;
+  WidgetSet     widgets_;
+  WidgetArray   deleteWidgets_;
 };
 
 //---
@@ -126,6 +126,17 @@ inline bool stringToReal(const std::string &str, double &r) {
     catch (...) {
     return false;
   }
+
+  return true;
+}
+
+inline bool stringToBool(const std::string &str, bool &b) {
+  if      (str == "1" || str == "yes" || str == "true")
+    b = true;
+  else if (str == "0" || str == "no" || str == "false")
+    b = false;
+  else
+    return false;
 
   return true;
 }

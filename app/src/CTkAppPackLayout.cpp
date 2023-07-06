@@ -1,23 +1,24 @@
+#include <CTkAppPackLayout.h>
 #include <CTkAppLayout.h>
 #include <CTkApp.h>
 #include <QWidget>
 
-CTkPackLayout::
-CTkPackLayout(QWidget *parent, int margin, int spacing) :
+CTkAppPackLayout::
+CTkAppPackLayout(QWidget *parent, int margin, int spacing) :
  QLayout(parent)
 {
   setMargin(margin);
   setSpacing(spacing);
 }
 
-CTkPackLayout::
-CTkPackLayout(int spacing)
+CTkAppPackLayout::
+CTkAppPackLayout(int spacing)
 {
   setSpacing(spacing);
 }
 
-CTkPackLayout::
-~CTkPackLayout()
+CTkAppPackLayout::
+~CTkAppPackLayout()
 {
   QLayoutItem *l;
 
@@ -26,14 +27,14 @@ CTkPackLayout::
 }
 
 void
-CTkPackLayout::
+CTkAppPackLayout::
 addItem(QLayoutItem *item)
 {
   add(item, Info(SIDE_TOP, FILL_NONE, false, 0, 0, 0, 0));
 }
 
 void
-CTkPackLayout::
+CTkAppPackLayout::
 addWidgets(const std::vector<CTkWidget *> &widgets, const Info &info)
 {
   auto num = widgets.size();
@@ -43,14 +44,14 @@ addWidgets(const std::vector<CTkWidget *> &widgets, const Info &info)
 }
 
 void
-CTkPackLayout::
+CTkAppPackLayout::
 addWidget(CTkWidget *widget, const Info &info)
 {
   add(new CTkLayoutWidget(widget), info);
 }
 
-CTkPackLayout::ItemWrapper *
-CTkPackLayout::
+CTkAppPackLayout::ItemWrapper *
+CTkAppPackLayout::
 getItem(CTkWidget *widget) const
 {
   for (int i = 0; i < list_.size(); ++i) {
@@ -69,7 +70,7 @@ getItem(CTkWidget *widget) const
 }
 
 bool
-CTkPackLayout::
+CTkAppPackLayout::
 getChildInfo(CTkWidget *widget, Info &info)
 {
   ItemWrapper *wrapper = getItem(widget);
@@ -82,14 +83,14 @@ getChildInfo(CTkWidget *widget, Info &info)
 }
 
 Qt::Orientations
-CTkPackLayout::
+CTkAppPackLayout::
 expandingDirections() const
 {
   return Qt::Horizontal | Qt::Vertical;
 }
 
 bool
-CTkPackLayout::
+CTkAppPackLayout::
 hasHeightForWidth() const
 {
   // preferred height depends on width
@@ -97,14 +98,14 @@ hasHeightForWidth() const
 }
 
 int
-CTkPackLayout::
+CTkAppPackLayout::
 count() const
 {
   return list_.size();
 }
 
 QLayoutItem *
-CTkPackLayout::
+CTkAppPackLayout::
 itemAt(int index) const
 {
   auto *wrapper = list_.value(index);
@@ -116,14 +117,14 @@ itemAt(int index) const
 }
 
 QSize
-CTkPackLayout::
+CTkAppPackLayout::
 minimumSize() const
 {
   return calculateSize(MinimumSize);
 }
 
 void
-CTkPackLayout::
+CTkAppPackLayout::
 setGeometry(const QRect &rect)
 {
   int topHeight    = 0;
@@ -134,7 +135,7 @@ setGeometry(const QRect &rect)
   QLayout::setGeometry(rect);
 
   for (int i = 0; i < list_.size(); ++i) {
-    ItemWrapper *wrapper = list_.at(i);
+    auto *wrapper = list_.at(i);
 
     auto *item = dynamic_cast<CTkLayoutWidget *>(wrapper->item);
 
@@ -269,14 +270,14 @@ setGeometry(const QRect &rect)
 }
 
 QSize
-CTkPackLayout::
+CTkAppPackLayout::
 sizeHint() const
 {
   return calculateSize(SizeHint);
 }
 
 QLayoutItem *
-CTkPackLayout::
+CTkAppPackLayout::
 takeAt(int index)
 {
   if (index >= 0 && index < list_.size()) {
@@ -289,14 +290,14 @@ takeAt(int index)
 }
 
 void
-CTkPackLayout::
+CTkAppPackLayout::
 add(QLayoutItem *item, const Info &info)
 {
   list_.append(new ItemWrapper(item, info));
 }
 
 QSize
-CTkPackLayout::
+CTkAppPackLayout::
 calculateSize(SizeType sizeType) const
 {
   QSize totalSize(0, 0);

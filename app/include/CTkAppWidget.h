@@ -3,14 +3,14 @@
 
 #include <CImageLib.h>
 
-#include <QWidget>
+#include <QFrame>
 
 class CTkApp;
-class CTkRootWidget;
+class CTkAppRoot;
 
-class CTkPackLayout;
-class CTkGridLayout;
-class CTkPlaceLayout;
+class CTkAppPackLayout;
+class CTkAppGridLayout;
+class CTkAppPlaceLayout;
 
 class QFrame;
 class QPushButton;
@@ -41,7 +41,7 @@ class CTkWidget : public QObject {
 
   CTkWidget *getParent() const { return parent_; }
 
-  CTkRootWidget *root() const;
+  CTkAppRoot *root() const;
 
   //---
 
@@ -93,9 +93,9 @@ class CTkWidget : public QObject {
 
   //---
 
-  CTkPackLayout  *getTkPackLayout();
-  CTkGridLayout  *getTkGridLayout();
-  CTkPlaceLayout *getTkPlaceLayout();
+  CTkAppPackLayout  *getTkPackLayout();
+  CTkAppGridLayout  *getTkGridLayout();
+  CTkAppPlaceLayout *getTkPlaceLayout();
 
   //---
 
@@ -130,6 +130,12 @@ class CTkWidget : public QObject {
   void deleteLater();
 
  protected:
+  const std::string &getCommand() const { return command_; }
+  void setCommand(const std::string &command) { command_ = command; }
+
+  void runCommand();
+
+ protected:
   using WidgetMap = std::map<std::string, CTkWidget *>;
   using EventMap  = std::map<std::string, std::string>;
 
@@ -142,6 +148,8 @@ class CTkWidget : public QObject {
   QWidget*    qwidget_ { nullptr };
   WidgetMap   children_;
   EventMap    events_;
+
+  std::string command_;
 
   bool initNotify_ { false };
 };
@@ -166,18 +174,27 @@ class CTkWidgetEventFilter :  public QObject {
 
 //---
 
-class CTkRootWidget : public CTkWidget {
+class CTkAppRoot : public CTkWidget {
  public:
-  CTkRootWidget(CTkApp *tk);
+  CTkAppRoot(CTkApp *tk);
 
   const char *getClassName() const override { return "Window"; }
 
   bool notifyValueChanged(const std::string &name, const std::string &value) override;
 
+  std::string iexec(const std::vector<std::string> &args) override;
+
   bool decodeWidgetName(const std::string &name, CTkWidget **parent, std::string &childName) const;
 
  private:
   QFrame* qframe_ { nullptr };
+};
+
+class CTkRootWidget : public QFrame {
+ public:
+  CTkRootWidget(QWidget *parent=nullptr);
+
+  QSize sizeHint() const override;
 };
 
 //---
@@ -192,23 +209,19 @@ class CTkButton : public CTkWidget {
 
   bool notifyValueChanged(const std::string &name, const std::string &value) override;
 
-  void setCommand(const std::string &text);
+  std::string iexec(const std::vector<std::string> &args) override;
 
   void setText(const std::string &text);
 
   void setImage(CImagePtr image);
 
-  std::string iexec(const std::vector<std::string> &args) override;
-
-  void invoke();
   void flash();
 
- private slots:
-  void runCommandSlot();
+ private Q_SLOTS:
+  void clickSlot();
 
  private:
   QPushButton* qbutton_ { nullptr };
-  std::string  command_;
 };
 
 //---
@@ -220,6 +233,8 @@ class CTkCanvas : public CTkWidget {
   const char *getClassName() const override { return "Canvas"; }
 
   bool notifyValueChanged(const std::string &name, const std::string &value) override;
+
+  std::string iexec(const std::vector<std::string> &args) override;
 
  private:
   QWidget* qcanvas_ { nullptr };
@@ -242,6 +257,8 @@ class CTkCheckButton : public CTkWidget {
 
   bool notifyValueChanged(const std::string &name, const std::string &value) override;
 
+  std::string iexec(const std::vector<std::string> &args) override;
+
   void setText(const std::string &text);
 
  private:
@@ -260,9 +277,11 @@ class CTkEntry : public CTkWidget {
 
   bool notifyValueChanged(const std::string &name, const std::string &value) override;
 
+  std::string iexec(const std::vector<std::string> &args) override;
+
   void setText(const std::string &text);
 
- private slots:
+ private Q_SLOTS:
   void valueChangedSlot();
 
  private:
@@ -280,6 +299,8 @@ class CTkFrame : public CTkWidget {
 
   bool notifyValueChanged(const std::string &name, const std::string &value) override;
 
+  std::string iexec(const std::vector<std::string> &args) override;
+
  private:
   QFrame* qframe_ { nullptr };
 };
@@ -293,6 +314,8 @@ class CTkLabel : public CTkWidget {
   const char *getClassName() const override { return "Label"; }
 
   bool notifyValueChanged(const std::string &name, const std::string &value) override;
+
+  std::string iexec(const std::vector<std::string> &args) override;
 
   void setText(const std::string &text);
 
@@ -312,6 +335,8 @@ class CTkLabelFrame : public CTkWidget {
 
   bool notifyValueChanged(const std::string &name, const std::string &value) override;
 
+  std::string iexec(const std::vector<std::string> &args) override;
+
   void setText(const std::string &text);
 
  private:
@@ -327,6 +352,8 @@ class CTkListBox : public CTkWidget {
   const char *getClassName() const override { return "ListBox"; }
 
   bool notifyValueChanged(const std::string &name, const std::string &value) override;
+
+  std::string iexec(const std::vector<std::string> &args) override;
 
  private:
   QListWidget* qlist_ { nullptr };
@@ -366,7 +393,7 @@ class CTkMenuButton : public CTkWidget {
 
   bool notifyValueChanged(const std::string &name, const std::string &value) override;
 
-  void setCommand(const std::string &text);
+  std::string iexec(const std::vector<std::string> &args) override;
 
   void setText(const std::string &text);
 
@@ -374,16 +401,11 @@ class CTkMenuButton : public CTkWidget {
 
   void setMenu(CTkMenu *menu);
 
-  std::string iexec(const std::vector<std::string> &args) override;
-
-  void invoke();
-
- private slots:
-  void runCommandSlot();
+ private Q_SLOTS:
+  void clickSlot();
 
  private:
   QToolButton* qbutton_ { nullptr };
-  std::string  command_;
 };
 
 //---
@@ -397,6 +419,8 @@ class CTkMessage : public CTkWidget {
   const char *getClassName() const override { return "Message"; }
 
   bool notifyValueChanged(const std::string &name, const std::string &value) override;
+
+  std::string iexec(const std::vector<std::string> &args) override;
 
   void setText(const std::string &text);
 
@@ -431,6 +455,8 @@ class CTkRadioButton : public CTkWidget {
 
   bool notifyValueChanged(const std::string &name, const std::string &value) override;
 
+  std::string iexec(const std::vector<std::string> &args) override;
+
   void setText(const std::string &text);
 
  private:
@@ -447,6 +473,8 @@ class CTkScale : public CTkWidget {
 
   bool notifyValueChanged(const std::string &name, const std::string &value) override;
 
+  std::string iexec(const std::vector<std::string> &args) override;
+
   void setText(const std::string &text);
 
  private:
@@ -456,12 +484,19 @@ class CTkScale : public CTkWidget {
 //---
 
 class CTkScrollBar : public CTkWidget {
+  Q_OBJECT
+
  public:
   CTkScrollBar(CTkApp *tk, CTkWidget *parent=nullptr, const std::string &name="");
 
   const char *getClassName() const override { return "ScrollBar"; }
 
   bool notifyValueChanged(const std::string &name, const std::string &value) override;
+
+  std::string iexec(const std::vector<std::string> &args) override;
+
+ private Q_SLOTS:
+  void scrollSlot(int);
 
  private:
   QScrollBar* qscrollbar_ { nullptr };
@@ -477,6 +512,8 @@ class CTkSpinBox : public CTkWidget {
 
   bool notifyValueChanged(const std::string &name, const std::string &value) override;
 
+  std::string iexec(const std::vector<std::string> &args) override;
+
  private:
   QSpinBox* qspin_ { nullptr };
 };
@@ -491,10 +528,14 @@ class CTkText : public CTkWidget {
 
   bool notifyValueChanged(const std::string &name, const std::string &value) override;
 
+  std::string iexec(const std::vector<std::string> &args) override;
+
   void setText(const std::string &text);
 
  private:
-  QTextEdit* qtext_ { nullptr };
+  QTextEdit*  qtext_ { nullptr };
+  std::string xScrollCommand_;
+  std::string yScrollCommand_;
 };
 
 //---
@@ -506,6 +547,8 @@ class CTkTopLevel : public CTkWidget {
   const char *getClassName() const override { return "TopLevel"; }
 
   bool notifyValueChanged(const std::string &name, const std::string &value) override;
+
+  std::string iexec(const std::vector<std::string> &args) override;
 
  private:
   QFrame* qframe_ { nullptr };

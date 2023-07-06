@@ -1,22 +1,23 @@
+#include <CTkAppGridLayout.h>
 #include <CTkAppLayout.h>
 
-CTkGridLayout::
-CTkGridLayout(QWidget *parent, int margin, int spacing) :
+CTkAppGridLayout::
+CTkAppGridLayout(QWidget *parent, int margin, int spacing) :
  QLayout(parent)
 {
   setMargin(margin);
   setSpacing(spacing);
 }
 
-CTkGridLayout::
-CTkGridLayout(int spacing) :
+CTkAppGridLayout::
+CTkAppGridLayout(int spacing) :
  QLayout(nullptr)
 {
   setSpacing(spacing);
 }
 
-CTkGridLayout::
-~CTkGridLayout()
+CTkAppGridLayout::
+~CTkAppGridLayout()
 {
   QLayoutItem *l;
 
@@ -25,14 +26,14 @@ CTkGridLayout::
 }
 
 void
-CTkGridLayout::
+CTkAppGridLayout::
 addItem(QLayoutItem *item)
 {
   add(item, Info());
 }
 
 void
-CTkGridLayout::
+CTkAppGridLayout::
 addWidgets(const std::vector<CTkWidget *> &widgets, const Info &info)
 {
   Info info1 = info;
@@ -68,7 +69,7 @@ addWidgets(const std::vector<CTkWidget *> &widgets, const Info &info)
 }
 
 void
-CTkGridLayout::
+CTkAppGridLayout::
 addWidget(CTkWidget *widget, const Info &info)
 {
   auto *wrapper = getItem(widget);
@@ -79,8 +80,8 @@ addWidget(CTkWidget *widget, const Info &info)
     wrapper->info.update(info);
 }
 
-CTkGridLayout::ItemWrapper *
-CTkGridLayout::
+CTkAppGridLayout::ItemWrapper *
+CTkAppGridLayout::
 getItem(CTkWidget *widget) const
 {
   for (int i = 0; i < list_.size(); ++i) {
@@ -99,7 +100,7 @@ getItem(CTkWidget *widget) const
 }
 
 bool
-CTkGridLayout::
+CTkAppGridLayout::
 getChildInfo(CTkWidget *widget, Info &info)
 {
   auto *wrapper = getItem(widget);
@@ -111,7 +112,7 @@ getChildInfo(CTkWidget *widget, Info &info)
 }
 
 bool
-CTkGridLayout::
+CTkAppGridLayout::
 setChildWeight(CTkWidget *widget, int weight)
 {
   auto *wrapper = getItem(widget);
@@ -123,28 +124,28 @@ setChildWeight(CTkWidget *widget, int weight)
 }
 
 void
-CTkGridLayout::
+CTkAppGridLayout::
 setColumnWeight(int col, int weight)
 {
   colWeights_[col] = weight;
 }
 
 void
-CTkGridLayout::
+CTkAppGridLayout::
 setRowWeight(int col, int weight)
 {
   rowWeights_[col] = weight;
 }
 
 Qt::Orientations
-CTkGridLayout::
+CTkAppGridLayout::
 expandingDirections() const
 {
   return Qt::Horizontal | Qt::Vertical;
 }
 
 bool
-CTkGridLayout::
+CTkAppGridLayout::
 hasHeightForWidth() const
 {
   // preferred height depends on width
@@ -152,14 +153,14 @@ hasHeightForWidth() const
 }
 
 int
-CTkGridLayout::
+CTkAppGridLayout::
 count() const
 {
   return list_.size();
 }
 
 QLayoutItem *
-CTkGridLayout::itemAt(int index) const
+CTkAppGridLayout::itemAt(int index) const
 {
   auto *wrapper = list_.value(index);
   if (! wrapper) return nullptr;
@@ -168,14 +169,14 @@ CTkGridLayout::itemAt(int index) const
 }
 
 QSize
-CTkGridLayout::
+CTkAppGridLayout::
 minimumSize() const
 {
   return calculateSize(MinimumSize);
 }
 
 void
-CTkGridLayout::
+CTkAppGridLayout::
 setGeometry(const QRect &rect)
 {
   int num_rows = 0;
@@ -253,14 +254,14 @@ setGeometry(const QRect &rect)
 }
 
 QSize
-CTkGridLayout::
+CTkAppGridLayout::
 sizeHint() const
 {
   return calculateSize(SizeHint);
 }
 
 QLayoutItem *
-CTkGridLayout::
+CTkAppGridLayout::
 takeAt(int index)
 {
   if (index >= 0 && index < list_.size()) {
@@ -273,14 +274,14 @@ takeAt(int index)
 }
 
 void
-CTkGridLayout::
+CTkAppGridLayout::
 add(QLayoutItem *item, const Info &info)
 {
   list_.append(new ItemWrapper(item, info));
 }
 
 QSize
-CTkGridLayout::
+CTkAppGridLayout::
 calculateSize(SizeType sizeType) const
 {
   using SizeMap = std::map<int, int>;

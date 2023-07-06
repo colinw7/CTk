@@ -1,5 +1,8 @@
 #include <CTkAppWidget.h>
 #include <CTkApp.h>
+#include <CTkAppPackLayout.h>
+#include <CTkAppPlaceLayout.h>
+#include <CTkAppGridLayout.h>
 #include <CTkAppLayout.h>
 #include <CTkAppImage.h>
 
@@ -9,7 +12,6 @@
 #include <CRGBName.h>
 
 #include <QCheckBox>
-#include <QFrame>
 #include <QGroupBox>
 #include <QLabel>
 #include <QLineEdit>
@@ -40,19 +42,19 @@ QColor stringToQColor(const std::string &str) {
 
 //---
 
-CTkRootWidget::
-CTkRootWidget(CTkApp *tk) :
+CTkAppRoot::
+CTkAppRoot(CTkApp *tk) :
  CTkWidget(tk, nullptr, "")
 {
-  qframe_ = new QFrame(nullptr);
+  qframe_ = new CTkRootWidget(nullptr);
 
-  qframe_->resize(1, 1);
+  qframe_->resize(qframe_->sizeHint());
 
   setQWidget(qframe_);
 }
 
 bool
-CTkRootWidget::
+CTkAppRoot::
 notifyValueChanged(const std::string &name, const std::string &value)
 {
   if      (name == "-background") {
@@ -72,8 +74,15 @@ notifyValueChanged(const std::string &name, const std::string &value)
   return true;
 }
 
+std::string
+CTkAppRoot::
+iexec(const std::vector<std::string> &args)
+{
+  return CTkWidget::iexec(args);
+}
+
 bool
-CTkRootWidget::
+CTkAppRoot::
 decodeWidgetName(const std::string &name, CTkWidget **parent, std::string &childName) const
 {
   uint len = name.size();
@@ -83,14 +92,14 @@ decodeWidgetName(const std::string &name, CTkWidget **parent, std::string &child
   if (name[0] != '.') return false;
 
   if (len == 1) {
-    *parent = const_cast<CTkRootWidget *>(this);
+    *parent = const_cast<CTkAppRoot *>(this);
 
     childName = "";
 
     return true;
   }
 
-  CTkWidget* parent1 = const_cast<CTkRootWidget *>(this);
+  CTkWidget* parent1 = const_cast<CTkAppRoot *>(this);
   CTkWidget* child1  = nullptr;
 
   uint pos1 = 1;
@@ -132,6 +141,21 @@ decodeWidgetName(const std::string &name, CTkWidget **parent, std::string &child
   return true;
 }
 
+//---
+
+CTkRootWidget::
+CTkRootWidget(QWidget *parent) :
+ QFrame(parent)
+{
+}
+
+QSize
+CTkRootWidget::
+sizeHint() const
+{
+  return QSize(400, 400);
+}
+
 //----------
 
 CTkButton::
@@ -145,7 +169,7 @@ CTkButton(CTkApp *tk, CTkWidget *parent, const std::string &name) :
 
   setQWidget(qbutton_);
 
-  connect(qbutton_, SIGNAL(clicked()), this, SLOT(runCommandSlot()));
+  connect(qbutton_, SIGNAL(clicked()), this, SLOT(clickSlot()));
 }
 
 bool
@@ -168,11 +192,20 @@ notifyValueChanged(const std::string &name, const std::string &value)
   return true;
 }
 
-void
+std::string
 CTkButton::
-setCommand(const std::string &command)
+iexec(const std::vector<std::string> &args)
 {
-  command_ = command;
+  const auto &arg = args[0];
+
+  if      (arg == "invoke")
+    runCommand();
+  else if (arg == "flash")
+    flash();
+  else
+    return CTkWidget::iexec(args);
+
+  return std::string();
 }
 
 void
@@ -195,35 +228,11 @@ setImage(CImagePtr image)
   qbutton_->setIcon(QIcon(pixmap));
 }
 
-std::string
-CTkButton::
-iexec(const std::vector<std::string> &args)
-{
-  const auto &arg = args[0];
-
-  if      (arg == "invoke")
-    invoke();
-  else if (arg == "flash")
-    flash();
-  else
-    return CTkWidget::iexec(args);
-
-  return std::string();
-}
-
 void
 CTkButton::
-runCommandSlot()
+clickSlot()
 {
-  invoke();
-}
-
-void
-CTkButton::
-invoke()
-{
-  if (command_ != "")
-    tk_->eval(command_);
+  runCommand();
 }
 
 void
@@ -255,6 +264,15 @@ notifyValueChanged(const std::string &name, const std::string &value)
 {
   return CTkWidget::notifyValueChanged(name, value);
 }
+
+std::string
+CTkCanvas::
+iexec(const std::vector<std::string> &args)
+{
+  return CTkWidget::iexec(args);
+}
+
+//---
 
 CTkCanvasWidget::
 CTkCanvasWidget(QWidget *parent) :
@@ -293,6 +311,13 @@ notifyValueChanged(const std::string &name, const std::string &value)
     return CTkWidget::notifyValueChanged(name, value);
 
   return true;
+}
+
+std::string
+CTkCheckButton::
+iexec(const std::vector<std::string> &args)
+{
+  return CTkWidget::iexec(args);
 }
 
 void
@@ -352,6 +377,13 @@ notifyValueChanged(const std::string &name, const std::string &value)
     return CTkWidget::notifyValueChanged(name, value);
 
   return true;
+}
+
+std::string
+CTkEntry::
+iexec(const std::vector<std::string> &args)
+{
+  return CTkWidget::iexec(args);
 }
 
 void
@@ -429,6 +461,13 @@ notifyValueChanged(const std::string &name, const std::string &value)
   return true;
 }
 
+std::string
+CTkFrame::
+iexec(const std::vector<std::string> &args)
+{
+  return CTkWidget::iexec(args);
+}
+
 //----------
 
 CTkLabel::
@@ -459,6 +498,13 @@ notifyValueChanged(const std::string &name, const std::string &value)
     return CTkWidget::notifyValueChanged(name, value);
 
   return true;
+}
+
+std::string
+CTkLabel::
+iexec(const std::vector<std::string> &args)
+{
+  return CTkWidget::iexec(args);
 }
 
 void
@@ -507,6 +553,13 @@ notifyValueChanged(const std::string &name, const std::string &value)
   return true;
 }
 
+std::string
+CTkLabelFrame::
+iexec(const std::vector<std::string> &args)
+{
+  return CTkWidget::iexec(args);
+}
+
 void
 CTkLabelFrame::
 setText(const std::string &text)
@@ -533,6 +586,13 @@ CTkListBox::
 notifyValueChanged(const std::string &name, const std::string &value)
 {
   return CTkWidget::notifyValueChanged(name, value);
+}
+
+std::string
+CTkListBox::
+iexec(const std::vector<std::string> &args)
+{
+  return CTkWidget::iexec(args);
 }
 
 //----------
@@ -645,7 +705,7 @@ CTkMenuButton(CTkApp *tk, CTkWidget *parent, const std::string &name) :
 
   setQWidget(qbutton_);
 
-  connect(qbutton_, SIGNAL(clicked()), this, SLOT(runCommandSlot()));
+  connect(qbutton_, SIGNAL(clicked()), this, SLOT(clickSlot()));
 }
 
 bool
@@ -668,11 +728,18 @@ notifyValueChanged(const std::string &name, const std::string &value)
   return true;
 }
 
-void
+std::string
 CTkMenuButton::
-setCommand(const std::string &command)
+iexec(const std::vector<std::string> &args)
 {
-  command_ = command;
+  const auto &arg = args[0];
+
+  if (arg == "invoke")
+    runCommand();
+  else
+    return CTkWidget::iexec(args);
+
+  return std::string();
 }
 
 void
@@ -704,33 +771,11 @@ setMenu(CTkMenu *menu)
   qbutton_->setMenu(qobject_cast<QMenu *>(menu->getQWidget()));
 }
 
-std::string
-CTkMenuButton::
-iexec(const std::vector<std::string> &args)
-{
-  const auto &arg = args[0];
-
-  if (arg == "invoke")
-    invoke();
-  else
-    return CTkWidget::iexec(args);
-
-  return std::string();
-}
-
 void
 CTkMenuButton::
-runCommandSlot()
+clickSlot()
 {
-  invoke();
-}
-
-void
-CTkMenuButton::
-invoke()
-{
-  if (command_ != "")
-    tk_->eval(command_);
+  runCommand();
 }
 
 //----------
@@ -813,6 +858,13 @@ notifyValueChanged(const std::string &name, const std::string &value)
   return true;
 }
 
+std::string
+CTkMessage::
+iexec(const std::vector<std::string> &args)
+{
+  return CTkWidget::iexec(args);
+}
+
 void
 CTkMessage::
 setText(const std::string &text)
@@ -840,7 +892,7 @@ bool
 CTkPanedWindow::
 notifyValueChanged(const std::string &name, const std::string &value)
 {
-  if (name == "-orient") {
+  if      (name == "-orient") {
     static CStrMap<Qt::Orientation, int> orientMap(
       "horizontal", Qt::Horizontal,
       "vertical"  , Qt::Vertical  ,
@@ -852,6 +904,15 @@ notifyValueChanged(const std::string &name, const std::string &value)
 
     if (rc)
       qpane_->setOrientation(orient);
+  }
+  else if (name == "-showhandle") {
+    // TODO
+  }
+  else if (name == "-padx") {
+    // TODO
+  }
+  else if (name == "-pady") {
+    // TODO
   }
   else
     return CTkWidget::notifyValueChanged(name, value);
@@ -904,14 +965,12 @@ iexec(const std::vector<std::string> &args)
             return std::string();
           }
 
-          std::string value = args[i];
+          int pad;
 
-          int i;
+          if (CStrUtil::toInteger(args[i], &pad))
+            padx = pad;
 
-          if (CStrUtil::toInteger(value, &i))
-            padx = i;
-
-          std::cerr << "padx " << padx << " not supported" << std::endl;
+          std::cerr << "padx " << padx << " not supported\n";
         }
         else if (name == "-pady") {
           ++i;
@@ -921,14 +980,12 @@ iexec(const std::vector<std::string> &args)
             return std::string();
           }
 
-          std::string value = args[i];
+          int pad;
 
-          int i;
+          if (CStrUtil::toInteger(args[i], &pad))
+            pady = pad;
 
-          if (CStrUtil::toInteger(value, &i))
-            pady = i;
-
-          std::cerr << "pady " << pady << " not supported" << std::endl;
+          std::cerr << "pady " << pady << " not supported\n";
         }
       }
       else {
@@ -992,6 +1049,13 @@ notifyValueChanged(const std::string &name, const std::string &value)
   return true;
 }
 
+std::string
+CTkRadioButton::
+iexec(const std::vector<std::string> &args)
+{
+  return CTkWidget::iexec(args);
+}
+
 void
 CTkRadioButton::
 setText(const std::string &text)
@@ -1025,6 +1089,13 @@ notifyValueChanged(const std::string &name, const std::string &value)
   return true;
 }
 
+std::string
+CTkScale::
+iexec(const std::vector<std::string> &args)
+{
+  return CTkWidget::iexec(args);
+}
+
 void
 CTkScale::
 setText(const std::string &)
@@ -1043,6 +1114,8 @@ CTkScrollBar(CTkApp *tk, CTkWidget *parent, const std::string &name) :
   else
     qscrollbar_ = new QScrollBar(nullptr);
 
+  connect(qscrollbar_, SIGNAL(valueChanged(int)), this, SLOT(scrollSlot(int)));
+
   setQWidget(qscrollbar_);
 }
 
@@ -1050,7 +1123,7 @@ bool
 CTkScrollBar::
 notifyValueChanged(const std::string &name, const std::string &value)
 {
-  if (name == "-orient") {
+  if      (name == "-orient") {
     static CStrMap<Qt::Orientation, int> orientMap(
       "horizontal", Qt::Horizontal,
       "vertical"  , Qt::Vertical  ,
@@ -1063,10 +1136,27 @@ notifyValueChanged(const std::string &name, const std::string &value)
     if (rc)
       qscrollbar_->setOrientation(orient);
   }
+  else if (name == "-command") {
+    setCommand(value);
+  }
   else
     return CTkWidget::notifyValueChanged(name, value);
 
   return true;
+}
+
+std::string
+CTkScrollBar::
+iexec(const std::vector<std::string> &args)
+{
+  return CTkWidget::iexec(args);
+}
+
+void
+CTkScrollBar::
+scrollSlot(int)
+{
+  runCommand();
 }
 
 //----------
@@ -1092,6 +1182,13 @@ notifyValueChanged(const std::string &name, const std::string &value)
   return CTkWidget::notifyValueChanged(name, value);
 }
 
+std::string
+CTkSpinBox::
+iexec(const std::vector<std::string> &args)
+{
+  return CTkWidget::iexec(args);
+}
+
 //----------
 
 CTkText::
@@ -1112,12 +1209,43 @@ bool
 CTkText::
 notifyValueChanged(const std::string &name, const std::string &value)
 {
-  if (name == "-text")
+  if      (name == "-text") {
     setText(value);
+  }
+  else if (name == "-wrap") {
+    // TODO
+  }
+  else if (name == "-xscrollcommand") {
+    xScrollCommand_ = value;
+  }
+  else if (name == "-yscrollcommand") {
+    yScrollCommand_ = value;
+  }
+  else if (name == "-command") {
+    setCommand(value);
+  }
   else
     return CTkWidget::notifyValueChanged(name, value);
 
   return true;
+}
+
+std::string
+CTkText::
+iexec(const std::vector<std::string> &args)
+{
+  const auto &arg = args[0];
+
+  if      (arg == "xview") {
+    // TODO
+  }
+  else if (arg == "yview") {
+    // TODO
+  }
+  else
+    return CTkWidget::iexec(args);
+
+  return std::string();
 }
 
 void
@@ -1145,6 +1273,13 @@ notifyValueChanged(const std::string &name, const std::string &value)
   return CTkWidget::notifyValueChanged(name, value);
 }
 
+std::string
+CTkTopLevel::
+iexec(const std::vector<std::string> &args)
+{
+  return CTkWidget::iexec(args);
+}
+
 //----------
 
 CTkWidget::
@@ -1168,11 +1303,11 @@ CTkWidget::
   delete qwidget_;
 }
 
-CTkRootWidget *
+CTkAppRoot *
 CTkWidget::
 root() const
 {
-  return tk_->getRootWidget();
+  return tk_->root();
 }
 
 std::string
@@ -1317,7 +1452,7 @@ raise()
   w->raise();
 }
 
-CTkPackLayout *
+CTkAppPackLayout *
 CTkWidget::
 getTkPackLayout()
 {
@@ -1326,15 +1461,15 @@ getTkPackLayout()
 
   QLayout *l = w->layout();
 
-  auto *l1 = qobject_cast<CTkPackLayout *>(l);
+  auto *l1 = qobject_cast<CTkAppPackLayout *>(l);
 
   if (! l1)
-    l1 = new CTkPackLayout(w);
+    l1 = new CTkAppPackLayout(w);
 
   return l1;
 }
 
-CTkGridLayout *
+CTkAppGridLayout *
 CTkWidget::
 getTkGridLayout()
 {
@@ -1343,15 +1478,15 @@ getTkGridLayout()
 
   QLayout *l = w->layout();
 
-  auto *l1 = qobject_cast<CTkGridLayout *>(l);
+  auto *l1 = qobject_cast<CTkAppGridLayout *>(l);
 
   if (! l1)
-    l1 = new CTkGridLayout(w);
+    l1 = new CTkAppGridLayout(w);
 
   return l1;
 }
 
-CTkPlaceLayout *
+CTkAppPlaceLayout *
 CTkWidget::
 getTkPlaceLayout()
 {
@@ -1360,10 +1495,10 @@ getTkPlaceLayout()
 
   QLayout *l = w->layout();
 
-  auto *l1 = qobject_cast<CTkPlaceLayout *>(l);
+  auto *l1 = qobject_cast<CTkAppPlaceLayout *>(l);
 
   if (! l1)
-    l1 = new CTkPlaceLayout(w);
+    l1 = new CTkAppPlaceLayout(w);
 
   return l1;
 }
@@ -1400,8 +1535,12 @@ notifyValueChanged(const std::string &name, const std::string &value)
 
     CQUtil::setForeground(qwidget_, c);
   }
+  else if (name == "-font") {
+    // TODO
+  }
   else
-    return tk_->throwError("Invalid value name \"" + name + "\"");
+    return tk_->throwError("Invalid value name \"" + name + "\" "
+                           "for " + std::string(getClassName()));
 
   return true;
 }
@@ -1605,6 +1744,14 @@ deleteLater()
   deleted_ = true;
 
   tk_->addDeleteWidget(this);
+}
+
+void
+CTkWidget::
+runCommand()
+{
+  if (getCommand() != "")
+    tk_->eval(getCommand());
 }
 
 //----------

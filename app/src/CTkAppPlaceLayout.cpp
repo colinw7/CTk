@@ -1,22 +1,23 @@
+#include <CTkAppPlaceLayout.h>
 #include <CTkAppLayout.h>
 
-CTkPlaceLayout::
-CTkPlaceLayout(QWidget *parent, int margin, int spacing) :
+CTkAppPlaceLayout::
+CTkAppPlaceLayout(QWidget *parent, int margin, int spacing) :
  QLayout(parent)
 {
   setMargin(margin);
   setSpacing(spacing);
 }
 
-CTkPlaceLayout::
-CTkPlaceLayout(int spacing) :
+CTkAppPlaceLayout::
+CTkAppPlaceLayout(int spacing) :
  QLayout(NULL)
 {
   setSpacing(spacing);
 }
 
-CTkPlaceLayout::
-~CTkPlaceLayout()
+CTkAppPlaceLayout::
+~CTkAppPlaceLayout()
 {
   QLayoutItem *l;
 
@@ -25,14 +26,14 @@ CTkPlaceLayout::
 }
 
 void
-CTkPlaceLayout::
+CTkAppPlaceLayout::
 addItem(QLayoutItem *item)
 {
   add(item, Info());
 }
 
 void
-CTkPlaceLayout::
+CTkAppPlaceLayout::
 addWidgets(const std::vector<CTkWidget *> &widgets, const Info &info)
 {
   auto num = widgets.size();
@@ -42,7 +43,7 @@ addWidgets(const std::vector<CTkWidget *> &widgets, const Info &info)
 }
 
 void
-CTkPlaceLayout::
+CTkAppPlaceLayout::
 addWidget(CTkWidget *widget, const Info &info)
 {
   ItemWrapper *wrapper = getItem(widget);
@@ -53,8 +54,8 @@ addWidget(CTkWidget *widget, const Info &info)
     wrapper->info.update(info);
 }
 
-CTkPlaceLayout::ItemWrapper *
-CTkPlaceLayout::
+CTkAppPlaceLayout::ItemWrapper *
+CTkAppPlaceLayout::
 getItem(CTkWidget *widget) const
 {
   for (int i = 0; i < list_.size(); ++i) {
@@ -74,7 +75,7 @@ getItem(CTkWidget *widget) const
 }
 
 bool
-CTkPlaceLayout::
+CTkAppPlaceLayout::
 getChildInfo(CTkWidget *widget, Info &info)
 {
   ItemWrapper *wrapper = getItem(widget);
@@ -87,14 +88,14 @@ getChildInfo(CTkWidget *widget, Info &info)
 }
 
 Qt::Orientations
-CTkPlaceLayout::
+CTkAppPlaceLayout::
 expandingDirections() const
 {
   return Qt::Horizontal | Qt::Vertical;
 }
 
 bool
-CTkPlaceLayout::
+CTkAppPlaceLayout::
 hasHeightForWidth() const
 {
   // preferred height depends on width
@@ -102,14 +103,14 @@ hasHeightForWidth() const
 }
 
 int
-CTkPlaceLayout::
+CTkAppPlaceLayout::
 count() const
 {
   return list_.size();
 }
 
 QLayoutItem *
-CTkPlaceLayout::itemAt(int index) const
+CTkAppPlaceLayout::itemAt(int index) const
 {
   ItemWrapper *wrapper = list_.value(index);
 
@@ -120,14 +121,14 @@ CTkPlaceLayout::itemAt(int index) const
 }
 
 QSize
-CTkPlaceLayout::
+CTkAppPlaceLayout::
 minimumSize() const
 {
   return calculateSize(MinimumSize);
 }
 
 void
-CTkPlaceLayout::
+CTkAppPlaceLayout::
 setGeometry(const QRect &rect)
 {
   QLayout::setGeometry(rect);
@@ -151,14 +152,14 @@ setGeometry(const QRect &rect)
 }
 
 QSize
-CTkPlaceLayout::
+CTkAppPlaceLayout::
 sizeHint() const
 {
   return calculateSize(SizeHint);
 }
 
 QLayoutItem *
-CTkPlaceLayout::
+CTkAppPlaceLayout::
 takeAt(int index)
 {
   if (index >= 0 && index < list_.size()) {
@@ -171,14 +172,14 @@ takeAt(int index)
 }
 
 void
-CTkPlaceLayout::
+CTkAppPlaceLayout::
 add(QLayoutItem *item, const Info &info)
 {
   list_.append(new ItemWrapper(item, info));
 }
 
 QSize
-CTkPlaceLayout::
+CTkAppPlaceLayout::
 calculateSize(SizeType sizeType) const
 {
   int w = 0;
