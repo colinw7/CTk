@@ -1,5 +1,6 @@
 #include <CTkAppPackLayout.h>
 #include <CTkAppLayout.h>
+#include <CTkAppWidget.h>
 #include <CTkApp.h>
 #include <QWidget>
 
@@ -47,6 +48,9 @@ void
 CTkAppPackLayout::
 addWidget(CTkWidget *widget, const Info &info)
 {
+  if (widget->getQWidget()->parentWidget() != parentWidget())
+    widget->getQWidget()->setParent(parentWidget());
+
   add(new CTkLayoutWidget(widget), info);
 }
 

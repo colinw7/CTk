@@ -3,6 +3,8 @@
 #include <CTkAppImage.h>
 #include <CTkAppCommands.h>
 
+#include <CImageLib.h>
+
 #include <QApplication>
 #include <QMouseEvent>
 #include <QKeyEvent>
@@ -193,6 +195,15 @@ getImage(const std::string &name) const
   return (*p).second;
 }
 
+CImagePtr
+CTkApp::
+loadImage(const std::string &name) const
+{
+  CImageFileSrc src(name);
+
+  return CImageMgrInst->createImage(src);
+}
+
 //---
 
 void
@@ -369,6 +380,15 @@ CTkApp::
 throwError(const std::string &msg) const
 {
   std::cerr << msg << "\n";
+
+  return false;
+}
+
+bool
+CTkApp::
+TODO(const std::string &msg) const
+{
+  std::cerr << "TODO: " << msg << "\n";
 
   return false;
 }

@@ -225,8 +225,10 @@ setGeometry(const QRect &rect)
     int ipadx = wrapper->info.getIPadX();
     int ipady = wrapper->info.getIPadY();
 
-    int wh = item->sizeHint().width () + 2*ipadx;
-    int hh = item->sizeHint().height() + 2*ipady;
+    auto itemSize = item->sizeHint();
+
+    int wh = itemSize.width () + 2*ipadx;
+    int hh = itemSize.height() + 2*ipady;
 
     int cw = cws[size_t(col)];
     int rh = rhs[size_t(row)];
@@ -236,18 +238,18 @@ setGeometry(const QRect &rect)
 
     int dx = 0, dy = 0;
 
-    if      (sides & STICKY_W && sides & STICKY_E) dx = 0;
-    else if (sides & STICKY_W                    ) dx = 0;
-    else if (sides & STICKY_E                    ) dx = cw - wh - 2*padx;
-    else                                           dx = (cw - wh - 2*padx)/2;
+    if      ((sides & STICKY_W) && (sides & STICKY_E)) dx = 0;
+    else if ((sides & STICKY_W)                      ) dx = 0;
+    else if ((sides & STICKY_E)                      ) dx = cw - wh - 2*padx;
+    else                                               dx = (cw - wh - 2*padx)/2;
 
-    if      (sides & STICKY_N && sides & STICKY_S) dy = 0;
-    else if (sides & STICKY_N                    ) dy = 0;
-    else if (sides & STICKY_S                    ) dy = rh - hh - 2*pady;
-    else                                           dy = (rh - hh - 2*pady)/2;
+    if      ((sides & STICKY_N) && (sides & STICKY_S)) dy = 0;
+    else if ((sides & STICKY_N)                      ) dy = 0;
+    else if ((sides & STICKY_S)                      ) dy = rh - hh - 2*pady;
+    else                                               dy = (rh - hh - 2*pady)/2;
 
-    int w = (sides & STICKY_W && sides & STICKY_E ? cw - 2*padx: wh);
-    int h = (sides & STICKY_N && sides & STICKY_S ? rh - 2*pady: hh);
+    int w = ((sides & STICKY_W) && (sides & STICKY_E) ? cw - 2*padx: wh);
+    int h = ((sides & STICKY_N) && (sides & STICKY_S) ? rh - 2*pady: hh);
 
     item->setGeometry(QRect(x1 + dx + padx, y1 + dy + pady, w, h));
   }

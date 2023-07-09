@@ -16,6 +16,7 @@
 
 #include <QApplication>
 #include <QClipboard>
+#include <QFontDatabase>
 
 class CTkAppCommand : public CTclAppCommand {
  public:
@@ -93,10 +94,10 @@ class CLASS : public CTkAppCommand { \
   CTkAppCommandDef("bindtags" , CTkAppBindTagsCmd)
   CTkAppCommandDef("clipboard", CTkAppClipBoardCmd);
   CTkAppCommandDef("destroy"  , CTkAppDestroyCmd);
-//CTkAppCommandDef("event"    , CTkAppEventCmd)
+  CTkAppCommandDef("event"    , CTkAppEventCmd)
   CTkAppCommandDef("focus"    , CTkAppFocusCmd)
-//CTkAppCommandDef("font"     , CTkAppFontCmd)
-//CTkAppCommandDef("grab"     , CTkAppGrabCmd)
+  CTkAppCommandDef("font"     , CTkAppFontCmd)
+  CTkAppCommandDef("grab"     , CTkAppGrabCmd)
   CTkAppCommandDef("grid"     , CTkAppGridCmd)
   CTkAppCommandDef("image"    , CTkAppImageCmd)
   CTkAppCommandDef("lower"    , CTkAppLowerCmd)
@@ -181,9 +182,12 @@ addCommands(CTkApp *tk)
   new CTkAppCanvasCmd     (tk);
   new CTkAppCheckButtonCmd(tk);
   new CTkAppDestroyCmd    (tk);
+  new CTkAppEventCmd      (tk);
   new CTkAppEntryCmd      (tk);
   new CTkAppFocusCmd      (tk);
+  new CTkAppFontCmd       (tk);
   new CTkAppFrameCmd      (tk);
+  new CTkAppGrabCmd       (tk);
   new CTkAppGridCmd       (tk);
   new CTkAppImageCmd      (tk);
   new CTkAppLabelCmd      (tk);
@@ -630,6 +634,21 @@ run(const Args &args)
 //---
 
 bool
+CTkAppEventCmd::
+run(const Args &args)
+{
+  uint numArgs = args.size();
+
+  if (numArgs < 1)
+    return tk_->wrongNumArgs("event option ?arg?");
+
+  // TODO
+  return false;
+}
+
+//---
+
+bool
 CTkAppEntryCmd::
 run(const Args &args)
 {
@@ -766,6 +785,71 @@ run(const Args &args)
 //---
 
 bool
+CTkAppFontCmd::
+run(const Args &args)
+{
+  uint numArgs = args.size();
+
+  if (numArgs == 0)
+    return tk_->wrongNumArgs("font option ?arg?");
+
+  auto option = args[0];
+
+  if      (option == "actual") {
+    // TODO
+  }
+  else if (option == "configure") {
+    // TODO
+  }
+  else if (option == "create") {
+    // TODO
+  }
+  else if (option == "delete") {
+    // TODO
+  }
+  else if (option == "families") {
+    QFontDatabase fdb;
+
+    std::vector<std::string> familyNames;
+
+    const auto families = fdb.families(QFontDatabase::Any);
+
+    for (const QString &family : families) {
+      if (fdb.isPrivateFamily(family)) continue;
+
+      //if (fdb.isSmoothlyScalable(family)) continue;
+      //if (fdb.isFixedPitch(family)) continue;
+
+      auto familyStr = family.toStdString();
+
+      //if (familyStr.find('[') != std::string::npos) continue;
+
+      familyNames.push_back(familyStr);
+    }
+
+    setStringArrayResult(familyNames);
+  }
+  else if (option == "measure") {
+    // TODO
+  }
+  else if (option == "metrics") {
+    // TODO
+  }
+  else if (option == "names") {
+    // TODO
+  }
+  else {
+    return tk_->throwError("bad option \"" + option + "\": must be "
+                           "actual, configure, create, delete, families, "
+                           "measure, metrics, or names");
+  }
+
+  return true;
+}
+
+//---
+
+bool
 CTkAppFrameCmd::
 run(const Args &args)
 {
@@ -825,6 +909,22 @@ run(const Args &args)
   cmd->processArgs(args);
 
   setStringResult(widgetName);
+
+  return true;
+}
+
+//---
+
+bool
+CTkAppGrabCmd::
+run(const Args &args)
+{
+  uint numArgs = args.size();
+
+  if (numArgs == 0)
+    return tk_->wrongNumArgs("grab ?-global? window\" or \"grab option ?arg ...?");
+
+  // TODO
 
   return true;
 }
@@ -1060,6 +1160,9 @@ run(const Args &args)
     if (p != optValues.end()) info.setIPadY((*p).second.i);
     }
 
+    if (! parent)
+      return false;
+
     auto *layout = parent->getTkGridLayout();
 
     layout->addWidgets(children, info);
@@ -1118,7 +1221,7 @@ run(const Args &args)
         image->loadFile(value);
       }
       else
-        return tk_->throwError("unknown option \"" + name + "\"");
+        return tk_->throwError("unknown image create option \"" + name + "\"");
     }
   }
   else if (name == "delete") {
@@ -1427,6 +1530,7 @@ run(const Args &args)
     { "-hidemargin"      , "hidemargin"      , "HideMargin" , ""              },
     { "-image"           , "image"           , "Image"      , ""              },
     { "-label"           , "label"           , "Label"      , ""              },
+    { "-tearoff"         , "tearoff"         , "TearOff"    , ""              },
     { "-state"           , "state"           , "State"      , "normal"        },
     { "-underline"       , "underline"       , "Underline"  , "-1"            },
     { nullptr            , nullptr           , nullptr      , nullptr         }
@@ -1718,8 +1822,8 @@ run(const Args &args)
     return true;
   }
   else {
-    CTkAppPackLayout::Side      side     = CTkAppPackLayout::SIDE_NONE;
-    CTkAppPackLayout::Fill      fill     = CTkAppPackLayout::FILL_NONE;
+    CTkAppPackLayout::Side   side     = CTkAppPackLayout::SIDE_NONE;
+    CTkAppPackLayout::Fill   fill     = CTkAppPackLayout::FILL_NONE;
     bool                     expand   = false;
     CTkWidget*               inparent = nullptr;
     int                      padx     = 0;
@@ -2988,9 +3092,9 @@ run(const Args &args)
         const CTkOpt *opt;
 
         if (! opts_.setOptValue(name, value, &opt))
-          return tk_->throwError("unknown option \"" + name + "\"");
+          return tk_->throwError("unknown config option \"" + name + "\"");
 
-        root()->notifyValueChanged(opt->name, value);
+        root()->execConfig(opt->name, value);
       }
     }
   }
@@ -3021,6 +3125,7 @@ run(const Args &args)
 
   const auto &arg = args[0];
 
+  // set config name/value
   if      (arg == "configure" || arg == "config") {
     // get all options
     if      (numArgs == 1) {
@@ -3043,12 +3148,13 @@ run(const Args &args)
         const auto &value = args[i + 1];
 
         if (! setOptValue(name, value))
-          return tk_->throwError("unknown option \"" + name + "\"");
+          return tk_->throwError("unknown config option \"" + name + "\"");
       }
     }
 
     return true;
   }
+  // get config name/value
   else if (arg == "cget") {
     if (numArgs != 2)
       return tk_->wrongNumArgs(getName() + " cget option");
@@ -3058,16 +3164,16 @@ run(const Args &args)
     std::string value;
 
     if (! getOptValue(name, value))
-      return tk_->throwError("unknown option \"" + name + "\"");
+      return tk_->throwError("unknown cget option \"" + name + "\"");
 
     setStringResult(value);
 
     return true;
   }
+  // apply operation
   else {
-    auto res = w_->iexec(args);
-
-    setStringResult(res);
+    if (! w_->execOp(args))
+      return false;
 
     return true;
   }
@@ -3122,7 +3228,7 @@ setOptValue(const std::string &name, const std::string &value)
   if (! opts_.setOptValue(name, value, &opt))
     return false;
 
-  w_->notifyValueChanged(opt->name, value);
+  w_->execConfig(opt->name, value);
 
   return true;
 }

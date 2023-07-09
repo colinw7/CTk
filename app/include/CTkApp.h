@@ -4,6 +4,7 @@
 #include <CTkAppOptionValue.h>
 
 #include <CTclApp.h>
+#include <CImagePtr.h>
 
 #include <memory>
 #include <vector>
@@ -53,6 +54,8 @@ class CTkApp : public CTclApp {
 
   CTkImageRef getImage(const std::string &name) const;
 
+  CImagePtr loadImage(const std::string &name) const;
+
   //---
 
   void bindEvent(const std::string &tagName, const std::string &pattern,
@@ -84,6 +87,8 @@ class CTkApp : public CTclApp {
   bool wrongNumArgs(const std::string &msg) const;
 
   bool throwError(const std::string &msg) const;
+
+  bool TODO(const std::string &msg="") const;
 
  protected:
   void addCommands() override;
