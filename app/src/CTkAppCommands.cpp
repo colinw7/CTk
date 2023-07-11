@@ -2973,6 +2973,9 @@ run(const Args &args)
       if (! CTkAppUtil::stringToInt(args[3], sh))
         return tk_->throwError("xpected integer but got \"" + args[3] + "\"");
 
+      sw = std::max(sw, 1L);
+      sh = std::max(sh, 1L);
+
       w->getQWidget()->setMinimumSize(QSize(sw, sh));
     }
 

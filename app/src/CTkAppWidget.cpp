@@ -15,6 +15,7 @@
 #include <CRGBName.h>
 #include <CScreenUnits.h>
 
+#include <QApplication>
 #include <QCheckBox>
 #include <QGroupBox>
 #include <QLineEdit>
@@ -23,7 +24,6 @@
 #include <QPushButton>
 #include <QRadioButton>
 #include <QScrollBar>
-#include <QSpinBox>
 #include <QSplitter>
 #include <QTextEdit>
 #include <QToolButton>
@@ -238,7 +238,12 @@ void
 CTkAppRoot::
 show()
 {
-  qframe_->resize(qframe_->sizeHint());
+  auto s = qframe_->sizeHint();
+
+  if (s.width() > 9999 || s.height() > 9999)
+    s = QSize(100, 100);
+
+  qframe_->resize(s.expandedTo(QApplication::globalStrut()));
 
   CTkWidget::show();
 }
@@ -581,10 +586,10 @@ execConfig(const std::string &name, const std::string &value)
       setChecked(b);
   }
   else if (name == "-tristatevalue") {
-    tk_->TODO();
+    tk_->TODO(name);
   }
   else if (name == "-anchor") {
-    tk_->TODO();
+    tk_->TODO(name);
   }
   else
     return CTkWidget::execConfig(name, value);
@@ -602,7 +607,7 @@ execOp(const Args &args)
     setChecked(false);
   }
   else if (arg == "flash") {
-    tk_->TODO();
+    tk_->TODO(arg);
   }
   else if (arg == "select") {
     setChecked(true);
@@ -718,6 +723,9 @@ execConfig(const std::string &name, const std::string &value)
     varProc_ = new CTkEntryVarProc(tk_, this);
 
     tk_->traceVar(varName_, varProc_);
+  }
+  else if (name == "-borderwidth" || name == "-bd") {
+    tk_->TODO(name);
   }
   else if (name == "-relief") {
     setFrameRelief(qedit_, value);
@@ -1108,7 +1116,7 @@ execConfig(const std::string &name, const std::string &value)
     setFrameRelief(qlist_, value);
   }
   else if (name == "-borderwidth" || name == "-bd") {
-    tk_->TODO();
+    tk_->TODO(name);
   }
   else if (name == "-xscrollcommand") {
     xScrollCommand_ = value;
@@ -1328,7 +1336,7 @@ CTkMenu::
 execConfig(const std::string &name, const std::string &value)
 {
   if (name == "-tearoff") {
-    tk_->TODO();
+    tk_->TODO(name);
   }
   else
     return CTkWidget::execConfig(name, value);
@@ -1385,7 +1393,7 @@ execOp(const Args &args)
           connect(check, SIGNAL(stateChanged(int)), this, SLOT(actionPressedSlot()));
         }
         else if (name == "-variable") {
-          tk_->TODO();
+          tk_->TODO(name);
         }
         else
           tk_->throwError("Invalid menu check option \"" + name + "\"");
@@ -1409,7 +1417,7 @@ execOp(const Args &args)
           connect(action, SIGNAL(triggered()), this, SLOT(actionPressedSlot()));
         }
         else if (name == "-variable") {
-          tk_->TODO();
+          tk_->TODO(name);
         }
         else
           tk_->throwError("Invalid menu command option \"" + name + "\"");
@@ -1560,7 +1568,7 @@ execConfig(const std::string &name, const std::string &value)
   }
   else if (name == "-width") {
     // width in characters for text or screen units for image
-    tk_->TODO();
+    tk_->TODO(name);
   }
   else if (name == "-menu") {
     menuName_ = value;
@@ -1690,7 +1698,7 @@ execConfig(const std::string &name, const std::string &value)
     setFrameRelief(qedit_, value);
   }
   else if (name == "-borderwidth" || name == "-bd") {
-    tk_->TODO();
+    tk_->TODO(name);
   }
   else if (name == "-padx") {
     int padx;
@@ -1705,10 +1713,10 @@ execConfig(const std::string &name, const std::string &value)
       setPadY(pady);
   }
   else if (name == "-justify") {
-    tk_->TODO();
+    tk_->TODO(name);
   }
   else if (name == "-aspect") {
-    tk_->TODO();
+    tk_->TODO(name);
   }
   else
     return CTkWidget::execConfig(name, value);
@@ -1759,7 +1767,7 @@ execConfig(const std::string &name, const std::string &value)
     qpane_->setOrientation(orient);
   }
   else if (name == "-showhandle") {
-    tk_->TODO();
+    tk_->TODO(name);
   }
   else if (name == "-padx") {
     int padx;
@@ -1865,25 +1873,25 @@ execOp(const Args &args)
     }
   }
   else if (arg == "forget") {
-    tk_->TODO();
+    tk_->TODO(arg);
   }
   else if (arg == "identify") {
-    tk_->TODO();
+    tk_->TODO(arg);
   }
   else if (arg == "panecget") {
-    tk_->TODO();
+    tk_->TODO(arg);
   }
   else if (arg == "paneconfigure") {
-    tk_->TODO();
+    tk_->TODO(arg);
   }
   else if (arg == "panes") {
-    tk_->TODO();
+    tk_->TODO(arg);
   }
   else if (arg == "proxy") {
-    tk_->TODO();
+    tk_->TODO(arg);
   }
   else if (arg == "sash") {
-    tk_->TODO();
+    tk_->TODO(arg);
   }
   else
     return CTkWidget::execOp(args);
@@ -1955,10 +1963,10 @@ execConfig(const std::string &name, const std::string &value)
     updateVariable();
   }
   else if (name == "-tristatevalue") {
-    tk_->TODO();
+    tk_->TODO(name);
   }
   else if (name == "-anchor") {
-    tk_->TODO();
+    tk_->TODO(name);
   }
   else
     return CTkWidget::execConfig(name, value);
@@ -1976,7 +1984,7 @@ execOp(const Args &args)
     setChecked(false);
   }
   else if (arg == "flash") {
-    tk_->TODO();
+    tk_->TODO(arg);
   }
   else if (arg == "select") {
     setChecked(true);
@@ -2372,9 +2380,9 @@ CTkSpinBox(CTkApp *tk, CTkWidget *parent, const std::string &name) :
  CTkWidget(tk, parent, name)
 {
   if (parent)
-    qspin_ = new QSpinBox(parent_->getQWidget());
+    qspin_ = new CTkSpinBoxWidget(parent_->getQWidget());
   else
-    qspin_ = new QSpinBox(nullptr);
+    qspin_ = new CTkSpinBoxWidget(nullptr);
 
   setQWidget(qspin_);
 
@@ -2385,7 +2393,38 @@ bool
 CTkSpinBox::
 execConfig(const std::string &name, const std::string &value)
 {
-  return CTkWidget::execConfig(name, value);
+  if      (name == "-textvariable") {
+    tk_->TODO(name);
+  }
+  else if (name == "-width") {
+    tk_->TODO(name);
+  }
+  else if (name == "-borderwidth" || name == "-bd") {
+    tk_->TODO(name);
+  }
+  else if (name == "-relief") {
+    tk_->TODO(name);
+  }
+  else if (name == "-state") {
+    tk_->TODO(name);
+  }
+  else if (name == "-values") {
+    std::vector<std::string> strs;
+
+    if (! tk_->splitList(value, strs))
+      return tk_->throwError("Invalid values \"" + value + "\"");
+
+    QStringList qstrs;
+
+    for (const auto &str : strs)
+      qstrs << QString::fromStdString(str);
+
+    qspin_->setStrings(qstrs);
+  }
+  else
+    return CTkWidget::execConfig(name, value);
+
+  return true;
 }
 
 bool
@@ -2419,7 +2458,7 @@ execConfig(const std::string &name, const std::string &value)
     setText(value);
   }
   else if (name == "-wrap") {
-    tk_->TODO();
+    tk_->TODO(name);
   }
   else if (name == "-command") {
     setCommand(value);
@@ -2443,10 +2482,10 @@ execOp(const Args &args)
   const auto &arg = args[0];
 
   if      (arg == "xview") {
-    tk_->TODO();
+    tk_->TODO(arg);
   }
   else if (arg == "yview") {
-    tk_->TODO();
+    tk_->TODO(arg);
   }
   else
     return CTkWidget::execOp(args);

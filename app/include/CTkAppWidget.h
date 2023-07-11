@@ -7,6 +7,7 @@
 #include <QWidgetAction>
 #include <QCheckBox>
 #include <QRadioButton>
+#include <QSpinBox>
 #include <QMenu>
 #include <QLabel>
 
@@ -27,7 +28,6 @@ class QLineEdit;
 class QGroupBox;
 class QListWidget;
 class QScrollBar;
-class QSpinBox;
 class QSplitter;
 class QTextEdit;
 class QToolButton;
@@ -760,6 +760,41 @@ class CTkScrollBar : public CTkWidget {
 
 //---
 
+class CTkSpinBoxWidget : public QSpinBox {
+  Q_OBJECT
+
+ public:
+  CTkSpinBoxWidget(QWidget *parent=nullptr) :
+   QSpinBox(parent) {
+  }
+
+  const QStringList &strings() const { return strings_; }
+
+  void setStrings(const QStringList &s) {
+    strings_ = s;
+
+    setRange(0, strings_.length() - 1);
+  }
+
+  QString textFromValue(int value) const override {
+    if (value < 0 || value >= strings_.length())
+      return "";
+
+    return strings_[value];
+  }
+
+  int valueFromText(const QString &text) const override {
+    for (int i = 0; i < strings_.length(); ++i)
+      if (strings_[i] == text)
+        return i;
+
+    return -1;
+  }
+
+ private:
+  QStringList strings_;
+};
+
 class CTkSpinBox : public CTkWidget {
   Q_OBJECT
 
@@ -773,7 +808,7 @@ class CTkSpinBox : public CTkWidget {
   bool execOp(const Args &args) override;
 
  private:
-  QSpinBox* qspin_ { nullptr };
+  CTkSpinBoxWidget* qspin_ { nullptr };
 };
 
 //---
