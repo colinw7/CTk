@@ -374,7 +374,7 @@ run(const Args &args)
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid name '" + widgetName + "'");
+    return tk_->throwError("Invalid widget name '" + widgetName + "'");
 
   auto *button = new CTkButton(tk_, parent, childName);
 
@@ -451,7 +451,7 @@ run(const Args &args)
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid name '" + widgetName + "'");
+    return tk_->throwError("Invalid widget name '" + widgetName + "'");
 
   auto *canvas = new CTkCanvas(tk_, parent, childName);
 
@@ -540,7 +540,7 @@ run(const Args &args)
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid name '" + widgetName + "'");
+    return tk_->throwError("Invalid widget name '" + widgetName + "'");
 
   auto *check = new CTkCheckButton(tk_, parent, childName);
 
@@ -715,7 +715,7 @@ run(const Args &args)
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid name '" + widgetName + "'");
+    return tk_->throwError("Invalid widget name '" + widgetName + "'");
 
   auto *entry = new CTkEntry(tk_, parent, childName);
 
@@ -898,7 +898,7 @@ run(const Args &args)
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid name '" + widgetName + "'");
+    return tk_->throwError("Invalid widget name '" + widgetName + "'");
 
   auto *frame = new CTkFrame(tk_, parent, childName);
 
@@ -1100,8 +1100,30 @@ run(const Args &args)
 
     for (uint i = 0; i < numArgs; ++i) {
       const auto &arg = args[i];
+      if (! arg.size()) continue;
 
-      if (arg.size() > 0 && arg[0] == '-') {
+      //---
+
+      // check for all dashes
+      uint pos = 0;
+
+      while (pos < arg.size() && arg[pos] == '-')
+        ++pos;
+
+      bool dashes = (pos > 0 && pos >= arg.size());
+
+      //---
+
+      if      (dashes) {
+        tk_->TODO("dashes");
+      }
+      else if (arg == "X") {
+        tk_->TODO("X");
+      }
+      else if (arg == "^") {
+        tk_->TODO("^");
+      }
+      else if (arg[0] == '-') {
         if (! tk_->processOption(opts, args, i, optValues))
           std::cerr << "Unhandled option '" << arg << "'" << std::endl;
       }
@@ -1110,7 +1132,7 @@ run(const Args &args)
         std::string childName;
 
         if (! root()->decodeWidgetName(arg, &parent1, childName))
-          return tk_->throwError("Invalid name '" + arg + "'");
+          return tk_->throwError("Invalid widget name '" + arg + "'");
 
         auto *child = parent1->getChild(childName);
 
@@ -1319,7 +1341,7 @@ run(const Args &args)
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid name '" + widgetName + "'");
+    return tk_->throwError("Invalid widget name '" + widgetName + "'");
 
   auto *label = new CTkLabel(tk_, parent, childName);
 
@@ -1391,7 +1413,7 @@ run(const Args &args)
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid name '" + widgetName + "'");
+    return tk_->throwError("Invalid widget name '" + widgetName + "'");
 
   auto *frame = new CTkLabelFrame(tk_, parent, childName);
 
@@ -1466,7 +1488,7 @@ run(const Args &args)
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid name '" + widgetName + "'");
+    return tk_->throwError("Invalid widget name '" + widgetName + "'");
 
   auto *list = new CTkListBox(tk_, parent, childName);
 
@@ -1498,7 +1520,7 @@ run(const Args &args)
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid name '" + widgetName + "'");
+    return tk_->throwError("Invalid widget name '" + widgetName + "'");
 
   auto *child = parent->getChild(childName);
 
@@ -1559,7 +1581,7 @@ run(const Args &args)
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid name '" + widgetName + "'");
+    return tk_->throwError("Invalid widget name '" + widgetName + "'");
 
   auto *menu = new CTkMenu(tk_, parent, childName);
 
@@ -1640,7 +1662,7 @@ run(const Args &args)
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid name '" + widgetName + "'");
+    return tk_->throwError("Invalid widget name '" + widgetName + "'");
 
   auto *button = new CTkMenuButton(tk_, parent, childName);
 
@@ -1709,7 +1731,7 @@ run(const Args &args)
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid name '" + widgetName + "'");
+    return tk_->throwError("Invalid widget name '" + widgetName + "'");
 
   auto *message = new CTkMessage(tk_, parent, childName);
 
@@ -1797,7 +1819,7 @@ run(const Args &args)
     std::string childName;
 
     if (! root()->decodeWidgetName(arg, &parent, childName))
-      return tk_->throwError("Invalid name '" + arg + "'");
+      return tk_->throwError("Invalid widget name '" + arg + "'");
 
     auto *child = parent->getChild(childName);
 
@@ -1847,7 +1869,7 @@ run(const Args &args)
         std::string childName;
 
         if (! root()->decodeWidgetName(arg, &parent1, childName))
-          return tk_->throwError("Invalid name '" + arg + "'");
+          return tk_->throwError("Invalid widget name '" + arg + "'");
 
         auto *child = parent1->getChild(childName);
 
@@ -2001,7 +2023,7 @@ run(const Args &args)
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid name '" + widgetName + "'");
+    return tk_->throwError("Invalid widget name '" + widgetName + "'");
 
   auto *pane = new CTkPanedWindow(tk_, parent, childName);
 
@@ -2060,7 +2082,7 @@ run(const Args &args)
     std::string childName;
 
     if (! root()->decodeWidgetName(arg, &parent, childName))
-      return tk_->throwError("Invalid name '" + arg + "'");
+      return tk_->throwError("Invalid widget name '" + arg + "'");
 
     auto *child = parent->getChild(childName);
 
@@ -2100,7 +2122,7 @@ run(const Args &args)
         std::string childName;
 
         if (! root()->decodeWidgetName(arg, &parent1, childName))
-          return tk_->throwError("Invalid name '" + arg + "'");
+          return tk_->throwError("Invalid widget name '" + arg + "'");
 
         auto *child = parent1->getChild(childName);
 
@@ -2204,7 +2226,7 @@ run(const Args &args)
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid name '" + widgetName + "'");
+    return tk_->throwError("Invalid widget name '" + widgetName + "'");
 
   auto *radio = new CTkRadioButton(tk_, parent, childName);
 
@@ -2236,7 +2258,7 @@ run(const Args &args)
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid name '" + widgetName + "'");
+    return tk_->throwError("Invalid widget name '" + widgetName + "'");
 
   auto *child = parent->getChild(childName);
 
@@ -2314,7 +2336,7 @@ run(const Args &args)
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid name '" + widgetName + "'");
+    return tk_->throwError("Invalid widget name '" + widgetName + "'");
 
   auto *scale = new CTkScale(tk_, parent, childName);
 
@@ -2382,7 +2404,7 @@ run(const Args &args)
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid name '" + widgetName + "'");
+    return tk_->throwError("Invalid widget name '" + widgetName + "'");
 
   auto *scrollbar = new CTkScrollBar(tk_, parent, childName);
 
@@ -2521,7 +2543,7 @@ run(const Args &args)
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid name '" + widgetName + "'");
+    return tk_->throwError("Invalid widget name '" + widgetName + "'");
 
   auto *spin = new CTkSpinBox(tk_, parent, childName);
 
@@ -2612,7 +2634,7 @@ run(const Args &args)
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid name '" + widgetName + "'");
+    return tk_->throwError("Invalid widget name '" + widgetName + "'");
 
   auto *text = new CTkText(tk_, parent, childName);
 
@@ -2681,7 +2703,7 @@ run(const Args &args)
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid name '" + widgetName + "'");
+    return tk_->throwError("Invalid widget name '" + widgetName + "'");
 
   auto *toplevel = new CTkTopLevel(tk_, parent, childName);
 
@@ -2896,7 +2918,7 @@ run(const Args &args)
   std::string childName;
 
   if (! root()->decodeWidgetName(name, &parent, childName))
-    return tk_->throwError("Invalid name '" + name + "'");
+    return tk_->throwError("Invalid widget name '" + name + "'");
 
   CTkWidget *w;
 
@@ -2904,7 +2926,7 @@ run(const Args &args)
     auto *child = parent->getChild(childName);
 
     if (child == nullptr)
-      return tk_->throwError("Invalid name '" + name + "'");
+      return tk_->throwError("Invalid widget name '" + name + "'");
 
     w = child;
   }

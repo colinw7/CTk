@@ -7,6 +7,8 @@
 #include <CTkAppImage.h>
 
 #include <CQSlider.h>
+#include <CQSpinList.h>
+#include <CQLabelImage.h>
 
 #include <CQUtil.h>
 #include <CQImage.h>
@@ -159,6 +161,7 @@ bool stringToOrient(const std::string &str, Qt::Orientation &orient) {
   return orientMap.map(str, orient);
 }
 
+// set relief
 void setFrameRelief(QWidget *w, const std::string &value) {
   auto *frame = qobject_cast<QFrame *>(w);
   auto *edit  = qobject_cast<QLineEdit *>(w);
@@ -221,6 +224,14 @@ void setFrameRelief(QWidget *w, const std::string &value) {
   }
 }
 
+// set borderwidth
+void setBorderWidth(QWidget *w, int width) {
+  auto *frame = qobject_cast<QFrame *>(w);
+
+  if (frame)
+    frame->setLineWidth(width);
+}
+
 }
 
 //---
@@ -261,7 +272,7 @@ execConfig(const std::string &name, const std::string &value)
     int w;
 
     if (CStrUtil::toInteger(value, &w))
-      qframe_->setLineWidth(w);
+      setBorderWidth(qframe_, w);
   }
   else if (name == "-padx") {
     int padx;
@@ -673,12 +684,30 @@ class CTkEntryVarProc : public CTclTraceProc {
    CTclTraceProc(tk), entry_(entry) {
   }
 
-  void handleWrite(const char *name) override {
-    entry_->setText(app_->getStringVar(name));
+  void handleWrite(const char *) override {
+    entry_->updateVariable();
   }
 
  private:
   CTkEntry *entry_ { nullptr };
+};
+
+class CTkEntryValidator : public QValidator {
+ public:
+  CTkEntryValidator(CTkApp *tk, CTkEntry *entry) :
+   QValidator(entry), tk_(tk), entry_(entry) {
+  }
+
+  State validate(QString &input, int & /*pos*/) {
+    if (entry_->validate(input.toStdString()))
+      return Acceptable;
+
+    return Invalid;
+  }
+
+ private:
+  CTkApp*   tk_    { nullptr };
+  CTkEntry* entry_ { nullptr };
 };
 
 CTkEntry::
@@ -725,10 +754,28 @@ execConfig(const std::string &name, const std::string &value)
     tk_->traceVar(varName_, varProc_);
   }
   else if (name == "-borderwidth" || name == "-bd") {
-    tk_->TODO(name);
+    int w;
+
+    if (CStrUtil::toInteger(value, &w))
+      setBorderWidth(qedit_, w);
   }
   else if (name == "-relief") {
     setFrameRelief(qedit_, value);
+  }
+  else if (name == "-show") {
+    qedit_->setEchoMode(QLineEdit::Password);
+  }
+  else if (name == "-validate") {
+    if      (value == "none"    ) validateMode_ = ValidateMode::NONE;
+    else if (value == "focus"   ) validateMode_ = ValidateMode::FOCUS;
+    else if (value == "focusin" ) validateMode_ = ValidateMode::FOCUSIN;
+    else if (value == "focusout") validateMode_ = ValidateMode::FOCUSOUT;
+    else if (value == "key"     ) validateMode_ = ValidateMode::KEY;
+    else if (value == "all"     ) validateMode_ = ValidateMode::ALL;
+    else return tk_->throwError("Invalid validate mode '" + value + "'");
+  }
+  else if (name == "-validatecommand") {
+    validateProc_ = value;
   }
   else
     return CTkWidget::execConfig(name, value);
@@ -752,6 +799,14 @@ setText(const std::string &text)
 
 void
 CTkEntry::
+updateVariable()
+{
+  if (varName_ != "" && tk_->hasVar(varName_))
+    setText(tk_->getStringVar(varName_));
+}
+
+void
+CTkEntry::
 valueChangedSlot()
 {
   if (varName_ != "") {
@@ -760,6 +815,29 @@ valueChangedSlot()
 
     tk_->setStringVar(varName_, qedit_->text().toStdString());
   }
+}
+
+bool
+CTkEntry::
+validate(const std::string &) const
+{
+  if (validateProc_ != "") {
+    auto cmd = validateProc_ + " {" + qedit_->text().toStdString() + "}";
+
+    if (! tk_->eval(cmd))
+      return false;
+
+    auto res = tk_->getStringResult();
+
+    bool b;
+
+    if (! CStrUtil::toBool(res, &b))
+      return false;
+
+    return b;
+  }
+
+  return true;
 }
 
 //----------
@@ -787,7 +865,7 @@ execConfig(const std::string &name, const std::string &value)
     int w;
 
     if (CStrUtil::toInteger(value, &w))
-      qframe_->setLineWidth(w);
+      setBorderWidth(qframe_, w);
   }
   else
     return CTkWidget::execConfig(name, value);
@@ -810,8 +888,8 @@ class CTkLabelVarProc : public CTclTraceProc {
    CTclTraceProc(tk), label_(label) {
   }
 
-  void handleWrite(const char *name) override {
-    label_->setText(app_->getStringVar(name));
+  void handleWrite(const char *) override {
+    label_->updateVariable();
   }
 
  private:
@@ -823,9 +901,9 @@ CTkLabel(CTkApp *tk, CTkWidget *parent, const std::string &name) :
  CTkWidget(tk, parent, name)
 {
   if (parent)
-    qlabel_ = new CTkLabelWidget(parent_->getQWidget());
+    qlabel_ = new CQLabelImage(parent_->getQWidget());
   else
-    qlabel_ = new CTkLabelWidget(nullptr);
+    qlabel_ = new CQLabelImage(nullptr);
 
   setQWidget(qlabel_);
 }
@@ -867,20 +945,14 @@ execConfig(const std::string &name, const std::string &value)
   }
   else if (name == "-compound") {
     // none, bottom, top, left, right, or center.
-    auto type = CTkLabelWidget::Type::NONE;
+    auto type = CQLabelImage::Type::NONE;
 
-    if      (value == "none")
-      type = CTkLabelWidget::Type::NONE;
-    else if (value == "bottom")
-      type = CTkLabelWidget::Type::BOTTOM;
-    else if (value == "top")
-      type = CTkLabelWidget::Type::TOP;
-    else if (value == "left")
-      type = CTkLabelWidget::Type::LEFT;
-    else if (value == "right")
-      type = CTkLabelWidget::Type::RIGHT;
-    else if (value == "center")
-      type = CTkLabelWidget::Type::CENTER;
+    if      (value == "none"  ) type = CQLabelImage::Type::NONE;
+    else if (value == "bottom") type = CQLabelImage::Type::BOTTOM;
+    else if (value == "top"   ) type = CQLabelImage::Type::TOP;
+    else if (value == "left"  ) type = CQLabelImage::Type::LEFT;
+    else if (value == "right" ) type = CQLabelImage::Type::RIGHT;
+    else if (value == "center") type = CQLabelImage::Type::CENTER;
 
     qlabel_->setType(type);
   }
@@ -917,95 +989,12 @@ setImage(CImagePtr image)
   qlabel_->setImage(qimage);
 }
 
-//---
-
-CTkLabelWidget::
-CTkLabelWidget(QWidget *parent) :
- QFrame(parent)
-{
-  setObjectName("qlabel");
-}
-
 void
-CTkLabelWidget::
-paintEvent(QPaintEvent *)
+CTkLabel::
+updateVariable()
 {
-  QPainter painter(this);
-
-  painter.setPen(palette().windowText().color());
-
-  QFontMetrics fm(font());
-
-  int x = 0;
-  int y = 0;
-
-  auto tw = fm.horizontalAdvance(label());
-  auto ta = fm.ascent();
-  auto td = fm.descent();
-
-  auto iw = image_.width();
-  auto ih = image_.height();
-
-  int b = 2;
-
-  if      (type_ == Type::LEFT) {
-    painter.drawImage(x, y - (height() - ih)/2, image()); x += iw + b;
-
-    painter.drawText(x, y + height()/2 + (ta - td)/2, label());
-  }
-  else if (type_ == Type::RIGHT) {
-    painter.drawText(x, y + height()/2 + (ta - td)/2, label()); x += tw + b;
-
-    painter.drawImage(x, y - (height() - ih)/2, image());
-  }
-  else if (type_ == Type::BOTTOM) {
-    painter.drawText(x + (width() - tw)/2.0, y + ta, label());
-
-    y += ta + td;
-
-    painter.drawImage(x + (width() - iw)/2.0, y, image());
-  }
-  else if (type_ == Type::TOP) {
-    painter.drawImage(x + (width() - iw)/2.0, y, image());
-
-    y += ih + b;
-
-    painter.drawText(x + (width() - tw)/2.0, y + ta, label());
-  }
-  else if (type_ == Type::CENTER) {
-    painter.drawImage(x + (width() - iw)/2.0, y - (height() - ih)/2, image());
-    painter.drawText (x + (width() - tw)/2.0, y + height()/2 + (ta - td)/2, label());
-  }
-  else {
-    if (! image().isNull())
-      painter.drawImage(x + (width() - iw)/2.0, y - (height() - ih)/2, image());
-    else
-      painter.drawText (x + (width() - tw)/2.0, y + height()/2 + (ta - td)/2, label());
-  }
-}
-
-QSize
-CTkLabelWidget::
-sizeHint() const
-{
-  QFontMetrics fm(font());
-
-  auto tw = fm.horizontalAdvance(label());
-  auto th = fm.height();
-
-  auto iw = image_.width();
-  auto ih = image_.height();
-
-  int b = 2;
-
-  if      (type_ == Type::LEFT || type_ == Type::RIGHT)
-    return QSize(tw + iw + b, std::max(th, ih));
-  else if (type_ == Type::TOP || type_ == Type::BOTTOM)
-    return QSize(std::max(tw, iw), ih + th + b);
-  else if (type_ == Type::CENTER)
-    return QSize(std::max(tw, iw), std::max(th, ih));
-  else
-    return QSize(std::max(tw, iw), std::max(th, ih));
+  if (varName_ != "" && tk_->hasVar(varName_))
+    setText(tk_->getStringVar(varName_));
 }
 
 //----------
@@ -1116,7 +1105,10 @@ execConfig(const std::string &name, const std::string &value)
     setFrameRelief(qlist_, value);
   }
   else if (name == "-borderwidth" || name == "-bd") {
-    tk_->TODO(name);
+    int w;
+
+    if (CStrUtil::toInteger(value, &w))
+      setBorderWidth(qlist_, w);
   }
   else if (name == "-xscrollcommand") {
     xScrollCommand_ = value;
@@ -1485,6 +1477,8 @@ radioToggledSlot(bool b)
     action->updateVariable();
 }
 
+//---
+
 void
 CTkRadioAction::
 updateVariable()
@@ -1505,8 +1499,8 @@ class CTkMenuButtonVarProc : public CTclTraceProc {
    CTclTraceProc(tk), menuButton_(menuButton) {
   }
 
-  void handleWrite(const char *name) override {
-    menuButton_->setText(app_->getStringVar(name));
+  void handleWrite(const char *) override {
+    menuButton_->updateVariable();
   }
 
  private:
@@ -1617,6 +1611,14 @@ setImage(CImagePtr image)
 
 void
 CTkMenuButton::
+updateVariable()
+{
+  if (varName_ != "" && tk_->hasVar(varName_))
+    setText(tk_->getStringVar(varName_));
+}
+
+void
+CTkMenuButton::
 updateMenu()
 {
   if (menuName_ != "") {
@@ -1653,8 +1655,8 @@ class CTkMessageVarProc : public CTclTraceProc {
    CTclTraceProc(tk), message_(message) {
   }
 
-  void handleWrite(const char *name) override {
-    message_->setText(app_->getStringVar(name));
+  void handleWrite(const char *) override {
+    message_->updateVariable();
   }
 
  private:
@@ -1698,7 +1700,10 @@ execConfig(const std::string &name, const std::string &value)
     setFrameRelief(qedit_, value);
   }
   else if (name == "-borderwidth" || name == "-bd") {
-    tk_->TODO(name);
+    int w;
+
+    if (CStrUtil::toInteger(value, &w))
+      setBorderWidth(qedit_, w);
   }
   else if (name == "-padx") {
     int padx;
@@ -1736,6 +1741,14 @@ CTkMessage::
 setText(const std::string &text)
 {
   qedit_->setText(QString::fromStdString(text));
+}
+
+void
+CTkMessage::
+updateVariable()
+{
+  if (varName_ != "" && tk_->hasVar(varName_))
+    setText(tk_->getStringVar(varName_));
 }
 
 //----------
@@ -2375,14 +2388,28 @@ scrollSlot(int i)
 
 //----------
 
+class CTkSpinBoxVarProc : public CTclTraceProc {
+ public:
+  CTkSpinBoxVarProc(CTkApp *tk, CTkSpinBox *spin) :
+   CTclTraceProc(tk), spin_(spin) {
+  }
+
+  void handleWrite(const char *) override {
+    spin_->updateVariable();
+  }
+
+ private:
+  CTkSpinBox *spin_ { nullptr };
+};
+
 CTkSpinBox::
 CTkSpinBox(CTkApp *tk, CTkWidget *parent, const std::string &name) :
  CTkWidget(tk, parent, name)
 {
   if (parent)
-    qspin_ = new CTkSpinBoxWidget(parent_->getQWidget());
+    qspin_ = new CQSpinList(parent_->getQWidget());
   else
-    qspin_ = new CTkSpinBoxWidget(nullptr);
+    qspin_ = new CQSpinList(nullptr);
 
   setQWidget(qspin_);
 
@@ -2394,19 +2421,53 @@ CTkSpinBox::
 execConfig(const std::string &name, const std::string &value)
 {
   if      (name == "-textvariable") {
-    tk_->TODO(name);
+    varName_ = value;
+
+    if (! isInitNotify() && ! tk_->hasVar(varName_))
+      tk_->setStringVar(varName_, "");
+
+    if (tk_->hasVar(varName_))
+      setValue(tk_->getStringVar(varName_));
+
+    varProc_ = new CTkSpinBoxVarProc(tk_, this);
+
+    tk_->traceVar(varName_, varProc_);
   }
   else if (name == "-width") {
     tk_->TODO(name);
   }
   else if (name == "-borderwidth" || name == "-bd") {
-    tk_->TODO(name);
+    int w;
+
+    if (CStrUtil::toInteger(value, &w))
+      setBorderWidth(qspin_, w);
   }
   else if (name == "-relief") {
-    tk_->TODO(name);
+    setFrameRelief(qspin_, value);
   }
-  else if (name == "-state") {
-    tk_->TODO(name);
+  else if (name == "-from") {
+    int from;
+
+    if (! CStrUtil::toInteger(value, &from))
+      return tk_->throwError("Invalid from \"" + value + "\"");
+
+    qspin_->setMinimum(from);
+  }
+  else if (name == "-to") {
+    int to;
+
+    if (! CStrUtil::toInteger(value, &to))
+      return tk_->throwError("Invalid to \"" + value + "\"");
+
+    qspin_->setMaximum(to);
+  }
+  else if (name == "-increment") {
+    int step;
+
+    if (! CStrUtil::toInteger(value, &step))
+      return tk_->throwError("Invalid to \"" + value + "\"");
+
+    qspin_->setSingleStep(step);
   }
   else if (name == "-values") {
     std::vector<std::string> strs;
@@ -2421,6 +2482,9 @@ execConfig(const std::string &name, const std::string &value)
 
     qspin_->setStrings(qstrs);
   }
+  else if (name == "-state") {
+    tk_->TODO(name);
+  }
   else
     return CTkWidget::execConfig(name, value);
 
@@ -2432,6 +2496,20 @@ CTkSpinBox::
 execOp(const Args &args)
 {
   return CTkWidget::execOp(args);
+}
+
+void
+CTkSpinBox::
+setValue(const std::string &)
+{
+}
+
+void
+CTkSpinBox::
+updateVariable()
+{
+  if (varName_ != "" && tk_->hasVar(varName_))
+    qspin_->setValue(tk_->getIntegerVar(varName_));
 }
 
 //----------
