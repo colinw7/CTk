@@ -34,7 +34,7 @@ addItem(QLayoutItem *item)
 
 void
 CTkAppPlaceLayout::
-addWidgets(const std::vector<CTkWidget *> &widgets, const Info &info)
+addWidgets(const std::vector<CTkAppWidget *> &widgets, const Info &info)
 {
   auto num = widgets.size();
 
@@ -44,7 +44,7 @@ addWidgets(const std::vector<CTkWidget *> &widgets, const Info &info)
 
 void
 CTkAppPlaceLayout::
-addWidget(CTkWidget *widget, const Info &info)
+addWidget(CTkAppWidget *widget, const Info &info)
 {
   ItemWrapper *wrapper = getItem(widget);
 
@@ -56,7 +56,7 @@ addWidget(CTkWidget *widget, const Info &info)
 
 CTkAppPlaceLayout::ItemWrapper *
 CTkAppPlaceLayout::
-getItem(CTkWidget *widget) const
+getItem(CTkAppWidget *widget) const
 {
   for (int i = 0; i < list_.size(); ++i) {
     ItemWrapper *wrapper = list_.at(i);
@@ -65,7 +65,7 @@ getItem(CTkWidget *widget) const
 
     if (! w) continue;
 
-    CTkWidget *widget1 = w->getTkWidget();
+    CTkAppWidget *widget1 = w->getTkWidget();
 
     if (widget == widget1)
       return wrapper;
@@ -76,7 +76,7 @@ getItem(CTkWidget *widget) const
 
 bool
 CTkAppPlaceLayout::
-getChildInfo(CTkWidget *widget, Info &info)
+getChildInfo(CTkAppWidget *widget, Info &info)
 {
   ItemWrapper *wrapper = getItem(widget);
 

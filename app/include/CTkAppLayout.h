@@ -7,15 +7,15 @@
 
 #include <vector>
 
-class CTkWidget;
+class CTkAppWidget;
 
 class CTkLayoutWidget : public QLayoutItem {
  public:
-  CTkLayoutWidget(CTkWidget *widget) :
+  CTkLayoutWidget(CTkAppWidget *widget) :
    widget_(widget) {
   }
 
-  CTkWidget *getTkWidget() const { return widget_; }
+  CTkAppWidget *getTkWidget() const { return widget_; }
 
   Qt::Orientations expandingDirections() const override;
 
@@ -39,7 +39,7 @@ class CTkLayoutWidget : public QLayoutItem {
   QWidget *getQWidget() const;
 
  private:
-  CTkWidget *widget_ { nullptr };
+  CTkAppWidget *widget_ { nullptr };
 };
 
 #endif

@@ -17,6 +17,8 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QFontDatabase>
+#include <QMessageBox>
+#include <QFileDialog>
 
 class CTkAppCommand : public CTclAppCommand {
  public:
@@ -106,10 +108,10 @@ class CLASS : public CTkAppCommand { \
   CTkAppCommandDef("place"    , CTkAppPlaceCmd)
   CTkAppCommandDef("raise"    , CTkAppRaiseCmd)
   CTkAppCommandDef("selection", CTkAppSelectionCmd)
-//CTkAppCommandDef("send"     , CTkAppSendCmd)
-//CTkAppCommandDef("tk"       , CTkAppTkCmd)
+  CTkAppCommandDef("send"     , CTkAppSendCmd)
+  CTkAppCommandDef("tk"       , CTkAppTkCmd)
 //CTkAppCommandDef("tkerror"  , CTkAppTkErrorCmd)
-//CTkAppCommandDef("tkwait"   , CTkAppTkWaitCmd)
+  CTkAppCommandDef("tkwait"   , CTkAppTkWaitCmd)
   CTkAppCommandDef("update"   , CTkAppUpdateCmd)
   CTkAppCommandDef("winfo"    , CTkAppWInfoCmd)
   CTkAppCommandDef("wm"       , CTkAppWmCmd)
@@ -122,22 +124,40 @@ class CLASS : public CTkAppCommand { \
 //CTkAppCommandDef("tk_focusFollowsMouse", CTkAppTkFocusFollowsMouseCmd)
 //CTkAppCommandDef("tk_focusNext"        , CTkAppTkFocusNextCmd)
 //CTkAppCommandDef("tk_focusPrev"        , CTkAppTkFocusPrevCmd)
-//CTkAppCommandDef("tk_getOpenFile"      , CTkAppTkGetOpenFileCmd)
-//CTkAppCommandDef("tk_getSaveFile"      , CTkAppTkGetSaveFileCmd)
-//CTkAppCommandDef("tk_messageBox"       , CTkAppTkMessageBoxCmd)
-//CTkAppCommandDef("tk_popup"            , CTkAppTkPopupCmd)
+  CTkAppCommandDef("tk_getOpenFile"      , CTkAppTkGetOpenFileCmd)
+  CTkAppCommandDef("tk_getSaveFile"      , CTkAppTkGetSaveFileCmd)
+  CTkAppCommandDef("tk_messageBox"       , CTkAppTkMessageBoxCmd)
+  CTkAppCommandDef("tk_popup"            , CTkAppTkPopupCmd)
 //CTkAppCommandDef("tk_setPalette"       , CTkAppTkSetPaletteCmd)
 
 //CTkAppCommandDef("bitmap" , CTkAppBitmapCmd)
 //CTkAppCommandDef("console", CTkAppConsoleCmd);
 //CTkAppCommandDef("photo"  , CTkAppPhotoCmd)
 
+//CTkAppCommandDef("ttk::button"     , CTkAppTtkButtonCmd)
+//CTkAppCommandDef("ttk::checkbutton", CTkAppTtkCheckButtonCmd)
+//CTkAppCommandDef("ttk::combobox"   , CTkAppTtkComboBoxCmd)
+//CTkAppCommandDef("ttk::entry"      , CTkAppTtkEntryCmd)
+//CTkAppCommandDef("ttk::frame"      , CTkAppTtkFrameCmd)
+//CTkAppCommandDef("ttk::label"      , CTkAppTtkLabeCmd)
+//CTkAppCommandDef("ttk::labelframe" , CTkAppTtkLabeFrameCmd)
+//CTkAppCommandDef("ttk::menubutton" , CTkAppTtkMenuButtonCmd)
+//CTkAppCommandDef("ttk::notebook"   , CTkAppTtkNoteBookCmd)
+//CTkAppCommandDef("ttk::panedwindow", CTkAppTtkPanedWindowCmd)
+//CTkAppCommandDef("ttk::progressbar", CTkAppTtkProgressBarCmd)
+//CTkAppCommandDef("ttk::radiobutton", CTkAppTtkRadioButtonCmd)
+//CTkAppCommandDef("ttk::scale"      , CTkAppTtkScaleCmd)
+//CTkAppCommandDef("ttk::scrollbar"  , CTkAppTtkScrollBarCmd)
+//CTkAppCommandDef("ttk::separator"  , CTkAppTtkSeparatorCmd)
+//CTkAppCommandDef("ttk::sizegrip"   , CTkAppTtkSizGripCmd)
+//CTkAppCommandDef("ttk::treeview"   , CTkAppTtkTreeViewCmd)
+
 //---
 
 class CTkWidgetCommand : public CTkAppCommand {
  public:
   CTkWidgetCommand(CTkAppCommand *command, const std::string &name,
-                   CTkWidget *w, const CTkOpt *opts = nullptr);
+                   CTkAppWidget *w, const CTkOpt *opts = nullptr);
 
   bool run(const Args &args) override;
 
@@ -151,7 +171,7 @@ class CTkWidgetCommand : public CTkAppCommand {
 
  private:
   CTkAppCommand* command_ { nullptr };
-  CTkWidget*     w_       { nullptr };
+  CTkAppWidget*     w_       { nullptr };
   CTkOptData     opts_;
 };
 
@@ -206,12 +226,21 @@ addCommands(CTkApp *tk)
   new CTkAppScaleCmd      (tk);
   new CTkAppScrollBarCmd  (tk);
   new CTkAppSelectionCmd  (tk);
+  new CTkAppSendCmd       (tk);
   new CTkAppSpinBoxCmd    (tk);
   new CTkAppTextCmd       (tk);
   new CTkAppTopLevelCmd   (tk);
   new CTkAppUpdateCmd     (tk);
   new CTkAppWInfoCmd      (tk);
   new CTkAppWmCmd         (tk);
+
+  new CTkAppTkCmd           (tk);
+//new CTkAppTkErrorCmd      (tk);
+  new CTkAppTkGetOpenFileCmd(tk);
+  new CTkAppTkGetSaveFileCmd(tk);
+  new CTkAppTkMessageBoxCmd (tk);
+  new CTkAppTkPopupCmd      (tk);
+  new CTkAppTkWaitCmd       (tk);
 
   //---
 
@@ -244,9 +273,9 @@ run(const Args &args)
 
   auto widgetName = args[0];
 
-  CTkWidget*  parent = nullptr;
+  CTkAppWidget*  parent = nullptr;
   std::string childName;
-  CTkWidget*  child  = nullptr;
+  CTkAppWidget*  child  = nullptr;
 
   if (root()->decodeWidgetName(widgetName, &parent, childName)) {
     child = parent->getChild(childName);
@@ -286,9 +315,9 @@ run(const Args &args)
 
   auto widgetName = args[0];
 
-  CTkWidget*  parent = nullptr;
+  CTkAppWidget*  parent = nullptr;
   std::string childName;
-  CTkWidget*  child  = nullptr;
+  CTkAppWidget*  child  = nullptr;
 
   if (root()->decodeWidgetName(widgetName, &parent, childName)) {
     child = parent->getChild(childName);
@@ -370,7 +399,7 @@ run(const Args &args)
   if (widgetName == "")
     return tk_->throwError("No name");
 
-  CTkWidget*  parent = nullptr;
+  CTkAppWidget*  parent = nullptr;
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
@@ -447,13 +476,13 @@ run(const Args &args)
   if (widgetName == "")
     return tk_->throwError("No name");
 
-  CTkWidget*  parent = nullptr;
+  CTkAppWidget*  parent = nullptr;
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
     return tk_->throwError("Invalid widget name '" + widgetName + "'");
 
-  auto *canvas = new CTkCanvas(tk_, parent, childName);
+  auto *canvas = new CTkAppCanvas(tk_, parent, childName);
 
   CQUtil::setBackground(canvas->getQWidget(), QColor("#d9d9d9"));
 
@@ -536,7 +565,7 @@ run(const Args &args)
   if (widgetName == "")
     return tk_->throwError("No name");
 
-  CTkWidget*  parent = nullptr;
+  CTkAppWidget*  parent = nullptr;
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
@@ -608,22 +637,25 @@ run(const Args &args)
   for (uint i = 0; i < numArgs; ++i) {
     const auto &widgetName = args[i];
 
-    CTkWidget *child = nullptr;
+    CTkAppWidget *child = nullptr;
 
     if (widgetName != ".") {
-      CTkWidget*  parent = nullptr;
+      CTkAppWidget*  parent = nullptr;
       std::string childName;
 
       if (! root()->decodeWidgetName(widgetName, &parent, childName))
         continue;
 
-      auto *child = parent->getChild(childName);
+      child = parent->getChild(childName);
 
       if (child == nullptr)
         continue;
     }
     else
       child = root();
+
+    if (! child)
+      continue;
 
     child->deleteLater();
   }
@@ -711,7 +743,7 @@ run(const Args &args)
   if (widgetName == "")
     return tk_->throwError("No name");
 
-  CTkWidget*  parent = nullptr;
+  CTkAppWidget*  parent = nullptr;
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
@@ -894,7 +926,7 @@ run(const Args &args)
   if (widgetName == "")
     return tk_->throwError("No name");
 
-  CTkWidget*  parent = nullptr;
+  CTkAppWidget*  parent = nullptr;
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
@@ -957,10 +989,10 @@ run(const Args &args)
   const auto &arg = args[0];
 
   if      (arg == "anchor") {
-    return false;
+    tk_->TODO(arg);
   }
   else if (arg == "bbox") {
-    return false;
+    tk_->TODO(arg);
   }
   else if (arg == "columnconfigure") {
     if (numArgs < 3)
@@ -984,10 +1016,13 @@ run(const Args &args)
       auto value = args[i + 1];
 
       if      (name == "-minsize") {
+        tk_->TODO(name);
       }
       else if (name == "-pad") {
+        tk_->TODO(name);
       }
       else if (name == "-uniform") {
+        tk_->TODO(name);
       }
       else if (name == "-weight") {
         long weight;
@@ -1001,14 +1036,12 @@ run(const Args &args)
         return tk_->throwError("bad option \"" + name + "\": must be "
                                "-minsize, -pad, -uniform, or -weight");
     }
-
-    return true;
   }
   else if (arg == "configure") {
-    return false;
+    tk_->TODO(arg);
   }
   else if (arg == "forget") {
-    return false;
+    tk_->TODO(arg);
   }
   else if (arg == "info") {
     if (numArgs != 2)
@@ -1032,14 +1065,12 @@ run(const Args &args)
                           info.getPadX(), info.getPadY());
 
     setStringResult(res);
-
-    return true;
   }
   else if (arg == "location") {
-    return false;
+    tk_->TODO(arg);
   }
   else if (arg == "propagate") {
-    return false;
+    tk_->TODO(arg);
   }
   else if (arg == "rowconfigure") {
     if (numArgs < 3)
@@ -1063,10 +1094,13 @@ run(const Args &args)
       auto value = args[i + 1];
 
       if      (name == "-minsize") {
+        tk_->TODO(name);
       }
       else if (name == "-pad") {
+        tk_->TODO(name);
       }
       else if (name == "-uniform") {
+        tk_->TODO(name);
       }
       else if (name == "-weight") {
         long weight;
@@ -1080,21 +1114,19 @@ run(const Args &args)
         return tk_->throwError("bad option \"" + name + "\": must be "
                                "-minsize, -pad, -uniform, or -weight");
     }
-
-    return true;
   }
   else if (arg == "remove") {
-    return false;
+    tk_->TODO(arg);
   }
   else if (arg == "size") {
-    return false;
+    tk_->TODO(arg);
   }
   else if (arg == "slaves") {
-    return false;
+    tk_->TODO(arg);
   }
   else {
-    CTkWidget*               parent = nullptr;
-    std::vector<CTkWidget *> children;
+    CTkAppWidget*               parent = nullptr;
+    std::vector<CTkAppWidget *> children;
 
     CTkOptionValueMap optValues;
 
@@ -1128,7 +1160,7 @@ run(const Args &args)
           std::cerr << "Unhandled option '" << arg << "'" << std::endl;
       }
       else {
-        CTkWidget*  parent1;
+        CTkAppWidget*  parent1;
         std::string childName;
 
         if (! root()->decodeWidgetName(arg, &parent1, childName))
@@ -1188,9 +1220,9 @@ run(const Args &args)
     auto *layout = parent->getTkGridLayout();
 
     layout->addWidgets(children, info);
-
-    return true;
   }
+
+  return true;
 }
 
 //---
@@ -1232,7 +1264,7 @@ run(const Args &args)
     for (uint i = ind; i < numArgs; ++i) {
       const auto &name = args[i];
 
-      if (name == "-file") {
+      if      (name == "-file") {
         ++i;
 
         if (i >= numArgs)
@@ -1242,19 +1274,40 @@ run(const Args &args)
 
         image->loadFile(value);
       }
+      else if (name == "-data") {
+        ++i;
+
+        if (i >= numArgs)
+          return tk_->throwError("value for \"" + name + "\" missing");
+
+        tk_->TODO(name);
+      }
+      else if (name == "-format") {
+        ++i;
+
+        if (i >= numArgs)
+          return tk_->throwError("value for \"" + name + "\" missing");
+
+        tk_->TODO(name);
+      }
       else
         return tk_->throwError("unknown image create option \"" + name + "\"");
     }
   }
   else if (name == "delete") {
+    tk_->TODO(name);
   }
   else if (name == "height") {
+  tk_->TODO(name);
   }
   else if (name == "inuse") {
+    tk_->TODO(name);
   }
   else if (name == "names") {
+    tk_->TODO(name);
   }
   else if (name == "type") {
+    tk_->TODO(name);
   }
   else if (name == "types") {
     if (numArgs != 1)
@@ -1270,6 +1323,7 @@ run(const Args &args)
     return true;
   }
   else if (name == "width") {
+    tk_->TODO(name);
   }
   else
     return tk_->throwError("bad option \"" + name + "\": must be "
@@ -1337,7 +1391,7 @@ run(const Args &args)
   if (widgetName == "")
     return tk_->throwError("No name");
 
-  CTkWidget*  parent = nullptr;
+  CTkAppWidget*  parent = nullptr;
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
@@ -1409,7 +1463,7 @@ run(const Args &args)
   if (widgetName == "")
     return tk_->throwError("No name");
 
-  CTkWidget*  parent = nullptr;
+  CTkAppWidget*  parent = nullptr;
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
@@ -1484,7 +1538,7 @@ run(const Args &args)
   if (widgetName == "")
     return tk_->throwError("No name");
 
-  CTkWidget*  parent = nullptr;
+  CTkAppWidget*  parent = nullptr;
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
@@ -1516,7 +1570,7 @@ run(const Args &args)
 
   const auto &widgetName = args[0];
 
-  CTkWidget*  parent = nullptr;
+  CTkAppWidget*  parent = nullptr;
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
@@ -1577,7 +1631,7 @@ run(const Args &args)
   if (widgetName == "")
     return tk_->throwError("No name");
 
-  CTkWidget*  parent = nullptr;
+  CTkAppWidget*  parent = nullptr;
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
@@ -1658,7 +1712,7 @@ run(const Args &args)
   if (widgetName == "")
     return tk_->throwError("No name");
 
-  CTkWidget*  parent = nullptr;
+  CTkAppWidget*  parent = nullptr;
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
@@ -1727,7 +1781,7 @@ run(const Args &args)
   if (widgetName == "")
     return tk_->throwError("No name");
 
-  CTkWidget*  parent = nullptr;
+  CTkAppWidget*  parent = nullptr;
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
@@ -1750,8 +1804,17 @@ run(const Args &args)
 
 bool
 CTkAppOptionCmd::
-run(const Args &)
+run(const Args &args)
 {
+  auto numArgs = args.size();
+
+  if (numArgs == 0)
+    return tk_->wrongNumArgs("option cmd arg ?arg ...?");
+
+  auto cmd = args[0];
+
+  tk_->TODO(cmd);
+
   return true;
 }
 
@@ -1815,7 +1878,7 @@ run(const Args &args)
 
     const auto &arg = args[1];
 
-    CTkWidget*  parent;
+    CTkAppWidget*  parent;
     std::string childName;
 
     if (! root()->decodeWidgetName(arg, &parent, childName))
@@ -1847,13 +1910,13 @@ run(const Args &args)
     CTkAppPackLayout::Side   side     = CTkAppPackLayout::SIDE_NONE;
     CTkAppPackLayout::Fill   fill     = CTkAppPackLayout::FILL_NONE;
     bool                     expand   = false;
-    CTkWidget*               inparent = nullptr;
+    CTkAppWidget*               inparent = nullptr;
     int                      padx     = 0;
     int                      pady     = 0;
     int                      ipadx    = 0;
     int                      ipady    = 0;
-    CTkWidget*               parent   = nullptr;
-    std::vector<CTkWidget *> children;
+    CTkAppWidget*               parent   = nullptr;
+    std::vector<CTkAppWidget *> children;
 
     CTkOptionValueMap optValues;
 
@@ -1865,7 +1928,7 @@ run(const Args &args)
           std::cerr << "Unhandled option '" << arg << "'" << std::endl;
       }
       else {
-        CTkWidget*  parent1;
+        CTkAppWidget*  parent1;
         std::string childName;
 
         if (! root()->decodeWidgetName(arg, &parent1, childName))
@@ -1896,8 +1959,12 @@ run(const Args &args)
     auto p = optValues.find("-expand");
 
     if (p != optValues.end()) {
-      if (! CTkAppUtil::stringToBool((*p).second.s, expand))
-        return tk_->throwError("Invalid -expand value");
+      if      ((*p).second.s == "x") expand = 2;
+      else if ((*p).second.s == "y") expand = 3;
+      else {
+        if (! CTkAppUtil::stringToBool((*p).second.s, expand))
+          return tk_->throwError("Invalid -expand value");
+      }
     }
     }
 
@@ -1948,7 +2015,7 @@ run(const Args &args)
     auto p = optValues.find("-in");
 
     if (p != optValues.end()) {
-      CTkWidget*  parent1;
+      CTkAppWidget*  parent1;
       std::string childName;
 
       if (root()->decodeWidgetName((*p).second.s, &parent1, childName)) {
@@ -2019,7 +2086,7 @@ run(const Args &args)
   if (widgetName == "")
     return tk_->throwError("No name");
 
-  CTkWidget*  parent = nullptr;
+  CTkAppWidget*  parent = nullptr;
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
@@ -2078,7 +2145,7 @@ run(const Args &args)
 
     const auto &arg = args[1];
 
-    CTkWidget*  parent;
+    CTkAppWidget*  parent;
     std::string childName;
 
     if (! root()->decodeWidgetName(arg, &parent, childName))
@@ -2105,8 +2172,8 @@ run(const Args &args)
     return false;
   }
   else {
-    CTkWidget*               parent = nullptr;
-    std::vector<CTkWidget *> children;
+    CTkAppWidget*               parent = nullptr;
+    std::vector<CTkAppWidget *> children;
 
     CTkOptionValueMap optValues;
 
@@ -2118,7 +2185,7 @@ run(const Args &args)
           std::cerr << "Unhandled option '" << arg << "'" << std::endl;
       }
       else {
-        CTkWidget*  parent1;
+        CTkAppWidget*  parent1;
         std::string childName;
 
         if (! root()->decodeWidgetName(arg, &parent1, childName))
@@ -2222,7 +2289,7 @@ run(const Args &args)
   if (widgetName == "")
     return tk_->throwError("No name");
 
-  CTkWidget*  parent = nullptr;
+  CTkAppWidget*  parent = nullptr;
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
@@ -2254,7 +2321,7 @@ run(const Args &args)
 
   const auto &widgetName = args[0];
 
-  CTkWidget*  parent = nullptr;
+  CTkAppWidget*  parent = nullptr;
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
@@ -2332,7 +2399,7 @@ run(const Args &args)
   if (widgetName == "")
     return tk_->throwError("No name");
 
-  CTkWidget*  parent = nullptr;
+  CTkAppWidget*  parent = nullptr;
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
@@ -2400,7 +2467,7 @@ run(const Args &args)
   if (widgetName == "")
     return tk_->throwError("No name");
 
-  CTkWidget*  parent = nullptr;
+  CTkAppWidget*  parent = nullptr;
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
@@ -2457,6 +2524,22 @@ run(const Args &args)
   }
   else
     return tk_->throwError("bad option \"" + opt + "\" : must be append, clear, or get");
+
+  return true;
+}
+
+//---
+
+bool
+CTkAppSendCmd::
+run(const Args &args)
+{
+  uint numArgs = args.size();
+
+  if (numArgs == 0)
+    return tk_->wrongNumArgs("send ?-option value ...? interpName arg ?arg ...?");
+
+  tk_->TODO("send");
 
   return true;
 }
@@ -2539,7 +2622,7 @@ run(const Args &args)
   if (widgetName == "")
     return tk_->throwError("No name");
 
-  CTkWidget*  parent = nullptr;
+  CTkAppWidget*  parent = nullptr;
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
@@ -2630,7 +2713,7 @@ run(const Args &args)
   if (widgetName == "")
     return tk_->throwError("No name");
 
-  CTkWidget*  parent = nullptr;
+  CTkAppWidget*  parent = nullptr;
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
@@ -2645,6 +2728,135 @@ run(const Args &args)
   cmd->processArgs(args);
 
   setStringResult(widgetName);
+
+  return true;
+}
+
+//---
+
+bool
+CTkAppTkCmd::
+run(const Args &args)
+{
+  uint numArgs = args.size();
+
+  if (numArgs == 0)
+    return tk_->wrongNumArgs("tk subcommand ?arg ...?");
+
+  tk_->TODO("tk");
+
+  return true;
+}
+
+//---
+
+bool
+CTkAppTkGetOpenFileCmd::
+run(const Args &)
+{
+  QWidget *parent = nullptr;
+
+  QString              dir;
+  QString              filter;
+  QString*             selectedFilter = nullptr;
+  QFileDialog::Options options;
+
+  auto file = QFileDialog::getOpenFileName(parent, "Open File", dir, filter,
+                                           selectedFilter, options);
+
+  tk_->setStringResult(file.toStdString());
+
+  return true;
+}
+
+//---
+
+bool
+CTkAppTkGetSaveFileCmd::
+run(const Args &)
+{
+  QWidget *parent = nullptr;
+
+  QString              dir;
+  QString              filter;
+  QString*             selectedFilter = nullptr;
+  QFileDialog::Options options;
+
+  auto file = QFileDialog::getSaveFileName(parent, "Open File", dir, filter,
+                                           selectedFilter, options);
+
+  tk_->setStringResult(file.toStdString());
+
+  return true;
+}
+
+//---
+
+bool
+CTkAppTkWaitCmd::
+run(const Args &args)
+{
+  uint numArgs = args.size();
+
+  if (numArgs == 0)
+    return tk_->wrongNumArgs("tkwait variable|visibility|window name");
+
+  tk_->TODO("tkwait");
+
+  return true;
+}
+
+//---
+
+bool
+CTkAppTkMessageBoxCmd::
+run(const Args &args)
+{
+  std::string message;
+  QWidget*    parent = nullptr;
+
+  uint numArgs = args.size();
+
+  for (uint i = 0; i < numArgs; ++i) {
+    const auto &name = args[i];
+
+    if (name.size() > 0 && name[0] == '-') {
+      auto value = (i < numArgs - 1 ? args[++i] : "");
+
+      if      (name == "-type") {
+        tk_->TODO(name);
+      }
+      else if (name == "-icon") {
+        tk_->TODO(name);
+      }
+      else if (name == "-message") {
+        message = value;
+      }
+      else if (name == "-parent") {
+        auto *w = tk_->lookupWidgetByName(value);
+        if (! w) return false;
+
+        parent = w->qwidget();
+      }
+      else
+        tk_->TODO(name);
+    }
+    else
+      tk_->TODO(name);
+  }
+
+  QMessageBox::information(parent, "Information", QString::fromStdString(message));
+
+  return true;
+}
+
+//---
+
+bool
+CTkAppTkPopupCmd::
+run(const Args &)
+{
+  tk_->TODO("tk_popup");
 
   return true;
 }
@@ -2699,7 +2911,7 @@ run(const Args &args)
   if (widgetName == "")
     return tk_->throwError("No name");
 
-  CTkWidget*  parent = nullptr;
+  CTkAppWidget*  parent = nullptr;
   std::string childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
@@ -2758,10 +2970,13 @@ run(const Args &args)
   const auto &arg = args[0];
 
   if      (arg == "atom") {
+    tk_->TODO(arg);
   }
   else if (arg == "atomname") {
+    tk_->TODO(arg);
   }
   else if (arg == "cells") {
+    tk_->TODO(arg);
   }
   else if (arg == "children") {
     if (numArgs < 2)
@@ -2770,52 +2985,69 @@ run(const Args &args)
     std::string widgetName = args[1];
 
     auto *w = tk_->lookupWidgetByName(widgetName);
+    if (! w) return false;
 
-    if (w) {
-      std::vector<CTkWidget *> children;
+    std::vector<CTkAppWidget *> children;
 
-      w->getChildren(children);
+    w->getChildren(children);
 
-      uint numChildren = children.size();
+    uint numChildren = children.size();
 
-      std::vector<std::string> list;
+    std::vector<std::string> list;
 
-      for (uint i = 0; i < numChildren; ++i) {
-        auto *child = children[i];
+    for (uint i = 0; i < numChildren; ++i) {
+      auto *child = children[i];
 
-        list.push_back(child->getFullName());
-      }
-
-      setStringArrayResult(list);
-
-      return true;
+      list.push_back(child->getFullName());
     }
+
+    setStringArrayResult(list);
   }
   else if (arg == "class") {
+    tk_->TODO(arg);
   }
   else if (arg == "colormapfull") {
+    tk_->TODO(arg);
   }
   else if (arg == "containing") {
+    tk_->TODO(arg);
   }
   else if (arg == "depth") {
+    tk_->TODO(arg);
   }
   else if (arg == "exists") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs("winfo children window");
+
+    std::string widgetName = args[1];
+
+    auto *w = tk_->lookupWidgetByName(widgetName);
+
+    setIntegerResult(w ? 1 : 0);
   }
   else if (arg == "fpixels") {
+    tk_->TODO(arg);
   }
   else if (arg == "geometry") {
+    tk_->TODO(arg);
   }
   else if (arg == "height") {
+    tk_->TODO(arg);
   }
   else if (arg == "id") {
+    tk_->TODO(arg);
   }
   else if (arg == "interps") {
+    tk_->TODO(arg);
   }
   else if (arg == "ismapped") {
+    tk_->TODO(arg);
   }
   else if (arg == "manager") {
+    tk_->TODO(arg);
   }
   else if (arg == "name") {
+    tk_->TODO(arg);
   }
   else if (arg == "parent") {
     if (numArgs < 2)
@@ -2824,78 +3056,132 @@ run(const Args &args)
     std::string widgetName = args[1];
 
     auto *w = tk_->lookupWidgetByName(widgetName);
+    if (! w) return false;
 
-    if (w) {
-      auto *parent = w->getParent();
+    auto *parent = w->getParent();
 
-      if (parent)
-        setStringResult(parent->getFullName());
-    }
+    setStringResult(parent ? parent->getFullName() : "");
   }
   else if (arg == "pathname") {
+    tk_->TODO(arg);
   }
   else if (arg == "pixels") {
+    tk_->TODO(arg);
   }
   else if (arg == "pointerx") {
+    tk_->TODO(arg);
   }
   else if (arg == "pointerxy") {
+    tk_->TODO(arg);
   }
   else if (arg == "pointery") {
+    tk_->TODO(arg);
   }
   else if (arg == "reqheight") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs("winfo reqheight window");
+
+    std::string widgetName = args[1];
+
+    auto *w = tk_->lookupWidgetByName(widgetName);
+    if (! w) return false;
+
+    setIntegerResult(w->qwidget()->sizeHint().width());
   }
   else if (arg == "reqwidth") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs("winfo reqwidth window");
+
+    std::string widgetName = args[1];
+
+    auto *w = tk_->lookupWidgetByName(widgetName);
+    if (! w) return false;
+
+    setIntegerResult(w->qwidget()->sizeHint().width());
   }
   else if (arg == "rgb") {
+    tk_->TODO(arg);
   }
   else if (arg == "rootx") {
+    tk_->TODO(arg);
   }
   else if (arg == "rooty") {
+    tk_->TODO(arg);
   }
   else if (arg == "screen") {
+    tk_->TODO(arg);
   }
   else if (arg == "screencells") {
+    tk_->TODO(arg);
   }
   else if (arg == "screendepth") {
+    tk_->TODO(arg);
   }
   else if (arg == "screenheight") {
+    tk_->TODO(arg);
   }
   else if (arg == "screenmmheight") {
+    tk_->TODO(arg);
   }
   else if (arg == "screenmmwidth") {
+    tk_->TODO(arg);
   }
   else if (arg == "screenvisual") {
+    tk_->TODO(arg);
   }
   else if (arg == "screenwidth") {
+    tk_->TODO(arg);
   }
   else if (arg == "server") {
+    tk_->TODO(arg);
   }
   else if (arg == "toplevel") {
+    tk_->TODO(arg);
   }
   else if (arg == "viewable") {
+    tk_->TODO(arg);
   }
   else if (arg == "visual") {
+    tk_->TODO(arg);
   }
   else if (arg == "visualid") {
+    tk_->TODO(arg);
   }
   else if (arg == "visualsavailable") {
+    tk_->TODO(arg);
   }
   else if (arg == "vrootheight") {
+    tk_->TODO(arg);
   }
   else if (arg == "vrootwidth") {
+    tk_->TODO(arg);
   }
   else if (arg == "vrootx") {
+    tk_->TODO(arg);
   }
   else if (arg == "vrootx") {
+    tk_->TODO(arg);
   }
   else if (arg == "vrooty") {
+    tk_->TODO(arg);
   }
   else if (arg == "width") {
+    tk_->TODO(arg);
   }
   else if (arg == "x") {
+    tk_->TODO(arg);
   }
   else if (arg == "y") {
+    tk_->TODO(arg);
   }
+  else
+    return tk_->throwError("bad option \"" + arg + "\": must be "
+      "cells, children, class, colormapfull, depth, geometry, height, id, ismapped, manager, "
+      "name, parent, pointerx, pointery, pointerxy, reqheight, reqwidth, rootx, rooty, screen, "
+      "screencells, screendepth, screenheight, screenwidth, screenmmheight, screenmmwidth, "
+      "screenvisual, server, toplevel, viewable, visual, visualid, vrootheight, vrootwidth, "
+      "vrootx, vrooty, width, x, y, atom, atomname, containing, interps, pathname, exists, "
+      "fpixels, pixels, rgb, or visualsavailable");
 
   return true;
 }
@@ -2914,13 +3200,13 @@ run(const Args &args)
   const auto &arg  = args[0];
   const auto &name = args[1];
 
-  CTkWidget*  parent;
+  CTkAppWidget*  parent;
   std::string childName;
 
   if (! root()->decodeWidgetName(name, &parent, childName))
     return tk_->throwError("Invalid widget name '" + name + "'");
 
-  CTkWidget *w;
+  CTkAppWidget *w;
 
   if (childName != "") {
     auto *child = parent->getChild(childName);
@@ -2934,46 +3220,67 @@ run(const Args &args)
     w = parent;
 
   if      (arg == "aspect") {
+    tk_->TODO(arg);
   }
   else if (arg == "attributes") {
+    tk_->TODO(arg);
   }
   else if (arg == "client") {
+    tk_->TODO(arg);
   }
   else if (arg == "colormapwindows") {
+    tk_->TODO(arg);
   }
   else if (arg == "command") {
+    tk_->TODO(arg);
   }
   else if (arg == "deiconify") {
+    tk_->TODO(arg);
   }
   else if (arg == "focusmodel") {
+    tk_->TODO(arg);
   }
   else if (arg == "forget") {
+    tk_->TODO(arg);
   }
   else if (arg == "frame") {
+    tk_->TODO(arg);
   }
   else if (arg == "geometry") {
+    tk_->TODO(arg);
   }
   else if (arg == "grid") {
+    tk_->TODO(arg);
   }
   else if (arg == "group") {
+    tk_->TODO(arg);
   }
   else if (arg == "iconbitmap") {
+    tk_->TODO(arg);
   }
   else if (arg == "iconify") {
+    tk_->TODO(arg);
   }
   else if (arg == "iconmask") {
+    tk_->TODO(arg);
   }
   else if (arg == "iconname") {
+    tk_->TODO(arg);
   }
   else if (arg == "iconphoto") {
+    tk_->TODO(arg);
   }
   else if (arg == "iconposition") {
+    tk_->TODO(arg);
   }
   else if (arg == "iconwindow") {
+    tk_->TODO(arg);
   }
   else if (arg == "manage") {
+    tk_->TODO(arg);
   }
   else if (arg == "maxsize") {
+    tk_->TODO(arg);
   }
   else if (arg == "minsize") {
     if      (numArgs == 2) {
@@ -2990,52 +3297,55 @@ run(const Args &args)
       long sw, sh;
 
       if (! CTkAppUtil::stringToInt(args[2], sw))
-        return tk_->throwError("xpected integer but got \"" + args[2] + "\"");
+        return tk_->throwError("expected integer but got \"" + args[2] + "\"");
 
       if (! CTkAppUtil::stringToInt(args[3], sh))
-        return tk_->throwError("xpected integer but got \"" + args[3] + "\"");
+        return tk_->throwError("expected integer but got \"" + args[3] + "\"");
 
       sw = std::max(sw, 1L);
       sh = std::max(sh, 1L);
 
       w->getQWidget()->setMinimumSize(QSize(sw, sh));
     }
-
-    return true;
   }
   else if (arg == "overrideredirect") {
+    tk_->TODO(arg);
   }
   else if (arg == "positionfrom") {
+    tk_->TODO(arg);
   }
   else if (arg == "protocol") {
+    tk_->TODO(arg);
   }
   else if (arg == "resizable") {
+    tk_->TODO(arg);
   }
   else if (arg == "sizefrom") {
+    tk_->TODO(arg);
   }
   else if (arg == "stackorder") {
+    tk_->TODO(arg);
   }
   else if (arg == "state") {
+    tk_->TODO(arg);
   }
   else if (arg == "title") {
     if (numArgs == 3) {
       const auto &title = args[2];
 
       w->setTitle(title);
-
-      return true;
     }
     else {
       const auto &title = w->getTitle();
 
       setStringResult(title);
-
-      return true;
     }
   }
   else if (arg == "transient") {
+    tk_->TODO(arg);
   }
   else if (arg == "withdraw") {
+    tk_->TODO(arg);
   }
   else
     return tk_->throwError("ambiguous option \"" + arg + "\": must be "
@@ -3045,7 +3355,7 @@ run(const Args &args)
       "positionfrom, protocol, resizable, sizefrom, stackorder, state, title, "
       "transient, or withdraw");
 
-  return false;
+  return true;
 }
 
 //---
@@ -3133,7 +3443,7 @@ run(const Args &args)
 
 CTkWidgetCommand::
 CTkWidgetCommand(CTkAppCommand *command, const std::string &name,
-                 CTkWidget *w, const CTkOpt *opts) :
+                 CTkAppWidget *w, const CTkOpt *opts) :
  CTkAppCommand(command->getTk(), name), command_(command), w_(w), opts_(command->getTk())
 {
   opts_.init(opts);

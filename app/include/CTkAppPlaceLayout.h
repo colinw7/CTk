@@ -5,7 +5,7 @@
 
 #include <QLayout>
 
-class CTkWidget;
+class CTkAppWidget;
 
 class CTkAppPlaceLayout : public QLayout {
   Q_OBJECT
@@ -51,12 +51,12 @@ class CTkAppPlaceLayout : public QLayout {
 
   void addItem(QLayoutItem *item) override;
 
-  void addWidgets(const std::vector<CTkWidget *> &widgets, const Info &info);
-  void addWidget(CTkWidget *widget, const Info &info);
+  void addWidgets(const std::vector<CTkAppWidget *> &widgets, const Info &info);
+  void addWidget(CTkAppWidget *widget, const Info &info);
 
-  ItemWrapper *getItem(CTkWidget *widget) const;
+  ItemWrapper *getItem(CTkAppWidget *widget) const;
 
-  bool getChildInfo(CTkWidget *widget, Info &info);
+  bool getChildInfo(CTkAppWidget *widget, Info &info);
 
   Qt::Orientations expandingDirections() const override;
 

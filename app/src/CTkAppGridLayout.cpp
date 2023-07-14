@@ -1,6 +1,8 @@
 #include <CTkAppGridLayout.h>
 #include <CTkAppLayout.h>
 
+#include <QWidget>
+
 CTkAppGridLayout::
 CTkAppGridLayout(QWidget *parent, int margin, int spacing) :
  QLayout(parent)
@@ -34,7 +36,7 @@ addItem(QLayoutItem *item)
 
 void
 CTkAppGridLayout::
-addWidgets(const std::vector<CTkWidget *> &widgets, const Info &info)
+addWidgets(const std::vector<CTkAppWidget *> &widgets, const Info &info)
 {
   Info info1 = info;
 
@@ -70,7 +72,7 @@ addWidgets(const std::vector<CTkWidget *> &widgets, const Info &info)
 
 void
 CTkAppGridLayout::
-addWidget(CTkWidget *widget, const Info &info)
+addWidget(CTkAppWidget *widget, const Info &info)
 {
   auto *wrapper = getItem(widget);
 
@@ -82,7 +84,7 @@ addWidget(CTkWidget *widget, const Info &info)
 
 CTkAppGridLayout::ItemWrapper *
 CTkAppGridLayout::
-getItem(CTkWidget *widget) const
+getItem(CTkAppWidget *widget) const
 {
   for (int i = 0; i < list_.size(); ++i) {
     auto *wrapper = list_.at(i);
@@ -101,7 +103,7 @@ getItem(CTkWidget *widget) const
 
 bool
 CTkAppGridLayout::
-getChildInfo(CTkWidget *widget, Info &info)
+getChildInfo(CTkAppWidget *widget, Info &info)
 {
   auto *wrapper = getItem(widget);
   if (! wrapper) return false;
@@ -113,7 +115,7 @@ getChildInfo(CTkWidget *widget, Info &info)
 
 bool
 CTkAppGridLayout::
-setChildWeight(CTkWidget *widget, int weight)
+setChildWeight(CTkAppWidget *widget, int weight)
 {
   auto *wrapper = getItem(widget);
   if (! wrapper) return false;
@@ -286,6 +288,18 @@ QSize
 CTkAppGridLayout::
 calculateSize(SizeType sizeType) const
 {
+#if 0
+  auto fixSize = [](QLayoutItem *item, int &s) {
+    int s1 = s;
+    s = std::min(std::max(s1, 1), 2048);
+    if (s != s1) {
+      std::cerr << "Bad Size: " << s1 << "\n";
+      auto *w = item->widget();
+      if (w) std::cerr << "  Widget:" << w->objectName().toStdString() << "\n";
+    }
+  };
+#endif
+
   using SizeMap = std::map<int, int>;
 
   SizeMap rowHeight, colWidth;
@@ -294,9 +308,10 @@ calculateSize(SizeType sizeType) const
   for (int i = 0; i < list_.size(); ++i) {
     ItemWrapper *wrapper = list_.at(i);
 
-    QLayoutItem *item = wrapper->item;
-    int          row  = wrapper->info.getRow();
-    int          col  = wrapper->info.getCol();
+    auto *item = wrapper->item;
+
+    int row = wrapper->info.getRow();
+    int col = wrapper->info.getCol();
 
     int padx = wrapper->info.getPadX();
     int pady = wrapper->info.getPadY();
@@ -316,6 +331,9 @@ calculateSize(SizeType sizeType) const
 
     int iw = itemSize.width () + 2*padx + 2*ipadx;
     int ih = itemSize.height() + 2*pady + 2*ipady;
+
+    //fixSize(item, iw);
+    //fixSize(item, ih);
 
     if (rowHeight.find(row) == rowHeight.end())
       rowHeight[row] = ih;

@@ -13,7 +13,7 @@
 
 class CTkAppRoot;
 class CTkTopLevel;
-class CTkWidget;
+class CTkAppWidget;
 class CTkImage;
 
 using CTkImageRef = std::shared_ptr<CTkImage>;
@@ -39,7 +39,7 @@ class CTkApp : public CTclApp {
 
   //---
 
-  CTkWidget *lookupWidgetByName(const std::string &widgetName) const;
+  CTkAppWidget *lookupWidgetByName(const std::string &widgetName) const;
 
   //---
 
@@ -61,24 +61,24 @@ class CTkApp : public CTclApp {
   void bindEvent(const std::string &tagName, const std::string &pattern,
                  const std::string &command);
 
-  bool triggerEnterEvents(const std::string &, CTkWidget *, QEvent *e);
-  bool triggerLeaveEvents(const std::string &, CTkWidget *, QEvent *e);
+  bool triggerEnterEvents(const std::string &, CTkAppWidget *, QEvent *e);
+  bool triggerLeaveEvents(const std::string &, CTkAppWidget *, QEvent *e);
 
-  bool triggerKeyPressEvents(const std::string &, CTkWidget *, QEvent *e, const std::string &);
+  bool triggerKeyPressEvents(const std::string &, CTkAppWidget *, QEvent *e, const std::string &);
 
-  bool execEvent(CTkWidget *, QEvent *e, const std::string &desc);
+  bool execEvent(CTkAppWidget *, QEvent *e, const std::string &desc);
 
   //---
 
   void addTopLevel(CTkTopLevel *toplevel);
 
-  void addWidget(CTkWidget *w);
+  void addWidget(CTkAppWidget *w);
 
-  CTkWidget *lookupWidget(QWidget *w) const;
+  CTkAppWidget *lookupWidget(QWidget *w) const;
 
-  void removeWidget(CTkWidget *w);
+  void removeWidget(CTkAppWidget *w);
 
-  void addDeleteWidget(CTkWidget *w);
+  void addDeleteWidget(CTkAppWidget *w);
 
   void purgeWidgets();
 
@@ -98,8 +98,8 @@ class CTkApp : public CTclApp {
   using TopLevelArray = std::vector<CTkTopLevel *>;
   using EventMap      = std::map<std::string, std::string>;
   using TagEventMap   = std::map<std::string, EventMap>;
-  using WidgetSet     = std::set<CTkWidget *>;
-  using WidgetArray   = std::vector<CTkWidget *>;
+  using WidgetSet     = std::set<CTkAppWidget *>;
+  using WidgetArray   = std::vector<CTkAppWidget *>;
 
   CTkAppRoot*   root_ { nullptr };
   TopLevelArray toplevels_;

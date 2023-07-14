@@ -36,7 +36,7 @@ addItem(QLayoutItem *item)
 
 void
 CTkAppPackLayout::
-addWidgets(const std::vector<CTkWidget *> &widgets, const Info &info)
+addWidgets(const std::vector<CTkAppWidget *> &widgets, const Info &info)
 {
   auto num = widgets.size();
 
@@ -46,7 +46,7 @@ addWidgets(const std::vector<CTkWidget *> &widgets, const Info &info)
 
 void
 CTkAppPackLayout::
-addWidget(CTkWidget *widget, const Info &info)
+addWidget(CTkAppWidget *widget, const Info &info)
 {
   if (widget->getQWidget()->parentWidget() != parentWidget())
     widget->getQWidget()->setParent(parentWidget());
@@ -56,7 +56,7 @@ addWidget(CTkWidget *widget, const Info &info)
 
 CTkAppPackLayout::ItemWrapper *
 CTkAppPackLayout::
-getItem(CTkWidget *widget) const
+getItem(CTkAppWidget *widget) const
 {
   for (int i = 0; i < list_.size(); ++i) {
     ItemWrapper *wrapper = list_.at(i);
@@ -75,7 +75,7 @@ getItem(CTkWidget *widget) const
 
 bool
 CTkAppPackLayout::
-getChildInfo(CTkWidget *widget, Info &info)
+getChildInfo(CTkAppWidget *widget, Info &info)
 {
   ItemWrapper *wrapper = getItem(widget);
 
@@ -252,7 +252,7 @@ setGeometry(const QRect &rect)
   }
 
   for (int i = 0; i < list_.size(); ++i) {
-    ItemWrapper *wrapper = list_.at(i);
+    auto *wrapper = list_.at(i);
 
     auto *item = dynamic_cast<CTkLayoutWidget *>(wrapper->item);
 
@@ -347,6 +347,13 @@ calculateSize(SizeType sizeType) const
     else if (info.side == SIDE_RIGHT) {
       rightWidth += itemSize.width();
 
+      maxHeight = std::max(maxHeight, bottomHeight + topHeight + itemSize.height());
+    }
+    else {
+      leftWidth += itemSize.width ();
+      topHeight += itemSize.height();
+
+      maxWidth  = std::max(maxWidth , leftWidth + rightWidth + itemSize.width());
       maxHeight = std::max(maxHeight, bottomHeight + topHeight + itemSize.height());
     }
   }

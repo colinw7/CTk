@@ -2,6 +2,7 @@
 #include <CTkApp.h>
 #include <CTkAppWidget.h>
 
+#include <QApplication>
 #include <QWidget>
 
 Qt::Orientations
@@ -66,7 +67,11 @@ QSize
 CTkLayoutWidget::
 sizeHint() const
 {
-  return QSize(widget_->getWidth(), widget_->getHeight());
+  auto s = QSize(widget_->getWidth(), widget_->getHeight());
+
+  s = s.expandedTo(QApplication::globalStrut());
+
+  return s;
 }
 
 QWidget *

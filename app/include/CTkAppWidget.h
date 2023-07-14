@@ -1,5 +1,5 @@
-#ifndef CTkWidget_H
-#define CTkWidget_H
+#ifndef CTkAppWidget_H
+#define CTkAppWidget_H
 
 #include <CImageLib.h>
 
@@ -7,7 +7,6 @@
 #include <QWidgetAction>
 #include <QCheckBox>
 #include <QRadioButton>
-#include <QSpinBox>
 #include <QMenu>
 #include <QLabel>
 
@@ -19,6 +18,8 @@ class CTkAppGridLayout;
 class CTkAppPlaceLayout;
 
 class CQRealSlider;
+class CQSpinList;
+class CQLabelImage;
 
 class QFrame;
 class QPushButton;
@@ -32,23 +33,26 @@ class QSplitter;
 class QTextEdit;
 class QToolButton;
 class QBoxLayout;
+class QMenuBar;
 
-class CTkWidget : public QObject {
+class CTkAppWidget : public QObject {
   Q_OBJECT
 
  public:
   using Args = std::vector<std::string>;
 
  public:
-  CTkWidget(CTkApp *tk, CTkWidget *parent=nullptr, const std::string &name="");
+  CTkAppWidget(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
 
-  virtual ~CTkWidget();
+  virtual ~CTkAppWidget();
 
   //---
 
-  CTkWidget *getParent() const { return parent_; }
+  CTkAppWidget *getParent() const { return parent_; }
 
   CTkAppRoot *root() const;
+
+  QWidget *qwidget() const { return qwidget_; }
 
   //---
 
@@ -77,12 +81,12 @@ class CTkWidget : public QObject {
 
   //---
 
-  void addChild   (CTkWidget *w);
-  void removeChild(CTkWidget *w);
+  void addChild   (CTkAppWidget *w);
+  void removeChild(CTkAppWidget *w);
 
-  void getChildren(std::vector<CTkWidget *> &children) const;
+  void getChildren(std::vector<CTkAppWidget *> &children) const;
 
-  CTkWidget *getChild(const std::string &name) const;
+  CTkAppWidget *getChild(const std::string &name) const;
 
   //---
 
@@ -124,6 +128,11 @@ class CTkWidget : public QObject {
   void setPadX(int i);
   void setPadY(int i);
 
+  //--
+
+  const Qt::Alignment &align() const { return align_; }
+  void setAlign(const Qt::Alignment &v) { align_ = v; }
+
   //---
 
   void bindEvent(const std::string &pattern, const std::string &command);
@@ -148,18 +157,20 @@ class CTkWidget : public QObject {
   void runCommand(const Args &args=Args());
 
  protected:
-  using WidgetMap = std::map<std::string, CTkWidget *>;
+  using WidgetMap = std::map<std::string, CTkAppWidget *>;
   using EventMap  = std::map<std::string, std::string>;
 
-  CTkApp*     tk_      { nullptr };
-  CTkWidget*  parent_  { nullptr };
-  std::string name_;
-  int         w_       { 0 };
-  int         h_       { 0 };
-  bool        deleted_ { false };
-  QWidget*    qwidget_ { nullptr };
-  WidgetMap   children_;
-  EventMap    events_;
+  CTkApp*       tk_      { nullptr };
+  CTkAppWidget* parent_  { nullptr };
+  std::string   name_;
+  int           w_       { 0 };
+  int           h_       { 0 };
+  bool          deleted_ { false };
+  QWidget*      qwidget_ { nullptr };
+  WidgetMap     children_;
+  EventMap      events_;
+
+  Qt::Alignment align_ { Qt::AlignCenter };
 
   std::string command_;
 
@@ -172,13 +183,13 @@ class CTkWidgetEventFilter :  public QObject {
   Q_OBJECT
 
  public:
-  CTkWidgetEventFilter(CTkWidget *w) : w_(w) { }
+  CTkWidgetEventFilter(CTkAppWidget *w) : w_(w) { }
 
  protected:
   bool eventFilter(QObject *obj, QEvent *event) override;
 
  private:
-  CTkWidget* w_ { nullptr };
+  CTkAppWidget* w_ { nullptr };
 
   mutable bool pressed_     { false };
   mutable int  pressButton_ { 0 };
@@ -188,7 +199,7 @@ class CTkWidgetEventFilter :  public QObject {
 
 class CTkRootWidget;
 
-class CTkAppRoot : public CTkWidget {
+class CTkAppRoot : public CTkAppWidget {
   Q_OBJECT
 
  public:
@@ -202,26 +213,35 @@ class CTkAppRoot : public CTkWidget {
 
   bool execOp(const Args &args) override;
 
-  bool decodeWidgetName(const std::string &name, CTkWidget **parent, std::string &childName) const;
+  bool decodeWidgetName(const std::string &name, CTkAppWidget **parent,
+                        std::string &childName) const;
 
  private:
   CTkRootWidget* qframe_ { nullptr };
 };
 
 class CTkRootWidget : public QFrame {
+  Q_OBJECT
+
  public:
   CTkRootWidget(QWidget *parent=nullptr);
 
+  void setMenu(QMenu *menu);
+
   QSize sizeHint() const override;
+
+ private:
+  QMenu*    menu_    { nullptr };
+  QMenuBar* menuBar_ { nullptr };
 };
 
 //---
 
-class CTkButton : public CTkWidget {
+class CTkButton : public CTkAppWidget {
   Q_OBJECT
 
  public:
-  CTkButton(CTkApp *tk, CTkWidget *parent=nullptr, const std::string &name="");
+  CTkButton(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
 
   const char *getClassName() const override { return "Button"; }
 
@@ -247,11 +267,13 @@ class CTkButton : public CTkWidget {
 
 //---
 
-class CTkCanvas : public CTkWidget {
+class CTkAppCanvasWidget;
+
+class CTkAppCanvas : public CTkAppWidget {
   Q_OBJECT
 
  public:
-  CTkCanvas(CTkApp *tk, CTkWidget *parent=nullptr, const std::string &name="");
+  CTkAppCanvas(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
 
   const char *getClassName() const override { return "Canvas"; }
 
@@ -260,25 +282,137 @@ class CTkCanvas : public CTkWidget {
   bool execOp(const Args &args) override;
 
  private:
-  QWidget* qcanvas_ { nullptr };
+  CTkAppCanvasWidget* qcanvas_ { nullptr };
 };
 
-class CTkCanvasWidget : public QWidget {
+class CTkAppCanvasWidget : public QWidget {
+  Q_OBJECT
+
  public:
-  CTkCanvasWidget(QWidget *parent=nullptr);
+  enum class ShapeType {
+    NONE,
+    RECTANGLE,
+    LINE,
+    TEXT
+  };
+
+  struct Point {
+    Point() = default;
+
+    Point(double x1, double y1) :
+     x(x1), y(y1) {
+    }
+
+    double x { 0.0 };
+    double y { 0.0 };
+  };
+
+  using Points = std::vector<Point>;
+
+  class Shape {
+   public:
+    Shape(ShapeType type) :
+     type_(type) {
+    }
+
+    virtual ~Shape() = default;
+
+    ShapeType type() const { return type_; }
+
+   protected:
+    ShapeType type_ { ShapeType::NONE };
+  };
+
+  class Rectangle : public Shape {
+   public:
+    Rectangle(double x1, double y1, double x2, double y2) :
+     Shape(ShapeType::RECTANGLE), x1_(x1), y1_(y1), x2_(x2), y2_(y2) {
+    }
+
+    double x1() const { return x1_; }
+    double y1() const { return y1_; }
+    double x2() const { return x2_; }
+    double y2() const { return y2_; }
+
+   protected:
+    double x1_ { 0.0 };
+    double y1_ { 0.0 };
+    double x2_ { 1.0 };
+    double y2_ { 1.0 };
+  };
+
+  class Line : public Shape {
+   public:
+    Line(const Points &points) :
+     Shape(ShapeType::LINE), points_(points) {
+   }
+
+   const Points &points() const { return points_; }
+
+  protected:
+   Points points_;
+  };
+
+  class Text : public Shape {
+   public:
+    Text(const Point &p, const std::string &text) :
+     Shape(ShapeType::TEXT), p_(p), text_(text) {
+    }
+
+   const Point &pos() const { return p_; }
+
+   const std::string &text() const { return text_; }
+
+  protected:
+   Point       p_;
+   std::string text_;
+  };
+
+ public:
+  CTkAppCanvasWidget(QWidget *parent=nullptr);
+
+  void addRectangle(double x1, double y1, double x2, double y2) {
+    auto *rectangleShape = new Rectangle(x1, y1, x2, y2);
+
+    addShape(rectangleShape);
+  }
+
+  void addLine(const Points &points) {
+    auto *lineShape = new Line(points);
+
+    addShape(lineShape);
+  }
+
+  void addText(const Point &pos, const std::string &text) {
+    auto *textShape = new Text(pos, text);
+
+    addShape(textShape);
+  }
+
+  void paintEvent(QPaintEvent *) override;
 
   QSize sizeHint() const override;
+
+ private:
+  void addShape(Shape *s) { shapes_.push_back(s); }
+
+  void drawShape(QPainter *p, Shape *s);
+
+ private:
+  using Shapes = std::vector<Shape *>;
+
+  Shapes shapes_;
 };
 
 //---
 
 class CTkCheckButtonVarProc;
 
-class CTkCheckButton : public CTkWidget {
+class CTkCheckButton : public CTkAppWidget {
   Q_OBJECT
 
  public:
-  CTkCheckButton(CTkApp *tk, CTkWidget *parent=nullptr, const std::string &name="");
+  CTkCheckButton(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
 
   const char *getClassName() const override { return "CheckButton"; }
 
@@ -307,12 +441,13 @@ class CTkCheckButton : public CTkWidget {
 //---
 
 class CTkEntryVarProc;
+class CTkEntryValidator;
 
-class CTkEntry : public CTkWidget {
+class CTkEntry : public CTkAppWidget {
   Q_OBJECT
 
  public:
-  CTkEntry(CTkApp *tk, CTkWidget *parent=nullptr, const std::string &name="");
+  CTkEntry(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
 
   const char *getClassName() const override { return "Entry"; }
 
@@ -322,6 +457,10 @@ class CTkEntry : public CTkWidget {
 
   void setText(const std::string &text);
 
+  void updateVariable();
+
+  bool validate(const std::string &) const;
+
  private:
   void connectSlots(bool);
 
@@ -329,18 +468,30 @@ class CTkEntry : public CTkWidget {
   void valueChangedSlot();
 
  private:
-  QLineEdit*       qedit_ { nullptr };
-  std::string      varName_;
-  CTkEntryVarProc* varProc_ { nullptr };
+  enum class ValidateMode {
+    NONE,
+    FOCUS,
+    FOCUSIN,
+    FOCUSOUT,
+    KEY,
+    ALL
+  };
+
+  QLineEdit*         qedit_ { nullptr };
+  std::string        varName_;
+  CTkEntryVarProc*   varProc_ { nullptr };
+  ValidateMode       validateMode_ { ValidateMode::NONE };
+  std::string        validateCmd_;
+  CTkEntryValidator* validateProc_ { nullptr };
 };
 
 //---
 
-class CTkFrame : public CTkWidget {
+class CTkFrame : public CTkAppWidget {
   Q_OBJECT
 
  public:
-  CTkFrame(CTkApp *tk, CTkWidget *parent=nullptr, const std::string &name="");
+  CTkFrame(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
 
   const char *getClassName() const override { return "Frame"; }
 
@@ -354,48 +505,13 @@ class CTkFrame : public CTkWidget {
 
 //---
 
-class CTkLabelWidget : public QFrame {
-  Q_OBJECT
-
- public:
-  enum class Type {
-    NONE,
-    BOTTOM,
-    TOP,
-    LEFT,
-    RIGHT,
-    CENTER
-  };
-
- public:
-  CTkLabelWidget(QWidget *parent=nullptr);
-
-  const Type &type() const { return type_; }
-  void setType(const Type &t) { type_ = t; update(); }
-
-  const QString &label() const { return label_; }
-  void setLabel(const QString &s) { label_ = s; update(); }
-
-  const QImage &image() const { return image_; }
-  void setImage(const QImage &i) { image_ = i; update(); }
-
-  void paintEvent(QPaintEvent *) override;
-
-  QSize sizeHint() const override;
-
- private:
-  Type    type_ { Type::NONE };
-  QString label_;
-  QImage  image_;
-};
-
 class CTkLabelVarProc;
 
-class CTkLabel : public CTkWidget {
+class CTkLabel : public CTkAppWidget {
   Q_OBJECT
 
  public:
-  CTkLabel(CTkApp *tk, CTkWidget *parent=nullptr, const std::string &name="");
+  CTkLabel(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
 
   const char *getClassName() const override { return "Label"; }
 
@@ -407,19 +523,21 @@ class CTkLabel : public CTkWidget {
 
   void setImage(CImagePtr image);
 
+  void updateVariable();
+
  private:
-  CTkLabelWidget*  qlabel_ { nullptr };
+  CQLabelImage*    qlabel_ { nullptr };
   std::string      varName_;
   CTkLabelVarProc* varProc_ { nullptr };
 };
 
 //---
 
-class CTkLabelFrame : public CTkWidget {
+class CTkLabelFrame : public CTkAppWidget {
   Q_OBJECT
 
  public:
-  CTkLabelFrame(CTkApp *tk, CTkWidget *parent=nullptr, const std::string &name="");
+  CTkLabelFrame(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
 
   const char *getClassName() const override { return "LabelFrame"; }
 
@@ -437,11 +555,11 @@ class CTkLabelFrame : public CTkWidget {
 
 class CTkListBoxVarProc;
 
-class CTkListBox : public CTkWidget {
+class CTkListBox : public CTkAppWidget {
   Q_OBJECT
 
  public:
-  CTkListBox(CTkApp *tk, CTkWidget *parent=nullptr, const std::string &name="");
+  CTkListBox(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
 
   const char *getClassName() const override { return "ListBox"; }
 
@@ -472,27 +590,37 @@ class CTkCheckAction : public QWidgetAction {
   Q_OBJECT
 
  public:
-  CTkCheckAction() : QWidgetAction(nullptr) { }
-
-  QWidget *createWidget(QWidget *parent) override {
-    auto *check = new QCheckBox(parent);
-
-    if (text() != "")
-      check->setText(text());
-
-    connect(check, SIGNAL(stateChanged(int)), this, SIGNAL(stateChanged(int)));
-
-    return check;
+  CTkCheckAction(CTkApp* tk) :
+   QWidgetAction(nullptr), tk_(tk) {
   }
 
-  const QString &text() const { return text_; }
-  void setText(const QString &s) { text_ = s; }
+  QWidget *createWidget(QWidget *parent) override {
+    check_ = new QCheckBox(parent);
+
+    if (text() != "")
+      check_->setText(QString::fromStdString(text()));
+
+    connect(check_, SIGNAL(stateChanged(int)), this, SIGNAL(stateChanged(int)));
+
+    return check_;
+  }
+
+  const std::string &text() const { return text_; }
+  void setText(const std::string &s) { text_ = s; }
+
+  const std::string &varName() const { return varName_; }
+  void setVarName(const std::string &s) { varName_ = s; }
+
+  void updateVariable();
 
  Q_SIGNALS:
   void stateChanged(int);
 
  private:
-  QString text_;
+  CTkApp*     tk_ { nullptr };
+  QCheckBox*  check_ { nullptr };
+  std::string text_;
+  std::string varName_;
 };
 
 class CTkRadioAction : public QWidgetAction {
@@ -557,11 +685,11 @@ class CTkSubMenu : public QMenu {
   std::string menu_;
 };
 
-class CTkMenu : public CTkWidget {
+class CTkMenu : public CTkAppWidget {
   Q_OBJECT
 
  public:
-  CTkMenu(CTkApp *tk, CTkWidget *parent=nullptr, const std::string &name="");
+  CTkMenu(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
 
   const char *getClassName() const override { return "Menu"; }
 
@@ -577,6 +705,8 @@ class CTkMenu : public CTkWidget {
  private Q_SLOTS:
   void actionPressedSlot();
 
+  void checkChangedSlot(int);
+
   void radioToggledSlot(bool);
 
  private:
@@ -588,11 +718,11 @@ class CTkMenu : public CTkWidget {
 
 class CTkMenuButtonVarProc;
 
-class CTkMenuButton : public CTkWidget {
+class CTkMenuButton : public CTkAppWidget {
   Q_OBJECT
 
  public:
-  CTkMenuButton(CTkApp *tk, CTkWidget *parent=nullptr, const std::string &name="");
+  CTkMenuButton(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
 
   const char *getClassName() const override { return "MenuButton"; }
 
@@ -607,6 +737,8 @@ class CTkMenuButton : public CTkWidget {
   void updateMenu();
 
   void setMenu(CTkMenu *menu);
+
+  void updateVariable();
 
  private:
   void connectSlots(bool);
@@ -625,11 +757,11 @@ class CTkMenuButton : public CTkWidget {
 
 class CTkMessageVarProc;
 
-class CTkMessage : public CTkWidget {
+class CTkMessage : public CTkAppWidget {
   Q_OBJECT
 
  public:
-  CTkMessage(CTkApp *tk, CTkWidget *parent=nullptr, const std::string &name="");
+  CTkMessage(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
 
   const char *getClassName() const override { return "Message"; }
 
@@ -639,6 +771,8 @@ class CTkMessage : public CTkWidget {
 
   void setText(const std::string &text);
 
+  void updateVariable();
+
  private:
   QTextEdit*         qedit_ { nullptr };
   std::string        varName_;
@@ -647,11 +781,11 @@ class CTkMessage : public CTkWidget {
 
 //---
 
-class CTkPanedWindow : public CTkWidget {
+class CTkPanedWindow : public CTkAppWidget {
   Q_OBJECT
 
  public:
-  CTkPanedWindow(CTkApp *tk, CTkWidget *parent=nullptr, const std::string &name="");
+  CTkPanedWindow(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
 
   const char *getClassName() const override { return "PanedWindow"; }
 
@@ -667,11 +801,11 @@ class CTkPanedWindow : public CTkWidget {
 
 class CTkRadioButtonVarProc;
 
-class CTkRadioButton : public CTkWidget {
+class CTkRadioButton : public CTkAppWidget {
   Q_OBJECT
 
  public:
-  CTkRadioButton(CTkApp *tk, CTkWidget *parent=nullptr, const std::string &name="");
+  CTkRadioButton(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
 
   const char *getClassName() const override { return "RadioButton"; }
 
@@ -681,11 +815,11 @@ class CTkRadioButton : public CTkWidget {
 
   void setText(const std::string &text);
 
-  void updateVariable();
-
   void setValue(const std::string &value);
 
   void setChecked(bool b);
+
+  void updateVariable();
 
  private:
   void connectSlots(bool);
@@ -704,11 +838,11 @@ class CTkRadioButton : public CTkWidget {
 
 class CTkScaleVarProc;
 
-class CTkScale : public CTkWidget {
+class CTkScale : public CTkAppWidget {
   Q_OBJECT
 
  public:
-  CTkScale(CTkApp *tk, CTkWidget *parent=nullptr, const std::string &name="");
+  CTkScale(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
 
   const char *getClassName() const override { return "Scale"; }
 
@@ -736,11 +870,11 @@ class CTkScale : public CTkWidget {
 
 //---
 
-class CTkScrollBar : public CTkWidget {
+class CTkScrollBar : public CTkAppWidget {
   Q_OBJECT
 
  public:
-  CTkScrollBar(CTkApp *tk, CTkWidget *parent=nullptr, const std::string &name="");
+  CTkScrollBar(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
 
   const char *getClassName() const override { return "ScrollBar"; }
 
@@ -760,46 +894,13 @@ class CTkScrollBar : public CTkWidget {
 
 //---
 
-class CTkSpinBoxWidget : public QSpinBox {
+class CTkSpinBoxVarProc;
+
+class CTkSpinBox : public CTkAppWidget {
   Q_OBJECT
 
  public:
-  CTkSpinBoxWidget(QWidget *parent=nullptr) :
-   QSpinBox(parent) {
-  }
-
-  const QStringList &strings() const { return strings_; }
-
-  void setStrings(const QStringList &s) {
-    strings_ = s;
-
-    setRange(0, strings_.length() - 1);
-  }
-
-  QString textFromValue(int value) const override {
-    if (value < 0 || value >= strings_.length())
-      return "";
-
-    return strings_[value];
-  }
-
-  int valueFromText(const QString &text) const override {
-    for (int i = 0; i < strings_.length(); ++i)
-      if (strings_[i] == text)
-        return i;
-
-    return -1;
-  }
-
- private:
-  QStringList strings_;
-};
-
-class CTkSpinBox : public CTkWidget {
-  Q_OBJECT
-
- public:
-  CTkSpinBox(CTkApp *tk, CTkWidget *parent=nullptr, const std::string &name="");
+  CTkSpinBox(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
 
   const char *getClassName() const override { return "SpinBox"; }
 
@@ -807,17 +908,23 @@ class CTkSpinBox : public CTkWidget {
 
   bool execOp(const Args &args) override;
 
+  void setValue(const std::string &);
+
+  void updateVariable();
+
  private:
-  CTkSpinBoxWidget* qspin_ { nullptr };
+  CQSpinList*        qspin_ { nullptr };
+  std::string        varName_;
+  CTkSpinBoxVarProc* varProc_;
 };
 
 //---
 
-class CTkText : public CTkWidget {
+class CTkText : public CTkAppWidget {
   Q_OBJECT
 
  public:
-  CTkText(CTkApp *tk, CTkWidget *parent=nullptr, const std::string &name="");
+  CTkText(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
 
   const char *getClassName() const override { return "Text"; }
 
@@ -835,11 +942,11 @@ class CTkText : public CTkWidget {
 
 //---
 
-class CTkTopLevel : public CTkWidget {
+class CTkTopLevel : public CTkAppWidget {
   Q_OBJECT
 
  public:
-  CTkTopLevel(CTkApp *tk, CTkWidget *parent=nullptr, const std::string &name="");
+  CTkTopLevel(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
 
   const char *getClassName() const override { return "TopLevel"; }
 

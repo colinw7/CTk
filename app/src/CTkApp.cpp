@@ -24,15 +24,23 @@ CTkApp(int argc, char **argv) :
 {
   root_ = new CTkAppRoot(this);
 
-  initInterp();
+  tclInit();
 
   Tcl_StaticPackage(getInterp(), "Tk", Tk_Init, Tk_SafeInit);
 
-  Tcl_PkgProvide(getInterp(), "Tk", "1.0");
+  Tcl_PkgProvide(getInterp(), "Tk", "8.0");
 
   setInteractive(false);
 
   init();
+
+  std::vector<std::string> args;
+
+  for (int i = 1; i < argc; ++i)
+    args.push_back(std::string(argv[i]));
+
+  setStringArrayVar("argv", args);
+  setIntegerVar    ("argc", args.size());
 }
 
 std::string
@@ -76,14 +84,14 @@ show()
 
 //---
 
-CTkWidget *
+CTkAppWidget *
 CTkApp::
 lookupWidgetByName(const std::string &widgetName) const
 {
   if (widgetName == ".")
     return root();
 
-  CTkWidget*  parent = nullptr;
+  CTkAppWidget*  parent = nullptr;
   std::string childName;
 
   if (! root_->decodeWidgetName(widgetName, &parent, childName)) {
@@ -215,7 +223,7 @@ bindEvent(const std::string &tagName, const std::string &pattern, const std::str
 
 bool
 CTkApp::
-triggerEnterEvents(const std::string &className, CTkWidget *w, QEvent *e)
+triggerEnterEvents(const std::string &className, CTkAppWidget *w, QEvent *e)
 {
   auto p1 = events_.find(className);
 
@@ -231,7 +239,7 @@ triggerEnterEvents(const std::string &className, CTkWidget *w, QEvent *e)
 
 bool
 CTkApp::
-triggerLeaveEvents(const std::string &className, CTkWidget *w, QEvent *e)
+triggerLeaveEvents(const std::string &className, CTkAppWidget *w, QEvent *e)
 {
   auto p1 = events_.find(className);
 
@@ -247,7 +255,7 @@ triggerLeaveEvents(const std::string &className, CTkWidget *w, QEvent *e)
 
 bool
 CTkApp::
-triggerKeyPressEvents(const std::string &className, CTkWidget *w, QEvent *e, const std::string &str)
+triggerKeyPressEvents(const std::string &className, CTkAppWidget *w, QEvent *e, const std::string &str)
 {
   auto p1 = events_.find(className);
 
@@ -272,7 +280,7 @@ triggerKeyPressEvents(const std::string &className, CTkWidget *w, QEvent *e, con
 
 bool
 CTkApp::
-execEvent(CTkWidget *w, QEvent *e, const std::string &str)
+execEvent(CTkAppWidget *w, QEvent *e, const std::string &str)
 {
   auto str1 = str;
 
@@ -318,12 +326,12 @@ addTopLevel(CTkTopLevel *toplevel)
 
 void
 CTkApp::
-addWidget(CTkWidget *w)
+addWidget(CTkAppWidget *w)
 {
   widgets_.insert(w);
 }
 
-CTkWidget *
+CTkAppWidget *
 CTkApp::
 lookupWidget(QWidget *w) const
 {
@@ -337,7 +345,7 @@ lookupWidget(QWidget *w) const
 
 void
 CTkApp::
-removeWidget(CTkWidget *w)
+removeWidget(CTkAppWidget *w)
 {
   auto p = widgets_.find(w);
 
@@ -347,7 +355,7 @@ removeWidget(CTkWidget *w)
 
 void
 CTkApp::
-addDeleteWidget(CTkWidget *w)
+addDeleteWidget(CTkAppWidget *w)
 {
   deleteWidgets_.push_back(w);
 }

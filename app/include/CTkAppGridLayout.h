@@ -5,7 +5,7 @@
 
 #include <QLayout>
 
-class CTkWidget;
+class CTkAppWidget;
 
 class CTkAppGridLayout : public QLayout {
   Q_OBJECT
@@ -120,14 +120,14 @@ class CTkAppGridLayout : public QLayout {
 
   void addItem(QLayoutItem *item) override;
 
-  void addWidgets(const std::vector<CTkWidget *> &widgets, const Info &info);
-  void addWidget(CTkWidget *widget, const Info &info);
+  void addWidgets(const std::vector<CTkAppWidget *> &widgets, const Info &info);
+  void addWidget(CTkAppWidget *widget, const Info &info);
 
-  ItemWrapper *getItem(CTkWidget *widget) const;
+  ItemWrapper *getItem(CTkAppWidget *widget) const;
 
-  bool getChildInfo(CTkWidget *widget, Info &info);
+  bool getChildInfo(CTkAppWidget *widget, Info &info);
 
-  bool setChildWeight(CTkWidget *widget, int weight);
+  bool setChildWeight(CTkAppWidget *widget, int weight);
 
   void setColumnWeight(int col, int weight);
   void setRowWeight   (int row, int weight);
