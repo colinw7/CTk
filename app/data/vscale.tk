@@ -1,0 +1,29 @@
+set score "Average score: 0.0"
+set food 0
+set ambiance 0
+set service 0
+
+# Calculate an average of the ratings to display
+proc updateScore { val } {
+  #puts "updateScore $val"
+  global food ambiance service score
+
+  set average [expr {($food + $ambiance + $service)/3.0}]
+  #puts $average
+  set score [format {Average score: %3.1f} $average]
+  #puts $score
+}
+
+scale .food     -label "Food"     -variable food     -length 5c -width .25c -from 0 -to 5 \
+  -resolution 1 -tickinterval 1 -showvalue 0 -orient vertical -command {updateScore}
+scale .ambiance -label "Ambiance" -variable ambiance -length 5c -width .25c -from 0 -to 5 \
+  -resolution 1 -tickinterval 1 -showvalue 0 -orient vertical -command {updateScore}
+scale .service  -label "Service"  -variable service  -length 5c -width .25c -from 0 -to 5 \
+  -resolution 1 -tickinterval 1 -showvalue 0 -orient vertical -command {updateScore}
+
+label .score -textvariable score
+
+grid .food     -row 0 -column 0 -padx 2 -pady 2 -sticky w
+grid .ambiance -row 0 -column 1 -padx 2 -pady 2 -sticky w
+grid .service  -row 0 -column 2 -padx 2 -pady 2 -sticky w
+grid .score    -row 0 -column 3 -padx 2 -pady 2 -sticky w

@@ -1,0 +1,3 @@
+label .label -text Password:
+entry .passwd -show #
+grid .label .passwd -sticky ew

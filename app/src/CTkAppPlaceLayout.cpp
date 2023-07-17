@@ -1,5 +1,5 @@
 #include <CTkAppPlaceLayout.h>
-#include <CTkAppLayout.h>
+#include <CTkAppLayoutWidget.h>
 
 CTkAppPlaceLayout::
 CTkAppPlaceLayout(QWidget *parent, int margin, int spacing) :
@@ -49,7 +49,7 @@ addWidget(CTkAppWidget *widget, const Info &info)
   ItemWrapper *wrapper = getItem(widget);
 
   if (! wrapper)
-    add(new CTkLayoutWidget(widget), info);
+    add(new CTkAppLayoutWidget(widget), info);
   else
     wrapper->info.update(info);
 }
@@ -61,7 +61,7 @@ getItem(CTkAppWidget *widget) const
   for (int i = 0; i < list_.size(); ++i) {
     ItemWrapper *wrapper = list_.at(i);
 
-    CTkLayoutWidget *w = dynamic_cast<CTkLayoutWidget *>(wrapper->item);
+    auto *w = dynamic_cast<CTkAppLayoutWidget *>(wrapper->item);
 
     if (! w) continue;
 

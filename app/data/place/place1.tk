@@ -1,0 +1,13 @@
+. config -bg white
+
+label .l -text "Left"
+label .r -text "Right"
+label .t -text "Top"
+label .b -text "Bottom"
+label .m -text "Middle"
+
+place .l -relx 0.0 -rely 0.5 -anchor w
+place .r -relx 1.0 -rely 0.5 -anchor e
+place .t -relx 0.5 -rely 0.0 -anchor n
+place .b -relx 0.5 -rely 1.0 -anchor s
+place .m -relx 0.5 -rely 0.5 -anchor center

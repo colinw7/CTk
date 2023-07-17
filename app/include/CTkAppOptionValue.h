@@ -1,5 +1,5 @@
-#ifndef CTkOptionValue_H
-#define CTkOptionValue_H
+#ifndef CTkAppOptionValue_H
+#define CTkAppOptionValue_H
 
 #include <string>
 #include <map>

@@ -1,5 +1,5 @@
-#ifndef CTK_PLACE_LAYOUT_H
-#define CTK_PLACE_LAYOUT_H
+#ifndef CTkAppPlaceLayout_H
+#define CTkAppPlaceLayout_H
 
 #include <COptVal.h>
 

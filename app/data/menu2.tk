@@ -1,0 +1,17 @@
+option add *Menu.tearOff 0
+
+menu .mbar
+
+.mbar add cascade -label File     -menu .mbar.file     -underline 0
+.mbar add cascade -label Edit     -menu .mbar.edit     -underline 0
+.mbar add cascade -label View     -menu .mbar.view     -underline 0
+.mbar add cascade -label Graphics -menu .mbar.graphics -underline 0
+.mbar add cascade -label Text     -menu .mbar.text     -underline 0
+.mbar add cascade -label Help     -menu .mbar.help     -underline 0
+
+menu .mbar.text
+
+.mbar.text add checkbutton -label Bold   -variable bold   -underline 0
+.mbar.text add checkbutton -label Italic -variable italic -underline 0
+
+. configure -menu .mbar

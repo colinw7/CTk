@@ -1,0 +1,8 @@
+frame .f1 -width 50 -height 50 -relief raised -borderwidth 4
+frame .f2 -width 50 -height 50 -relief sunken -borderwidth 4
+frame .f3 -width 50 -height 50 -relief flat -borderwidth 4
+frame .f4 -width 50 -height 50 -relief ridge -borderwidth 4
+frame .f5 -width 50 -height 50 -relief solid -borderwidth 4
+frame .f6 -width 50 -height 50 -relief groove -borderwidth 4
+
+pack .f1 .f2 .f3 .f4 .f5 .f6 -side top

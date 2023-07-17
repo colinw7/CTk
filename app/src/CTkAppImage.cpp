@@ -2,7 +2,7 @@
 #include <CImageLib.h>
 
 bool
-CTkImage::
+CTkAppImage::
 loadFile(const std::string &filename)
 {
   CImageFileSrc src(filename);

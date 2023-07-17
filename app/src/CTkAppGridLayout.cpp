@@ -1,7 +1,9 @@
 #include <CTkAppGridLayout.h>
-#include <CTkAppLayout.h>
+#include <CTkAppLayoutWidget.h>
 
 #include <QWidget>
+
+#include <set>
 
 CTkAppGridLayout::
 CTkAppGridLayout(QWidget *parent, int margin, int spacing) :
@@ -54,7 +56,7 @@ addWidgets(const std::vector<CTkAppWidget *> &widgets, const Info &info)
       info1.setRow(row_);
       info1.setCol(col_);
 
-      add(new CTkLayoutWidget(widgets[i]), info1);
+      add(new CTkAppLayoutWidget(widgets[i]), info1);
 
       ++col_;
 
@@ -77,7 +79,7 @@ addWidget(CTkAppWidget *widget, const Info &info)
   auto *wrapper = getItem(widget);
 
   if (! wrapper)
-    add(new CTkLayoutWidget(widget), info);
+    add(new CTkAppLayoutWidget(widget), info);
   else
     wrapper->info.update(info);
 }
@@ -89,7 +91,7 @@ getItem(CTkAppWidget *widget) const
   for (int i = 0; i < list_.size(); ++i) {
     auto *wrapper = list_.at(i);
 
-    auto *w = dynamic_cast<CTkLayoutWidget *>(wrapper->item);
+    auto *w = dynamic_cast<CTkAppLayoutWidget *>(wrapper->item);
     if (! w) continue;
 
     auto *widget1 = w->getTkWidget();
@@ -162,7 +164,8 @@ count() const
 }
 
 QLayoutItem *
-CTkAppGridLayout::itemAt(int index) const
+CTkAppGridLayout::
+itemAt(int index) const
 {
   auto *wrapper = list_.value(index);
   if (! wrapper) return nullptr;
@@ -181,8 +184,8 @@ void
 CTkAppGridLayout::
 setGeometry(const QRect &rect)
 {
-  int num_rows = 0;
-  int num_cols = 0;
+  uint num_rows = 0;
+  uint num_cols = 0;
 
   QLayout::setGeometry(rect);
 
@@ -193,68 +196,196 @@ setGeometry(const QRect &rect)
     int row = wrapper->info.getRow();
     int col = wrapper->info.getCol();
 
-    num_rows = std::max(num_rows, row + 1);
-    num_cols = std::max(num_cols, col + 1);
+    num_rows = std::max(num_rows, uint(row + 1));
+    num_cols = std::max(num_cols, uint(col + 1));
   }
 
   // create column and row grids and sizes
-  std::vector<int> cws, rhs;
+  std::vector<int> colWidths, rowHeights, prefColWidths, prefRowHeights;
+  std::set<int>    resizeColumns, resizeRows;
 
-  cws.resize(size_t(num_cols));
-  rhs.resize(size_t(num_rows));
+  colWidths     .resize(size_t(num_cols));
+  rowHeights    .resize(size_t(num_rows));
+  prefColWidths .resize(size_t(num_cols));
+  prefRowHeights.resize(size_t(num_rows));
 
-  int cw = rect.width ()/num_cols;
-  int rh = rect.height()/num_rows;
+  //---
 
-  for (int i = 0; i < num_cols; ++i)
-    cws[size_t(i)] = cw;
+  // default to equal sized across all rows/columns
+  int initColWidth  = rect.width ()/num_cols;
+  int initRowHeight = rect.height()/num_rows;
 
-  for (int i = 0; i < num_rows; ++i)
-    rhs[size_t(i)] = rh;
+  for (uint i = 0; i < num_cols; ++i)
+    colWidths[i] = initColWidth;
+
+  for (uint i = 0; i < num_rows; ++i)
+    rowHeights[i] = initRowHeight;
+
+  //---
+
+  auto colX = [&](int c) {
+    int x = rect.x();
+
+    for (int i = 0; i < c; ++i)
+      x += colWidths[i];
+
+    return x;
+  };
+
+  auto rowX = [&](int r) {
+    int y = rect.y();
+
+    for (int i = 0; i < r; ++i)
+      y += rowHeights[i];
+
+    return y;
+  };
+
+  //---
 
   // place widgets in grid
-  for (int i = 0; i < list_.size(); ++i) {
-    auto *wrapper = list_.at(i);
+  auto placeWidgets = [&]() {
+    bool changed = false;
 
-    auto *item  = wrapper->item;
-    int   row   = wrapper->info.getRow();
-    int   col   = wrapper->info.getCol();
-    uint  sides = wrapper->info.getStickySides();
+    for (uint i = 0; i < num_cols; ++i)
+      prefColWidths[i] = 0;
 
-    int padx = wrapper->info.getPadX();
-    int pady = wrapper->info.getPadY();
+    for (uint i = 0; i < num_rows; ++i)
+      prefRowHeights[i] = 0;
 
-    int ipadx = wrapper->info.getIPadX();
-    int ipady = wrapper->info.getIPadY();
+    resizeColumns.clear();
+    resizeRows   .clear();
 
-    auto itemSize = item->sizeHint();
+    for (int i = 0; i < list_.size(); ++i) {
+      auto *wrapper = list_.at(i);
 
-    int wh = itemSize.width () + 2*ipadx;
-    int hh = itemSize.height() + 2*ipady;
+      auto *item  = wrapper->item;
+      int   row   = wrapper->info.getRow();
+      int   col   = wrapper->info.getCol();
+      uint  sides = wrapper->info.getStickySides();
 
-    int cw = cws[size_t(col)];
-    int rh = rhs[size_t(row)];
+      int padx = wrapper->info.getPadX();
+      int pady = wrapper->info.getPadY();
 
-    int x1 = rect.x() + col*cw;
-    int y1 = rect.y() + row*rh;
+      int ipadx = wrapper->info.getIPadX();
+      int ipady = wrapper->info.getIPadY();
 
-    int dx = 0, dy = 0;
+      auto itemSize = item->sizeHint();
 
-    if      ((sides & STICKY_W) && (sides & STICKY_E)) dx = 0;
-    else if ((sides & STICKY_W)                      ) dx = 0;
-    else if ((sides & STICKY_E)                      ) dx = cw - wh - 2*padx;
-    else                                               dx = (cw - wh - 2*padx)/2;
+      int iw = itemSize.width () + 2*ipadx;
+      int ih = itemSize.height() + 2*ipady;
 
-    if      ((sides & STICKY_N) && (sides & STICKY_S)) dy = 0;
-    else if ((sides & STICKY_N)                      ) dy = 0;
-    else if ((sides & STICKY_S)                      ) dy = rh - hh - 2*pady;
-    else                                               dy = (rh - hh - 2*pady)/2;
+      prefColWidths [col] = std::max(prefColWidths [col], iw);
+      prefRowHeights[row] = std::max(prefRowHeights[row], ih);
 
-    int w = ((sides & STICKY_W) && (sides & STICKY_E) ? cw - 2*padx: wh);
-    int h = ((sides & STICKY_N) && (sides & STICKY_S) ? rh - 2*pady: hh);
+      int colWidth1  = colWidths [size_t(col)];
+      int colHeight1 = rowHeights[size_t(row)];
 
-    item->setGeometry(QRect(x1 + dx + padx, y1 + dy + pady, w, h));
-  }
+      int x1 = colX(col);
+      int y1 = rowX(row);
+
+      int dx = 0, dy = 0;
+
+      if      ((sides & STICKY_W) && (sides & STICKY_E)) { resizeColumns.insert(col); }
+      else if ((sides & STICKY_W)                      ) dx = 0;
+      else if ((sides & STICKY_E)                      ) dx = colWidth1  - iw - 2*padx;
+      else                                               dx = (colWidth1 - iw - 2*padx)/2;
+
+      if      ((sides & STICKY_N) && (sides & STICKY_S)) { resizeRows.insert(row); }
+      else if ((sides & STICKY_N)                      ) dy = 0;
+      else if ((sides & STICKY_S)                      ) dy = colHeight1  - ih - 2*pady;
+      else                                               dy = (colHeight1 - ih - 2*pady)/2;
+
+      int w = ((sides & STICKY_W) && (sides & STICKY_E) ? colWidth1  - 2*padx: iw);
+      int h = ((sides & STICKY_N) && (sides & STICKY_S) ? colHeight1 - 2*pady: ih);
+
+      QRect r(x1 + dx + padx, y1 + dy + pady, w, h);
+
+      if (r != item->geometry()) {
+        item->setGeometry(r);
+        changed = true;
+      }
+    }
+
+    return changed;
+  };
+
+  placeWidgets();
+
+  auto spreadColumns = [&]() {
+    std::set<int> extraColumns, clippedColumns;
+
+    int extraWidth = 0;
+
+    for (uint i = 0; i < num_cols; ++i) {
+      if (resizeColumns.find(i) != resizeColumns.end())
+        prefColWidths[i] = INT_MAX;
+
+      if      (colWidths[i] > prefColWidths[i]) {
+        extraColumns.insert(i);
+
+        extraWidth += colWidths[i] - prefColWidths[i];
+      }
+      else if (colWidths[i] < prefColWidths[i]) {
+        clippedColumns.insert(i);
+      }
+    }
+
+    if (extraWidth > 0 && ! clippedColumns.empty()) {
+      int numClipped = clippedColumns.size();
+
+      int adjustWidth = extraWidth/numClipped;
+
+      for (auto i : clippedColumns)
+        colWidths[i] += std::min(prefColWidths[i] - colWidths[i], adjustWidth);
+
+      for (auto i : extraColumns)
+        colWidths[i] -= std::min(colWidths[i] - prefColWidths[i], adjustWidth);
+
+      return placeWidgets();
+    }
+
+    return false;
+  };
+
+  auto spreadRows = [&]() {
+    std::set<int> extraRows, clippedRows;
+
+    int extraHeight = 0;
+
+    for (uint i = 0; i < num_rows; ++i) {
+      if (resizeRows.find(i) != resizeRows.end())
+        prefRowHeights[i] = INT_MAX;
+
+      if      (rowHeights[i] > prefRowHeights[i]) {
+        extraRows.insert(i);
+
+        extraHeight += rowHeights[i] - prefRowHeights[i];
+      }
+      else if (rowHeights[i] < prefRowHeights[i]) {
+        clippedRows.insert(i);
+      }
+    }
+
+    if (extraHeight > 0 && ! clippedRows.empty()) {
+      int numClipped = clippedRows.size();
+
+      int adjustHeight = extraHeight/numClipped;
+
+      for (auto i : clippedRows)
+        rowHeights[i] += std::min(prefRowHeights[i] - rowHeights[i], adjustHeight);
+
+      for (auto i : extraRows)
+        rowHeights[i] -= std::min(rowHeights[i] - prefRowHeights[i], adjustHeight);
+
+      return placeWidgets();
+    }
+
+    return false;
+  };
+
+  spreadColumns();
+  spreadRows();
 }
 
 QSize

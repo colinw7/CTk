@@ -1,0 +1,5 @@
+button .ok -text OK -command ok
+button .apply -text Apply -command apply
+button .cancel -text Cancel -command cancel
+button .help -text Help -bitmap data/question.xbm -command help
+grid .ok .apply .cancel .help

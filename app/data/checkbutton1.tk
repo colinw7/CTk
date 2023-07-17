@@ -1,0 +1,10 @@
+checkbutton .bold -text Bold -variable bold -anchor w
+checkbutton .italic -text Italic -variable italic -anchor w
+checkbutton .underline -text Underline -variable underline -anchor w
+
+grid .bold -sticky ew
+grid .italic -sticky ew
+grid .underline -sticky ew
+
+.bold configure -tristatevalue 1
+set bold 3

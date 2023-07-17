@@ -1,0 +1,6 @@
+button .b1 -text Hello -command { puts "Hello" }
+button .b2 -text World -command { puts "World" }
+
+pack .b1 .b2
+
+wm title . {Hello World}

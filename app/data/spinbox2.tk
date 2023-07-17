@@ -1,0 +1,6 @@
+label .label -text "Font Size"
+
+spinbox .spin -width 2 -relief sunken -bd 2 -textvariable size \
+  -from 6 -to 72 -increment 2 -state normal
+
+grid .label .spin -padx 2m -pady 2m

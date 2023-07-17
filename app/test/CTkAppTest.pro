@@ -27,7 +27,6 @@ INCLUDEPATH += \
 . \
 ../include \
 ../../../CQApp/include \
-../../../CTclApp/include \
 ../../../CQUtil/include \
 ../../../CFont/include \
 ../../../CImageLib/include \
@@ -48,7 +47,6 @@ INCLUDEPATH += \
 unix:LIBS += \
 -L$$LIB_DIR \
 -L../../../CQUtil/lib \
--L../../../CTclApp/lib \
 -L../../../CCommand/lib \
 -L../../../CArgs/lib \
 -L../../../CReadLine/lib \
@@ -56,6 +54,7 @@ unix:LIBS += \
 -L../../../CUtil/lib \
 -L../../../CImageLib/lib \
 -L../../../CConfig/lib \
+-L../../../CMath/lib \
 -L../../../CFileUtil/lib \
 -L../../../CFile/lib \
 -L../../../CTimer/lib \
@@ -64,7 +63,8 @@ unix:LIBS += \
 -L../../../CStrUtil/lib \
 -L../../../CRegExp/lib \
 -L../../../CRGBName/lib \
--lCTkApp -lCTclApp -lCQUtil -lCReadLine -lCConfig -lCUtil -lCCommand \
--lCArgs -lCImageLib -lCFont -lCTimer -lCGlob \
+-lCTkApp -lCQUtil -lCReadLine -lCConfig -lCUtil -lCCommand \
+-lCArgs -lCImageLib -lCFont -lCTimer -lCGlob -lCMath \
 -lCRGBName -lCFileUtil -lCFile -lCOS -lCStrUtil -lCRegExp \
--lpng -ljpeg -ltre -lreadline -lncurses
+-lpng -ljpeg -ltre -lreadline -lncurses \
+-ltk -ltcl

@@ -1,0 +1,13 @@
+package require Tk
+
+grid [canvas .canvas] -sticky nwes -column 0 -row 0
+grid columnconfigure . 0 -weight 1
+grid rowconfigure . 0 -weight 1
+
+bind .canvas <1> "set lastx %x; set lasty %y"
+bind .canvas <B1-Motion> "addLine %x %y"
+
+proc addLine {x y} {
+  .canvas create line $::lastx $::lasty $x $y
+  set ::lastx $x; set ::lasty $y
+}

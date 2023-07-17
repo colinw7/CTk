@@ -1,0 +1,6 @@
+button .b -text "Foo"
+entry .e -textvariable foo
+label .l -text "This is a fairly long piece of text"
+
+grid .b .e .l -sticky ew
+grid columnconfigure . "all" -uniform allTheSame

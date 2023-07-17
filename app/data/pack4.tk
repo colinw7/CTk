@@ -1,0 +1,11 @@
+label .label -text "list of States"
+scrollbar .scrollbar
+listbox .listbox
+
+pack .label     -side top -fill x
+pack .scrollbar -side right -fill y
+pack .listbox   -fill x
+
+puts [pack info .label]
+puts [pack info .scrollbar]
+puts [pack info .listbox]

@@ -1,0 +1,12 @@
+button .left  -text "Left"
+button .right -text "Right"
+
+panedwindow .pw -orient horizontal
+
+.pw add .left .right
+
+#.pw panecget .left -sticky
+
+#.pw paneconfigure .left -minsize 2i
+
+pack .pw

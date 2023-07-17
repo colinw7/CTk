@@ -1,0 +1,7 @@
+set months {January February March April May June July August September October November December}
+
+label .label -text "Month:"
+
+spinbox .spin -width 12 -relief sunken -bd 2 -textvariable month -state readonly -values $months
+
+grid .label .spin -padx 1m -pady 2m

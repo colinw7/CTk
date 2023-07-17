@@ -1,0 +1,9 @@
+radiobutton .times     -text Times     -variable font -value times     -anchor w
+radiobutton .helvetica -text Helvetica -variable font -value helvetica -anchor w
+radiobutton .courier   -text Courier   -variable font -value courier   -anchor w
+radiobutton .symbol    -text Symbol    -variable font -value symbol    -anchor w
+
+grid .times     -sticky ew
+grid .helvetica -sticky ew
+grid .courier   -sticky ew
+grid .symbol    -sticky ew

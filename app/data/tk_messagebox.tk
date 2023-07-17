@@ -1,0 +1,2 @@
+tk_messageBox -type yesno -icon question \
+  -message "Do you like coffee?" -parent .

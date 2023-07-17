@@ -1,0 +1,109 @@
+proc dump_opts { w } {
+  puts "  static CTkOpt opts\[\] = {"
+
+  set opts [$w configure]
+
+  set w1 0
+  set w2 0
+  set w3 0
+  set w4 0
+
+  set len [llength $opts]
+
+  for {set i 0} {$i < $len} {incr i} {
+    set opt [lindex $opts $i]
+
+    set len1 [llength $opt]
+
+    if {$len1 == 5} {
+      set name  [lindex $opt 0]
+      set dname [lindex $opt 1]
+      set cname [lindex $opt 2]
+      set def   [lindex $opt 3]
+      set value [lindex $opt 4]
+
+      if {[string length $name ] > $w1} { set w1 [string length $name ] }
+      if {[string length $dname] > $w2} { set w2 [string length $dname] }
+      if {[string length $cname] > $w3} { set w3 [string length $cname] }
+      if {[string length $def  ] > $w4} { set w4 [string length $def  ] }
+    } elseif {$len1 == 2} {
+      set name  [lindex $opt 0]
+      set alias [lindex $opt 1]
+
+      if {[string length $name ] > $w1} { set w1 [string length $name ] }
+      if {[string length $alias] > $w2} { set w2 [string length $alias] }
+    } else {
+      puts "error: $len1]"
+    }
+  }
+
+  incr w1 2
+  incr w2 2
+  incr w3 2
+  incr w4 2
+
+  for {set i 0} {$i < $len} {incr i} {
+    set opt [lindex $opts $i]
+
+    set len1 [llength $opt]
+
+    if {$len1 == 5} {
+      set name  [lindex $opt 0]
+      set dname [lindex $opt 1]
+      set cname [lindex $opt 2]
+      set def   [lindex $opt 3]
+      set value [lindex $opt 4]
+
+      puts -nonewline "    { "
+      puts -nonewline [format "%-${w1}s, " "\"$name\"" ]
+      puts -nonewline [format "%-${w2}s, " "\"$dname\""]
+      puts -nonewline [format "%-${w3}s, " "\"$cname\""]
+      puts -nonewline [format "%-${w4}s"   "\"$def\""  ]
+      puts -nonewline " },"
+      puts ""
+    } elseif {$len1 == 2} {
+      set name  [lindex $opt 0]
+      set alias [lindex $opt 1]
+
+      puts -nonewline "    { "
+      puts -nonewline [format "%-${w1}s, " "\"$name\"" ]
+      puts -nonewline [format "%-${w2}s, " "\"$alias\""]
+      puts -nonewline [format "%-${w3}s, "       "NULL"]
+      puts -nonewline [format "%-${w4}s"         "NULL"]
+      puts -nonewline " },"
+      puts ""
+    } else {
+      puts "error: $len1]"
+    }
+  }
+
+  puts -nonewline "    { "
+  puts -nonewline [format "%-${w1}s, "       "NULL"]
+  puts -nonewline [format "%-${w2}s, "       "NULL"]
+  puts -nonewline [format "%-${w3}s, "       "NULL"]
+  puts -nonewline [format "%-${w4}s"         "NULL"]
+  puts -nonewline " }"
+  puts ""
+
+  puts "  };"
+}
+
+button      .b
+canvas      .cn
+checkbutton .cb
+entry       .e
+frame       .f
+label       .l
+labelframe  .lf
+listbox     .lb
+panedwindow .pw
+radiobutton .rb
+scale       .sc
+scrollbar   .sb
+spinbox     .sp
+text        .txt
+toplevel    .t
+
+dump_opts .lf
+
+exit

@@ -21,8 +21,8 @@ MOC_DIR = .moc
 
 # Input
 SOURCES += \
-CTkAppCommands.cpp \
 CTkApp.cpp \
+CTkAppCommands.cpp \
 CTkAppGridLayout.cpp \
 CTkAppImage.cpp \
 CTkAppLayoutWidget.cpp \
@@ -30,15 +30,29 @@ CTkAppOptData.cpp \
 CTkAppPackLayout.cpp \
 CTkAppPlaceLayout.cpp \
 CTkAppWidget.cpp \
+CTclApp.cpp \
+CTclAppCanvas.cpp \
+CTclAppCommand.cpp \
+CQLabelImage.cpp \
+CQSpinList.cpp \
 
 HEADERS += \
-../include/CTkAppCommands.h \
 ../include/CTkApp.h \
+../include/CTkAppCommands.h \
+../include/CTkAppEventData.h \
+../include/CTkAppGridLayout.h \
 ../include/CTkAppImage.h \
-../include/CTkAppLayout.h \
+../include/CTkAppLayoutWidget.h \
 ../include/CTkAppOptData.h \
 ../include/CTkAppOptionValue.h \
+../include/CTkAppPackLayout.h \
+../include/CTkAppPlaceLayout.h \
 ../include/CTkAppWidget.h \
+../include/CTclAppCanvas.h \
+../include/CTclAppCommand.h \
+../include/CTclApp.h \
+CQLabelImage.h \
+CQSpinList.h \
 
 OBJECTS_DIR = ../obj
 
@@ -48,6 +62,8 @@ INCLUDEPATH += \
 ../include \
 ../../../CQUtil/include \
 ../../../CTclApp/include \
+../../../CXLib/include \
+../../../CReadLine/include \
 ../../../CImageLib/include \
 ../../../CRGBName/include \
 ../../../CFont/include \

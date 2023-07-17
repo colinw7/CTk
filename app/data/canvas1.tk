@@ -1,0 +1,6 @@
+canvas .c
+
+grid .c -sticky nsew
+
+.c create rectangle 1c 2.5c 4c 4.75c -width 2m \
+  -outline blue -fill yellow

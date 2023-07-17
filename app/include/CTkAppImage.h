@@ -1,13 +1,13 @@
-#ifndef CTK_IMAGE_H
-#define CTK_IMAGE_H
+#ifndef CTkAppImage_H
+#define CTkAppImage_H
 
 #include <CImagePtr.h>
 
 #include <string>
 
-class CTkImage {
+class CTkAppImage {
  public:
-  CTkImage(const std::string &name) :
+  CTkAppImage(const std::string &name) :
    name_(name) {
   }
 

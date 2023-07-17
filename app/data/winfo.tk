@@ -1,0 +1,7 @@
+button .b
+entry .e
+
+puts [winfo parent .b]
+puts [winfo children .]
+
+exit

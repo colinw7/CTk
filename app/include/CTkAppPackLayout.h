@@ -1,9 +1,11 @@
-#ifndef CTK_PACK_LAYOUT_H
-#define CTK_PACK_LAYOUT_H
+#ifndef CTkAppPackLayout_H
+#define CTkAppPackLayout_H
 
 #include <QLayout>
 
 class CTkAppWidget;
+
+class QPainter;
 
 class CTkAppPackLayout : public QLayout {
   Q_OBJECT
@@ -70,6 +72,10 @@ class CTkAppPackLayout : public QLayout {
 
   void addWidgets(const std::vector<CTkAppWidget *> &widgets, const Info &info);
   void addWidget(CTkAppWidget *widget, const Info &info);
+
+  void removeWidget(CTkAppWidget *widget);
+
+  std::vector<CTkAppWidget *> getWidgets() const;
 
   ItemWrapper *getItem(CTkAppWidget *widget) const;
 

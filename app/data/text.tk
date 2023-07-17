@@ -1,0 +1,16 @@
+text .text -relief raised -bd 2 -yscrollcommand {.scroll set}
+
+scrollbar .scroll -command {.text yview}
+
+grid .text -row 0 -column 0 -sticky nsew
+
+grid .scroll -row 0 -column 1 -sticky ns
+
+proc loadFile {file} {
+  .text delete 1.0 end
+  set f [open $file]
+  .text insert end [read $f]
+  close $f
+}
+
+loadFile Makefile

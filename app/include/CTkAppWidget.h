@@ -1,6 +1,8 @@
 #ifndef CTkAppWidget_H
 #define CTkAppWidget_H
 
+#include <CTkAppEventData.h>
+
 #include <CImageLib.h>
 
 #include <QFrame>
@@ -9,6 +11,8 @@
 #include <QRadioButton>
 #include <QMenu>
 #include <QLabel>
+#include <QBrush>
+#include <QPen>
 
 class CTkApp;
 class CTkAppRoot;
@@ -75,6 +79,10 @@ class CTkAppWidget : public QObject {
   void setWidth (int w);
   void setHeight(int h);
 
+  QSize sizeHint() const;
+
+  QSize minimumSizeHint() const;
+
   //---
 
   bool isDeleted() const { return deleted_; }
@@ -135,16 +143,16 @@ class CTkAppWidget : public QObject {
 
   //---
 
-  void bindEvent(const std::string &pattern, const std::string &command);
+  bool bindEvent(const CTkAppEventData &data);
 
-  bool triggerEnterEvents(QEvent *e);
-  bool triggerLeaveEvents(QEvent *e);
+  virtual bool triggerEnterEvents(QEvent *e);
+  virtual bool triggerLeaveEvents(QEvent *e);
 
-  bool triggerMousePressEvents  (QEvent *e);
-  bool triggerMouseMoveEvents   (QEvent *e, int button);
-  bool triggerMouseReleaseEvents(QEvent *e);
+  virtual bool triggerMousePressEvents  (QEvent *e, int button);
+  virtual bool triggerMouseMoveEvents   (QEvent *e, int button, bool pressed);
+  virtual bool triggerMouseReleaseEvents(QEvent *e, int button);
 
-  bool triggerKeyPressEvents(QEvent *e);
+  virtual bool triggerKeyPressEvents(QEvent *e);
 
   //---
 
@@ -157,8 +165,9 @@ class CTkAppWidget : public QObject {
   void runCommand(const Args &args=Args());
 
  protected:
-  using WidgetMap = std::map<std::string, CTkAppWidget *>;
-  using EventMap  = std::map<std::string, std::string>;
+  using WidgetMap  = std::map<std::string, CTkAppWidget *>;
+  using EventDatas = std::vector<CTkAppEventData>;
+//using EventMap   = std::map<std::string, std::string>;
 
   CTkApp*       tk_      { nullptr };
   CTkAppWidget* parent_  { nullptr };
@@ -168,7 +177,8 @@ class CTkAppWidget : public QObject {
   bool          deleted_ { false };
   QWidget*      qwidget_ { nullptr };
   WidgetMap     children_;
-  EventMap      events_;
+  EventDatas    eventDatas_;
+//EventMap      events_;
 
   Qt::Alignment align_ { Qt::AlignCenter };
 
@@ -224,15 +234,18 @@ class CTkRootWidget : public QFrame {
   Q_OBJECT
 
  public:
-  CTkRootWidget(QWidget *parent=nullptr);
+  CTkRootWidget(CTkAppRoot *root);
 
   void setMenu(QMenu *menu);
+
+  void paintEvent(QPaintEvent *) override;
 
   QSize sizeHint() const override;
 
  private:
-  QMenu*    menu_    { nullptr };
-  QMenuBar* menuBar_ { nullptr };
+  CTkAppRoot* root_    { nullptr };
+  QMenu*      menu_    { nullptr };
+  QMenuBar*   menuBar_ { nullptr };
 };
 
 //---
@@ -268,6 +281,7 @@ class CTkButton : public CTkAppWidget {
 //---
 
 class CTkAppCanvasWidget;
+class CTkAppCanvasShape;
 
 class CTkAppCanvas : public CTkAppWidget {
   Q_OBJECT
@@ -281,47 +295,101 @@ class CTkAppCanvas : public CTkAppWidget {
 
   bool execOp(const Args &args) override;
 
+  bool triggerMousePressEvents(QEvent *e, int button) override;
+  bool triggerMouseMoveEvents (QEvent *e, int button, bool pressed) override;
+
  private:
   CTkAppCanvasWidget* qcanvas_ { nullptr };
+
+  using IdEventDatas = std::map<std::string, EventDatas>;
+
+  IdEventDatas       idEventDatas_;
+  CTkAppCanvasShape* insideShape_ { nullptr };
+};
+
+enum class CTkAppCanvasShapeType {
+  NONE,
+  RECTANGLE,
+  OVAL,
+  LINE,
+  TEXT
+};
+
+struct CTkAppPoint {
+  CTkAppPoint() = default;
+
+  CTkAppPoint(double x1, double y1) :
+   x(x1), y(y1) {
+  }
+
+  double x { 0.0 };
+  double y { 0.0 };
+
+  double distance(double x1, double y1) const {
+    return std::hypot(x - x1, y - y1);
+  }
+
+  void move(double dx, double dy) {
+    x += dx;
+    y += dy;
+  }
+};
+
+using CTkAppPoints = std::vector<CTkAppPoint>;
+
+class CTkAppCanvasShape {
+ public:
+  using ShapeType = CTkAppCanvasShapeType;
+  using Tags      = std::vector<std::string>;
+  using Points    = CTkAppPoints;
+
+ public:
+  CTkAppCanvasShape(ShapeType type) :
+   type_(type) {
+    static int lastId = 0;
+
+    id_ = ++lastId;
+  }
+
+  virtual ~CTkAppCanvasShape() = default;
+
+  ShapeType type() const { return type_; }
+
+  int id() const { return id_; }
+
+  const Tags &tags() const { return tags_; }
+  void setTags(const Tags &v) { tags_ = v; }
+
+  const QPen &pen() const { return pen_; }
+  void setPen(const QPen &p) { pen_ = p; }
+
+  const QBrush &brush() const { return brush_; }
+  void setBrush(const QBrush &b) { brush_ = b; }
+
+  virtual bool inside(double /*x*/, double /*y*/) const { return false; }
+
+  virtual double distance(double x, double y) = 0;
+
+  virtual void move(double dx, double dy) = 0;
+
+  virtual bool getPoints(Points &) const { return false; }
+  virtual bool setPoints(const Points &) { return false; }
+
+ protected:
+  ShapeType type_ { ShapeType::NONE };
+  int       id_   { 0 };
+  Tags      tags_;
+  QPen      pen_;
+  QBrush    brush_;
 };
 
 class CTkAppCanvasWidget : public QWidget {
   Q_OBJECT
 
  public:
-  enum class ShapeType {
-    NONE,
-    RECTANGLE,
-    LINE,
-    TEXT
-  };
-
-  struct Point {
-    Point() = default;
-
-    Point(double x1, double y1) :
-     x(x1), y(y1) {
-    }
-
-    double x { 0.0 };
-    double y { 0.0 };
-  };
-
-  using Points = std::vector<Point>;
-
-  class Shape {
-   public:
-    Shape(ShapeType type) :
-     type_(type) {
-    }
-
-    virtual ~Shape() = default;
-
-    ShapeType type() const { return type_; }
-
-   protected:
-    ShapeType type_ { ShapeType::NONE };
-  };
+  using Shape  = CTkAppCanvasShape;
+  using Point  = CTkAppPoint;
+  using Points = CTkAppPoints;
 
   class Rectangle : public Shape {
    public:
@@ -334,6 +402,66 @@ class CTkAppCanvasWidget : public QWidget {
     double x2() const { return x2_; }
     double y2() const { return y2_; }
 
+    bool inside(double x, double y) const override {
+      return rect().contains(QPointF(x, y));
+    }
+
+    double distance(double x, double y) override {
+      return std::min({ Point(x1_, y1_).distance(x, y),
+                        Point(x1_, y2_).distance(x, y),
+                        Point(x2_, y1_).distance(x, y),
+                        Point(x2_, y2_).distance(x, y)});
+    }
+
+    void move(double dx, double dy) override {
+      x1_ += dx;
+      y1_ += dy;
+      x2_ += dx;
+      y2_ += dy;
+    }
+
+   protected:
+    QRectF rect() const { return QRectF(x1_, y1_, x2_ - x1_, y2_ - y1_); }
+
+   protected:
+    double x1_ { 0.0 };
+    double y1_ { 0.0 };
+    double x2_ { 1.0 };
+    double y2_ { 1.0 };
+  };
+
+  class Oval : public Shape {
+   public:
+    Oval(double x1, double y1, double x2, double y2) :
+     Shape(ShapeType::OVAL), x1_(x1), y1_(y1), x2_(x2), y2_(y2) {
+    }
+
+    double x1() const { return x1_; }
+    double y1() const { return y1_; }
+    double x2() const { return x2_; }
+    double y2() const { return y2_; }
+
+    bool inside(double x, double y) const override {
+      return rect().contains(QPointF(x, y));
+    }
+
+    double distance(double x, double y) override {
+      return std::min({ Point(x1_, y1_).distance(x, y),
+                        Point(x1_, y2_).distance(x, y),
+                        Point(x2_, y1_).distance(x, y),
+                        Point(x2_, y2_).distance(x, y)});
+    }
+
+    void move(double dx, double dy) override {
+      x1_ += dx;
+      y1_ += dy;
+      x2_ += dx;
+      y2_ += dy;
+    }
+
+   protected:
+    QRectF rect() const { return QRectF(x1_, y1_, x2_ - x1_, y2_ - y1_); }
+
    protected:
     double x1_ { 0.0 };
     double y1_ { 0.0 };
@@ -345,9 +473,35 @@ class CTkAppCanvasWidget : public QWidget {
    public:
     Line(const Points &points) :
      Shape(ShapeType::LINE), points_(points) {
-   }
+    }
 
-   const Points &points() const { return points_; }
+    const Points &points() const { return points_; }
+
+    double distance(double x, double y) override {
+      double dist = 1E50;
+
+      for (auto &p : points_)
+        dist = std::min(dist, p.distance(x, y));
+
+      return dist;
+    }
+
+    void move(double dx, double dy) override {
+      for (auto &p : points_)
+        p.move(dx, dy);
+    }
+
+    bool getPoints(Points &points) const override {
+      points = points_;
+
+      return true;
+    }
+
+    bool setPoints(const Points &points) override {
+      points_ = points;
+
+      return true;
+    }
 
   protected:
    Points points_;
@@ -359,9 +513,18 @@ class CTkAppCanvasWidget : public QWidget {
      Shape(ShapeType::TEXT), p_(p), text_(text) {
     }
 
-   const Point &pos() const { return p_; }
+    const Point &pos() const { return p_; }
 
-   const std::string &text() const { return text_; }
+    const std::string &text() const { return text_; }
+    void setText(const std::string &s) { text_ = s; }
+
+    void move(double dx, double dy) override {
+      p_.move(dx, dy);
+    }
+
+    double distance(double x, double y) override {
+      return p_.distance(x, y);
+    }
 
   protected:
    Point       p_;
@@ -371,22 +534,156 @@ class CTkAppCanvasWidget : public QWidget {
  public:
   CTkAppCanvasWidget(QWidget *parent=nullptr);
 
-  void addRectangle(double x1, double y1, double x2, double y2) {
+  Shape *addRectangle(double x1, double y1, double x2, double y2) {
     auto *rectangleShape = new Rectangle(x1, y1, x2, y2);
 
-    addShape(rectangleShape);
+    return addShape(rectangleShape);
   }
 
-  void addLine(const Points &points) {
+  Shape *addOval(double x1, double y1, double x2, double y2) {
+    auto *ovalShape = new Oval(x1, y1, x2, y2);
+
+    return addShape(ovalShape);
+  }
+
+  Shape *addLine(const Points &points) {
     auto *lineShape = new Line(points);
 
-    addShape(lineShape);
+    return addShape(lineShape);
   }
 
-  void addText(const Point &pos, const std::string &text) {
+  Text *addText(const Point &pos, const std::string &text) {
     auto *textShape = new Text(pos, text);
 
-    addShape(textShape);
+    return static_cast<Text *>(addShape(textShape));
+  }
+
+  bool deleteShape(int id) {
+    uint i;
+
+    if (! shapeInd(id, i))
+      return false;
+
+    delete shapes_[i];
+
+    ++i;
+
+    auto n = shapes_.size();
+
+    while (i < n) {
+      shapes_[i - 1] = shapes_[i];
+
+      ++i;
+    }
+
+    shapes_.pop_back();
+
+    return true;
+  }
+
+  bool lowerShape(int id) {
+    uint i;
+
+    if (! shapeInd(id, i))
+      return false;
+
+    if (i == 0)
+      return true;
+
+    std::swap(shapes_[i], shapes_[i - 1]);
+
+    return true;
+  }
+
+  bool moveShape(const std::string &name, double dx, double dy) {
+    int id;
+
+    if (! CStrUtil::toInteger(name, &id))
+      return false;
+
+    uint i;
+
+    if (! shapeInd(id, i))
+      return false;
+
+    shapes_[i]->move(dx, dy);
+
+    return true;
+  }
+
+  bool getShapePoints(const std::string &name, Points &points) {
+    int id;
+
+    if (! CStrUtil::toInteger(name, &id))
+      return false;
+
+    uint i;
+
+    if (! shapeInd(id, i))
+      return false;
+
+    if (! shapes_[i]->getPoints(points))
+      return false;
+
+    return true;
+  }
+
+  bool setShapePoints(const std::string &name, const Points &points) {
+    int id;
+
+    if (! CStrUtil::toInteger(name, &id))
+      return false;
+
+    uint i;
+
+    if (! shapeInd(id, i))
+      return false;
+
+    if (! shapes_[i]->setPoints(points))
+      return false;
+
+    return true;
+  }
+
+  Shape *insideShape(double x, double y) {
+    for (auto *shape : shapes_) {
+      if (shape->inside(x, y))
+        return shape;
+    }
+
+    return nullptr;
+  }
+
+  int findNearest(double x, double y) {
+    int    ind  = -1;
+    double dist = -1;
+
+    for (auto *shape : shapes_) {
+      auto dist1 = shape->distance(x, y);
+
+      if (ind < 0 || dist1 < dist) {
+        ind  = shape->id();
+        dist = dist1;
+      }
+    }
+
+    return ind;
+  }
+
+  bool shapeInd(int id, uint &ind) {
+    uint i = 0;
+    auto n = shapes_.size();
+
+    while (i < n) {
+      if (shapes_[i]->id() == id) {
+        ind = i;
+        return true;
+      }
+
+      ++i;
+    }
+
+    return false;
   }
 
   void paintEvent(QPaintEvent *) override;
@@ -394,7 +691,7 @@ class CTkAppCanvasWidget : public QWidget {
   QSize sizeHint() const override;
 
  private:
-  void addShape(Shape *s) { shapes_.push_back(s); }
+  Shape *addShape(Shape *s) { shapes_.push_back(s); return s; }
 
   void drawShape(QPainter *p, Shape *s);
 
@@ -933,6 +1230,13 @@ class CTkText : public CTkAppWidget {
   bool execOp(const Args &args) override;
 
   void setText(const std::string &text);
+
+ private:
+  void connectSlots(bool b);
+
+ private Q_SLOTS:
+  void vscrollSlot(int value);
+  void hscrollSlot(int value);
 
  private:
   QTextEdit*  qtext_ { nullptr };

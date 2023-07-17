@@ -1,0 +1,15 @@
+proc watch { name } {
+  toplevel .watch
+
+  labelframe .watch.lf -text "Value of \"$name\""
+
+  label .watch.lf.value -textvariable $name
+
+  grid .watch.lf.value -padx 3 -pady 3
+
+  grid .watch.lf -sticky nsew
+}
+
+set country "United States Of America"
+
+watch country

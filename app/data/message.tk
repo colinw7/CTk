@@ -1,0 +1,3 @@
+grid [message .myMessage -background red -foreground white -text "Hello\nWorld" \
+  -relief ridge -borderwidth 8 -padx 10 -pady 10 -font {Helvetica -18 bold} \
+  -textvariable myvariable -justify right -aspect 100 ]

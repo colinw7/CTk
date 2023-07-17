@@ -1,0 +1,95 @@
+canvas .c
+
+grid .c -sticky nsew
+
+proc mkNode {x y} {
+  puts "mkNode $x $y"
+  global nodeX nodeY edgeFirst edgeSecond
+  set new [.c create oval [expr {$x-10}] [expr {$y-10}] \
+                          [expr {$x+10}] [expr {$y+10}] -outline black \
+                          -fill white -tags node]
+
+  # Stores position of the node in two global arrays
+  set nodeX($new) $x
+  set nodeY($new) $y
+
+  # Creates empty lists for edges in two global arrays
+  set edgeFirst($new) {}
+  set edgeSecond($new) { }
+}
+
+# Draw an edge (line) between two nodes (circles)
+proc mkEdge {first second} {
+  puts "mkEdge $first $second"
+  global nodeX nodeY edgeFirst edgeSecond
+  set edge [.c create line $nodeX($first) $nodeY($first) \
+                           $nodeX($second) $nodeY($second)]
+  .c lower $edge
+
+  # Stores the edge ID in lists held in global arrays
+  lappend edgeFirst($first) $edge
+  lappend edgeSecond($second) $edge
+}
+
+proc moveNode {node xDist yDist} {
+  puts "moveNode $node $xDist $yDist"
+  global nodeX nodeY edgeFirst edgeSecond
+  .c move $node $xDist $yDist
+  incr nodeX($node) $xDist
+  incr nodeY($node) $yDist
+  foreach edge $edgeFirst($node) {
+    .c coords $edge \
+      $nodeX($node) $nodeY($node) \
+      [lindex [.c coords $edge] 2] [lindex [.c coords $edge] 3]
+  }
+  foreach edge $edgeSecond($node) {
+    .c coords $edge \
+      [lindex [.c coords $edge] 0] [lindex [.c coords $edge] 1] \
+      $nodeX($node) $nodeY($node)
+  }
+}
+
+# Draw a node a mouse position every time user clicks
+# left mouse button
+bind .c <ButtonPress-1> {mkNode %x %y}
+
+.c bind node <Control-ButtonPress-1> {
+  set curX %x
+  set curY %y
+puts "Node Press: $curX $curY"
+}
+
+.c bind node <Control-B1-Motion> {
+  moveNode [.c find withtag current] [expr {%x-$curX}] [expr {%y-$curY}]
+  set curX %x
+  set curY %y
+puts "Node Motion: $curX $curY"
+}
+
+bind .c <Control-ButtonPress-1> { }
+
+#Highlight current item by changing its fill color
+.c bind node <Enter> {
+  .c itemconfigure current -fill black
+}
+
+# Remove highlight code
+.c bind node <Leave> {
+  .c itemconfigure current -fill white
+}
+
+# Typing "1" key stores item as first node for a line
+bind .c <KeyPress-1> {
+  set firstNode [.c find withtag current]
+}
+
+# Typing "2" key identifies end of the new line
+bind .c <KeyPress-2> {
+  set curNode [.c find withtag current]
+  if {($firstNode != "") && ($curNode != "")} {
+    mkEdge $firstNode $curNode
+  }
+}
+
+# Asign keyboard focus to canvas
+focus .c

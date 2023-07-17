@@ -1,4 +1,4 @@
-#include <CTkAppLayout.h>
+#include <CTkAppLayoutWidget.h>
 #include <CTkApp.h>
 #include <CTkAppWidget.h>
 
@@ -6,21 +6,24 @@
 #include <QWidget>
 
 Qt::Orientations
-CTkLayoutWidget::
+CTkAppLayoutWidget::
 expandingDirections() const
 {
   return Qt::Horizontal | Qt::Vertical;
 }
 
 QRect
-CTkLayoutWidget::
+CTkAppLayoutWidget::
 geometry() const
 {
-  return getQWidget()->geometry();
+  if (widget_)
+    return widget_->getQWidget()->geometry();
+  else
+    return layout_->geometry();
 }
 
 bool
-CTkLayoutWidget::
+CTkAppLayoutWidget::
 hasHeightForWidth() const
 {
   // preferred height depends on width
@@ -28,46 +31,59 @@ hasHeightForWidth() const
 }
 
 int
-CTkLayoutWidget::
+CTkAppLayoutWidget::
 heightForWidth(int w) const
 {
   return w;
 }
 
 bool
-CTkLayoutWidget::
+CTkAppLayoutWidget::
 isEmpty() const
 {
   return false;
 }
 
 QSize
-CTkLayoutWidget::
+CTkAppLayoutWidget::
 maximumSize() const
 {
-  return getQWidget()->maximumSize();
+  if (widget_)
+    return widget_->getQWidget()->maximumSize();
+  else
+    return layout_->maximumSize();
 }
 
 QSize
-CTkLayoutWidget::
+CTkAppLayoutWidget::
 minimumSize() const
 {
-  //return getQWidget()->minimumSize();
-  return sizeHint();
+  if (widget_)
+    return widget_->getQWidget()->minimumSizeHint();
+  else
+    return layout_->minimumSize();
 }
 
 void
-CTkLayoutWidget::
+CTkAppLayoutWidget::
 setGeometry(const QRect &rect)
 {
-  return getQWidget()->setGeometry(rect);
+  if (widget_)
+    widget_->getQWidget()->setGeometry(rect);
+  else
+    layout_->setGeometry(rect);
 }
 
 QSize
-CTkLayoutWidget::
+CTkAppLayoutWidget::
 sizeHint() const
 {
-  auto s = QSize(widget_->getWidth(), widget_->getHeight());
+  QSize s;
+
+  if (widget_)
+    s = widget_->sizeHint();
+  else
+    s = layout_->sizeHint();
 
   s = s.expandedTo(QApplication::globalStrut());
 
@@ -75,15 +91,21 @@ sizeHint() const
 }
 
 QWidget *
-CTkLayoutWidget::
+CTkAppLayoutWidget::
 widget()
 {
-  return widget_->getQWidget();
+  if (widget_)
+    return widget_->getQWidget();
+  else
+    return layout_->widget();
 }
 
 QWidget *
-CTkLayoutWidget::
+CTkAppLayoutWidget::
 getQWidget() const
 {
-  return widget_->getQWidget();
+  if (widget_)
+    return widget_->getQWidget();
+  else
+    return layout_->widget();
 }

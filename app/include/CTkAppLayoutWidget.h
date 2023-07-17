@@ -1,5 +1,5 @@
-#ifndef CTK_LAYOUT_H
-#define CTK_LAYOUT_H
+#ifndef CTkAppLayoutWidget_H
+#define CTkAppLayoutWidget_H
 
 #include <QLayout>
 #include <QRect>
@@ -9,13 +9,20 @@
 
 class CTkAppWidget;
 
-class CTkLayoutWidget : public QLayoutItem {
+class CTkAppLayoutWidget : public QLayoutItem {
  public:
-  CTkLayoutWidget(CTkAppWidget *widget) :
+  using TkWidget = CTkAppWidget;
+
+  CTkAppLayoutWidget(TkWidget *widget) :
    widget_(widget) {
   }
 
-  CTkAppWidget *getTkWidget() const { return widget_; }
+  CTkAppLayoutWidget(QLayout *layout) :
+   layout_(layout) {
+  }
+
+  TkWidget *getTkWidget() const { return widget_; }
+  QLayout  *getLayout() const { return layout_; }
 
   Qt::Orientations expandingDirections() const override;
 
@@ -39,7 +46,8 @@ class CTkLayoutWidget : public QLayoutItem {
   QWidget *getQWidget() const;
 
  private:
-  CTkAppWidget *widget_ { nullptr };
+  TkWidget* widget_ { nullptr };
+  QLayout*  layout_ { nullptr };
 };
 
 #endif

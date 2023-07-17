@@ -1,0 +1,5 @@
+button .ok -text OK
+button .cancel -text Cancel
+button .help -text Help
+
+pack .ok .cancel .help -side left

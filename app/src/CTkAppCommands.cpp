@@ -4,7 +4,7 @@
 #include <CTkAppPackLayout.h>
 #include <CTkAppPlaceLayout.h>
 #include <CTkAppGridLayout.h>
-#include <CTkAppLayout.h>
+#include <CTkAppPackLayout.h>
 #include <CTkAppImage.h>
 #include <CTkAppOptionValue.h>
 #include <CTkAppOptData.h>
@@ -12,7 +12,6 @@
 #include <CTclAppCommand.h>
 
 #include <CQUtil.h>
-#include <CStrUniqueMatch.h>
 
 #include <QApplication>
 #include <QClipboard>
@@ -171,7 +170,7 @@ class CTkWidgetCommand : public CTkAppCommand {
 
  private:
   CTkAppCommand* command_ { nullptr };
-  CTkAppWidget*     w_       { nullptr };
+  CTkAppWidget*  w_       { nullptr };
   CTkOptData     opts_;
 };
 
@@ -271,32 +270,51 @@ run(const Args &args)
   if (numArgs < 1 || numArgs > 3)
     return tk_->wrongNumArgs("bind window ?pattern? ?command?");
 
-  auto widgetName = args[0];
+  auto name = args[0];
 
-  CTkAppWidget*  parent = nullptr;
-  std::string childName;
-  CTkAppWidget*  child  = nullptr;
+  bool          all       = false;
+  CTkAppWidget* w         = nullptr;
+  void*         classData = nullptr;
 
-  if (root()->decodeWidgetName(widgetName, &parent, childName)) {
-    child = parent->getChild(childName);
+  if (name == "all")
+    all = true;
+  else {
+    w = tk_->lookupWidgetByName(name, /*quiet*/true);
 
-    if (child == nullptr)
-      return tk_->throwError("bad window path name \"" + childName + "\"");
+    if (! w)
+      classData = tk_->getWidgetClassData(name);
   }
 
   if (numArgs > 1) {
     auto pattern = args[1];
 
-    if (numArgs > 2) {
-      auto command = args[2];
+    CTkAppEventData data;
 
-      if (child)
-        child->bindEvent(pattern, command);
+    if (! tk_->parseEvent(pattern, data))
+      return tk_->throwError("bad event pattern \"" + pattern + "\"");
+
+    if (numArgs > 2) {
+      data.command = args[2];
+
+      bool rc;
+
+      if      (w)
+        rc = w->bindEvent(data);
+      else if (classData)
+        rc = tk_->bindClassEvent(name, data);
+      else if (! all)
+        rc = tk_->bindTagEvent(name, data);
       else
-        tk_->bindEvent(widgetName, pattern, command);
+        rc = tk_->bindAllEvent(data);
+
+      return rc;
+    }
+    else {
+      tk_->TODO("display pattern bindings");
     }
   }
   else {
+    tk_->TODO("display bindings");
   }
 
   return true;
@@ -590,21 +608,21 @@ bool
 CTkAppClipBoardCmd::
 run(const Args &args)
 {
-  CStrUniqueMatchValues<std::string> optionValues;
-
-  optionValues.addValues({{"clear", "clear"}, {"append", "append"}, {"get", "get"}});
-
-  //---
-
   uint numArgs = args.size();
 
   if (numArgs < 1)
     return tk_->wrongNumArgs("clipboard options ?arg arg ...?");
 
-  auto *clipboard = QApplication::clipboard();
+  static auto optionNames = std::vector<std::string>({
+    "append", "clear", "get"});
 
   std::string opt;
-  (void) optionValues.match(args[0], opt);
+  if (! tk_->lookupOptionName(optionNames, args[0], opt))
+    return false;
+
+  //---
+
+  auto *clipboard = QApplication::clipboard();
 
   if      (opt == "clear") {
     // -displayof window
@@ -620,8 +638,6 @@ run(const Args &args)
   else if (opt == "get") {
     setStringResult(clipboard->text(QClipboard::Clipboard).toStdString());
   }
-  else
-    return tk_->throwError("bad option \"" + opt + "\" : must be append, clear, or get");
 
   return true;
 }
@@ -674,8 +690,27 @@ run(const Args &args)
   if (numArgs < 1)
     return tk_->wrongNumArgs("event option ?arg?");
 
-  // TODO
-  return false;
+  static auto optionNames = std::vector<std::string>({
+    "add", "delete", "generate", "info" });
+
+  std::string arg;
+  if (! tk_->lookupOptionName(optionNames, args[0], arg))
+    return false;
+
+  if      (arg == "add") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "delete") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "generate") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "info") {
+    tk_->TODO(arg);
+  }
+
+  return true;
 }
 
 //---
@@ -785,6 +820,7 @@ run(const Args &args)
     std::string widgetName = args[0];
 
     auto *w = tk_->lookupWidgetByName(widgetName);
+    if (! w) return false;
 
     w->setFocus();
   }
@@ -806,9 +842,9 @@ run(const Args &args)
     std::string widgetName = args[numArgs - 1];
 
     auto *w = tk_->lookupWidgetByName(widgetName);
+    if (! w) return false;
 
-    if (w)
-      w->setFocus();
+    w->setFocus();
   }
 
   return true;
@@ -825,7 +861,12 @@ run(const Args &args)
   if (numArgs == 0)
     return tk_->wrongNumArgs("font option ?arg?");
 
-  auto option = args[0];
+  static auto optionNames = std::vector<std::string>({
+    "actual", "configure", "create", "delete", "families", "measure", "metrics", "names"});
+
+  std::string option;
+  if (! tk_->lookupOptionName(optionNames, args[0], option))
+    return false;
 
   if      (option == "actual") {
     // TODO
@@ -869,11 +910,6 @@ run(const Args &args)
   }
   else if (option == "names") {
     // TODO
-  }
-  else {
-    return tk_->throwError("bad option \"" + option + "\": must be "
-                           "actual, configure, create, delete, families, "
-                           "measure, metrics, or names");
   }
 
   return true;
@@ -988,7 +1024,48 @@ run(const Args &args)
 
   const auto &arg = args[0];
 
-  if      (arg == "anchor") {
+  if      (arg == "configure") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "content") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "forget") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs("grid forget slave ?slave ...?");
+
+    tk_->TODO(arg);
+  }
+  else if (arg == "info") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs("grid info window");
+
+    const auto &arg = args[1];
+
+    auto *child = tk_->lookupWidgetByName(arg);
+    if (! child) return false;
+
+    auto *layout = child->getParent()->getTkGridLayout();
+    if (! layout) return tk_->throwError("no grid layout for \"" + arg + "\"");
+
+    CTkAppGridLayout::Info info;
+
+    layout->getChildInfo(child, info);
+
+    auto res =
+      CStrUtil::strprintf("-in %s -ipadx %d -ipady %d -padx %d -pady %d",
+                          ".", info.getIPadX(), info.getIPadY(),
+                          info.getPadX(), info.getPadY());
+
+    setStringResult(res);
+  }
+  else if (arg == "propagate") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "slaves") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "anchor") {
     tk_->TODO(arg);
   }
   else if (arg == "bbox") {
@@ -1001,10 +1078,10 @@ run(const Args &args)
     const auto &masterName = args[1];
 
     auto *master = tk_->lookupWidgetByName(masterName);
-    if (master == nullptr) return false;
+    if (! master) return false;
 
     auto *layout = master->getTkGridLayout();
-    if (layout == nullptr) return false;
+    if (! layout) return tk_->throwError("no grid layout for \"" + arg + "\"");
 
     long index;
     if (! CTkAppUtil::stringToInt(args[2], index))
@@ -1037,39 +1114,7 @@ run(const Args &args)
                                "-minsize, -pad, -uniform, or -weight");
     }
   }
-  else if (arg == "configure") {
-    tk_->TODO(arg);
-  }
-  else if (arg == "forget") {
-    tk_->TODO(arg);
-  }
-  else if (arg == "info") {
-    if (numArgs != 2)
-      return tk_->wrongNumArgs("grid info window");
-
-    const auto &arg = args[1];
-
-    auto *child = tk_->lookupWidgetByName(arg);
-    if (child == nullptr) return false;
-
-    auto *layout = child->getParent()->getTkGridLayout();
-    if (layout == nullptr) return false;
-
-    CTkAppGridLayout::Info info;
-
-    layout->getChildInfo(child, info);
-
-    auto res =
-      CStrUtil::strprintf("-in %s -ipadx %d -ipady %d -padx %d -pady %d",
-                          ".", info.getIPadX(), info.getIPadY(),
-                          info.getPadX(), info.getPadY());
-
-    setStringResult(res);
-  }
   else if (arg == "location") {
-    tk_->TODO(arg);
-  }
-  else if (arg == "propagate") {
     tk_->TODO(arg);
   }
   else if (arg == "rowconfigure") {
@@ -1079,10 +1124,10 @@ run(const Args &args)
     const auto &masterName = args[1];
 
     auto *master = tk_->lookupWidgetByName(masterName);
-    if (master == nullptr) return false;
+    if (! master) return false;
 
     auto *layout = master->getTkGridLayout();
-    if (layout == nullptr) return false;
+    if (! layout) return tk_->throwError("no grid layout for \"" + arg + "\"");
 
     long index;
     if (! CTkAppUtil::stringToInt(args[2], index))
@@ -1119,9 +1164,6 @@ run(const Args &args)
     tk_->TODO(arg);
   }
   else if (arg == "size") {
-    tk_->TODO(arg);
-  }
-  else if (arg == "slaves") {
     tk_->TODO(arg);
   }
   else {
@@ -1218,6 +1260,7 @@ run(const Args &args)
       return false;
 
     auto *layout = parent->getTkGridLayout();
+    if (! layout) return tk_->throwError("no grid layout for \"" + arg + "\"");
 
     layout->addWidgets(children, info);
   }
@@ -1236,7 +1279,12 @@ run(const Args &args)
   if (numArgs < 1)
     return tk_->wrongNumArgs("image option ?args?");
 
-  const auto &name = args[0];
+  static auto optionNames = std::vector<std::string>({
+    "create", "delete", "height", "inuse", "names", "type", "types", "width"});
+
+  std::string name;
+  if (! tk_->lookupOptionName(optionNames, args[0], name))
+    return false;
 
   if      (name == "create") {
     if (numArgs < 2)
@@ -1325,9 +1373,6 @@ run(const Args &args)
   else if (name == "width") {
     tk_->TODO(name);
   }
-  else
-    return tk_->throwError("bad option \"" + name + "\": must be "
-                           "create, delete, height, inuse, names, type, types, or width");
 
   return true;
 }
@@ -1846,31 +1891,25 @@ run(const Args &args)
 
   const auto &arg = args[0];
 
-  if      (arg == "propagate") {
-    if (numArgs < 2 || numArgs > 3)
-      return tk_->wrongNumArgs("pack option arg ?arg ...?");
+  if      (arg == "configure") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "content") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "forget") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs("pack forget slave ?slave ...?");
 
-    const auto &arg = args[1];
+    for (uint i = 1; i < numArgs; ++i) {
+      auto *child = tk_->lookupWidgetByName(arg);
+      if (! child) return false;
 
-    auto *w = tk_->lookupWidgetByName(arg);
-    if (! w) return tk_->throwError("Invalid widget '" + arg + "'");
+      auto *layout = child->getParent()->getTkPackLayout();
+      if (! layout) return tk_->throwError("no pack layout for \"" + arg + "\"");
 
-    auto *layout = w->getTkPackLayout();
-
-    if (numArgs == 0)
-      setIntegerResult(layout->isPropagate());
-    else {
-      const auto &value = args[2];
-
-      bool b;
-
-      if (! CTkAppUtil::stringToBool(value, b))
-        return tk_->throwError("Invalid bool '" + value + "'");
-
-      layout->setPropagate(b);
+      layout->removeWidget(child);
     }
-
-    return true;
   }
   else if (arg == "info") {
     if (numArgs != 2)
@@ -1890,6 +1929,7 @@ run(const Args &args)
       return tk_->throwError("bad window path name \"" + arg + "\"");
 
     auto *layout = parent->getTkPackLayout();
+    if (! layout) return tk_->throwError("no pack layout for \"" + arg + "\"");
 
     CTkAppPackLayout::Info info;
 
@@ -1903,18 +1943,66 @@ run(const Args &args)
                           info.getSideStr());
 
     setStringResult(res);
+  }
+  else if (arg == "propagate") {
+    if (numArgs < 2 || numArgs > 3)
+      return tk_->wrongNumArgs("pack option arg ?arg ...?");
 
-    return true;
+    const auto &arg = args[1];
+
+    auto *w = tk_->lookupWidgetByName(arg);
+    if (! w) return false;
+
+    auto *layout = w->getTkPackLayout();
+    if (! layout) return tk_->throwError("no pack layout for \"" + arg + "\"");
+
+    if (numArgs == 2)
+      setIntegerResult(layout->isPropagate());
+    else {
+      const auto &value = args[2];
+
+      bool b;
+
+      if (! CTkAppUtil::stringToBool(value, b))
+        return tk_->throwError("Invalid bool '" + value + "'");
+
+      layout->setPropagate(b);
+    }
+  }
+  else if (arg == "slaves") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs("pack slaves arg ?arg ...?");
+
+    const auto &arg = args[1];
+
+    auto *w = tk_->lookupWidgetByName(arg);
+    if (! w) return false;
+
+    auto *layout = w->getTkPackLayout();
+    if (! layout) return tk_->throwError("no pack layout for \"" + arg + "\"");
+
+    if (numArgs == 2) {
+      auto widgets = layout->getWidgets();
+
+      std::vector<std::string> names;
+
+      for (auto *w : widgets)
+        names.push_back(w->getFullName());
+
+      setStringArrayResult(names);
+    }
+    else
+      tk_->TODO(arg);
   }
   else {
-    CTkAppPackLayout::Side   side     = CTkAppPackLayout::SIDE_NONE;
-    CTkAppPackLayout::Fill   fill     = CTkAppPackLayout::FILL_NONE;
-    bool                     expand   = false;
+    CTkAppPackLayout::Side      side     = CTkAppPackLayout::SIDE_NONE;
+    CTkAppPackLayout::Fill      fill     = CTkAppPackLayout::FILL_NONE;
+    bool                        expand   = false;
     CTkAppWidget*               inparent = nullptr;
-    int                      padx     = 0;
-    int                      pady     = 0;
-    int                      ipadx    = 0;
-    int                      ipady    = 0;
+    int                         padx     = 0;
+    int                         pady     = 0;
+    int                         ipadx    = 0;
+    int                         ipady    = 0;
     CTkAppWidget*               parent   = nullptr;
     std::vector<CTkAppWidget *> children;
 
@@ -2031,13 +2119,17 @@ run(const Args &args)
       parent = inparent;
 
     auto *layout = parent->getTkPackLayout();
+    if (! layout) return tk_->throwError("no pack layout for \"" + arg + "\"");
+
+    if (side == CTkAppPackLayout::SIDE_NONE)
+      side = CTkAppPackLayout::SIDE_TOP;
 
     CTkAppPackLayout::Info info(side, fill, expand, padx, pady, ipadx, ipady);
 
     layout->addWidgets(children, info);
-
-    return true;
   }
+
+  return true;
 }
 
 //---
@@ -2134,10 +2226,13 @@ run(const Args &args)
   const auto &arg = args[0];
 
   if      (arg == "configure") {
-    return false;
+    tk_->TODO(arg);
+  }
+  else if (arg == "content") {
+    tk_->TODO(arg);
   }
   else if (arg == "forget") {
-    return false;
+    tk_->TODO(arg);
   }
   else if (arg == "info") {
     if (numArgs != 2)
@@ -2157,6 +2252,7 @@ run(const Args &args)
       return tk_->throwError("bad window path name \"" + arg + "\"");
 
     auto *layout = parent->getTkPlaceLayout();
+    if (! layout) return tk_->throwError("no place layout for \"" + arg + "\"");
 
     CTkAppPlaceLayout::Info info;
 
@@ -2165,11 +2261,12 @@ run(const Args &args)
     std::string res;
 
     setStringResult(res);
-
-    return true;
+  }
+  else if (arg == "propagate") {
+    tk_->TODO(arg);
   }
   else if (arg == "slaves") {
-    return false;
+    tk_->TODO(arg);
   }
   else {
     CTkAppWidget*               parent = nullptr;
@@ -2215,11 +2312,12 @@ run(const Args &args)
     }
 
     auto *layout = parent->getTkPlaceLayout();
+    if (! layout) return tk_->throwError("no place layout for \"" + arg + "\"");
 
     layout->addWidgets(children, info);
-
-    return true;
   }
+
+  return true;
 }
 
 bool
@@ -2492,21 +2590,21 @@ bool
 CTkAppSelectionCmd::
 run(const Args &args)
 {
-  CStrUniqueMatchValues<std::string> optionValues;
-
-  optionValues.addValues({{"clear", "clear"}, {"append", "append"}, {"get", "get"}});
-
-  //---
-
   uint numArgs = args.size();
 
   if (numArgs < 1)
     return tk_->wrongNumArgs("selection options ?arg arg ...?");
 
-  auto *clipboard = QApplication::clipboard();
+  static auto optionNames = std::vector<std::string>({
+    "append", "clear", "get"});
 
   std::string opt;
-  (void) optionValues.match(args[0], opt);
+  if (! tk_->lookupOptionName(optionNames, args[0], opt))
+    return false;
+
+  //---
+
+  auto *clipboard = QApplication::clipboard();
 
   if      (opt == "clear") {
     // -displayof window
@@ -2522,8 +2620,6 @@ run(const Args &args)
   else if (opt == "get") {
     setStringResult(clipboard->text(QClipboard::Selection).toStdString());
   }
-  else
-    return tk_->throwError("bad option \"" + opt + "\" : must be append, clear, or get");
 
   return true;
 }
@@ -2743,7 +2839,36 @@ run(const Args &args)
   if (numArgs == 0)
     return tk_->wrongNumArgs("tk subcommand ?arg ...?");
 
-  tk_->TODO("tk");
+  const auto &arg = args[0];
+
+  if      (arg == "appname") {
+    tk_->setStringResult("CTkApp");
+  }
+  else if (arg == "busy") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "caret") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "fontchooser") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "inactive") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "scaling") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "useinputmethods") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "windowingsystem") {
+    tk_->setStringResult("Qt");
+  }
+  else
+    return tk_->throwError("unknown or ambiguous subcommand \"" + arg + "\": must be "
+                           "appname, busy, caret, fontchooser, inactive, scaling, "
+                           "useinputmethods, or windowingsystem");
 
   return true;
 }
@@ -2943,12 +3068,15 @@ run(const Args &args)
   if      (numArgs == 0)
     tk_->processEvents();
   else if (numArgs == 1) {
-    const auto &arg = args[0];
+    static auto optionNames = std::vector<std::string>({
+      "idletasks"});
+
+    std::string arg;
+    if (! tk_->lookupOptionName(optionNames, args[0], arg))
+      return false;
 
     if (arg == "idletasks")
       tk_->processEvents();
-    else
-      return tk_->throwError("bad option \"" + arg + "\": must be idletasks");
   }
   else
     return tk_->wrongNumArgs("update ?idletasks?");
@@ -2967,7 +3095,18 @@ run(const Args &args)
   if (numArgs < 1)
     return tk_->wrongNumArgs("winfo option ?arg ...?");
 
-  const auto &arg = args[0];
+  static auto optionNames = std::vector<std::string>({
+    "cells", "children", "class", "colormapfull", "depth", "geometry", "height", "id",
+    "ismapped", "manager", "" "name", "parent", "pointerx", "pointery", "pointerxy",
+    "reqheight", "reqwidth", "rootx", "rooty", "screen", "" "screencells", "screendepth",
+    "screenheight", "screenwidth", "screenmmheight", "screenmmwidth", "screenvisual",
+    "server", "toplevel", "viewable", "visual", "visualid", "vrootheight", "vrootwidth",
+    "vrootx", "vrooty", "width", "x", "y", "atom", "atomname", "containing", "interps",
+    "pathname", "exists", "fpixels", "pixels", "rgb", "visualsavailable" });
+
+  std::string arg;
+  if (! tk_->lookupOptionName(optionNames, args[0], arg))
+    return false;
 
   if      (arg == "atom") {
     tk_->TODO(arg);
@@ -3004,7 +3143,15 @@ run(const Args &args)
     setStringArrayResult(list);
   }
   else if (arg == "class") {
-    tk_->TODO(arg);
+    if (numArgs < 2)
+      return tk_->wrongNumArgs("winfo class window");
+
+    std::string widgetName = args[1];
+
+    auto *w = tk_->lookupWidgetByName(widgetName);
+    if (! w) return false;
+
+    setStringResult(w->getClassName());
   }
   else if (arg == "colormapfull") {
     tk_->TODO(arg);
@@ -3021,7 +3168,7 @@ run(const Args &args)
 
     std::string widgetName = args[1];
 
-    auto *w = tk_->lookupWidgetByName(widgetName);
+    auto *w = tk_->lookupWidgetByName(widgetName, /*quiet*/true);
 
     setIntegerResult(w ? 1 : 0);
   }
@@ -3174,14 +3321,6 @@ run(const Args &args)
   else if (arg == "y") {
     tk_->TODO(arg);
   }
-  else
-    return tk_->throwError("bad option \"" + arg + "\": must be "
-      "cells, children, class, colormapfull, depth, geometry, height, id, ismapped, manager, "
-      "name, parent, pointerx, pointery, pointerxy, reqheight, reqwidth, rootx, rooty, screen, "
-      "screencells, screendepth, screenheight, screenwidth, screenmmheight, screenmmwidth, "
-      "screenvisual, server, toplevel, viewable, visual, visualid, vrootheight, vrootwidth, "
-      "vrootx, vrooty, width, x, y, atom, atomname, containing, interps, pathname, exists, "
-      "fpixels, pixels, rgb, or visualsavailable");
 
   return true;
 }
@@ -3401,9 +3540,14 @@ run(const Args &args)
   if (numArgs == 0)
     return tk_->wrongNumArgs(". option ?arg arg ...?");
 
-  const auto &arg = args[0];
+  static auto optionNames = std::vector<std::string>({
+    "cget", "configure"});
 
-  if (arg == "configure" || arg == "config") {
+  std::string arg;
+  if (! tk_->lookupOptionName(optionNames, args[0], arg))
+    return false;
+
+  if      (arg == "configure") {
     // get all options
     if      (numArgs == 1) {
       auto *obj = opts_.getOpts();
@@ -3433,8 +3577,9 @@ run(const Args &args)
       }
     }
   }
-  else
-    return tk_->throwError("bad option \"" + arg + "\": must be cget or configure");
+  else if (arg == "cget") {
+    tk_->TODO(arg);
+  }
 
   return true;
 }

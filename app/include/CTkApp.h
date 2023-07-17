@@ -2,6 +2,7 @@
 #define CTkApp_H
 
 #include <CTkAppOptionValue.h>
+#include <CTkAppEventData.h>
 
 #include <CTclApp.h>
 #include <CImagePtr.h>
@@ -14,12 +15,14 @@
 class CTkAppRoot;
 class CTkTopLevel;
 class CTkAppWidget;
-class CTkImage;
+class CTkAppImage;
 
-using CTkImageRef = std::shared_ptr<CTkImage>;
+using CTkAppImageRef = std::shared_ptr<CTkAppImage>;
 
 class QWidget;
 class QEvent;
+class QKeyEvent;
+class QMouseEvent;
 
 //---
 
@@ -39,7 +42,7 @@ class CTkApp : public CTclApp {
 
   //---
 
-  CTkAppWidget *lookupWidgetByName(const std::string &widgetName) const;
+  CTkAppWidget *lookupWidgetByName(const std::string &widgetName, bool quiet=false) const;
 
   //---
 
@@ -50,23 +53,28 @@ class CTkApp : public CTclApp {
 
   std::string getNewImageName() const;
 
-  CTkImageRef createImage(const std::string &type, const std::string &name);
+  CTkAppImageRef createImage(const std::string &type, const std::string &name);
 
-  CTkImageRef getImage(const std::string &name) const;
+  CTkAppImageRef getImage(const std::string &name) const;
 
   CImagePtr loadImage(const std::string &name) const;
 
   //---
 
-  void bindEvent(const std::string &tagName, const std::string &pattern,
-                 const std::string &command);
+  void *getWidgetClassData(const std::string &name) const;
+
+  //---
+
+  bool bindAllEvent  (const CTkAppEventData &data);
+  bool bindTagEvent  (const std::string &tagName, const CTkAppEventData &data);
+  bool bindClassEvent(const std::string &tagName, const CTkAppEventData &data);
 
   bool triggerEnterEvents(const std::string &, CTkAppWidget *, QEvent *e);
   bool triggerLeaveEvents(const std::string &, CTkAppWidget *, QEvent *e);
 
-  bool triggerKeyPressEvents(const std::string &, CTkAppWidget *, QEvent *e, const std::string &);
+  bool triggerKeyPressEvents(const std::string &, CTkAppWidget *, QEvent *e);
 
-  bool execEvent(CTkAppWidget *, QEvent *e, const std::string &desc);
+  bool execEvent(CTkAppWidget *, QEvent *e, const CTkAppEventData &data);
 
   //---
 
@@ -84,6 +92,19 @@ class CTkApp : public CTclApp {
 
   //---
 
+  void encodeEvent(QKeyEvent *e, bool press, CTkAppEventData &data) const;
+  void encodeEvent(QMouseEvent *e, CTkAppEventMode mode, int button, CTkAppEventData &data) const;
+
+  bool parseEvent(const std::string &str, CTkAppEventData &data);
+
+  //---
+
+  bool lookupOptionName(const std::vector<std::string> &names,
+                        const std::string &arg, std::string &opt) const;
+
+  bool getOptionInt (const std::string &name, const std::string &value, int &i) const;
+  bool getOptionReal(const std::string &name, const std::string &value, double &r) const;
+
   bool wrongNumArgs(const std::string &msg) const;
 
   bool throwError(const std::string &msg) const;
@@ -93,20 +114,28 @@ class CTkApp : public CTclApp {
  protected:
   void addCommands() override;
 
- private:
-  using ImageMap      = std::map<std::string, CTkImageRef>;
-  using TopLevelArray = std::vector<CTkTopLevel *>;
-  using EventMap      = std::map<std::string, std::string>;
-  using TagEventMap   = std::map<std::string, EventMap>;
-  using WidgetSet     = std::set<CTkAppWidget *>;
-  using WidgetArray   = std::vector<CTkAppWidget *>;
+  void addWidgetClass(const std::string &name);
 
-  CTkAppRoot*   root_ { nullptr };
-  TopLevelArray toplevels_;
-  ImageMap      images_;
-  TagEventMap   events_;
-  WidgetSet     widgets_;
-  WidgetArray   deleteWidgets_;
+ private:
+  using WidgetClasses   = std::set<std::string>;
+  using ImageMap        = std::map<std::string, CTkAppImageRef>;
+  using TopLevelArray   = std::vector<CTkTopLevel *>;
+  using EventDatas      = std::vector<CTkAppEventData>;
+  using ClassEventDatas = std::map<std::string, EventDatas>;
+  using TagEventDatas   = std::map<std::string, EventDatas>;
+  using WidgetSet       = std::set<CTkAppWidget *>;
+  using WidgetArray     = std::vector<CTkAppWidget *>;
+
+  WidgetClasses widgetClasses_;
+
+  CTkAppRoot*     root_ { nullptr };
+  TopLevelArray   toplevels_;
+  ImageMap        images_;
+  ClassEventDatas classEvents_;
+  TagEventDatas   tagEvents_;
+  EventDatas      allEvents_;
+  WidgetSet       widgets_;
+  WidgetArray     deleteWidgets_;
 };
 
 //---

@@ -1,0 +1,7 @@
+set c -1
+foreach relief {raised sunken flat groove ridge} {
+  frame .$relief -width 15m -height 10m -relief $relief \
+    -borderwidth 4 -background {dark gray}
+  grid .$relief -column [incr c] -row 0 -padx 2m -pady 2m
+}
+. configure -background {light gray} -padx 12 -pady 12

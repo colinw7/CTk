@@ -1,5 +1,5 @@
-#ifndef CTkOptData_H
-#define CTkOptData_H
+#ifndef CTkAppOptData_H
+#define CTkAppOptData_H
 
 #include <CTkAppOptionValue.h>
 

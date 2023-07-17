@@ -1,0 +1,2 @@
+label .label -text "No new mail" -bitmap data/footy.xpm -compound top
+grid .label

@@ -1,5 +1,5 @@
-#ifndef CTK_GRID_LAYOUT_H
-#define CTK_GRID_LAYOUT_H
+#ifndef CTkAppGridLayout_H
+#define CTkAppGridLayout_H
 
 #include <COptVal.h>
 

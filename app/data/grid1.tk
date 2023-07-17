@@ -1,0 +1,17 @@
+# Make the widgets
+toplevel .t
+
+text .t.txt -wrap none -xscroll {.t.h set} -yscroll {.t.v set}
+
+scrollbar .t.v -orient vertical   -command {.t.txt yview}
+scrollbar .t.h -orient horizontal -command {.t.txt xview}
+
+# Lay them out
+grid .t.txt .t.v -sticky nsew
+grid .t.h        -sticky nsew
+
+# Tell the text widget to take all the extra room
+#grid rowconfigure    .t .t.txt -weight 1
+#grid columnconfigure .t .t.txt -weight 1
+grid rowconfigure    .t 0 -weight 1
+grid columnconfigure .t 0 -weight 1

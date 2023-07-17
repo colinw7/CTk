@@ -1,0 +1,22 @@
+label .label -text "Enter value:"
+
+entry .value -width 15 -validate all -validatecommand { CheckValue %P }
+
+label .echo -textvariable echo
+
+grid .label .value -padx 1m -pady 2m
+grid .echo  -      -padx 1m -pady 2m
+
+proc CheckValue { newValue } {
+  puts "CheckValue: $newValue"
+
+  global echo
+
+  if {[string is double $newValue] || [regexp -- {^[+-]?\.?$} $newValue]} {
+    set echo $newValue
+    puts "echo: $echo"
+    return 1
+  } else {
+    return 0
+  }
+}
