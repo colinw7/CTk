@@ -22,6 +22,11 @@ MOC_DIR = .moc
 # Input
 SOURCES += \
 CTk.cpp \
+CTkCommands.cpp \
+CTkImage.cpp \
+CTkOptData.cpp \
+CTkWidget.cpp \
+\
 CTkGridLayout.cpp \
 CTkLayoutWidget.cpp \
 CTkPackLayout.cpp \
@@ -29,6 +34,11 @@ CTkPlaceLayout.cpp \
 
 HEADERS += \
 ../include/CTk.h \
+../include/CTkCommands.h \
+../include/CTkImage.h \
+../include/CTkOptData.h \
+../include/CTkOptionValue.h \
+../include/CTkWidget.h \
 ../include/CTkLayout.h \
 
 OBJECTS_DIR = ../obj

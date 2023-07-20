@@ -36,9 +36,9 @@ void
 CTkPackLayout::
 addWidgets(const std::vector<CTkWidget *> &widgets, const Info &info)
 {
-  uint num = widgets.size();
+  auto num = widgets.size();
 
-  for (uint i = 0; i < num; ++i)
+  for (size_t i = 0; i < num; ++i)
     addWidget(widgets[i], info);
 }
 
@@ -105,9 +105,10 @@ count() const
 }
 
 QLayoutItem *
-CTkPackLayout::itemAt(int index) const
+CTkPackLayout::
+itemAt(int index) const
 {
-  ItemWrapper *wrapper = list_.value(index);
+  auto *wrapper = list_.value(index);
 
   if (wrapper)
     return wrapper->item;
@@ -263,7 +264,7 @@ takeAt(int index)
     return layoutStruct->item;
   }
 
-  return 0;
+  return nullptr;
 }
 
 void

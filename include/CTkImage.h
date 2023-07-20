@@ -1,18 +1,17 @@
-#ifndef CTkAppImage_H
-#define CTkAppImage_H
+#ifndef CTK_IMAGE_H
+#define CTK_IMAGE_H
 
 #include <CImagePtr.h>
 
 #include <string>
 
-class CTkAppImage {
+class CTkImage {
  public:
-  CTkAppImage(const std::string &name) :
+  CTkImage(const std::string &name) :
    name_(name) {
   }
 
   bool loadFile(const std::string &filename);
-  bool loadData(const std::string &data);
 
   CImagePtr getImage() const { return image_; }
 

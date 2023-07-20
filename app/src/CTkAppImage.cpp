@@ -11,3 +11,14 @@ loadFile(const std::string &filename)
 
   return image_.isValid();
 }
+
+bool
+CTkAppImage::
+loadData(const std::string &data)
+{
+  CImageDataSrc src(data);
+
+  image_ = CImageMgrInst->createImage(src);
+
+  return image_.isValid();
+}

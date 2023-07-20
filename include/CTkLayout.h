@@ -19,22 +19,29 @@ class CTkLayoutWidget : public QLayoutItem {
 
   CTkWidget *getTkWidget() const { return widget_; }
 
-  Qt::Orientations expandingDirections() const;
-  QRect            geometry() const;
-  bool             hasHeightForWidth() const;
-  int              heightForWidth(int w) const;
-  bool             isEmpty() const;
-  QSize            maximumSize() const;
-  QSize            minimumSize() const;
-  void             setGeometry(const QRect &rect);
-  QSize            sizeHint() const;
-  QWidget*         widget();
+  Qt::Orientations expandingDirections() const override;
+
+  QRect geometry() const override;
+
+  bool hasHeightForWidth() const override;
+  int heightForWidth(int w) const override;
+
+  bool isEmpty() const override;
+
+  QSize maximumSize() const override;
+  QSize minimumSize() const override;
+
+  void setGeometry(const QRect &rect) override;
+
+  QSize sizeHint() const override;
+
+  QWidget *widget() override;
 
  private:
-  QWidget*         getQWidget() const;
+  QWidget *getQWidget() const;
 
  private:
-  CTkWidget *widget_;
+  CTkWidget *widget_ { nullptr };
 };
 
 class CTkPackLayout : public QLayout {
@@ -45,16 +52,17 @@ class CTkPackLayout : public QLayout {
   enum Fill { FILL_X, FILL_Y, FILL_NONE, FILL_BOTH };
 
   struct Info {
-    Side side;
-    Fill fill;
-    bool expand;
-    int  padx, pady;
-    int  ipadx, ipady;
+    Side side   { SIDE_TOP };
+    Fill fill   { FILL_NONE };
+    bool expand { false };
+    int  padx   { 0 };
+    int  pady   { 0 };
+    int  ipadx  { 0 };
+    int  ipady  { 0 };
 
-    Info(Side tside=SIDE_TOP, Fill tfill=FILL_NONE, bool texpand=false, int tpadx=0, int tpady=0,
-         int tipadx=0, int tipady=0) :
-     side(tside), fill(tfill), expand(texpand), padx(tpadx), pady(tpady),
-     ipadx(tipadx), ipady(tipady) {
+    Info(Side side=SIDE_TOP, Fill fill=FILL_NONE, bool expand=false, int padx=0, int pady=0,
+         int ipadx=0, int ipady=0) :
+     side(side), fill(fill), expand(expand), padx(padx), pady(pady), ipadx(ipadx), ipady(ipady) {
     }
 
     const char *getSideStr() const {
@@ -68,7 +76,7 @@ class CTkPackLayout : public QLayout {
     }
 
     const char *getFillStr() const {
-      switch (side) {
+      switch (fill) {
         case FILL_X   : return "x";
         case FILL_Y   : return "y";
         case FILL_BOTH: return "both";
@@ -94,7 +102,7 @@ class CTkPackLayout : public QLayout {
 
  ~CTkPackLayout();
 
-  void addItem(QLayoutItem *item);
+  void addItem(QLayoutItem *item) override;
 
   void addWidgets(const std::vector<CTkWidget *> &widgets, const Info &info);
   void addWidget(CTkWidget *widget, const Info &info);
@@ -103,21 +111,21 @@ class CTkPackLayout : public QLayout {
 
   bool getChildInfo(CTkWidget *widget, Info &info);
 
-  Qt::Orientations expandingDirections() const;
+  Qt::Orientations expandingDirections() const override;
 
-  bool hasHeightForWidth() const;
+  bool hasHeightForWidth() const override;
 
-  int count() const;
+  int count() const override;
 
-  QLayoutItem *itemAt(int index) const;
+  QLayoutItem *itemAt(int index) const override;
 
-  QSize minimumSize() const;
+  QSize minimumSize() const override;
 
-  void setGeometry(const QRect &rect);
+  void setGeometry(const QRect &rect) override;
 
-  QSize sizeHint() const;
+  QSize sizeHint() const override;
 
-  QLayoutItem *takeAt(int index);
+  QLayoutItem *takeAt(int index) override;
 
   void add(QLayoutItem *item, const Info &info);
 
@@ -146,14 +154,6 @@ class CTkGridLayout : public QLayout {
   };
 
   class Info {
-   private:
-    COptValT<int>         row_, col_;
-    COptValT<std::string> sticky_;
-    COptValT<int>         padx_, pady_;
-    COptValT<int>         ipadx_, ipady_;
-
-    mutable uint sticky_sides_;
-
    public:
     Info() { }
 
@@ -177,19 +177,19 @@ class CTkGridLayout : public QLayout {
     }
 
     bool isPadXValid() const { return padx_.isValid(); }
-    uint getPadX    () const { return padx_.getValue(0); }
+    int  getPadX    () const { return padx_.getValue(0); }
     void setPadX    (int padx) { padx_.setValue(padx); }
 
     bool isPadYValid() const { return pady_.isValid(); }
-    uint getPadY    () const { return pady_.getValue(0); }
+    int  getPadY    () const { return pady_.getValue(0); }
     void setPadY    (int pady) { pady_.setValue(pady); }
 
     bool isIPadXValid() const { return ipadx_.isValid(); }
-    uint getIPadX    () const { return ipadx_.getValue(0); }
+    int  getIPadX    () const { return ipadx_.getValue(0); }
     void setIPadX    (int ipadx) { ipadx_.setValue(ipadx); }
 
     bool isIadYValid() const { return ipady_.isValid(); }
-    uint getIPadY   () const { return ipady_.getValue(0); }
+    int  getIPadY   () const { return ipady_.getValue(0); }
     void setIPadY   (int ipady) { ipady_.setValue(ipady); }
 
     void update(const Info &info) {
@@ -208,9 +208,9 @@ class CTkGridLayout : public QLayout {
 
       std::string sticky = sticky_.getValue("");
 
-      uint len = sticky.size();
+      auto len = sticky.size();
 
-      for (uint i = 0; i < len; ++i) {
+      for (size_t i = 0; i < len; ++i) {
         switch (sticky[i]) {
           case 'n': case 'N': sides |= STICKY_N; break;
           case 's': case 'S': sides |= STICKY_S; break;
@@ -222,6 +222,14 @@ class CTkGridLayout : public QLayout {
 
       return sides;
     }
+
+   private:
+    COptValT<int>         row_, col_;
+    COptValT<std::string> sticky_;
+    COptValT<int>         padx_, pady_;
+    COptValT<int>         ipadx_, ipady_;
+
+    mutable uint sticky_sides_;
   };
 
  private:
@@ -243,7 +251,7 @@ class CTkGridLayout : public QLayout {
 
  ~CTkGridLayout();
 
-  void addItem(QLayoutItem *item);
+  void addItem(QLayoutItem *item) override;
 
   void addWidgets(const std::vector<CTkWidget *> &widgets, const Info &info);
   void addWidget(CTkWidget *widget, const Info &info);
@@ -254,21 +262,23 @@ class CTkGridLayout : public QLayout {
 
   bool setChildWeight(CTkWidget *widget, int weight);
 
-  Qt::Orientations expandingDirections() const;
+  void setColumnWeight(int col, int weight);
 
-  bool hasHeightForWidth() const;
+  Qt::Orientations expandingDirections() const override;
 
-  int count() const;
+  bool hasHeightForWidth() const override;
 
-  QLayoutItem *itemAt(int index) const;
+  int count() const override;
 
-  QSize minimumSize() const;
+  QLayoutItem *itemAt(int index) const override;
 
-  void setGeometry(const QRect &rect);
+  QSize minimumSize() const override;
 
-  QSize sizeHint() const;
+  void setGeometry(const QRect &rect) override;
 
-  QLayoutItem *takeAt(int index);
+  QSize sizeHint() const override;
+
+  QLayoutItem *takeAt(int index) override;
 
   void add(QLayoutItem *item, const Info &info);
 
@@ -277,8 +287,13 @@ class CTkGridLayout : public QLayout {
 
   QSize calculateSize(SizeType sizeType) const;
 
+ private:
+  using ColWeights = std::map<int, int>;
+
   QList<ItemWrapper *> list_;
-  int                  row_, col_;
+  int                  row_ { 0 };
+  int                  col_ { 0 };
+  ColWeights           colWeights_;
 };
 
 class CTkPlaceLayout : public QLayout {
@@ -323,7 +338,7 @@ class CTkPlaceLayout : public QLayout {
 
  ~CTkPlaceLayout();
 
-  void addItem(QLayoutItem *item);
+  void addItem(QLayoutItem *item) override;
 
   void addWidgets(const std::vector<CTkWidget *> &widgets, const Info &info);
   void addWidget(CTkWidget *widget, const Info &info);
@@ -332,21 +347,21 @@ class CTkPlaceLayout : public QLayout {
 
   bool getChildInfo(CTkWidget *widget, Info &info);
 
-  Qt::Orientations expandingDirections() const;
+  Qt::Orientations expandingDirections() const override;
 
-  bool hasHeightForWidth() const;
+  bool hasHeightForWidth() const override;
 
-  int count() const;
+  int count() const override;
 
-  QLayoutItem *itemAt(int index) const;
+  QLayoutItem *itemAt(int index) const override;
 
-  QSize minimumSize() const;
+  QSize minimumSize() const override;
 
-  void setGeometry(const QRect &rect);
+  void setGeometry(const QRect &rect) override;
 
-  QSize sizeHint() const;
+  QSize sizeHint() const override;
 
-  QLayoutItem *takeAt(int index);
+  QLayoutItem *takeAt(int index) override;
 
   void add(QLayoutItem *item, const Info &info);
 

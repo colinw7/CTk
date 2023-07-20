@@ -60,12 +60,13 @@ unix:LIBS += \
 -L../../CFileUtil/lib \
 -L../../CFile/lib \
 -L../../CTimer/lib \
+-L../../CMath/lib \
 -L../../CGlob/lib \
 -L../../COS/lib \
 -L../../CStrUtil/lib \
 -L../../CRegExp/lib \
 -L../../CRGBName/lib \
 -lCTk -lCTcl -lCQUtil -lCReadLine -lCConfig -lCUtil -lCCommand \
--lCArgs -lCImageLib -lCFont -lCTimer -lCGlob \
+-lCArgs -lCImageLib -lCFont -lCTimer -lCMath -lCGlob \
 -lCRGBName -lCFileUtil -lCFile -lCOS -lCStrUtil -lCRegExp \
 -lpng -ljpeg -ltre -lreadline -lncurses

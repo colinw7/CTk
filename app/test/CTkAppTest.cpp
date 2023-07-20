@@ -74,19 +74,39 @@ main(int argc, char **argv)
   if (cargs.getBooleanArg("-debug"))
     debug = true;
 
-  tk = new CTkApp(argc, argv);
-
   std::vector<std::string> filenames;
+  std::vector<std::string> args;
+  bool                     processing = true;
 
   for (int i = 1; i < argc; ++i) {
-    if (argv[i][0] == '-') {
-      auto arg = std::string(argv[i]);
+    auto arg = std::string(argv[i]);
 
-      std::cerr << "Invalid arg'" << arg << "'\n";
+    if      (arg == "-args") {
+      processing = false;
+    }
+    else if (! processing) {
+      args.push_back(arg);
+    }
+    else if (arg[0] == '-') {
+      std::cerr << "Invalid arg '" << arg << "'\n";
     }
     else
-      filenames.push_back(argv[i]);
+      filenames.push_back(arg);
   }
+
+  int    argc1 = int(args.size()) + 1;
+  char **argv1 = new char * [argc1 + 1];
+
+  int i = 0;
+
+  argv1[i++] = argv[0];
+
+  for (const auto &arg : args)
+    argv1[i++] = const_cast<char *>(arg.c_str());
+
+  argv1[i] = nullptr;
+
+  tk = new CTkApp(argc1, argv1);
 
   for (const auto &filename : filenames)
     tk->evalFile(filename);
@@ -97,6 +117,7 @@ main(int argc, char **argv)
 
   readline->loop();
 
+  delete [] argv1;
   delete tk;
 
   return 0;

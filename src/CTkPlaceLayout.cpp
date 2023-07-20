@@ -35,9 +35,9 @@ void
 CTkPlaceLayout::
 addWidgets(const std::vector<CTkWidget *> &widgets, const Info &info)
 {
-  uint num = widgets.size();
+  auto num = widgets.size();
 
-  for (uint i = 0; i < num; ++i)
+  for (size_t i = 0; i < num; ++i)
     addWidget(widgets[i], info);
 }
 
@@ -143,8 +143,8 @@ setGeometry(const QRect &rect)
     int wh = item->sizeHint().width ();
     int hh = item->sizeHint().height();
 
-    int x1 = rect.x() + rx*rect.width ();
-    int y1 = rect.y() + ry*rect.height();
+    int x1 = int(rect.x() + rx*rect.width ());
+    int y1 = int(rect.y() + ry*rect.height());
 
     item->setGeometry(QRect(x1, y1, wh, hh));
   }
@@ -167,7 +167,7 @@ takeAt(int index)
     return layoutStruct->item;
   }
 
-  return 0;
+  return nullptr;
 }
 
 void

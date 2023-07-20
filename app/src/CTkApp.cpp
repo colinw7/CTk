@@ -145,8 +145,8 @@ lookupWidgetByName(const std::string &widgetName, bool quiet) const
 
 bool
 CTkApp::
-processOption(CTkOption *opts, const std::vector<std::string> &args, uint &i,
-              CTkOptionValueMap &values)
+processOption(CTkAppOption *opts, const std::vector<std::string> &args, uint &i,
+              CTkAppOptionValueMap &values)
 {
   uint numArgs = args.size();
 
@@ -160,15 +160,15 @@ processOption(CTkOption *opts, const std::vector<std::string> &args, uint &i,
 
     auto &value = values[arg];
 
-    if      (option.type == CTkOptionType::Flag)
+    if      (option.type == CTkAppOptionType::Flag)
       value.i = 1;
-    else if (option.type == CTkOptionType::String) {
+    else if (option.type == CTkAppOptionType::String) {
       if (i < numArgs - 1)
         value.s = args[++i];
       else
         return false;
     }
-    else if (option.type == CTkOptionType::Int) {
+    else if (option.type == CTkAppOptionType::Int) {
       if (i < numArgs - 1) {
         if (! CTkAppUtil::stringToInt(args[++i], value.i))
           return false;
@@ -176,7 +176,7 @@ processOption(CTkOption *opts, const std::vector<std::string> &args, uint &i,
       else
         return false;
     }
-    else if (option.type == CTkOptionType::Real) {
+    else if (option.type == CTkAppOptionType::Real) {
       if (i < numArgs - 1) {
         if (! CTkAppUtil::stringToReal(args[++i], value.r))
           return false;
@@ -214,7 +214,7 @@ getNewImageName() const
 
 CTkAppImageRef
 CTkApp::
-createImage(const std::string &, const std::string &name)
+createImage(const std::string &, const std::string & /*format*/, const std::string &name)
 {
   auto image = std::make_shared<CTkAppImage>(name);
 
@@ -237,9 +237,20 @@ getImage(const std::string &name) const
 
 CImagePtr
 CTkApp::
-loadImage(const std::string &name) const
+getBitmap(const std::string &name) const
 {
-  CImageFileSrc src(name);
+  auto name1 = name;
+
+  if (name[0] == '@') {
+    auto *env = getenv("CTK_APP_IMAGE_DIR");
+    if (! env)
+      (void) throwError("set CTK_APP_IMAGE_DIR to images path for @ name");
+
+    if (env)
+      name1 = std::string(env) + name.substr(1);
+  }
+
+  CImageFileSrc src(name1);
 
   return CImageMgrInst->createImage(src);
 }
@@ -411,7 +422,7 @@ execEvent(CTkAppWidget *w, QEvent *e, const CTkAppEventData &data)
 
 void
 CTkApp::
-addTopLevel(CTkTopLevel *toplevel)
+addTopLevel(CTkAppTopLevel *toplevel)
 {
   toplevels_.push_back(toplevel);
 }
@@ -583,10 +594,20 @@ parseEvent(const std::string &pattern, CTkAppEventData &data)
 
     parse.skipSpace();
 
-    if (parse.isString("<Help>")) {
+    if      (parse.isString("<Help>")) {
       parse.skipChars("<Help>");
 
       data.type = CTkAppEventType::Help;
+
+      if (! parseClose('>'))
+        return false;
+
+      return true;
+    }
+    else if (parse.isString("<MenuSelect>")) {
+      parse.skipChars("<MenuSelect>");
+
+      data.type = CTkAppEventType::MenuSelect;
 
       if (! parseClose('>'))
         return false;
@@ -801,6 +822,14 @@ CTkApp::
 lookupOptionName(const std::vector<std::string> &names,
                  const std::string &arg, std::string &opt) const
 {
+  return lookupName("option", names, arg, opt);
+}
+
+bool
+CTkApp::
+lookupName(const std::string &msg, const std::vector<std::string> &names,
+           const std::string &arg, std::string &opt) const
+{
   auto concatOptionNames = [&]() {
     std::string str;
 
@@ -825,7 +854,7 @@ lookupOptionName(const std::vector<std::string> &names,
   int argNum = -1;
 
   if (! optionValues.match(arg, argNum))
-    return throwError("bad option \"" + arg + "\": must be " + concatOptionNames());
+    return throwError("bad " + msg + " \"" + arg + "\": must be " + concatOptionNames());
 
   opt = names[argNum];
 
@@ -878,7 +907,7 @@ bool
 CTkApp::
 TODO(const std::string &msg) const
 {
-  std::cerr << "TODO: " << msg << "\n";
+  std::cerr << "TODO: " << currentCommand() << " " << msg << "\n";
 
   return false;
 }

@@ -11,10 +11,6 @@
 
 #include <CQUtil.h>
 #include <CQImage.h>
-#include <CStrMap.h>
-#include <CStrParse.h>
-#include <CRGBName.h>
-#include <CScreenUnits.h>
 
 #include <QApplication>
 #include <QCheckBox>
@@ -32,97 +28,9 @@
 #include <QHBoxLayout>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPainterPath>
 
 namespace {
-
-QColor stringToQColor(const std::string &str) {
-  double r = 0.0, g = 0.0, b = 0.0, a = 0.0;
-
-  if (str != "")
-    CRGBName::lookup(str, &r, &g, &b, &a);
-
-  return QColor(255*r, 255*g, 255*b, 255*a);
-}
-
-QFont stringToQFont(const std::string &str) {
-  QFont f;
-
-  CStrParse parse(str);
-
-  parse.skipSpace();
-
-  std::string family;
-
-  if (! parse.readNonSpace(family))
-    return f;
-
-  std::cerr << family << " ";
-
-  f.setFamily(QString::fromStdString(family));
-
-  //---
-
-  parse.skipSpace();
-
-  int  size   = 0;
-  bool points = true;
-
-  if (! parse.readInteger(&size))
-    return f;
-
-  if (size < 0) {
-    size   = -size;
-    points = false;
-  }
-
-  std::cerr << size << (points ? "pt" : "px") << " ";
-
-  if (points)
-    f.setPointSize(size);
-  else
-    f.setPixelSize(size);
-
-  //---
-
-  parse.skipSpace();
-
-  std::vector<std::string> styles;
-
-  while (! parse.eof()) {
-    std::string style;
-
-    if (! parse.readNonSpace(style))
-      return f;
-
-    styles.push_back(style);
-  }
-
-  for (const auto &style : styles)
-    std::cerr << style << " ";
-
-  for (const auto &style : styles) {
-    if      (style == "bold")
-      f.setBold(true);
-    else if (style == "italic")
-      f.setItalic(true);
-    else
-      std::cerr << "Unhandled style '" << style << "'\n";
-  }
-
-  //---
-
-  std::cerr << "\n";
-
-  return f;
-}
-
-bool stringToInteger(const std::string &str, int &i) {
-  return CStrUtil::toInteger(str, &i);
-}
-
-bool stringToReal(const std::string &str, double &r) {
-  return CStrUtil::toReal(str, &r);
-}
 
 bool stringToLineChar(const std::string &str, int &lineNum, int &charNum) {
   CStrParse parse(str);
@@ -142,62 +50,6 @@ bool stringToLineChar(const std::string &str, int &lineNum, int &charNum) {
     charNum = -1;
 
   return true;
-}
-
-bool stringToDistance(const std::string &str, double &r) {
-  CStrParse parse(str);
-
-  parse.skipSpace();
-
-  double r1;
-
-  if (! parse.readReal(&r1))
-    return false;
-
-  parse.skipSpace();
-
-  if (parse.eof()) {
-    r = r1;
-    return true;
-  }
-
-  auto c = parse.readChar();
-
-  double f = 1.0;
-
-  if      (c == 'c')
-    f = 1.0/2.54;
-  else if (c == 'i')
-    f = 1.0;
-  else if (c == 'm')
-    f = 1.0/25.4;
-  else if (c == 'p')
-    f = 1.0/72.0;
-  else
-    return false;
-
-  auto dpi = CScreenUnitsMgrInst->dpi();
-
-  r = r1*dpi*f;
-
-  return true;
-}
-
-bool stringToDistanceI(const std::string &str, int &i) {
-  double r;
-  if (! stringToDistance(str, r))
-    return false;
-  i = int(r);
-  return true;
-}
-
-bool stringToOrient(const std::string &str, Qt::Orientation &orient) {
-  static CStrMap<Qt::Orientation, int> orientMap(
-    "horizontal", Qt::Horizontal,
-    "vertical"  , Qt::Vertical  ,
-    0);
-
-  return orientMap.map(str, orient);
 }
 
 // set relief
@@ -309,7 +161,7 @@ CTkAppRoot::
 CTkAppRoot(CTkApp *tk) :
  CTkAppWidget(tk, nullptr, "")
 {
-  qframe_ = new CTkRootWidget(this);
+  qframe_ = new CTkAppRootWidget(this);
 
   setQWidget(qframe_);
 }
@@ -329,20 +181,7 @@ bool
 CTkAppRoot::
 execConfig(const std::string &name, const std::string &value)
 {
-  if      (name == "-background" || name == "-bg") {
-    auto c = stringToQColor(value);
-
-    CQUtil::setBackground(qframe_, c);
-  }
-  else if (name == "-borderwidth" || name == "-bd") {
-    int w;
-
-    if (! tk_->getOptionInt(name, value, w))
-      return false;
-
-    setBorderWidth(qframe_, w);
-  }
-  else if (name == "-padx") {
+  if      (name == "-padx") {
     int padx;
 
     if (! tk_->getOptionInt(name, value, padx))
@@ -359,12 +198,14 @@ execConfig(const std::string &name, const std::string &value)
     setPadY(pady);
   }
   else if (name == "-menu") {
-    auto *w = tk_->lookupWidgetByName(value);
+    menuName_ = value;
 
-    auto *menu = dynamic_cast<CTkMenu *>(w);
-    if (! menu) { std::cerr << "No menu '" << value << "'\n"; return false; }
+    auto *w = tk_->lookupWidgetByName(menuName_, /*quiet*/true);
 
-    qframe_->setMenu(menu->qmenu());
+    auto *menu = dynamic_cast<CTkAppMenu *>(w);
+
+    if (menu)
+      qframe_->setMenu(menu->qmenu());
   }
   else
     return CTkAppWidget::execConfig(name, value);
@@ -441,15 +282,15 @@ decodeWidgetName(const std::string &name, CTkAppWidget **parent, std::string &ch
 
 //---
 
-CTkRootWidget::
-CTkRootWidget(CTkAppRoot *root) :
+CTkAppRootWidget::
+CTkAppRootWidget(CTkAppRoot *root) :
  QFrame(nullptr), root_(root)
 {
   setObjectName("qroot");
 }
 
 void
-CTkRootWidget::
+CTkAppRootWidget::
 setMenu(QMenu *menu)
 {
   menu_ = menu;
@@ -471,7 +312,7 @@ setMenu(QMenu *menu)
 }
 
 void
-CTkRootWidget::
+CTkAppRootWidget::
 paintEvent(QPaintEvent *e)
 {
   QFrame::paintEvent(e);
@@ -482,7 +323,7 @@ paintEvent(QPaintEvent *e)
 }
 
 QSize
-CTkRootWidget::
+CTkAppRootWidget::
 sizeHint() const
 {
   auto s = QFrame::sizeHint();
@@ -495,8 +336,8 @@ sizeHint() const
 
 //----------
 
-CTkButton::
-CTkButton(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
+CTkAppButton::
+CTkAppButton(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
   if (parent)
@@ -510,7 +351,7 @@ CTkButton(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
 }
 
 void
-CTkButton::
+CTkAppButton::
 connectSlots(bool b)
 {
   if (b)
@@ -520,15 +361,17 @@ connectSlots(bool b)
 }
 
 bool
-CTkButton::
+CTkAppButton::
 execConfig(const std::string &name, const std::string &value)
 {
-  if      (name == "-command")
+  if      (name == "-command") {
     setCommand(value);
-  else if (name == "-text")
+  }
+  else if (name == "-text") {
     setText(value);
+  }
   else if (name == "-bitmap") {
-    auto image = tk_->loadImage(value);
+    auto image = tk_->getBitmap(value);
 
     if (! image)
       return tk_->throwError("Failed to load bitmap '" + value + "'");
@@ -542,9 +385,31 @@ execConfig(const std::string &name, const std::string &value)
       setImage(image->getImage());
   }
   else if (name == "-default") {
-    tk_->TODO(name);
+    if      (value == "normal")
+      tk_->TODO(name);
+    else if (value == "active")
+      tk_->TODO(name);
+    else if (value == "disabled")
+      tk_->TODO(value);
+    else
+      return false;
   }
   else if (name == "-state") {
+    if      (value == "normal") {
+      qbutton_->setEnabled(true);
+      qbutton_->setDown(false);
+    }
+    else if (value == "active")
+      qbutton_->setDown(true);
+    else if (value == "disabled")
+      qbutton_->setEnabled(false);
+    else
+      return false;
+  }
+  else if (name == "-wraplength") {
+    tk_->TODO(name);
+  }
+  else if (name == "-underline") {
     tk_->TODO(name);
   }
   else
@@ -554,7 +419,7 @@ execConfig(const std::string &name, const std::string &value)
 }
 
 bool
-CTkButton::
+CTkAppButton::
 execOp(const Args &args)
 {
   uint numArgs = args.size();
@@ -577,17 +442,20 @@ execOp(const Args &args)
 }
 
 void
-CTkButton::
+CTkAppButton::
 setText(const std::string &text)
 {
   qbutton_->setText(QString::fromStdString(text));
 }
 
 void
-CTkButton::
+CTkAppButton::
 setImage(CImagePtr image)
 {
-  auto &qimage = image.cast<CQImage>()->getQImage();
+  auto *cqimage = image.cast<CQImage>();
+  if (! cqimage) return;
+
+  auto &qimage = cqimage->getQImage();
 
   QPixmap pixmap;
 
@@ -597,14 +465,14 @@ setImage(CImagePtr image)
 }
 
 void
-CTkButton::
+CTkAppButton::
 clickSlot()
 {
   runCommand();
 }
 
 void
-CTkButton::
+CTkAppButton::
 flash()
 {
   tk_->TODO();
@@ -630,7 +498,34 @@ bool
 CTkAppCanvas::
 execConfig(const std::string &name, const std::string &value)
 {
-  return CTkAppWidget::execConfig(name, value);
+  if      (name == "-closeenough") {
+    tk_->TODO(name);
+  }
+  else if (name == "-confine") {
+    tk_->TODO(name);
+  }
+  else if (name == "-height") {
+    tk_->TODO(name);
+  }
+  else if (name == "-scrollregion") {
+    tk_->TODO(name);
+  }
+  else if (name == "-state") {
+    tk_->TODO(name);
+  }
+  else if (name == "-width") {
+    tk_->TODO(name);
+  }
+  else if (name == "-xscrollincrement") {
+    tk_->TODO(name);
+  }
+  else if (name == "-yscrollincrement") {
+    tk_->TODO(name);
+  }
+  else
+    return CTkAppWidget::execConfig(name, value);
+
+  return true;
 }
 
 bool
@@ -642,34 +537,78 @@ execOp(const Args &args)
   if (numArgs == 0)
     return tk_->wrongNumArgs(getName() + " option ?arg ...?");
 
-  auto processShapeOpt = [&](CTkAppCanvasWidget::Shape *shape, const std::string &name,
-                             const std::string &value) {
-    if      (name == "-fill") {
-      auto c = stringToQColor(value);
+  auto setShapeOpt = [&](CTkAppCanvasWidget::Shape *shape, const std::string &name,
+                         const std::string &value) {
+    if      (name == "-anchor") {
+      tk_->TODO(name);
+    }
+    else if (name == "-dash") {
+      tk_->TODO(name);
+    }
+    else if (name == "-activedash") {
+      tk_->TODO(name);
+    }
+    else if (name == "-disabledash") {
+      tk_->TODO(name);
+    }
+    else if (name == "-dashoffset") {
+      tk_->TODO(name);
+    }
+    else if (name == "-fill") {
+      auto c = CTkAppUtil::stringToQColor(value);
 
       auto b = shape->brush();
       b.setStyle(Qt::SolidPattern);
       b.setColor(c);
       shape->setBrush(b);
     }
+    else if (name == "-activefill") {
+      tk_->TODO(name);
+    }
+    else if (name == "-disabledfill") {
+      tk_->TODO(name);
+    }
     else if (name == "-outline") {
-      auto c = stringToQColor(value);
+      auto c = CTkAppUtil::stringToQColor(value);
 
       auto p = shape->pen();
       p.setColor(c);
       shape->setPen(p);
     }
-    else if (name == "-width") {
-      double width;
-
-      if (! stringToDistance(value, width))
-        return tk_->throwError("Invalid width \"" + value + "\"");
-
-      auto p = shape->pen();
-      p.setWidthF(width);
-      shape->setPen(p);
+    else if (name == "-activeoutline") {
+      tk_->TODO(name);
     }
-    else if (name == "-tags") {
+    else if (name == "-disabledoutline") {
+      tk_->TODO(name);
+    }
+    else if (name == "-offset") {
+      tk_->TODO(name);
+    }
+    else if (name == "-outlinestipple") {
+      tk_->TODO(name);
+    }
+    else if (name == "-activeoutlinestipple") {
+      tk_->TODO(name);
+    }
+    else if (name == "-disabledoutlinestipple") {
+      tk_->TODO(name);
+    }
+    else if (name == "-outlineoffset") {
+      tk_->TODO(name);
+    }
+    else if (name == "-stipple") {
+      tk_->TODO(name);
+    }
+    else if (name == "-activestipple") {
+      tk_->TODO(name);
+    }
+    else if (name == "-disabledstipple") {
+      tk_->TODO(name);
+    }
+    else if (name == "-state") {
+      tk_->TODO(name);
+    }
+    else if (name == "-tags" || name == "-tag") {
       std::vector<std::string> strs;
 
       if (! tk_->splitList(value, strs))
@@ -677,15 +616,94 @@ execOp(const Args &args)
 
       shape->setTags(strs);
     }
+    else if (name == "-width") {
+      double width;
+
+      if (! CTkAppUtil::stringToDistance(value, width))
+        return tk_->throwError("Invalid width \"" + value + "\"");
+
+      auto p = shape->pen();
+      p.setWidthF(width);
+      shape->setPen(p);
+    }
+    else if (name == "-activewidth") {
+      tk_->TODO(name);
+    }
+    else if (name == "-disabledwidth") {
+      tk_->TODO(name);
+    }
     else
       return false;
 
     return true;
   };
 
+  auto getShapeOpt = [&](CTkAppCanvasWidget::Shape *shape, const std::string &name,
+                         std::string &value) {
+    if      (name == "-fill") {
+      auto b = shape->brush();
+      value = b.color().name().toStdString();
+    }
+    else if (name == "-outline") {
+      auto p = shape->pen();
+      value = p.color().name().toStdString();
+    }
+    else if (name == "-width") {
+      auto p = shape->pen();
+      value = std::to_string(p.widthF());
+    }
+    else if (name == "-tags" || name == "-tag") {
+      value = tk_->mergeList(shape->tags());
+    }
+    else
+      return false;
+
+    return true;
+  };
+
+  //---
+
   const auto &arg = args[0];
 
-  if      (arg == "bind") {
+  if      (arg == "addtag") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " addtag tag searchCommand ?arg ...?");
+
+//  const auto &tag = args[1];
+    const auto &cmd = args[2];
+
+    if      (cmd == "above") {
+      tk_->TODO(cmd);
+    }
+    else if (cmd == "all") {
+      tk_->TODO(cmd);
+    }
+    else if (cmd == "below") {
+      tk_->TODO(cmd);
+    }
+    else if (cmd == "closest") {
+      tk_->TODO(cmd);
+    }
+    else if (cmd == "enclosed") {
+      tk_->TODO(cmd);
+    }
+    else if (cmd == "overlapping") {
+      tk_->TODO(cmd);
+    }
+    else if (cmd == "withtag") {
+      tk_->TODO(cmd);
+    }
+    else
+      return tk_->throwError("bad search command \"" + cmd + "\": must be "
+               "above, all, below, closest, enclosed, overlapping, or withtag");
+  }
+  else if (arg == "bbox") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " bbox tagOrId ?tagOrId ...?");
+
+    tk_->TODO(arg);
+  }
+  else if (arg == "bind") {
     if (numArgs < 2 || numArgs > 4)
       return tk_->wrongNumArgs(getName() + " bind tagOrId ?sequence? ?command?");
 
@@ -706,20 +724,237 @@ execOp(const Args &args)
 
     idEventDatas_[id].push_back(data);
   }
+  else if (arg == "canvasx") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " canvasx screenx ?gridspacing?");
+
+    tk_->TODO(arg);
+  }
+  else if (arg == "canvasy") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " canvasy screenx ?gridspacing?");
+
+    tk_->TODO(arg);
+  }
+  else if (arg == "coords") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " coords tagOrId ?x y x y ...?");
+
+    auto id = args[1];
+
+    CTkAppCanvasWidget::Points points;
+
+    if (numArgs > 2) {
+      for (uint i = 2; i < numArgs; i += 2) {
+        if (args[i][0] == '-')
+          break;
+
+        double x, y;
+        if (! CTkAppUtil::stringToDistance(args[i], x) ||
+            ! CTkAppUtil::stringToDistance(args[i + 1], y))
+          return tk_->throwError("Invalid coord \"" + args[i] + " " + args[i + 1] + "\"");
+
+        points.push_back(CTkAppCanvasWidget::Point(x, y));
+      }
+
+      if (points.empty())
+        return false;
+
+      if (! qcanvas_->setShapePoints(id, points))
+        return false;
+    }
+    else {
+      if (! qcanvas_->getShapePoints(id, points))
+        return false;
+
+      if (points.empty())
+        return false;
+
+      std::vector<std::string> strs;
+
+      for (const auto &p : points) {
+        strs.push_back(CStrUtil::toString(p.x));
+        strs.push_back(CStrUtil::toString(p.y));
+      }
+
+      tk_->setStringArrayResult(strs);
+    }
+  }
   else if (arg == "create") {
-    if (numArgs == 1)
+    if (numArgs < 2)
       return tk_->wrongNumArgs(getName() + " create type coords ?arg ...?");
 
-    const auto &type = args[1];
+    static auto typeNames = std::vector<std::string>({
+      "arc", "image", "line", "oval", "polygon", "rectangle", "text", "window" });
+
+    std::string type;
+    if (! tk_->lookupName("type", typeNames, args[1], type))
+      return false;
 
     if      (type == "arc") {
-      tk_->TODO(type);
+      CTkAppCanvasWidget::Points points;
+
+      uint i = 2;
+
+      for (int ip = 0; ip < 2; ++ip) {
+        double x, y;
+        if (! CTkAppUtil::stringToDistance(args[i    ], x) ||
+            ! CTkAppUtil::stringToDistance(args[i + 1], y))
+          return tk_->throwError("Invalid coord \"" + args[i] + " " + args[i + 1] + "\"");
+
+        points.push_back(CTkAppCanvasWidget::Point(x, y));
+
+        i += 2;
+      }
+
+      if (points.size() != 2)
+        return tk_->wrongNumArgs(getName() + " create arc coords ?arg ...?");
+
+      auto *arc = qcanvas_->addArc(points);
+
+      long start  = 0;
+      long extent = 360;
+
+      auto arcType = CTkAppCanvasWidget::ArcType::ARC;
+
+      for ( ; i < numArgs; i += 2) {
+        if (args[i][0] == '-') {
+          const auto &name  = args[i    ];
+          const auto &value = args[i + 1];
+
+          if (setShapeOpt(arc, name, value))
+            continue;
+
+          if      (name == "-extent") {
+            if (! CTkAppUtil::stringToInt(value, extent))
+              return false;
+          }
+          else if (name == "-start") {
+            if (! CTkAppUtil::stringToInt(value, start))
+              return false;
+          }
+          else if (name == "-style") {
+            // pieslice, chord, arc
+            if      (value == "pieslice")
+              arcType = CTkAppCanvasWidget::ArcType::PIE;
+            else if (value == "chord")
+              arcType = CTkAppCanvasWidget::ArcType::CHORD;
+            else if (value == "arc")
+              arcType = CTkAppCanvasWidget::ArcType::ARC;
+            else
+              tk_->TODO(name + "/" + value);
+          }
+          else
+            tk_->TODO(name);
+        }
+        else
+          tk_->TODO(args[i]);
+      }
+
+      arc->setStart (int(start ));
+      arc->setExtent(int(extent));
+
+      arc->setArcType(arcType);
+
+      tk_->setIntegerResult(arc->id());
     }
     else if (type == "bitmap") {
-      tk_->TODO(type);
+      uint i = 2;
+
+      double x, y;
+      if (! CTkAppUtil::stringToDistance(args[i    ], x) ||
+          ! CTkAppUtil::stringToDistance(args[i + 1], y))
+        return tk_->throwError("Invalid coord \"" + args[i] + " " + args[i + 1] + "\"");
+
+      auto *bitmap = qcanvas_->addBitmap(CTkAppCanvasWidget::Point(x, y));
+
+      i += 2;
+
+      for ( ; i < numArgs; i += 2) {
+        if (args[i][0] == '-') {
+          const auto &name  = args[i    ];
+          const auto &value = args[i + 1];
+
+          if (setShapeOpt(bitmap, name, value))
+            continue;
+
+          if      (name == "-background") {
+            tk_->TODO(name);
+          }
+          else if (name == "-activebackground") {
+            tk_->TODO(name);
+          }
+          else if (name == "-disabledbackground") {
+            tk_->TODO(name);
+          }
+          else if (name == "-bitmap") {
+            auto image = tk_->getBitmap(value);
+
+            bitmap->setImage(image);
+          }
+          else if (name == "-activebitmap") {
+            tk_->TODO(name);
+          }
+          else if (name == "-disabledbitmap") {
+            tk_->TODO(name);
+          }
+          else if (name == "-foreground") {
+            tk_->TODO(name);
+          }
+          else if (name == "-activeforeground") {
+            tk_->TODO(name);
+          }
+          else if (name == "-disabledforeground") {
+            tk_->TODO(name);
+          }
+          else
+            tk_->TODO(name);
+        }
+        else
+          tk_->TODO(args[i]);
+      }
+
+      tk_->setIntegerResult(bitmap->id());
     }
     else if (type == "image") {
-      tk_->TODO(type);
+      uint i = 2;
+
+      double x, y;
+      if (! CTkAppUtil::stringToDistance(args[i    ], x) ||
+          ! CTkAppUtil::stringToDistance(args[i + 1], y))
+        return tk_->throwError("Invalid coord \"" + args[i] + " " + args[i + 1] + "\"");
+
+      auto *image = qcanvas_->addImage(CTkAppCanvasWidget::Point(x, y));
+
+      i += 2;
+
+      for ( ; i < numArgs; i += 2) {
+        if (args[i][0] == '-') {
+          const auto &name  = args[i    ];
+          const auto &value = args[i + 1];
+
+          if (setShapeOpt(image, name, value))
+            continue;
+
+          if      (name == "-image") {
+            auto appImage = tk_->getImage(value);
+
+            image->setImage(appImage->getImage());
+          }
+          else if (name == "-activeimage") {
+            tk_->TODO(name);
+          }
+          else if (name == "-disabledimage") {
+            tk_->TODO(name);
+          }
+          else
+            tk_->TODO(name);
+        }
+        else
+          tk_->TODO(args[i]);
+      }
+
+      tk_->setIntegerResult(image->id());
     }
     else if (type == "line") {
       CTkAppCanvasWidget::Points points;
@@ -731,7 +966,8 @@ execOp(const Args &args)
           break;
 
         double x, y;
-        if (! stringToDistance(args[i], x) || ! stringToDistance(args[i + 1], y))
+        if (! CTkAppUtil::stringToDistance(args[i    ], x) ||
+            ! CTkAppUtil::stringToDistance(args[i + 1], y))
           return tk_->throwError("Invalid coord \"" + args[i] + " " + args[i + 1] + "\"");
 
         points.push_back(CTkAppCanvasWidget::Point(x, y));
@@ -740,43 +976,34 @@ execOp(const Args &args)
       if (points.empty())
         return tk_->wrongNumArgs(getName() + " create line coords ?arg ...?");
 
-      auto *shape = qcanvas_->addLine(points);
+      auto *line = qcanvas_->addLine(points);
 
       for ( ; i < numArgs; i += 2) {
         if (args[i][0] == '-') {
           const auto &name  = args[i    ];
           const auto &value = args[i + 1];
 
-          if (processShapeOpt(shape, name, value))
+          if (setShapeOpt(line, name, value))
             continue;
-          else
-            tk_->TODO(args[i]);
-        }
-        else
-          tk_->TODO(args[i]);
-      }
 
-      tk_->setIntegerResult(shape->id());
-    }
-    else if (type == "oval") {
-      if (numArgs < 6)
-        return tk_->wrongNumArgs(getName() + " create oval coords ?arg ...?");
-
-      double x1, y1, x2, y2;
-      if (! stringToDistance(args[2], x1) || ! stringToDistance(args[3], y1) ||
-          ! stringToDistance(args[4], x2) || ! stringToDistance(args[5], y2))
-        return tk_->throwError("Invalid coords \"" + args[2] + " " + args[3] + " " +
-                               args[4] + " " + args[5] + "\"");
-
-      auto *shape = qcanvas_->addOval(x1, y1, x2, y2);
-
-      for (uint i = 6; i < numArgs; i += 2) {
-        if (args[i][0] == '-') {
-          const auto &name  = args[i    ];
-          const auto &value = args[i + 1];
-
-          if (processShapeOpt(shape, name, value))
-            continue;
+          if      (name == "-arrow") {
+            tk_->TODO(name);
+          }
+          else if (name == "-arrowshape") {
+            tk_->TODO(name);
+          }
+          else if (name == "-capstyle") {
+            tk_->TODO(name);
+          }
+          else if (name == "-joinstyle") {
+            tk_->TODO(name);
+          }
+          else if (name == "-smooth") {
+            tk_->TODO(name);
+          }
+          else if (name == "-splinesteps") {
+            tk_->TODO(name);
+          }
           else
             tk_->TODO(name);
         }
@@ -784,7 +1011,37 @@ execOp(const Args &args)
           tk_->TODO(args[i]);
       }
 
-      tk_->setIntegerResult(shape->id());
+      tk_->setIntegerResult(line->id());
+    }
+    else if (type == "oval") {
+      if (numArgs < 6)
+        return tk_->wrongNumArgs(getName() + " create oval coords ?arg ...?");
+
+      double x1, y1, x2, y2;
+      if (! CTkAppUtil::stringToDistance(args[2], x1) ||
+          ! CTkAppUtil::stringToDistance(args[3], y1) ||
+          ! CTkAppUtil::stringToDistance(args[4], x2) ||
+          ! CTkAppUtil::stringToDistance(args[5], y2))
+        return tk_->throwError("Invalid coords \"" + args[2] + " " + args[3] + " " +
+                               args[4] + " " + args[5] + "\"");
+
+      auto *oval = qcanvas_->addOval(x1, y1, x2, y2);
+
+      for (uint i = 6; i < numArgs; i += 2) {
+        if (args[i][0] == '-') {
+          const auto &name  = args[i    ];
+          const auto &value = args[i + 1];
+
+          if (setShapeOpt(oval, name, value))
+            continue;
+
+          tk_->TODO(name);
+        }
+        else
+          tk_->TODO(args[i]);
+      }
+
+      tk_->setIntegerResult(oval->id());
     }
     else if (type == "polygon") {
       tk_->TODO(type);
@@ -794,20 +1051,32 @@ execOp(const Args &args)
         return tk_->wrongNumArgs(getName() + " create rectangle coords ?arg ...?");
 
       double x1, y1, x2, y2;
-      if (! stringToDistance(args[2], x1) || ! stringToDistance(args[3], y1) ||
-          ! stringToDistance(args[4], x2) || ! stringToDistance(args[5], y2))
+      if (! CTkAppUtil::stringToDistance(args[2], x1) ||
+          ! CTkAppUtil::stringToDistance(args[3], y1) ||
+          ! CTkAppUtil::stringToDistance(args[4], x2) ||
+          ! CTkAppUtil::stringToDistance(args[5], y2))
         return tk_->throwError("Invalid coords \"" + args[2] + " " + args[3] + " " +
                                args[4] + " " + args[5] + "\"");
 
-      auto *shape = qcanvas_->addRectangle(x1, y1, x2, y2);
+      auto *rectangle = qcanvas_->addRectangle(x1, y1, x2, y2);
 
       for (uint i = 6; i < numArgs; i += 2) {
         if (args[i][0] == '-') {
           const auto &name  = args[i    ];
           const auto &value = args[i + 1];
 
-          if (processShapeOpt(shape, name, value))
+          if (setShapeOpt(rectangle, name, value))
             continue;
+
+          if      (name == "-joinstyle") {
+            tk_->TODO(name);
+          }
+          else if (name == "-smooth") {
+            tk_->TODO(name);
+          }
+          else if (name == "-splinesteps") {
+            tk_->TODO(name);
+          }
           else
             tk_->TODO(name);
         }
@@ -815,32 +1084,47 @@ execOp(const Args &args)
           tk_->TODO(args[i]);
       }
 
-      tk_->setIntegerResult(shape->id());
+      tk_->setIntegerResult(rectangle->id());
     }
     else if (type == "text") {
       if (numArgs < 4)
         return tk_->wrongNumArgs(getName() + " create text coord ?arg ...?");
 
       double x, y;
-      if (! stringToDistance(args[2], x) || ! stringToDistance(args[3], y))
+      if (! CTkAppUtil::stringToDistance(args[2], x) ||
+          ! CTkAppUtil::stringToDistance(args[3], y))
         return tk_->throwError("Invalid coord \"" + args[2] + " " + args[3] + "\"");
 
       CTkAppCanvasWidget::Point pos(x, y);
 
-      auto *shape = qcanvas_->addText(pos, "");
+      auto *text = qcanvas_->addText(pos, "");
 
       for (uint i = 4; i < numArgs; i += 2) {
         if (args[i][0] == '-') {
           const auto &name  = args[i    ];
           const auto &value = args[i + 1];
 
-          if (processShapeOpt(shape, name, value))
+          if (setShapeOpt(text, name, value))
             continue;
 
-          if      (name == "-text")
-            shape->setText(value);
-          else if (name == "-anchor")
+          if      (name == "-angle") {
             tk_->TODO(name);
+          }
+          else if (name == "-font") {
+            tk_->TODO(name);
+          }
+          else if (name == "-justify") {
+            tk_->TODO(name);
+          }
+          else if (name == "-text") {
+            text->setText(value);
+          }
+          else if (name == "-underline") {
+            tk_->TODO(name);
+          }
+          else if (name == "-width") {
+            tk_->TODO(name);
+          }
           else
             tk_->TODO(name);
         }
@@ -848,27 +1132,66 @@ execOp(const Args &args)
           tk_->TODO(args[i]);
       }
 
-      tk_->setIntegerResult(shape->id());
+      tk_->setIntegerResult(text->id());
     }
     else if (type == "window") {
       tk_->TODO(type);
+
+      for (uint i = 1; i < numArgs; i += 2) {
+        if (args[i][0] == '-') {
+          const auto &name  = args[i    ];
+        //const auto &value = args[i + 1];
+
+          if      (name == "-height") {
+            tk_->TODO(name);
+          }
+          else if (name == "-width") {
+            tk_->TODO(name);
+          }
+          else if (name == "-window") {
+            tk_->TODO(name);
+          }
+          else
+            tk_->TODO(name);
+        }
+        else
+          tk_->TODO(args[i]);
+      }
     }
     else
       tk_->TODO(type);
+
+    qcanvas_->update();
+  }
+  else if (arg == "dchars") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " dchars tagOrId first ?last?");
+
+    tk_->TODO(arg);
   }
   else if (arg == "delete") {
-    if (numArgs == 1)
+    if (numArgs < 2)
       return tk_->wrongNumArgs(getName() + " delete ?arg ...?"); // delete all ?
 
     const auto &name = args[1];
 
-    int id;
+    if (name == "all") {
+      qcanvas_->deleteAllShapes();
 
-    if (! tk_->getOptionInt(arg, name, id))
-      return false;
+      qcanvas_->update();
+    }
+    else {
+      if (! qcanvas_->deleteShape(name))
+        return false;
 
-    if (! qcanvas_->deleteShape(id))
-      return false;
+      qcanvas_->update();
+    }
+  }
+  else if (arg == "dtag") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " dtag tagOrId ?tagToDelete?");
+
+    tk_->TODO(arg);
   }
   else if (arg == "find") {
     if (numArgs < 2)
@@ -920,18 +1243,122 @@ execOp(const Args &args)
       return tk_->throwError("bad search command \"" + cmd + "\": must be "
                              "above, all, below, closest, enclosed, overlapping, or withtag");
   }
+  else if (arg == "focus") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "gettags") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " gettags tagOrId");
+
+    tk_->TODO(arg);
+  }
+  else if (arg == "icursor") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " icursor tagOrId index");
+
+    tk_->TODO(arg);
+  }
+  else if (arg == "imove") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " imove tagOrId index x y");
+
+    tk_->TODO(arg);
+  }
+  else if (arg == "index") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " index tagOrId string");
+
+    tk_->TODO(arg);
+  }
+  else if (arg == "insert") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " insert tagOrId beforeThis string");
+
+    tk_->TODO(arg);
+  }
+  else if (arg == "itemcget") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " itemcget tagOrId option");
+
+    const auto &id = args[1];
+
+    CTkAppCanvasWidget::Shapes shapes;
+
+    if (id == "current")
+      shapes.push_back(insideShape_);
+    else {
+      if (! qcanvas_->getShapes(id, shapes))
+        return tk_->throwError("No matching shape \"" + id + "\" for itemconfigure");
+    }
+
+    std::vector<std::string> values;
+
+    for (uint i = 2; i < numArgs; ++i) {
+      const auto &name = args[i];
+
+      if (name[0] == '-') {
+        bool rc = false;
+
+        for (auto *shape : shapes) {
+          std::string value;
+
+          if (getShapeOpt(shape, name, value)) {
+            values.push_back(value);
+            rc = true;
+          }
+        }
+
+        if (! rc)
+          tk_->TODO(name);
+      }
+      else
+        tk_->TODO(name);
+    }
+
+    tk_->setStringArrayResult(values);
+  }
+  else if (arg == "itemconfigure") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " itemconfigure tagOrId ?-option value ...?");
+
+    const auto &id = args[1];
+
+    CTkAppCanvasWidget::Shapes shapes;
+
+    if (id == "current")
+      shapes.push_back(insideShape_);
+    else {
+      if (! qcanvas_->getShapes(id, shapes))
+        return tk_->throwError("No matching shape \"" + id + "\" for itemconfigure");
+    }
+
+    for (uint i = 2; i < numArgs; i += 2) {
+      const auto &name = args[i];
+
+      if (name[0] == '-') {
+        const auto &value = args[i + 1];
+
+        bool rc = false;
+
+        for (auto *shape : shapes) {
+          if (setShapeOpt(shape, name, value))
+            rc = true;
+        }
+
+        if (! rc)
+          tk_->TODO(name);
+      }
+      else
+        tk_->TODO(name);
+    }
+  }
   else if (arg == "lower") {
-    if (numArgs == 1)
+    if (numArgs < 2)
       return tk_->wrongNumArgs(getName() + " lower tagOrId ?belowThis?");
 
     const auto &name = args[1];
 
-    int id;
-
-    if (! tk_->getOptionInt(arg, name, id))
-      return false;
-
-    if (! qcanvas_->lowerShape(id))
+    if (! qcanvas_->lowerShape(name))
       return false;
   }
   else if (arg == "move") {
@@ -941,83 +1368,68 @@ execOp(const Args &args)
     const auto &id = args[1];
 
     double dx, dy;
-    if (! stringToDistance(args[2], dx) || ! stringToDistance(args[3], dy))
+    if (! CTkAppUtil::stringToDistance(args[2], dx) ||
+        ! CTkAppUtil::stringToDistance(args[3], dy))
       return tk_->throwError("Invalid coord \"" + args[2] + " " + args[3] + "\"");
 
     if (! qcanvas_->moveShape(id, dx, dy))
       return false;
   }
-  else if (arg == "coords") {
+  else if (arg == "moveto") {
     if (numArgs < 2)
-      return tk_->wrongNumArgs(getName() + " coords tagOrId ?x y x y ...?");
+      return tk_->wrongNumArgs(getName() + " moveto tagOrId x y");
 
-    auto id = args[1];
-
-    CTkAppCanvasWidget::Points points;
-
-    if (numArgs > 2) {
-      for (uint i = 2; i < numArgs; i += 2) {
-        if (args[i][0] == '-')
-          break;
-
-        double x, y;
-        if (! stringToDistance(args[i], x) || ! stringToDistance(args[i + 1], y))
-          return tk_->throwError("Invalid coord \"" + args[i] + " " + args[i + 1] + "\"");
-
-        points.push_back(CTkAppCanvasWidget::Point(x, y));
-      }
-
-      if (points.empty())
-        return false;
-
-      if (! qcanvas_->setShapePoints(id, points))
-        return false;
-    }
-    else {
-      if (! qcanvas_->getShapePoints(id, points))
-        return false;
-
-      if (points.empty())
-        return false;
-
-      std::vector<std::string> strs;
-
-      for (const auto &p : points) {
-        strs.push_back(CStrUtil::toString(p.x));
-        strs.push_back(CStrUtil::toString(p.y));
-      }
-
-      tk_->setStringArrayResult(strs);
-    }
+    tk_->TODO(arg);
   }
-  else if (arg == "itemconfigure") {
+  else if (arg == "postscript") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "raise") {
     if (numArgs < 2)
-      return tk_->wrongNumArgs(getName() + " itemconfigure tagOrId ?-option value ...?");
+      return tk_->wrongNumArgs(getName() + " raise tagOrId ?belowThis?");
 
-    const auto &id = args[1];
+    const auto &name = args[1];
 
-    CTkAppCanvasShape *shape = nullptr;
+    if (! qcanvas_->raiseShape(name))
+      return false;
+  }
+  else if (arg == "rchars") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " rchars tagOrId first last string");
 
-    if (id == "current")
-      shape = insideShape_;
+    tk_->TODO(arg);
+  }
+  else if (arg == "scale") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " scale tagOrId xOrigin yOrigin xScale yScale");
 
-    if (! shape)
-      return tk_->throwError("Unhandled shape \"" + id + " for itemconfigure");
+    tk_->TODO(arg);
+  }
+  else if (arg == "scan") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " scan mark|dragto x y ?dragGain?");
 
-    for (uint i = 2; i < numArgs; i+= 2) {
-      const auto &name = args[i];
+    tk_->TODO(arg);
+  }
+  else if (arg == "select") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " select option ?tagOrId? ?arg?");
 
-      if (name[0] == '-') {
-        const auto &value = args[i + 1];
+    tk_->TODO(arg);
+  }
+  else if (arg == "type") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " type tag");
 
-        if (processShapeOpt(shape, name, value))
-          continue;
-
-        tk_->TODO(name);
-      }
-      else
-        tk_->TODO(name);
-    }
+    tk_->TODO(arg);
+  }
+  else if (arg == "xview") {
+    tk_->TODO(arg);
+    tk_->setStringResult("0.0 1.0");
+  }
+  else if (arg == "yview") {
+    tk_->TODO(arg);
+    tk_->setStringResult("0.0 1.0");
   }
   else
     return CTkAppWidget::execOp(args);
@@ -1180,9 +1592,41 @@ drawShape(QPainter *p, Shape *s)
       }
       break;
     }
+    case CTkAppCanvasShapeType::ARC: {
+      auto *a = static_cast<Arc *>(s);
+      const auto &points = a->points();
+      assert(points.size() == 2);
+      QRectF r(points[0].x, points[0].y, points[1].x - points[0].x, points[1].y - points[0].y);
+
+      QPainterPath path;
+      path.arcMoveTo(r, a->start());
+      path.arcTo(r, a->start(), a->extent());
+      p->drawPath(path);
+      break;
+    }
     case CTkAppCanvasShapeType::TEXT: {
       auto *t = static_cast<Text *>(s);
       p->drawText(t->pos().x, t->pos().y, QString::fromStdString(t->text()));
+      break;
+    }
+    case CTkAppCanvasShapeType::IMAGE: {
+      auto *i = static_cast<Image *>(s);
+
+      auto *cqimage = i->getImage().cast<CQImage>();
+      if (! cqimage) return;
+
+      auto &qimage = cqimage->getQImage();
+      p->drawImage(i->pos().x, i->pos().y, qimage);
+      break;
+    }
+    case CTkAppCanvasShapeType::BITMAP: {
+      auto *i = static_cast<Bitmap *>(s);
+
+      auto *cqimage = i->getImage().cast<CQImage>();
+      if (! cqimage) return;
+
+      auto &qimage = cqimage->getQImage();
+      p->drawImage(i->pos().x, i->pos().y, qimage);
       break;
     }
     default:
@@ -1199,9 +1643,9 @@ sizeHint() const
 
 //----------
 
-class CTkCheckButtonVarProc : public CTclTraceProc {
+class CTkAppCheckButtonVarProc : public CTclTraceProc {
  public:
-  CTkCheckButtonVarProc(CTkApp *tk, CTkCheckButton *check) :
+  CTkAppCheckButtonVarProc(CTkApp *tk, CTkAppCheckButton *check) :
    CTclTraceProc(tk), check_(check) {
   }
 
@@ -1210,11 +1654,11 @@ class CTkCheckButtonVarProc : public CTclTraceProc {
   }
 
  private:
-  CTkCheckButton *check_ { nullptr };
+  CTkAppCheckButton *check_ { nullptr };
 };
 
-CTkCheckButton::
-CTkCheckButton(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
+CTkAppCheckButton::
+CTkAppCheckButton(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
   if (parent)
@@ -1228,7 +1672,7 @@ CTkCheckButton(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
 }
 
 void
-CTkCheckButton::
+CTkAppCheckButton::
 connectSlots(bool b)
 {
   if (b)
@@ -1238,7 +1682,7 @@ connectSlots(bool b)
 }
 
 bool
-CTkCheckButton::
+CTkAppCheckButton::
 execConfig(const std::string &name, const std::string &value)
 {
   if      (name == "-text")
@@ -1251,7 +1695,7 @@ execConfig(const std::string &name, const std::string &value)
 
     updateVariable();
 
-    varProc_ = new CTkCheckButtonVarProc(tk_, this);
+    varProc_ = new CTkAppCheckButtonVarProc(tk_, this);
 
     tk_->traceVar(varName_, varProc_);
   }
@@ -1260,6 +1704,9 @@ execConfig(const std::string &name, const std::string &value)
 
     if (CStrUtil::toBool(value, &b))
       setChecked(b);
+  }
+  else if (name == "-command") {
+    setCommand(value);
   }
   else if (name == "-tristatevalue") {
     tk_->TODO(name);
@@ -1270,11 +1717,14 @@ execConfig(const std::string &name, const std::string &value)
   else if (name == "-offvalue") {
     tk_->TODO(name);
   }
-  else if (name == "-relief") {
-    setFrameRelief(qcheck_, value);
-  }
   else if (name == "-anchor") {
     setWidgetAnchor(this, value);
+  }
+  else if (name == "-wraplength") {
+    tk_->TODO(name);
+  }
+  else if (name == "-underline") {
+    tk_->TODO(name);
   }
   else
     return CTkAppWidget::execConfig(name, value);
@@ -1283,7 +1733,7 @@ execConfig(const std::string &name, const std::string &value)
 }
 
 bool
-CTkCheckButton::
+CTkAppCheckButton::
 execOp(const Args &args)
 {
   uint numArgs = args.size();
@@ -1312,14 +1762,14 @@ execOp(const Args &args)
 }
 
 void
-CTkCheckButton::
+CTkAppCheckButton::
 setText(const std::string &text)
 {
   qcheck_->setText(QString::fromStdString(text));
 }
 
 void
-CTkCheckButton::
+CTkAppCheckButton::
 updateVariable()
 {
   if (varName_ != "" && tk_->hasVar(varName_))
@@ -1327,7 +1777,7 @@ updateVariable()
 }
 
 void
-CTkCheckButton::
+CTkAppCheckButton::
 setChecked(bool b)
 {
   if (b != qcheck_->isChecked()) {
@@ -1340,7 +1790,7 @@ setChecked(bool b)
 }
 
 void
-CTkCheckButton::
+CTkAppCheckButton::
 stateChangedSlot(int)
 {
   if (varName_ != "") {
@@ -1357,9 +1807,9 @@ stateChangedSlot(int)
 
 //----------
 
-class CTkEntryVarProc : public CTclTraceProc {
+class CTkAppEntryVarProc : public CTclTraceProc {
  public:
-  CTkEntryVarProc(CTkApp *tk, CTkEntry *entry) :
+  CTkAppEntryVarProc(CTkApp *tk, CTkAppEntry *entry) :
    CTclTraceProc(tk), entry_(entry) {
   }
 
@@ -1368,12 +1818,12 @@ class CTkEntryVarProc : public CTclTraceProc {
   }
 
  private:
-  CTkEntry *entry_ { nullptr };
+  CTkAppEntry *entry_ { nullptr };
 };
 
-class CTkEntryValidator : public QValidator {
+class CTkAppEntryValidator : public QValidator {
  public:
-  CTkEntryValidator(CTkApp *tk, CTkEntry *entry) :
+  CTkAppEntryValidator(CTkApp *tk, CTkAppEntry *entry) :
    QValidator(entry), tk_(tk), entry_(entry) {
   }
 
@@ -1385,12 +1835,12 @@ class CTkEntryValidator : public QValidator {
   }
 
  private:
-  CTkApp*   tk_    { nullptr };
-  CTkEntry* entry_ { nullptr };
+  CTkApp*      tk_    { nullptr };
+  CTkAppEntry* entry_ { nullptr };
 };
 
-CTkEntry::
-CTkEntry(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
+CTkAppEntry::
+CTkAppEntry(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
   if (parent)
@@ -1406,7 +1856,7 @@ CTkEntry(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
 }
 
 void
-CTkEntry::
+CTkAppEntry::
 connectSlots(bool b)
 {
   if (b)
@@ -1416,7 +1866,7 @@ connectSlots(bool b)
 }
 
 bool
-CTkEntry::
+CTkAppEntry::
 execConfig(const std::string &name, const std::string &value)
 {
   if      (name == "-textvariable") {
@@ -1428,20 +1878,9 @@ execConfig(const std::string &name, const std::string &value)
     if (tk_->hasVar(varName_))
       setText(tk_->getStringVar(varName_));
 
-    varProc_ = new CTkEntryVarProc(tk_, this);
+    varProc_ = new CTkAppEntryVarProc(tk_, this);
 
     tk_->traceVar(varName_, varProc_);
-  }
-  else if (name == "-borderwidth" || name == "-bd") {
-    int w;
-
-    if (! tk_->getOptionInt(name, value, w))
-      return false;
-
-    setBorderWidth(qedit_, w);
-  }
-  else if (name == "-relief") {
-    setFrameRelief(qedit_, value);
   }
   else if (name == "-show") {
     qedit_->setEchoMode(QLineEdit::Password);
@@ -1460,19 +1899,13 @@ execConfig(const std::string &name, const std::string &value)
     else return tk_->throwError("Invalid validate mode '" + value + "'");
 
     if (! validateProc_) {
-      validateProc_ = new CTkEntryValidator(tk_, this);
+      validateProc_ = new CTkAppEntryValidator(tk_, this);
 
       qedit_->setValidator(validateProc_);
     }
   }
   else if (name == "-validatecommand") {
     validateCmd_ = value;
-  }
-  else if (name == "-takefocus") {
-    tk_->TODO(name);
-  }
-  else if (name == "-highlightthickness") {
-    tk_->TODO(name);
   }
   else
     return CTkAppWidget::execConfig(name, value);
@@ -1481,7 +1914,7 @@ execConfig(const std::string &name, const std::string &value)
 }
 
 bool
-CTkEntry::
+CTkAppEntry::
 execOp(const Args &args)
 {
   uint numArgs = args.size();
@@ -1497,6 +1930,9 @@ execOp(const Args &args)
   else if (arg == "insert") {
     tk_->TODO(arg);
   }
+  else if (arg == "get") {
+    tk_->TODO(arg);
+  }
   else
     return CTkAppWidget::execOp(args);
 
@@ -1504,14 +1940,14 @@ execOp(const Args &args)
 }
 
 void
-CTkEntry::
+CTkAppEntry::
 setText(const std::string &text)
 {
   qedit_->setText(QString::fromStdString(text));
 }
 
 void
-CTkEntry::
+CTkAppEntry::
 updateVariable()
 {
   if (varName_ != "" && tk_->hasVar(varName_))
@@ -1519,7 +1955,7 @@ updateVariable()
 }
 
 void
-CTkEntry::
+CTkAppEntry::
 valueChangedSlot()
 {
   if (varName_ != "") {
@@ -1531,7 +1967,7 @@ valueChangedSlot()
 }
 
 bool
-CTkEntry::
+CTkAppEntry::
 validate(const std::string &s) const
 {
   if (validateCmd_ != "") {
@@ -1571,8 +2007,8 @@ validate(const std::string &s) const
 
 //----------
 
-CTkFrame::
-CTkFrame(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
+CTkAppFrame::
+CTkAppFrame(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
   if (parent)
@@ -1584,24 +2020,10 @@ CTkFrame(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
 }
 
 bool
-CTkFrame::
+CTkAppFrame::
 execConfig(const std::string &name, const std::string &value)
 {
-  if      (name == "-relief") {
-    setFrameRelief(qframe_, value);
-  }
-  else if (name == "-borderwidth" || name == "-bd") {
-    int w;
-
-    if (! tk_->getOptionInt(name, value, w))
-      return false;
-
-    setBorderWidth(qframe_, w);
-  }
-  else if (name == "-class") {
-    tk_->TODO(name);
-  }
-  else if (name == "-takefocus") {
+  if      (name == "-class") {
     tk_->TODO(name);
   }
   else
@@ -1611,7 +2033,7 @@ execConfig(const std::string &name, const std::string &value)
 }
 
 bool
-CTkFrame::
+CTkAppFrame::
 execOp(const Args &args)
 {
   return CTkAppWidget::execOp(args);
@@ -1619,9 +2041,9 @@ execOp(const Args &args)
 
 //----------
 
-class CTkLabelVarProc : public CTclTraceProc {
+class CTkAppLabelVarProc : public CTclTraceProc {
  public:
-  CTkLabelVarProc(CTkApp *tk, CTkLabel *label) :
+  CTkAppLabelVarProc(CTkApp *tk, CTkAppLabel *label) :
    CTclTraceProc(tk), label_(label) {
   }
 
@@ -1630,11 +2052,11 @@ class CTkLabelVarProc : public CTclTraceProc {
   }
 
  private:
-  CTkLabel *label_ { nullptr };
+  CTkAppLabel *label_ { nullptr };
 };
 
-CTkLabel::
-CTkLabel(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
+CTkAppLabel::
+CTkAppLabel(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
   if (parent)
@@ -1646,13 +2068,13 @@ CTkLabel(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
 }
 
 bool
-CTkLabel::
+CTkAppLabel::
 execConfig(const std::string &name, const std::string &value)
 {
   if      (name == "-text")
     setText(value);
   else if (name == "-bitmap") {
-    auto image = tk_->loadImage(value);
+    auto image = tk_->getBitmap(value);
 
     if (! image)
       return tk_->throwError("Failed to load bitmap '" + value + "'");
@@ -1676,7 +2098,7 @@ execConfig(const std::string &name, const std::string &value)
     if (tk_->hasVar(varName_))
       setText(tk_->getStringVar(varName_));
 
-    varProc_ = new CTkLabelVarProc(tk_, this);
+    varProc_ = new CTkAppLabelVarProc(tk_, this);
 
     tk_->traceVar(varName_, varProc_);
   }
@@ -1693,20 +2115,14 @@ execConfig(const std::string &name, const std::string &value)
 
     qlabel_->setType(type);
   }
-  else if (name == "-borderwidth") {
-    tk_->TODO(name);
-  }
-  else if (name == "-relief") {
-    tk_->TODO(name);
-  }
-  else if (name == "-highlightthickness") {
-    tk_->TODO(name);
-  }
-  else if (name == "-takefocus") {
-    tk_->TODO(name);
-  }
   else if (name == "-anchor") {
     setWidgetAnchor(this, value);
+  }
+  else if (name == "-wraplength") {
+    tk_->TODO(name);
+  }
+  else if (name == "-underline") {
+    tk_->TODO(name);
   }
   else
     return CTkAppWidget::execConfig(name, value);
@@ -1715,24 +2131,27 @@ execConfig(const std::string &name, const std::string &value)
 }
 
 bool
-CTkLabel::
+CTkAppLabel::
 execOp(const Args &args)
 {
   return CTkAppWidget::execOp(args);
 }
 
 void
-CTkLabel::
+CTkAppLabel::
 setText(const std::string &text)
 {
   qlabel_->setLabel(QString::fromStdString(text));
 }
 
 void
-CTkLabel::
+CTkAppLabel::
 setImage(CImagePtr image)
 {
-  auto &qimage = image.cast<CQImage>()->getQImage();
+  auto *cqimage = image.cast<CQImage>();
+  if (! cqimage) return;
+
+  auto &qimage = cqimage->getQImage();
 
   //QPixmap pixmap;
   //pixmap.convertFromImage(qimage);
@@ -1742,7 +2161,7 @@ setImage(CImagePtr image)
 }
 
 void
-CTkLabel::
+CTkAppLabel::
 updateVariable()
 {
   if (varName_ != "" && tk_->hasVar(varName_))
@@ -1751,8 +2170,8 @@ updateVariable()
 
 //----------
 
-CTkLabelFrame::
-CTkLabelFrame(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
+CTkAppLabelFrame::
+CTkAppLabelFrame(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
   if (parent)
@@ -1764,7 +2183,7 @@ CTkLabelFrame(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
 }
 
 bool
-CTkLabelFrame::
+CTkAppLabelFrame::
 execConfig(const std::string &name, const std::string &value)
 {
   if      (name == "-text") {
@@ -1793,14 +2212,14 @@ execConfig(const std::string &name, const std::string &value)
 }
 
 bool
-CTkLabelFrame::
+CTkAppLabelFrame::
 execOp(const Args &args)
 {
   return CTkAppWidget::execOp(args);
 }
 
 void
-CTkLabelFrame::
+CTkAppLabelFrame::
 setText(const std::string &text)
 {
   qframe_->setTitle(QString::fromStdString(text));
@@ -1808,9 +2227,9 @@ setText(const std::string &text)
 
 //----------
 
-class CTkListBoxVarProc : public CTclTraceProc {
+class CTkAppListBoxVarProc : public CTclTraceProc {
  public:
-  CTkListBoxVarProc(CTkApp *tk, CTkListBox *listBox) :
+  CTkAppListBoxVarProc(CTkApp *tk, CTkAppListBox *listBox) :
    CTclTraceProc(tk), listBox_(listBox) {
   }
 
@@ -1819,11 +2238,11 @@ class CTkListBoxVarProc : public CTclTraceProc {
   }
 
  private:
-  CTkListBox *listBox_ { nullptr };
+  CTkAppListBox *listBox_ { nullptr };
 };
 
-CTkListBox::
-CTkListBox(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
+CTkAppListBox::
+CTkAppListBox(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
   if (parent)
@@ -1840,7 +2259,7 @@ CTkListBox(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
 }
 
 void
-CTkListBox::
+CTkAppListBox::
 connectSlots(bool b)
 {
   if (b) {
@@ -1858,7 +2277,7 @@ connectSlots(bool b)
 }
 
 bool
-CTkListBox::
+CTkAppListBox::
 execConfig(const std::string &name, const std::string &value)
 {
   if      (name == "-listvariable") {
@@ -1866,26 +2285,9 @@ execConfig(const std::string &name, const std::string &value)
 
     updateVariable();
 
-    varProc_ = new CTkListBoxVarProc(tk_, this);
+    varProc_ = new CTkAppListBoxVarProc(tk_, this);
 
     tk_->traceVar(varName_, varProc_);
-  }
-  else if (name == "-relief") {
-    setFrameRelief(qlist_, value);
-  }
-  else if (name == "-borderwidth" || name == "-bd") {
-    int w;
-
-    if (! tk_->getOptionInt(name, value, w))
-      return false;
-
-    setBorderWidth(qlist_, w);
-  }
-  else if (name == "-xscrollcommand") {
-    xScrollCommand_ = value;
-  }
-  else if (name == "-yscrollcommand") {
-    yScrollCommand_ = value;
   }
   else if (name == "-selectmode") {
     tk_->TODO(name);
@@ -1903,7 +2305,7 @@ execConfig(const std::string &name, const std::string &value)
 }
 
 bool
-CTkListBox::
+CTkAppListBox::
 execOp(const Args &args)
 {
   uint numArgs = args.size();
@@ -1913,7 +2315,43 @@ execOp(const Args &args)
 
   const auto &arg = args[0];
 
-  if      (arg == "xview") {
+  if      (arg == "curselection") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "delete") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "get") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "index") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "insert") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "itemcget") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "itemconfigure") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "nearest") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "scan") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "see") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "selection") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "size") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "xview") {
     int step  = qlist_->horizontalScrollBar()->pageStep();
     int min   = qlist_->horizontalScrollBar()->minimum();
     int max   = qlist_->horizontalScrollBar()->maximum() - step;
@@ -1962,7 +2400,7 @@ execOp(const Args &args)
       else {
         double x;
 
-        if (! stringToReal(opt, x))
+        if (! CTkAppUtil::stringToReal(opt, x))
           return tk_->throwError("Invalid xview value '" + opt + "'");
 
         qlist_->horizontalScrollBar()->setValue(min + (max - min)*x);
@@ -2018,7 +2456,7 @@ execOp(const Args &args)
       else {
         double y;
 
-        if (! stringToReal(opt, y))
+        if (! CTkAppUtil::stringToReal(opt, y))
           return tk_->throwError("Invalid yview value '" + opt + "'");
 
         qlist_->verticalScrollBar()->setValue(min + (max - min)*y);
@@ -2032,7 +2470,7 @@ execOp(const Args &args)
 }
 
 void
-CTkListBox::
+CTkAppListBox::
 updateVariable()
 {
   if (varName_ != "" && tk_->hasVar(varName_)) {
@@ -2049,7 +2487,7 @@ updateVariable()
 }
 
 void
-CTkListBox::
+CTkAppListBox::
 vscrollSlot(int value)
 {
   if (yScrollCommand_ != "") {
@@ -2067,7 +2505,7 @@ vscrollSlot(int value)
 }
 
 void
-CTkListBox::
+CTkAppListBox::
 hscrollSlot(int value)
 {
   if (xScrollCommand_ != "") {
@@ -2086,8 +2524,8 @@ hscrollSlot(int value)
 
 //----------
 
-CTkMenu::
-CTkMenu(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
+CTkAppMenu::
+CTkAppMenu(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
   if (parent)
@@ -2097,14 +2535,14 @@ CTkMenu(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
 
   setQWidget(qmenu_);
 
-  auto *menuButton = dynamic_cast<CTkMenuButton *>(parent);
+  auto *menuButton = dynamic_cast<CTkAppMenuButton *>(parent);
 
   if (menuButton)
     menuButton->updateMenu();
 }
 
 bool
-CTkMenu::
+CTkAppMenu::
 execConfig(const std::string &name, const std::string &value)
 {
   if (name == "-tearoff") {
@@ -2117,7 +2555,7 @@ execConfig(const std::string &name, const std::string &value)
 }
 
 bool
-CTkMenu::
+CTkAppMenu::
 execOp(const Args &args)
 {
   uint numArgs = args.size();
@@ -2134,7 +2572,7 @@ execOp(const Args &args)
     const auto &type = args[1];
 
     if      (type == "cascade") {
-      auto *menu = new CTkSubMenu(tk_);
+      auto *menu = new CTkAppSubMenu(tk_);
 
       for (uint i = 2; i < numArgs - 1; i += 2) {
         const auto &name  = args[i    ];
@@ -2156,7 +2594,7 @@ execOp(const Args &args)
       qmenu_->addMenu(menu);
     }
     else if (type == "check" || type == "checkbutton") {
-      auto *check = new CTkCheckAction(tk_);
+      auto *check = new CTkAppCheckAction(tk_);
 
       for (uint i = 2; i < numArgs - 1; i += 2) {
         const auto &name  = args[i    ];
@@ -2215,7 +2653,7 @@ execOp(const Args &args)
       qmenu_->addAction(action);
     }
     else if (type == "radio" || type == "radiobutton") {
-      auto *radio = new CTkRadioAction(tk_);
+      auto *radio = new CTkAppRadioAction(tk_);
 
       for (uint i = 2; i < numArgs - 1; i += 2) {
         const auto &name  = args[i    ];
@@ -2254,7 +2692,7 @@ execOp(const Args &args)
 }
 
 void
-CTkMenu::
+CTkAppMenu::
 actionPressedSlot()
 {
   auto *action = qobject_cast<QAction *>(sender());
@@ -2267,20 +2705,20 @@ actionPressedSlot()
 }
 
 void
-CTkMenu::
+CTkAppMenu::
 checkChangedSlot(int)
 {
-  auto *action = qobject_cast<CTkCheckAction *>(sender());
+  auto *action = qobject_cast<CTkAppCheckAction *>(sender());
   if (! action) return;
 
   action->updateVariable();
 }
 
 void
-CTkMenu::
+CTkAppMenu::
 radioToggledSlot(bool b)
 {
-  auto *action = qobject_cast<CTkRadioAction *>(sender());
+  auto *action = qobject_cast<CTkAppRadioAction *>(sender());
   if (! action) return;
 
   if (b)
@@ -2290,7 +2728,7 @@ radioToggledSlot(bool b)
 //---
 
 void
-CTkCheckAction::
+CTkAppCheckAction::
 updateVariable()
 {
   if (varName_ != "")
@@ -2298,7 +2736,7 @@ updateVariable()
 }
 
 void
-CTkRadioAction::
+CTkAppRadioAction::
 updateVariable()
 {
   if (varName_ != "") {
@@ -2311,9 +2749,9 @@ updateVariable()
 
 //----------
 
-class CTkMenuButtonVarProc : public CTclTraceProc {
+class CTkAppMenuButtonVarProc : public CTclTraceProc {
  public:
-  CTkMenuButtonVarProc(CTkApp *tk, CTkMenuButton *menuButton) :
+  CTkAppMenuButtonVarProc(CTkApp *tk, CTkAppMenuButton *menuButton) :
    CTclTraceProc(tk), menuButton_(menuButton) {
   }
 
@@ -2322,11 +2760,11 @@ class CTkMenuButtonVarProc : public CTclTraceProc {
   }
 
  private:
-  CTkMenuButton *menuButton_ { nullptr };
+  CTkAppMenuButton *menuButton_ { nullptr };
 };
 
-CTkMenuButton::
-CTkMenuButton(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
+CTkAppMenuButton::
+CTkAppMenuButton(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
   if (parent)
@@ -2342,7 +2780,7 @@ CTkMenuButton(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
 }
 
 void
-CTkMenuButton::
+CTkAppMenuButton::
 connectSlots(bool b)
 {
   if (b)
@@ -2352,13 +2790,15 @@ connectSlots(bool b)
 }
 
 bool
-CTkMenuButton::
+CTkAppMenuButton::
 execConfig(const std::string &name, const std::string &value)
 {
-  if      (name == "-text")
+  if      (name == "-text") {
     setText(value);
-  else if (name == "-command")
+  }
+  else if (name == "-command") {
     setCommand(value);
+  }
   else if (name == "-textvariable") {
     varName_ = value;
 
@@ -2368,7 +2808,7 @@ execConfig(const std::string &name, const std::string &value)
     if (tk_->hasVar(varName_))
       setText(tk_->getStringVar(varName_));
 
-    varProc_ = new CTkMenuButtonVarProc(tk_, this);
+    varProc_ = new CTkAppMenuButtonVarProc(tk_, this);
 
     tk_->traceVar(varName_, varProc_);
   }
@@ -2390,6 +2830,9 @@ execConfig(const std::string &name, const std::string &value)
   else if (name == "-underline") {
     tk_->TODO(name);
   }
+  else if (name == "-indicatoron") {
+    tk_->TODO(name);
+  }
   else
     return CTkAppWidget::execConfig(name, value);
 
@@ -2397,7 +2840,7 @@ execConfig(const std::string &name, const std::string &value)
 }
 
 bool
-CTkMenuButton::
+CTkAppMenuButton::
 execOp(const Args &args)
 {
   uint numArgs = args.size();
@@ -2416,17 +2859,20 @@ execOp(const Args &args)
 }
 
 void
-CTkMenuButton::
+CTkAppMenuButton::
 setText(const std::string &text)
 {
   qbutton_->setText(QString::fromStdString(text));
 }
 
 void
-CTkMenuButton::
+CTkAppMenuButton::
 setImage(CImagePtr image)
 {
-  auto &qimage = image.cast<CQImage>()->getQImage();
+  auto *cqimage = image.cast<CQImage>();
+  if (! cqimage) return;
+
+  auto &qimage = cqimage->getQImage();
 
   QPixmap pixmap;
 
@@ -2436,7 +2882,7 @@ setImage(CImagePtr image)
 }
 
 void
-CTkMenuButton::
+CTkAppMenuButton::
 updateVariable()
 {
   if (varName_ != "" && tk_->hasVar(varName_))
@@ -2444,14 +2890,14 @@ updateVariable()
 }
 
 void
-CTkMenuButton::
+CTkAppMenuButton::
 updateMenu()
 {
   if (menuName_ != "") {
     auto *w = tk_->lookupWidgetByName(menuName_, /*quiet*/true);
     if (! w) return; // not defined yet
 
-    auto *menu = dynamic_cast<CTkMenu *>(w);
+    auto *menu = dynamic_cast<CTkAppMenu *>(w);
     if (! menu) { std::cerr << "No menu '" << menuName_ << "'\n"; return; }
 
     setMenu(menu);
@@ -2459,8 +2905,8 @@ updateMenu()
 }
 
 void
-CTkMenuButton::
-setMenu(CTkMenu *menu)
+CTkAppMenuButton::
+setMenu(CTkAppMenu *menu)
 {
   qbutton_->setPopupMode(QToolButton::InstantPopup);
 
@@ -2468,7 +2914,7 @@ setMenu(CTkMenu *menu)
 }
 
 void
-CTkMenuButton::
+CTkAppMenuButton::
 clickSlot()
 {
   runCommand();
@@ -2476,9 +2922,9 @@ clickSlot()
 
 //----------
 
-class CTkMessageVarProc : public CTclTraceProc {
+class CTkAppMessageVarProc : public CTclTraceProc {
  public:
-  CTkMessageVarProc(CTkApp *tk, CTkMessage *message) :
+  CTkAppMessageVarProc(CTkApp *tk, CTkAppMessage *message) :
    CTclTraceProc(tk), message_(message) {
   }
 
@@ -2487,11 +2933,11 @@ class CTkMessageVarProc : public CTclTraceProc {
   }
 
  private:
-  CTkMessage *message_ { nullptr };
+  CTkAppMessage *message_ { nullptr };
 };
 
-CTkMessage::
-CTkMessage(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
+CTkAppMessage::
+CTkAppMessage(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
   if (parent)
@@ -2505,7 +2951,7 @@ CTkMessage(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
 }
 
 bool
-CTkMessage::
+CTkAppMessage::
 execConfig(const std::string &name, const std::string &value)
 {
   if      (name == "-text")
@@ -2519,20 +2965,9 @@ execConfig(const std::string &name, const std::string &value)
     if (tk_->hasVar(varName_))
       setText(tk_->getStringVar(varName_));
 
-    varProc_ = new CTkMessageVarProc(tk_, this);
+    varProc_ = new CTkAppMessageVarProc(tk_, this);
 
     tk_->traceVar(varName_, varProc_);
-  }
-  else if (name == "-relief") {
-    setFrameRelief(qedit_, value);
-  }
-  else if (name == "-borderwidth" || name == "-bd") {
-    int w;
-
-    if (! tk_->getOptionInt(name, value, w))
-      return false;
-
-    setBorderWidth(qedit_, w);
   }
   else if (name == "-padx") {
     int padx;
@@ -2563,21 +2998,21 @@ execConfig(const std::string &name, const std::string &value)
 }
 
 bool
-CTkMessage::
+CTkAppMessage::
 execOp(const Args &args)
 {
   return CTkAppWidget::execOp(args);
 }
 
 void
-CTkMessage::
+CTkAppMessage::
 setText(const std::string &text)
 {
   qedit_->setText(QString::fromStdString(text));
 }
 
 void
-CTkMessage::
+CTkAppMessage::
 updateVariable()
 {
   if (varName_ != "" && tk_->hasVar(varName_))
@@ -2586,8 +3021,8 @@ updateVariable()
 
 //----------
 
-CTkPanedWindow::
-CTkPanedWindow(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
+CTkAppPanedWindow::
+CTkAppPanedWindow(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
   if (parent)
@@ -2601,13 +3036,13 @@ CTkPanedWindow(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
 }
 
 bool
-CTkPanedWindow::
+CTkAppPanedWindow::
 execConfig(const std::string &name, const std::string &value)
 {
   if      (name == "-orient") {
     Qt::Orientation orient;
 
-    if (! stringToOrient(value, orient))
+    if (! CTkAppUtil::stringToOrient(value, orient))
       return false;
 
     qpane_->setOrientation(orient);
@@ -2638,7 +3073,7 @@ execConfig(const std::string &name, const std::string &value)
 }
 
 bool
-CTkPanedWindow::
+CTkAppPanedWindow::
 execOp(const Args &args)
 {
   uint numArgs = args.size();
@@ -2760,9 +3195,9 @@ execOp(const Args &args)
 
 //----------
 
-class CTkRadioButtonVarProc : public CTclTraceProc {
+class CTkAppRadioButtonVarProc : public CTclTraceProc {
  public:
-  CTkRadioButtonVarProc(CTkApp *tk, CTkRadioButton *radio) :
+  CTkAppRadioButtonVarProc(CTkApp *tk, CTkAppRadioButton *radio) :
    CTclTraceProc(tk), radio_(radio) {
   }
 
@@ -2771,11 +3206,11 @@ class CTkRadioButtonVarProc : public CTclTraceProc {
   }
 
  private:
-  CTkRadioButton *radio_ { nullptr };
+  CTkAppRadioButton *radio_ { nullptr };
 };
 
-CTkRadioButton::
-CTkRadioButton(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
+CTkAppRadioButton::
+CTkAppRadioButton(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
   if (parent)
@@ -2789,7 +3224,7 @@ CTkRadioButton(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
 }
 
 void
-CTkRadioButton::
+CTkAppRadioButton::
 connectSlots(bool b)
 {
   if (b)
@@ -2799,7 +3234,7 @@ connectSlots(bool b)
 }
 
 bool
-CTkRadioButton::
+CTkAppRadioButton::
 execConfig(const std::string &name, const std::string &value)
 {
   if      (name == "-text")
@@ -2812,7 +3247,7 @@ execConfig(const std::string &name, const std::string &value)
 
     updateVariable();
 
-    varProc_ = new CTkRadioButtonVarProc(tk_, this);
+    varProc_ = new CTkAppRadioButtonVarProc(tk_, this);
 
     tk_->traceVar(varName_, varProc_);
   }
@@ -2821,14 +3256,20 @@ execConfig(const std::string &name, const std::string &value)
 
     updateVariable();
   }
+  else if (name == "-command") {
+    setCommand(value);
+  }
   else if (name == "-tristatevalue") {
     tk_->TODO(name);
   }
   else if (name == "-anchor") {
     setWidgetAnchor(this, value);
   }
-  else if (name == "-relief") {
-    setFrameRelief(qradio_, value);
+  else if (name == "-wraplength") {
+    tk_->TODO(name);
+  }
+  else if (name == "-underline") {
+    tk_->TODO(name);
   }
   else
     return CTkAppWidget::execConfig(name, value);
@@ -2837,7 +3278,7 @@ execConfig(const std::string &name, const std::string &value)
 }
 
 bool
-CTkRadioButton::
+CTkAppRadioButton::
 execOp(const Args &args)
 {
   uint numArgs = args.size();
@@ -2866,14 +3307,14 @@ execOp(const Args &args)
 }
 
 void
-CTkRadioButton::
+CTkAppRadioButton::
 setText(const std::string &text)
 {
   qradio_->setText(QString::fromStdString(text));
 }
 
 void
-CTkRadioButton::
+CTkAppRadioButton::
 updateVariable()
 {
   if (varName_ != "" && tk_->hasVar(varName_))
@@ -2881,7 +3322,7 @@ updateVariable()
 }
 
 void
-CTkRadioButton::
+CTkAppRadioButton::
 setValue(const std::string &value)
 {
   bool checked = qradio_->isChecked();
@@ -2899,7 +3340,7 @@ setValue(const std::string &value)
 }
 
 void
-CTkRadioButton::
+CTkAppRadioButton::
 setChecked(bool b)
 {
   if (b != qradio_->isChecked()) {
@@ -2912,7 +3353,7 @@ setChecked(bool b)
 }
 
 void
-CTkRadioButton::
+CTkAppRadioButton::
 toggleSlot(bool)
 {
   if (varName_ != "") {
@@ -2931,9 +3372,9 @@ toggleSlot(bool)
 
 //----------
 
-class CTkScaleVarProc : public CTclTraceProc {
+class CTkAppScaleVarProc : public CTclTraceProc {
  public:
-  CTkScaleVarProc(CTkApp *tk, CTkScale *scale) :
+  CTkAppScaleVarProc(CTkApp *tk, CTkAppScale *scale) :
    CTclTraceProc(tk), scale_(scale) {
   }
 
@@ -2942,11 +3383,11 @@ class CTkScaleVarProc : public CTclTraceProc {
   }
 
  private:
-  CTkScale *scale_ { nullptr };
+  CTkAppScale *scale_ { nullptr };
 };
 
-CTkScale::
-CTkScale(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
+CTkAppScale::
+CTkAppScale(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
   if (parent)
@@ -2962,7 +3403,7 @@ CTkScale(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
 }
 
 void
-CTkScale::
+CTkAppScale::
 connectSlots(bool b)
 {
   if (b)
@@ -2972,7 +3413,7 @@ connectSlots(bool b)
 }
 
 bool
-CTkScale::
+CTkAppScale::
 execConfig(const std::string &name, const std::string &value)
 {
   // widget specific options
@@ -3004,7 +3445,7 @@ execConfig(const std::string &name, const std::string &value)
   else if (name == "-length") {
     int l;
 
-    if (! stringToDistanceI(value, l))
+    if (! CTkAppUtil::stringToDistanceI(value, l))
       return tk_->throwError("Invalid length \"" + value + "\"");
 
     length_ = l;
@@ -3014,7 +3455,7 @@ execConfig(const std::string &name, const std::string &value)
   else if (name == "-orient") {
     Qt::Orientation orient;
 
-    if (! stringToOrient(value, orient))
+    if (! CTkAppUtil::stringToOrient(value, orient))
       return false;
 
     qscale_->setOrientation(orient);
@@ -3079,14 +3520,14 @@ execConfig(const std::string &name, const std::string &value)
 
     updateVariable();
 
-    varProc_ = new CTkScaleVarProc(tk_, this);
+    varProc_ = new CTkAppScaleVarProc(tk_, this);
 
     tk_->traceVar(varName_, varProc_);
   }
   else if (name == "-width") {
     int w;
 
-    if (! stringToDistanceI(value, w))
+    if (! CTkAppUtil::stringToDistanceI(value, w))
       return tk_->throwError("Invalid width \"" + value + "\"");
 
     width_ = w;
@@ -3100,7 +3541,7 @@ execConfig(const std::string &name, const std::string &value)
 }
 
 bool
-CTkScale::
+CTkAppScale::
 execOp(const Args &args)
 {
   uint numArgs = args.size();
@@ -3120,7 +3561,7 @@ execOp(const Args &args)
 }
 
 void
-CTkScale::
+CTkAppScale::
 updateVariable()
 {
   if (varName_ != "" && tk_->hasVar(varName_))
@@ -3128,7 +3569,7 @@ updateVariable()
 }
 
 void
-CTkScale::
+CTkAppScale::
 updateSize()
 {
   if (qscale_->orientation() == Qt::Horizontal) {
@@ -3140,7 +3581,7 @@ updateSize()
 }
 
 void
-CTkScale::
+CTkAppScale::
 valueSlot(int value)
 {
   if (varName_ != "" && tk_->hasVar(varName_)) {
@@ -3160,8 +3601,8 @@ valueSlot(int value)
 
 //----------
 
-CTkScrollBar::
-CTkScrollBar(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
+CTkAppScrollBar::
+CTkAppScrollBar(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
   if (parent)
@@ -3177,7 +3618,7 @@ CTkScrollBar(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
 }
 
 void
-CTkScrollBar::
+CTkAppScrollBar::
 connectSlots(bool b)
 {
   if (b)
@@ -3187,22 +3628,19 @@ connectSlots(bool b)
 }
 
 bool
-CTkScrollBar::
+CTkAppScrollBar::
 execConfig(const std::string &name, const std::string &value)
 {
   if      (name == "-orient") {
     Qt::Orientation orient;
 
-    if (! stringToOrient(value, orient))
+    if (! CTkAppUtil::stringToOrient(value, orient))
       return false;
 
     qscrollbar_->setOrientation(orient);
   }
   else if (name == "-command") {
     setCommand(value);
-  }
-  else if (name == "-highlightthickness") {
-    tk_->TODO(name);
   }
   else
     return CTkAppWidget::execConfig(name, value);
@@ -3211,7 +3649,7 @@ execConfig(const std::string &name, const std::string &value)
 }
 
 bool
-CTkScrollBar::
+CTkAppScrollBar::
 execOp(const Args &args)
 {
   uint numArgs = args.size();
@@ -3228,7 +3666,7 @@ execOp(const Args &args)
 
     double pos1, pos2;
 
-    if (stringToReal(args[1], pos1) && stringToReal(args[2], pos2)) {
+    if (CTkAppUtil::stringToReal(args[1], pos1) && CTkAppUtil::stringToReal(args[2], pos2)) {
       connectSlots(false);
 
       qscrollbar_->setPageStep(int((pos2 - pos1)*1000));
@@ -3246,7 +3684,7 @@ execOp(const Args &args)
 }
 
 void
-CTkScrollBar::
+CTkAppScrollBar::
 scrollSlot(int i)
 {
   Args args;
@@ -3258,9 +3696,9 @@ scrollSlot(int i)
 
 //----------
 
-class CTkSpinBoxVarProc : public CTclTraceProc {
+class CTkAppSpinBoxVarProc : public CTclTraceProc {
  public:
-  CTkSpinBoxVarProc(CTkApp *tk, CTkSpinBox *spin) :
+  CTkAppSpinBoxVarProc(CTkApp *tk, CTkAppSpinBox *spin) :
    CTclTraceProc(tk), spin_(spin) {
   }
 
@@ -3269,11 +3707,11 @@ class CTkSpinBoxVarProc : public CTclTraceProc {
   }
 
  private:
-  CTkSpinBox *spin_ { nullptr };
+  CTkAppSpinBox *spin_ { nullptr };
 };
 
-CTkSpinBox::
-CTkSpinBox(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
+CTkAppSpinBox::
+CTkAppSpinBox(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
   if (parent)
@@ -3287,7 +3725,7 @@ CTkSpinBox(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
 }
 
 bool
-CTkSpinBox::
+CTkAppSpinBox::
 execConfig(const std::string &name, const std::string &value)
 {
   if      (name == "-textvariable") {
@@ -3299,23 +3737,12 @@ execConfig(const std::string &name, const std::string &value)
     if (tk_->hasVar(varName_))
       setValue(tk_->getStringVar(varName_));
 
-    varProc_ = new CTkSpinBoxVarProc(tk_, this);
+    varProc_ = new CTkAppSpinBoxVarProc(tk_, this);
 
     tk_->traceVar(varName_, varProc_);
   }
   else if (name == "-width") {
     tk_->TODO(name);
-  }
-  else if (name == "-borderwidth" || name == "-bd") {
-    int w;
-
-    if (! tk_->getOptionInt(name, value, w))
-      return false;
-
-    setBorderWidth(qspin_, w);
-  }
-  else if (name == "-relief") {
-    setFrameRelief(qspin_, value);
   }
   else if (name == "-from") {
     int from;
@@ -3367,7 +3794,7 @@ execConfig(const std::string &name, const std::string &value)
 }
 
 bool
-CTkSpinBox::
+CTkAppSpinBox::
 execOp(const Args &args)
 {
   uint numArgs = args.size();
@@ -3390,13 +3817,13 @@ execOp(const Args &args)
 }
 
 void
-CTkSpinBox::
+CTkAppSpinBox::
 setValue(const std::string &)
 {
 }
 
 void
-CTkSpinBox::
+CTkAppSpinBox::
 updateVariable()
 {
   if (varName_ != "" && tk_->hasVar(varName_))
@@ -3405,8 +3832,8 @@ updateVariable()
 
 //----------
 
-CTkText::
-CTkText(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
+CTkAppText::
+CTkAppText(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
   if (parent)
@@ -3425,7 +3852,7 @@ CTkText(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
 }
 
 void
-CTkText::
+CTkAppText::
 connectSlots(bool b)
 {
   if (b) {
@@ -3443,7 +3870,7 @@ connectSlots(bool b)
 }
 
 bool
-CTkText::
+CTkAppText::
 execConfig(const std::string &name, const std::string &value)
 {
   if      (name == "-text") {
@@ -3455,22 +3882,13 @@ execConfig(const std::string &name, const std::string &value)
   else if (name == "-command") {
     setCommand(value);
   }
-  else if (name == "-xscrollcommand") {
-    xScrollCommand_ = value;
-  }
-  else if (name == "-yscrollcommand") {
-    yScrollCommand_ = value;
-  }
   else if (name == "-width") {
     tk_->TODO(name);
   }
   else if (name == "-height") {
     tk_->TODO(name);
   }
-  else if (name == "-relief") {
-    setFrameRelief(qtext_, value);
-  }
-  else if (name == "-borderwidth") {
+  else if (name == "-setgrid") {
     tk_->TODO(name);
   }
   else
@@ -3480,7 +3898,7 @@ execConfig(const std::string &name, const std::string &value)
 }
 
 bool
-CTkText::
+CTkAppText::
 execOp(const Args &args)
 {
   uint numArgs = args.size();
@@ -3490,7 +3908,10 @@ execOp(const Args &args)
 
   const auto &arg = args[0];
 
-  if      (arg == "xview") {
+  if      (arg == "bbox") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "xview") {
     tk_->TODO(arg);
   }
   else if (arg == "yview") {
@@ -3542,7 +3963,7 @@ execOp(const Args &args)
       else {
         double y;
 
-        if (! stringToReal(opt, y))
+        if (! CTkAppUtil::stringToReal(opt, y))
           return tk_->throwError("Invalid yview value '" + opt + "'");
 
         qtext_->verticalScrollBar()->setValue(min + (max - min)*y);
@@ -3553,13 +3974,13 @@ execOp(const Args &args)
     if (numArgs < 2)
       return tk_->wrongNumArgs(getName() + " insert index chars ?tagList chars tagList ...?");
 
-    int index;
+    long index;
 
     if (args[1] == "end") {
       index = -1;
     }
     else {
-      if (! stringToInteger(args[1], index))
+      if (! CTkAppUtil::stringToInt(args[1], index))
         return false;
     }
 
@@ -3598,6 +4019,12 @@ execOp(const Args &args)
 
     tk_->TODO(arg);
   }
+  else if (arg == "tag") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "index") {
+    tk_->TODO(arg);
+  }
   else
     return CTkAppWidget::execOp(args);
 
@@ -3605,14 +4032,14 @@ execOp(const Args &args)
 }
 
 void
-CTkText::
+CTkAppText::
 setText(const std::string &text)
 {
   qtext_->setText(QString::fromStdString(text));
 }
 
 void
-CTkText::
+CTkAppText::
 vscrollSlot(int value)
 {
   if (yScrollCommand_ != "") {
@@ -3630,7 +4057,7 @@ vscrollSlot(int value)
 }
 
 void
-CTkText::
+CTkAppText::
 hscrollSlot(int value)
 {
   if (xScrollCommand_ != "") {
@@ -3649,8 +4076,8 @@ hscrollSlot(int value)
 
 //----------
 
-CTkTopLevel::
-CTkTopLevel(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
+CTkAppTopLevel::
+CTkAppTopLevel(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
   qframe_ = new QFrame(nullptr);
@@ -3659,23 +4086,14 @@ CTkTopLevel(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
 }
 
 bool
-CTkTopLevel::
+CTkAppTopLevel::
 execConfig(const std::string &name, const std::string &value)
 {
-  if      (name == "-borderwidth") {
-    tk_->TODO(name);
-  }
-  else if (name == "-relief") {
-    tk_->TODO(name);
-  }
-  else
-    return CTkAppWidget::execConfig(name, value);
-
-  return true;
+  return CTkAppWidget::execConfig(name, value);
 }
 
 bool
-CTkTopLevel::
+CTkAppTopLevel::
 execOp(const Args &args)
 {
   return CTkAppWidget::execOp(args);
@@ -3746,7 +4164,7 @@ setQWidget(QWidget *w)
   else
     qwidget_->setObjectName(".");
 
-  qwidget_->installEventFilter(new CTkWidgetEventFilter(this));
+  qwidget_->installEventFilter(new CTkAppWidgetEventFilter(this));
 
   qwidget_->setFocusPolicy(Qt::ClickFocus);
 }
@@ -3956,10 +4374,64 @@ bool
 CTkAppWidget::
 execConfig(const std::string &name, const std::string &value)
 {
-  if      (name == "-width") {
+  if      (name == "-background" || name == "-bg") {
+    auto c = CTkAppUtil::stringToQColor(value);
+
+    CQUtil::setBackground(qwidget_, c);
+  }
+  else if (name == "-borderwidth" || name == "-bd") {
+    int w;
+    if (! tk_->getOptionInt(name, value, w))
+      return false;
+
+    setBorderWidth(qwidget_, w);
+  }
+  else if (name == "-cursor") {
+    tk_->TODO(name);
+  }
+  else if (name == "-highlightbackground") {
+    tk_->TODO(name);
+  }
+  else if (name == "-highlightcolor") {
+    tk_->TODO(name);
+  }
+  else if (name == "-highlightthickness") {
+    tk_->TODO(name);
+  }
+  else if (name == "-insertbackground") {
+    tk_->TODO(name);
+  }
+  else if (name == "-insertborderwidth") {
+    tk_->TODO(name);
+  }
+  else if (name == "-insertofftime") {
+    tk_->TODO(name);
+  }
+  else if (name == "-insertontime") {
+    tk_->TODO(name);
+  }
+  else if (name == "-insertwidth") {
+    tk_->TODO(name);
+  }
+  else if (name == "-relief") {
+    setFrameRelief(qwidget_, value);
+  }
+  else if (name == "-selectbackground") {
+    tk_->TODO(name);
+  }
+  else if (name == "-selectborderwidth") {
+    tk_->TODO(name);
+  }
+  else if (name == "-selectforeground") {
+    tk_->TODO(name);
+  }
+  else if (name == "-takefocus") {
+    tk_->TODO(name);
+  }
+  else if (name == "-width") {
     int w;
 
-    if (! stringToDistanceI(value, w))
+    if (! CTkAppUtil::stringToDistanceI(value, w))
       return tk_->throwError("Invalid width \"" + value + "\"");
 
     setWidth(w);
@@ -3969,30 +4441,34 @@ execConfig(const std::string &name, const std::string &value)
   else if (name == "-height") {
     int h;
 
-    if (! stringToDistanceI(value, h))
+    if (! CTkAppUtil::stringToDistanceI(value, h))
       return tk_->throwError("Invalid height \"" + value + "\"");
 
     setHeight(h);
 
     qwidget_->resize(getWidth(), getHeight());
   }
-  else if (name == "-background" || name == "-bg") {
-    auto c = stringToQColor(value);
-
-    CQUtil::setBackground(qwidget_, c);
-  }
   else if (name == "-foreground" || name == "-fg") {
-    auto c = stringToQColor(value);
+    auto c = CTkAppUtil::stringToQColor(value);
 
     CQUtil::setForeground(qwidget_, c);
   }
   else if (name == "-font") {
-    auto f = stringToQFont(value);
+    auto f = CTkAppUtil::stringToQFont(value);
 
     qwidget_->setFont(f);
   }
-  else if (name == "-cursor") {
+  else if (name == "-colormap") {
     tk_->TODO(name);
+  }
+  else if (name == "-visual") {
+    tk_->TODO(name);
+  }
+  else if (name == "-xscrollcommand") {
+    xScrollCommand_ = value;
+  }
+  else if (name == "-yscrollcommand") {
+    yScrollCommand_ = value;
   }
   else
     return tk_->throwError("Invalid value name \"" + name + "\" "
@@ -4012,7 +4488,17 @@ execOp(const Args &args)
 
   const auto &arg = args[0];
 
-  return tk_->throwError("bad option \"" + arg + "\" for " + std::string(getClassName()));
+  if      (arg == "cget") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "configure") {
+    tk_->TODO(arg);
+  }
+  else {
+    return tk_->throwError("bad option \"" + arg + "\" for " + std::string(getClassName()));
+  }
+
+  return true;
 }
 
 void
@@ -4035,6 +4521,97 @@ CTkAppWidget::
 getTitle() const
 {
   return qwidget_->windowTitle().toStdString();
+}
+
+void
+CTkAppWidget::
+setIcon(const std::string &icon)
+{
+  qwidget_->setWindowIcon(QIcon(QString::fromStdString(icon)));
+}
+
+std::string
+CTkAppWidget::
+getIcon() const
+{
+  return qwidget_->windowIcon().name().toStdString();
+}
+
+bool
+CTkAppWidget::
+setGeometry(const std::string &str)
+{
+  auto throwError = [&]() {
+    return tk_->throwError("Invalid geometry '" + str + "'");
+  };
+
+  CStrParse parse(str);
+
+  parse.skipSpace();
+
+  auto rect = qwidget_->geometry();
+
+  int x = rect.x    (), y = rect.y     ();
+  int w = rect.width(), h = rect.height();
+
+  if (parse.isChar('-') || parse.isChar('+')) {
+    int sign = (parse.isChar('+') ? 1 : -1);
+
+    parse.skipChar();
+
+    if (! parse.readInteger(&x))
+      return throwError();
+
+    x *= sign;
+
+    if (! parse.isChar('-') && ! parse.isChar('+'))
+      return throwError();
+
+    sign = (parse.isChar('+') ? 1 : -1);
+
+    parse.skipChar();
+
+    if (! parse.readInteger(&y))
+      return throwError();
+
+    y *= sign;
+  }
+
+  parse.skipSpace();
+
+  if (! parse.eof()) {
+
+    if (! parse.readInteger(&w))
+      return throwError();
+
+    if (! parse.isChar('x'))
+      return throwError();
+
+    parse.skipChar();
+
+    if (! parse.readInteger(&h))
+      return throwError();
+
+    parse.skipSpace();
+
+    if (! parse.eof())
+      return throwError();
+  }
+
+  qwidget_->setGeometry(QRect(x, y, w, h));
+
+  return true;
+}
+
+std::string
+CTkAppWidget::
+getGeometry() const
+{
+  auto r = qwidget_->geometry();
+
+  auto str = QString("%1x%2+%3+%4").arg(r.width()).arg(r.height()).arg(r.x()).arg(r.y());
+
+  return str.toStdString();
 }
 
 void
@@ -4218,7 +4795,7 @@ runCommand(const Args &args)
 //----------
 
 bool
-CTkWidgetEventFilter::
+CTkAppWidgetEventFilter::
 eventFilter(QObject *obj, QEvent *event)
 {
   if (w_->isDeleted()) return false;
@@ -4265,15 +4842,15 @@ eventFilter(QObject *obj, QEvent *event)
 
 //---
 
-CTkSubMenu::
-CTkSubMenu(CTkApp *tk) :
+CTkAppSubMenu::
+CTkAppSubMenu(CTkApp *tk) :
  QMenu(nullptr), tk_(tk)
 {
   connectSlots(true);
 }
 
 void
-CTkSubMenu::
+CTkAppSubMenu::
 connectSlots(bool b)
 {
   if (b) {
@@ -4287,13 +4864,13 @@ connectSlots(bool b)
 }
 
 void
-CTkSubMenu::
+CTkAppSubMenu::
 showSlot()
 {
   std::cerr << "Show " << menu_ << "\n";
 
   auto *w    = tk_->lookupWidgetByName(menu_);
-  auto *menu = dynamic_cast<CTkMenu *>(w);
+  auto *menu = dynamic_cast<CTkAppMenu *>(w);
   if (! menu) { std::cerr << "No menu '" << menu_ << "'\n"; return; }
 
   auto actions = menu->qmenu()->actions();
@@ -4309,13 +4886,13 @@ showSlot()
 }
 
 void
-CTkSubMenu::
+CTkAppSubMenu::
 hideSlot()
 {
   std::cerr << "Hide " << menu_ << "\n";
 
   auto *w    = tk_->lookupWidgetByName(menu_);
-  auto *menu = dynamic_cast<CTkMenu *>(w);
+  auto *menu = dynamic_cast<CTkAppMenu *>(w);
   if (! menu) { std::cerr << "No menu '" << menu_ << "'\n"; return; }
 
   auto actions = this->actions();

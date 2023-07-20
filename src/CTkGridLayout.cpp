@@ -2,7 +2,7 @@
 
 CTkGridLayout::
 CTkGridLayout(QWidget *parent, int margin, int spacing) :
- QLayout(parent), row_(0), col_(0)
+ QLayout(parent)
 {
   setMargin(margin);
   setSpacing(spacing);
@@ -10,7 +10,7 @@ CTkGridLayout(QWidget *parent, int margin, int spacing) :
 
 CTkGridLayout::
 CTkGridLayout(int spacing) :
- QLayout(NULL), row_(0), col_(0)
+ QLayout(nullptr)
 {
   setSpacing(spacing);
 }
@@ -42,10 +42,10 @@ addWidgets(const std::vector<CTkWidget *> &widgets, const Info &info)
 
   uint num_added = 0;
 
-  uint num = widgets.size();
+  auto num = widgets.size();
 
-  for (uint i = 0; i < num; ++i) {
-    ItemWrapper *wrapper = getItem(widgets[i]);
+  for (size_t i = 0; i < num; ++i) {
+    auto *wrapper = getItem(widgets[i]);
 
     if (! wrapper) {
       info1.setRow(row_);
@@ -71,7 +71,7 @@ void
 CTkGridLayout::
 addWidget(CTkWidget *widget, const Info &info)
 {
-  ItemWrapper *wrapper = getItem(widget);
+  auto *wrapper = getItem(widget);
 
   if (! wrapper)
     add(new CTkLayoutWidget(widget), info);
@@ -84,27 +84,25 @@ CTkGridLayout::
 getItem(CTkWidget *widget) const
 {
   for (int i = 0; i < list_.size(); ++i) {
-    ItemWrapper *wrapper = list_.at(i);
+    auto *wrapper = list_.at(i);
 
-    CTkLayoutWidget *w = dynamic_cast<CTkLayoutWidget *>(wrapper->item);
-
+    auto *w = dynamic_cast<CTkLayoutWidget *>(wrapper->item);
     if (! w) continue;
 
-    CTkWidget *widget1 = w->getTkWidget();
+    auto *widget1 = w->getTkWidget();
 
     if (widget == widget1)
       return wrapper;
   }
 
-  return NULL;
+  return nullptr;
 }
 
 bool
 CTkGridLayout::
 getChildInfo(CTkWidget *widget, Info &info)
 {
-  ItemWrapper *wrapper = getItem(widget);
-
+  auto *wrapper = getItem(widget);
   if (! wrapper) return false;
 
   info = wrapper->info;
@@ -116,13 +114,19 @@ bool
 CTkGridLayout::
 setChildWeight(CTkWidget *widget, int weight)
 {
-  ItemWrapper *wrapper = getItem(widget);
-
+  auto *wrapper = getItem(widget);
   if (! wrapper) return false;
 
   wrapper->weight = weight;
 
   return true;
+}
+
+void
+CTkGridLayout::
+setColumnWeight(int col, int weight)
+{
+  colWeights_[col] = weight;
 }
 
 Qt::Orientations
@@ -150,12 +154,10 @@ count() const
 QLayoutItem *
 CTkGridLayout::itemAt(int index) const
 {
-  ItemWrapper *wrapper = list_.value(index);
+  auto *wrapper = list_.value(index);
+  if (! wrapper) return nullptr;
 
-  if (wrapper)
-    return wrapper->item;
-  else
-    return NULL;
+  return wrapper->item;
 }
 
 QSize
@@ -174,8 +176,9 @@ setGeometry(const QRect &rect)
 
   QLayout::setGeometry(rect);
 
+  // get num rows and columns
   for (int i = 0; i < list_.size(); ++i) {
-    ItemWrapper *wrapper = list_.at(i);
+    auto *wrapper = list_.at(i);
 
     int row = wrapper->info.getRow();
     int col = wrapper->info.getCol();
@@ -184,24 +187,29 @@ setGeometry(const QRect &rect)
     num_cols = std::max(num_cols, col + 1);
   }
 
+  // create column and row grids and sizes
   std::vector<int> cws, rhs;
 
-  cws.resize(num_cols);
-  rhs.resize(num_rows);
+  cws.resize(size_t(num_cols));
+  rhs.resize(size_t(num_rows));
 
   int cw = rect.width ()/num_cols;
   int rh = rect.height()/num_rows;
 
-  for (int i = 0; i < num_cols; ++i) cws[i] = cw;
-  for (int i = 0; i < num_rows; ++i) rhs[i] = rh;
+  for (int i = 0; i < num_cols; ++i)
+    cws[size_t(i)] = cw;
 
+  for (int i = 0; i < num_rows; ++i)
+    rhs[size_t(i)] = rh;
+
+  // place widgets in grid
   for (int i = 0; i < list_.size(); ++i) {
-    ItemWrapper *wrapper = list_.at(i);
+    auto *wrapper = list_.at(i);
 
-    QLayoutItem *item  = wrapper->item;
-    int          row   = wrapper->info.getRow();
-    int          col   = wrapper->info.getCol();
-    uint         sides = wrapper->info.getStickySides();
+    auto *item  = wrapper->item;
+    int   row   = wrapper->info.getRow();
+    int   col   = wrapper->info.getCol();
+    uint  sides = wrapper->info.getStickySides();
 
     int padx = wrapper->info.getPadX();
     int pady = wrapper->info.getPadY();
@@ -212,8 +220,8 @@ setGeometry(const QRect &rect)
     int wh = item->sizeHint().width () + 2*ipadx;
     int hh = item->sizeHint().height() + 2*ipady;
 
-    int cw = cws[col];
-    int rh = rhs[row];
+    int cw = cws[size_t(col)];
+    int rh = rhs[size_t(row)];
 
     int x1 = rect.x() + col*cw;
     int y1 = rect.y() + row*rh;
@@ -254,7 +262,7 @@ takeAt(int index)
     return layoutStruct->item;
   }
 
-  return 0;
+  return nullptr;
 }
 
 void

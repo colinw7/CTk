@@ -6,15 +6,15 @@
 #include <tcl.h>
 
 class CTkApp;
-class CTkOpt;
+class CTkAppOpt;
 
 //---
 
-class CTkOptData {
+class CTkAppOptData {
  public:
-  CTkOptData(CTkApp *tk);
+  CTkAppOptData(CTkApp *tk);
 
-  void init(const CTkOpt *opts) {
+  void init(const CTkAppOpt *opts) {
    opts_ = opts;
   }
 
@@ -23,12 +23,12 @@ class CTkOptData {
 
   bool getOptValue(const std::string &name, std::string &value);
 
-  bool setOptValue(const std::string &name, const std::string &value, const CTkOpt **opt);
+  bool setOptValue(const std::string &name, const std::string &value, const CTkAppOpt **opt);
 
  private:
-  CTkApp*           tk_   { nullptr };
-  const CTkOpt*     opts_ { nullptr };
-  CTkOptionValueMap values_;
+  CTkApp*              tk_   { nullptr };
+  const CTkAppOpt*     opts_ { nullptr };
+  CTkAppOptionValueMap values_;
 };
 
 #endif

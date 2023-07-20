@@ -1,5 +1,6 @@
 #include <CTkLayout.h>
 #include <CTk.h>
+#include <CTkWidget.h>
 #include <QWidget>
 
 Qt::Orientations

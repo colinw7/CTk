@@ -16,7 +16,7 @@ class CQReadLine : public CReadLine {
     enableTimeoutHook();
   }
 
-  void timeout();
+  void timeout() override;
 };
 
 static bool debug = false;
@@ -30,14 +30,14 @@ readLine(std::string &line)
 {
   readline->setPrompt("% ");
 
-  std::string line1 = readline->readLine();
+  auto line1 = readline->readLine();
 
   if (readline->eof()) return false;
 
   while (! tcl->isCompleteLine(line1)) {
     readline->setPrompt("");
 
-    std::string line2 = readline->readLine();
+    auto line2 = readline->readLine();
 
     if (readline->eof()) return false;
 
@@ -82,7 +82,7 @@ main(int argc, char **argv)
     std::string line;
 
     while (readLine(line)) {
-      CTclValueRef value = tcl->parseLine(line);
+      auto value = tcl->parseLine(line);
 
       if (value.isValid()) {
         value->print(std::cout);

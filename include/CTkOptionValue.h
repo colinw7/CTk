@@ -1,12 +1,12 @@
-#ifndef CTkAppOptionValue_H
-#define CTkAppOptionValue_H
+#ifndef CTkOptionValue_H
+#define CTkOptionValue_H
 
 #include <string>
 #include <map>
 
 //---
 
-enum class CTkAppOptionType {
+enum class CTkOptionType {
   None,
   Flag,
   String,
@@ -16,25 +16,25 @@ enum class CTkAppOptionType {
 
 //---
 
-struct CTkAppOptionValue {
+struct CTkOptionValue {
   long        i { 0 };
   double      r { 0.0 };
   std::string s;
 };
 
-using CTkAppOptionValueMap = std::map<std::string, CTkAppOptionValue>;
+using CTkOptionValueMap = std::map<std::string, CTkOptionValue>;
 
 //---
 
-struct CTkAppOption {
-  const char*      name  { nullptr };
-  CTkAppOptionType type  { CTkAppOptionType::None };
-  const char*      alias { nullptr };
+struct CTkOption {
+  const char*   name  { nullptr };
+  CTkOptionType type  { CTkOptionType::None };
+  const char*   alias { nullptr };
 };
 
 //---
 
-struct CTkAppOpt {
+struct CTkOpt {
   const char* name  { nullptr }; // option name
   const char* dname { nullptr }; // database name
   const char* cname { nullptr }; // class name

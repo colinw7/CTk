@@ -3,14 +3,14 @@
 
 #include <cstring>
 
-CTkOptData::
-CTkOptData(CTkApp *tk) :
+CTkAppOptData::
+CTkAppOptData(CTkApp *tk) :
  tk_(tk)
 {
 }
 
 Tcl_Obj *
-CTkOptData::
+CTkAppOptData::
 getOpts() const
 {
   auto *list = Tcl_NewListObj(0, nullptr);
@@ -54,7 +54,7 @@ getOpts() const
 }
 
 Tcl_Obj *
-CTkOptData::
+CTkAppOptData::
 getOpt(const std::string &name) const
 {
   auto *list = Tcl_NewListObj(0, nullptr);
@@ -97,7 +97,7 @@ getOpt(const std::string &name) const
 }
 
 bool
-CTkOptData::
+CTkAppOptData::
 getOptValue(const std::string &name, std::string &value)
 {
   for (uint i = 0; opts_[i].name != nullptr; ++i) {
@@ -122,8 +122,8 @@ getOptValue(const std::string &name, std::string &value)
 }
 
 bool
-CTkOptData::
-setOptValue(const std::string &name, const std::string &value, const CTkOpt **opt)
+CTkAppOptData::
+setOptValue(const std::string &name, const std::string &value, const CTkAppOpt **opt)
 {
   // exact match
   for (uint i = 0; opts_[i].name != nullptr; ++i) {

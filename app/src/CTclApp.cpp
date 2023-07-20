@@ -502,67 +502,94 @@ void
 CTclApp::
 traceVar(const std::string &name, CTclTraceProc *proc)
 {
-  auto pn = traceProcs_.find(name);
+  auto name1 = name;
+
+  auto pos = name1.find('(');
+
+  if (pos != std::string::npos)
+    name1 = name1.substr(0, pos);
+
+  //---
+
+  auto pn = traceProcs_.find(name1);
 
   if (pn != traceProcs_.end()) {
     auto pp = (*pn).second.find(proc);
 
     if (pp != (*pn).second.end()) {
-      std::cerr << "Multiple traces on same var '" << name << "'\n";
+      std::cerr << "Multiple traces on same var '" << name1 << "'\n";
       return;
     }
   }
 
-  traceProcs_[name].insert(proc);
+  traceProcs_[name1].insert(proc);
 
   //---
 
   int flags = TCL_TRACE_READS | TCL_TRACE_WRITES | TCL_TRACE_UNSETS | TCL_GLOBAL_ONLY;
 
-  auto data = Tcl_VarTraceInfo(interp_, name.c_str(), flags, &traceProc, nullptr);
+  auto data = Tcl_VarTraceInfo(interp_, name1.c_str(), flags, &traceProc, nullptr);
 
   if (! data)
-    Tcl_TraceVar(interp_, name.c_str(), flags, &traceProc, static_cast<ClientData>(this));
+    Tcl_TraceVar(interp_, name1.c_str(), flags, &traceProc, static_cast<ClientData>(this));
 }
 
 void
 CTclApp::
 traceVar(const std::string &name)
 {
-  auto pn = traces_.find(name);
+  auto name1 = name;
+
+  auto pos = name1.find('(');
+
+  if (pos != std::string::npos)
+    name1 = name1.substr(0, pos);
+
+  //---
+
+  auto pn = traces_.find(name1);
 
   if (pn != traces_.end()) {
-    std::cerr << "Multiple traces on same var '" << name << "'\n";
+    std::cerr << "Multiple traces on same var '" << name1 << "'\n";
     return;
   }
 
-  traces_.insert(name);
+  traces_.insert(name1);
 
   //---
 
   int flags = TCL_TRACE_READS | TCL_TRACE_WRITES | TCL_TRACE_UNSETS | TCL_GLOBAL_ONLY;
 
-  auto data = Tcl_VarTraceInfo(interp_, name.c_str(), flags, &genTraceProc, nullptr);
+  auto data = Tcl_VarTraceInfo(interp_, name1.c_str(), flags, &genTraceProc, nullptr);
 
   if (! data)
-    Tcl_TraceVar(interp_, name.c_str(), flags, &genTraceProc, static_cast<ClientData>(this));
+    Tcl_TraceVar(interp_, name1.c_str(), flags, &genTraceProc, static_cast<ClientData>(this));
 }
 
 void
 CTclApp::
 untraceVar(const std::string &name, CTclTraceProc *proc)
 {
-  auto pn = traceProcs_.find(name);
+  auto name1 = name;
+
+  auto pos = name1.find('(');
+
+  if (pos != std::string::npos)
+    name1 = name1.substr(0, pos);
+
+  //---
+
+  auto pn = traceProcs_.find(name1);
 
   if (pn == traceProcs_.end()) {
-    std::cerr << "No trace on var '" << name << "'\n";
+    std::cerr << "No trace on var '" << name1 << "'\n";
     return;
   }
 
   auto pp = (*pn).second.find(proc);
 
   if (pp == (*pn).second.end()) {
-    std::cerr << "No trace on var '" << name << "'\n";
+    std::cerr << "No trace on var '" << name1 << "'\n";
     return;
   }
 
@@ -573,7 +600,7 @@ untraceVar(const std::string &name, CTclTraceProc *proc)
   if ((*pn).second.empty()) {
     int flags = TCL_TRACE_READS | TCL_TRACE_WRITES | TCL_TRACE_UNSETS | TCL_GLOBAL_ONLY;
 
-    Tcl_UntraceVar(interp_, name.c_str(), flags, &traceProc, static_cast<ClientData>(this));
+    Tcl_UntraceVar(interp_, name1.c_str(), flags, &traceProc, static_cast<ClientData>(this));
   }
 }
 
@@ -581,20 +608,29 @@ void
 CTclApp::
 untraceVar(const std::string &name)
 {
-  auto pn = traceProcs_.find(name);
+  auto name1 = name;
+
+  auto pos = name1.find('(');
+
+  if (pos != std::string::npos)
+    name1 = name1.substr(0, pos);
+
+  //---
+
+  auto pn = traceProcs_.find(name1);
 
   if (pn == traceProcs_.end()) {
-    std::cerr << "No trace on var '" << name << "'\n";
+    std::cerr << "No trace on var '" << name1 << "'\n";
     return;
   }
 
-  traces_.erase(name);
+  traces_.erase(name1);
 
   //---
 
   int flags = TCL_TRACE_READS | TCL_TRACE_WRITES | TCL_TRACE_UNSETS | TCL_GLOBAL_ONLY;
 
-  Tcl_UntraceVar(interp_, name.c_str(), flags, &genTraceProc, static_cast<ClientData>(this));
+  Tcl_UntraceVar(interp_, name1.c_str(), flags, &genTraceProc, static_cast<ClientData>(this));
 }
 
 void
@@ -615,7 +651,7 @@ handleTrace(const char *name, int flags)
 
 char *
 CTclApp::
-traceProc(ClientData data, Tcl_Interp *, const char *name1, const char *, int flags)
+traceProc(ClientData data, Tcl_Interp *, const char *name1, const char *name2, int flags)
 {
   // ignore unset called on trace destruction
   if (flags & TCL_TRACE_UNSETS) return nullptr;
@@ -624,7 +660,11 @@ traceProc(ClientData data, Tcl_Interp *, const char *name1, const char *, int fl
   assert(th);
 
   auto pn = th->traceProcs_.find(name1);
-  assert(pn != th->traceProcs_.end());
+  //assert(pn != th->traceProcs_.end());
+  if (pn == th->traceProcs_.end()) {
+    std::cerr << "Failed to find trace proc '" << name1 << "'\n";
+    return nullptr;
+  }
 
   for (auto *proc : (*pn).second) {
     if (! proc->isEnabled())
@@ -683,9 +723,18 @@ bool
 CTclApp::
 evalFile(const std::string &filename) const
 {
+#if 0
   std::string cmd = "source \"" + filename + "\"";
 
   return eval(cmd);
+#endif
+
+  auto rc = Tcl_EvalFile(interp_, filename.c_str());
+
+  if (rc != TCL_OK)
+    std::cerr << errorInfo_(rc) << "\n";
+
+  return (rc == TCL_OK);
 }
 
 bool
