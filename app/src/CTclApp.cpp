@@ -328,7 +328,13 @@ void
 CTclApp::
 setObjResult(Tcl_Obj *obj)
 {
-  Tcl_SetObjResult(app_->getInterp(), obj);
+  if (obj) {
+    resultSet_ = true;
+
+    Tcl_SetObjResult(app_->getInterp(), obj);
+  }
+  else
+    resultSet_ = false;
 }
 
 //---

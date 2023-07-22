@@ -5,6 +5,8 @@
 
 #include <tcl.h>
 
+#include <vector>
+
 class CTkApp;
 class CTkAppOpt;
 
@@ -21,7 +23,12 @@ class CTkAppOptData {
   Tcl_Obj *getOpts() const;
   Tcl_Obj *getOpt(const std::string &name) const;
 
-  bool getOptValue(const std::string &name, std::string &value);
+  void getNames(std::vector<std::string> &names) const;
+
+  bool getOptValue(const std::string &name, std::string &value) const;
+
+  bool getDefValue(const std::string &optName, const std::string &optClass,
+                   std::string &value) const;
 
   bool setOptValue(const std::string &name, const std::string &value, const CTkAppOpt **opt);
 

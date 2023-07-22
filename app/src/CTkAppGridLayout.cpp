@@ -259,10 +259,12 @@ setGeometry(const QRect &rect)
     for (int i = 0; i < list_.size(); ++i) {
       auto *wrapper = list_.at(i);
 
-      auto *item  = wrapper->item;
-      int   row   = wrapper->info.getRow();
-      int   col   = wrapper->info.getCol();
-      uint  sides = wrapper->info.getStickySides();
+      auto *item = dynamic_cast<CTkAppLayoutWidget *>(wrapper->item);
+      assert(item);
+
+      int  row   = wrapper->info.getRow();
+      int  col   = wrapper->info.getCol();
+      uint sides = wrapper->info.getStickySides();
 
       int padx = wrapper->info.getPadX();
       int pady = wrapper->info.getPadY();
@@ -305,6 +307,8 @@ setGeometry(const QRect &rect)
         item->setGeometry(r);
         changed = true;
       }
+
+      item->show();
     }
 
     return changed;

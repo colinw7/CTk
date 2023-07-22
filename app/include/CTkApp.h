@@ -77,8 +77,8 @@ class CTkApp : public CTclApp {
   bool bindTagEvent  (const std::string &tagName, const CTkAppEventData &data);
   bool bindClassEvent(const std::string &tagName, const CTkAppEventData &data);
 
-  bool triggerEnterEvents(const std::string &, CTkAppWidget *, QEvent *e);
-  bool triggerLeaveEvents(const std::string &, CTkAppWidget *, QEvent *e);
+  bool triggerEvents(const std::string &, CTkAppWidget *, QEvent *e,
+                     const CTkAppEventData &matchEventData);
 
   bool triggerKeyPressEvents(const std::string &, CTkAppWidget *, QEvent *e);
 
@@ -107,9 +107,12 @@ class CTkApp : public CTclApp {
 
   //---
 
-  void addOption(const std::string &pattern, const std::string &value, int priority) {
-    options_.emplace_back(pattern, value, priority);
-  }
+  void addOption(const std::string &pattern, const std::string &value, int priority);
+
+  bool matchOption(const std::string &widgetClass, const std::string &optName,
+                   const std::string &optClass, std::string &optValue) const;
+
+  void clearOptions();
 
   //---
 
@@ -119,7 +122,7 @@ class CTkApp : public CTclApp {
   bool lookupName(const std::string &msg, const std::vector<std::string> &names,
                   const std::string &arg, std::string &opt) const;
 
-  bool getOptionInt (const std::string &name, const std::string &value, int &i) const;
+  bool getOptionInt (const std::string &name, const std::string &value, long &i) const;
   bool getOptionReal(const std::string &name, const std::string &value, double &r) const;
 
   //---
@@ -238,7 +241,7 @@ inline QFont stringToQFont(const std::string &str) {
   if (! parse.readNonSpace(family))
     return f;
 
-  std::cerr << family << " ";
+  //std::cerr << family << " ";
 
   f.setFamily(QString::fromStdString(family));
 
@@ -257,7 +260,7 @@ inline QFont stringToQFont(const std::string &str) {
     points = false;
   }
 
-  std::cerr << size << (points ? "pt" : "px") << " ";
+  //std::cerr << size << (points ? "pt" : "px") << " ";
 
   if (points)
     f.setPointSize(size);
@@ -279,8 +282,8 @@ inline QFont stringToQFont(const std::string &str) {
     styles.push_back(style);
   }
 
-  for (const auto &style : styles)
-    std::cerr << style << " ";
+  //for (const auto &style : styles)
+  //  std::cerr << style << " ";
 
   for (const auto &style : styles) {
     if      (style == "bold")
@@ -293,7 +296,7 @@ inline QFont stringToQFont(const std::string &str) {
 
   //---
 
-  std::cerr << "\n";
+  //std::cerr << "\n";
 
   return f;
 }

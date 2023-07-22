@@ -96,9 +96,20 @@ getOpt(const std::string &name) const
   return list;
 }
 
+void
+CTkAppOptData::
+getNames(std::vector<std::string> &names) const
+{
+  for (uint i = 0; opts_[i].name != nullptr; ++i) {
+    const auto &opt = opts_[i];
+
+    names.push_back(opt.name);
+  }
+}
+
 bool
 CTkAppOptData::
-getOptValue(const std::string &name, std::string &value)
+getOptValue(const std::string &name, std::string &value) const
 {
   for (uint i = 0; opts_[i].name != nullptr; ++i) {
     const auto &opt = opts_[i];
@@ -113,9 +124,34 @@ getOptValue(const std::string &name, std::string &value)
     if (p != values_.end())
       value = (*p).second.s;
     else
-      value = opts_[i].def;
+      value = opt.def;
 
     return true;
+  }
+
+  return false;
+}
+
+bool
+CTkAppOptData::
+getDefValue(const std::string &optName, const std::string &optClass, std::string &value) const
+{
+  for (uint i = 0; opts_[i].name != nullptr; ++i) {
+    const auto &opt = opts_[i];
+
+    if (opt.dname == optName) {
+      value = opt.def;
+      return true;
+    }
+  }
+
+  for (uint i = 0; opts_[i].name != nullptr; ++i) {
+    const auto &opt = opts_[i];
+
+    if (opt.cname && opt.cname == optClass) {
+      value = opt.def;
+      return true;
+    }
   }
 
   return false;

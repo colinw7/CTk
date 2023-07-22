@@ -1,15 +1,21 @@
 #ifndef CTclAppCommand_H
 #define CTclAppCommand_H
 
-#include <vector>
+class CTclApp;
 
+#include <vector>
+#include <string>
+
+using ClientData = void *;
+
+struct Tcl_Interp;
 struct Tcl_Obj;
 
 class CTclAppCommand {
  protected:
   CTclAppCommand(CTclApp *app, const std::string &name);
 
-  virtual ~CTclAppCommand() { }
+  virtual ~CTclAppCommand();
 
   const std::string &getName() const { return name_; }
 

@@ -50,13 +50,15 @@ class CTkAppPackLayout : public QLayout {
 
  private:
   struct ItemWrapper {
+    ItemWrapper() = default;
+
     ItemWrapper(QLayoutItem *i, const Info &f) {
       item = i;
       info = f;
     }
 
-    QLayoutItem * item;
-    Info          info;
+    QLayoutItem *item { nullptr };
+    Info         info;
   };
 
  public:

@@ -74,6 +74,14 @@ setGeometry(const QRect &rect)
     layout_->setGeometry(rect);
 }
 
+void
+CTkAppLayoutWidget::
+show()
+{
+  if (widget_)
+    widget_->getQWidget()->setVisible(true);
+}
+
 QSize
 CTkAppLayoutWidget::
 sizeHint() const

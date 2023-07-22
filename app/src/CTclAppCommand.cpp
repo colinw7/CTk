@@ -6,9 +6,15 @@ CTclAppCommand::
 CTclAppCommand(CTclApp *app, const std::string &name) :
  app_(app), name_(name)
 {
-  Tcl_CreateCommand(app->getInterp(), name_.c_str(),
+  Tcl_CreateCommand(app_->getInterp(), name_.c_str(),
                     (Tcl_CmdProc *) &CTclAppCommand::commandProc,
                     (ClientData) this, (Tcl_CmdDeleteProc *) nullptr);
+}
+
+CTclAppCommand::
+~CTclAppCommand()
+{
+  Tcl_DeleteCommand(app_->getInterp(), name_.c_str());
 }
 
 int
@@ -133,7 +139,7 @@ void
 CTclAppCommand::
 setObjResult(Tcl_Obj *obj)
 {
-  Tcl_SetObjResult(app_->getInterp(), obj);
+  app_->setObjResult(obj);
 }
 
 //---

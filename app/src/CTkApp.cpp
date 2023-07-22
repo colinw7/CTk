@@ -7,6 +7,7 @@
 #include <CImageLib.h>
 #include <CStrParse.h>
 #include <CStrUniqueMatch.h>
+#include <CGlob.h>
 
 #include <QApplication>
 #include <QMouseEvent>
@@ -44,6 +45,10 @@ CTkApp(int argc, char **argv) :
 
   setStringArrayVar("argv", args);
   setIntegerVar    ("argc", args.size());
+
+  setStringVar("tk_version", "8.6");
+  setStringVar("tk_library", "/usr/share/tcltk/tk8.6");
+  setStringVar("tk_patchLevel", "8.6.12");
 }
 
 std::string
@@ -249,6 +254,14 @@ getBitmap(const std::string &name) const
     if (env)
       name1 = std::string(env) + name.substr(1);
   }
+  else {
+    auto *env = getenv("CTK_APP_BITMAP_DIR");
+    if (! env)
+      (void) throwError("set CTK_APP_BITMAP_DIR to bitmap path for name");
+
+    if (env)
+      name1 = std::string(env) + "/" + name + ".xbm";
+  }
 
   CImageFileSrc src(name1);
 
@@ -300,41 +313,9 @@ bindAllEvent(const CTkAppEventData &data)
 
 bool
 CTkApp::
-triggerEnterEvents(const std::string &className, CTkAppWidget *w, QEvent *e)
+triggerEvents(const std::string &className, CTkAppWidget *w, QEvent *e,
+              const CTkAppEventData &matchEventData)
 {
-  CTkAppEventData matchEventData;
-
-  matchEventData.type = CTkAppEventType::Enter;
-
-  //---
-
-  auto p1 = classEvents_.find(className);
-
-  if (p1 != classEvents_.end()) {
-    for (const auto &eventData : (*p1).second) {
-      if (eventData == matchEventData)
-        execEvent(w, e, eventData);
-    }
-  }
-
-  for (const auto &eventData : allEvents_) {
-    if (eventData == matchEventData)
-      execEvent(w, e, eventData);
-  }
-
-  return true;
-}
-
-bool
-CTkApp::
-triggerLeaveEvents(const std::string &className, CTkAppWidget *w, QEvent *e)
-{
-  CTkAppEventData matchEventData;
-
-  matchEventData.type = CTkAppEventType::Leave;
-
-  //---
-
   auto p1 = classEvents_.find(className);
 
   if (p1 != classEvents_.end()) {
@@ -595,7 +576,7 @@ parseEvent(const std::string &pattern, CTkAppEventData &data)
     parse.skipSpace();
 
     if      (parse.isString("<Help>")) {
-      parse.skipChars("<Help>");
+      parse.skipLastString();
 
       data.type = CTkAppEventType::Help;
 
@@ -605,9 +586,19 @@ parseEvent(const std::string &pattern, CTkAppEventData &data)
       return true;
     }
     else if (parse.isString("<MenuSelect>")) {
-      parse.skipChars("<MenuSelect>");
+      parse.skipLastString();
 
       data.type = CTkAppEventType::MenuSelect;
+
+      if (! parseClose('>'))
+        return false;
+
+      return true;
+    }
+    else if (parse.isString("Expose")) {
+      parse.skipLastString();
+
+      data.type = CTkAppEventType::Expose;
 
       if (! parseClose('>'))
         return false;
@@ -617,17 +608,17 @@ parseEvent(const std::string &pattern, CTkAppEventData &data)
 
     while (true) {
       if      (parse.isString("Control")) {
-        parse.skipChars("Control");
+        parse.skipLastString();
 
         data.modifiers |= uint(CTkAppEventModifier::Control);
       }
       else if (parse.isString("Shift")) {
-        parse.skipChars("Shift");
+        parse.skipLastString();
 
         data.modifiers |= uint(CTkAppEventModifier::Shift);
       }
       else if (parse.isString("Alt")) {
-        parse.skipChars("Alt");
+        parse.skipLastString();
 
         data.modifiers |= uint(CTkAppEventModifier::Shift);
       }
@@ -644,17 +635,17 @@ parseEvent(const std::string &pattern, CTkAppEventData &data)
 
     while (true) {
       if      (parse.isString("Double")) {
-        parse.skipChars("Double");
+        parse.skipLastString();
 
         data.clicks = 2;
       }
       else if (parse.isString("Triple")) {
-        parse.skipChars("Triple");
+        parse.skipLastString();
 
         data.clicks = 3;
       }
       else if (parse.isString("Quadruple")) {
-        parse.skipChars("Quadruple");
+        parse.skipLastString();
 
         data.clicks = 4;
       }
@@ -668,40 +659,67 @@ parseEvent(const std::string &pattern, CTkAppEventData &data)
     }
 
     if      (parse.isString("Button")) {
-      parse.skipChars("Button");
+      parse.skipLastString();
 
-      data.type = CTkAppEventType::Button;
+      data.type   = CTkAppEventType::Button;
+      data.button = 1;
 
-      if      (parse.isString("Press")) {
-        parse.skipChars("Press");
+      if (parse.isDigit()) {
+        if (! parse.readInteger(&data.button))
+          return false;
 
-        data.mode = CTkAppEventMode::Press;
+        if (parse.isChar('-')) {
+          parse.skipChar();
+
+          if      (parse.isString("Press")) {
+            parse.skipLastString();
+
+            data.mode = CTkAppEventMode::Press;
+          }
+          else if (parse.isString("Motion")) {
+            parse.skipLastString();
+
+            data.mode = CTkAppEventMode::Motion;
+          }
+          else if (parse.isString("Release")) {
+            parse.skipLastString();
+
+            data.mode = CTkAppEventMode::Release;
+          }
+          else
+            data.mode = CTkAppEventMode::Press;
+        }
       }
-      else if (parse.isString("Motion")) {
-        parse.skipChars("Motion");
+      else {
+        if      (parse.isString("Press")) {
+          parse.skipLastString();
 
-        data.mode = CTkAppEventMode::Motion;
-      }
-      else if (parse.isString("Release")) {
-        parse.skipChars("Release");
+          data.mode = CTkAppEventMode::Press;
+        }
+        else if (parse.isString("Motion")) {
+          parse.skipLastString();
 
-        data.mode = CTkAppEventMode::Release;
-      }
-      else
-        data.mode = CTkAppEventMode::Press;
+          data.mode = CTkAppEventMode::Motion;
+        }
+        else if (parse.isString("Release")) {
+          parse.skipLastString();
 
-      if (parse.isChar('-')) {
-        parse.skipChar();
-
-        if (parse.isDigit()) {
-          if (! parse.readInteger(&data.button))
-            return false;
+          data.mode = CTkAppEventMode::Release;
         }
         else
-          return false;
+          data.mode = CTkAppEventMode::Press;
+
+        if (parse.isChar('-')) {
+          parse.skipChar();
+
+          if (parse.isDigit()) {
+            if (! parse.readInteger(&data.button))
+              return false;
+          }
+          else
+            return false;
+        }
       }
-      else
-        data.button = 1;
 
       if (! parseClose('>'))
         return false;
@@ -723,17 +741,17 @@ parseEvent(const std::string &pattern, CTkAppEventData &data)
         parse.skipChar();
 
         if      (parse.isString("Press")) {
-          parse.skipChars("Press");
+          parse.skipLastString();
 
           data.mode = CTkAppEventMode::Press;
         }
         else if (parse.isString("Motion")) {
-          parse.skipChars("Motion");
+          parse.skipLastString();
 
           data.mode = CTkAppEventMode::Motion;
         }
         else if (parse.isString("Release")) {
-          parse.skipChars("Release");
+          parse.skipLastString();
 
           data.mode = CTkAppEventMode::Release;
         }
@@ -745,17 +763,17 @@ parseEvent(const std::string &pattern, CTkAppEventData &data)
         return false;
     }
     else if (parse.isString("Key")) {
-      parse.skipChars("Key");
+      parse.skipLastString();
 
       data.type = CTkAppEventType::Key;
 
       if      (parse.isString("Press")) {
-        parse.skipChars("Press");
+        parse.skipLastString();
 
         data.mode = CTkAppEventMode::Press;
       }
       else if (parse.isString("Release")) {
-        parse.skipChars("Release");
+        parse.skipLastString();
 
         data.mode = CTkAppEventMode::Release;
       }
@@ -775,7 +793,7 @@ parseEvent(const std::string &pattern, CTkAppEventData &data)
         data.key = ""; // Any ?
     }
     else if (parse.isString("Enter")) {
-      parse.skipChars("Enter");
+      parse.skipLastString();
 
       data.type = CTkAppEventType::Enter;
 
@@ -783,7 +801,7 @@ parseEvent(const std::string &pattern, CTkAppEventData &data)
         return false;
     }
     else if (parse.isString("Leave")) {
-      parse.skipChars("Leave");
+      parse.skipLastString();
 
       data.type = CTkAppEventType::Leave;
 
@@ -813,6 +831,63 @@ parseEvent(const std::string &pattern, CTkAppEventData &data)
   }
 
   return true;
+}
+
+//---
+
+void
+CTkApp::
+addOption(const std::string &pattern, const std::string &value, int priority)
+{
+  //std::cerr << "addOption: " << pattern << " " << value << " " << priority << "\n";
+
+  options_.emplace_back(pattern, value, priority);
+}
+
+bool
+CTkApp::
+matchOption(const std::string &widgetClass, const std::string &optName,
+            const std::string &optClass, std::string &optValue) const
+{
+  optValue = "";
+  //std::cerr << "matchOption: " << widgetClass << " " << optClass << " " << optName << "\n";
+
+  auto pattern1 = widgetClass + "." + optName;
+
+  for (const auto &opt : options_) {
+    //std::cerr << "compare: " << pattern1 << " " << opt.pattern << "\n";
+
+    CGlob glob(opt.pattern);
+
+    if (glob.compare(pattern1)) {
+      //std::cerr << "match: " << opt.pattern << " = " << opt.value << "\n";
+      optValue = opt.value;
+      return true;
+    }
+  }
+
+  auto pattern2 = widgetClass + "." + optClass;
+
+  for (const auto &opt : options_) {
+    //std::cerr << "compare: " << pattern2 << " " << opt.pattern << "\n";
+
+    CGlob glob(opt.pattern);
+
+    if (glob.compare(pattern2)) {
+      //std::cerr << "match: " << opt.pattern << " = " << opt.value << "\n";
+      optValue = opt.value;
+      return true;
+    }
+  }
+
+  return true;
+}
+
+void
+CTkApp::
+clearOptions()
+{
+  options_.clear();
 }
 
 //---
@@ -863,7 +938,7 @@ lookupName(const std::string &msg, const std::vector<std::string> &names,
 
 bool
 CTkApp::
-getOptionInt(const std::string &name, const std::string &value, int &i) const
+getOptionInt(const std::string &name, const std::string &value, long &i) const
 {
   if (! CStrUtil::toInteger(value, &i)) {
     throwError("Invalid value \"" + value + "\" for \"" + name + "\"");

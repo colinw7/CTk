@@ -38,6 +38,8 @@ class CTkAppLayoutWidget : public QLayoutItem {
 
   void setGeometry(const QRect &rect) override;
 
+  void show();
+
   QSize sizeHint() const override;
 
   QWidget *widget() override;

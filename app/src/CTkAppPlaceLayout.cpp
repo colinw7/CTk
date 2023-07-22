@@ -136,7 +136,8 @@ setGeometry(const QRect &rect)
   for (int i = 0; i < list_.size(); ++i) {
     ItemWrapper *wrapper = list_.at(i);
 
-    QLayoutItem *item = wrapper->item;
+    auto *item = dynamic_cast<CTkAppLayoutWidget *>(wrapper->item);
+    assert(item);
 
     double rx = wrapper->info.getRelX();
     double ry = wrapper->info.getRelY();
@@ -148,6 +149,8 @@ setGeometry(const QRect &rect)
     int y1 = int(rect.y() + ry*rect.height());
 
     item->setGeometry(QRect(x1, y1, wh, hh));
+
+    item->show();
   }
 }
 

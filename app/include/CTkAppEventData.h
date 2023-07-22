@@ -10,7 +10,8 @@ enum class CTkAppEventType {
   Enter,
   Leave,
   Help,
-  MenuSelect
+  MenuSelect,
+  Expose
 };
 
 enum class CTkAppEventMode {

@@ -9,8 +9,6 @@
 #include <CTkAppOptionValue.h>
 #include <CTkAppOptData.h>
 
-#include <CTclAppCommand.h>
-
 #include <CQUtil.h>
 
 #include <CEncode64.h>
@@ -20,47 +18,7 @@
 #include <QFontDatabase>
 #include <QMessageBox>
 #include <QFileDialog>
-
-class CTkAppCommand : public CTclAppCommand {
- public:
-  using Args = std::vector<std::string>;
-
- public:
-  CTkAppCommand(CTkApp *tk, const std::string &name) :
-   CTclAppCommand(tk, name), tk_(tk) {
-  }
-
-  CTkApp *getTk() const { return tk_; }
-
- protected:
-  bool proc(int argc, const char **argv) override {
-    tk_->setCurrentCommand(getName());
-
-    assert(argc > 0);
-
-    arg0_ = std::string(argv[0]);
-
-    Args args;
-
-    for (int i = 1; i < argc; ++i)
-      args.push_back(std::string(argv[i]));
-
-    auto rc = run(args);
-
-    tk_->setCurrentCommand("");
-
-    return rc;
-  }
-
-  virtual bool run(const Args &args) = 0;
-
-  CTkAppRoot *root() const { return tk_->root(); }
-
- protected: \
-  CTkApp *tk_ { nullptr };
-
-  mutable std::string arg0_;
-};
+#include <QScreen>
 
 //---
 
@@ -158,29 +116,6 @@ class CLASS : public CTkAppCommand { \
 //CTkAppCommandDef("ttk::separator"  , CTkAppTtkSeparatorCmd)
 //CTkAppCommandDef("ttk::sizegrip"   , CTkAppTtkSizGripCmd)
 //CTkAppCommandDef("ttk::treeview"   , CTkAppTtkTreeViewCmd)
-
-//---
-
-class CTkAppWidgetCommand : public CTkAppCommand {
- public:
-  CTkAppWidgetCommand(CTkAppCommand *command, const std::string &name,
-                      CTkAppWidget *w, const CTkAppOpt *opts = nullptr);
-
-  bool run(const Args &args) override;
-
- public:
-  using Args = std::vector<std::string>;
-
-  bool processArgs(const Args &args);
-
-  bool getOptValue(const std::string &name, std::string &value);
-  bool setOptValue(const std::string &name, const std::string &value);
-
- private:
-  CTkAppCommand* command_ { nullptr };
-  CTkAppWidget*  w_       { nullptr };
-  CTkAppOptData  opts_;
-};
 
 //---
 
@@ -319,8 +254,10 @@ run(const Args &args)
 
     CTkAppEventData data;
 
-    if (! tk_->parseEvent(pattern, data))
-      return tk_->throwError("bad event pattern \"" + pattern + "\"");
+    if (! tk_->parseEvent(pattern, data)) {
+      (void) tk_->throwError("bad event pattern \"" + pattern + "\"");
+      return true; // TODO
+    }
 
     if (numArgs > 2) {
       data.command = args[2];
@@ -682,27 +619,10 @@ run(const Args &args)
   for (uint i = 0; i < numArgs; ++i) {
     const auto &widgetName = args[i];
 
-    CTkAppWidget *child = nullptr;
+    auto *w = tk_->lookupWidgetByName(widgetName);
+    if (! w) continue;
 
-    if (widgetName != ".") {
-      CTkAppWidget* parent = nullptr;
-      std::string   childName;
-
-      if (! root()->decodeWidgetName(widgetName, &parent, childName))
-        continue;
-
-      child = parent->getChild(childName);
-
-      if (child == nullptr)
-        continue;
-    }
-    else
-      child = root();
-
-    if (! child)
-      continue;
-
-    child->deleteLater();
+    w->deleteLater();
   }
 
   return true;
@@ -1420,7 +1340,7 @@ run(const Args &args)
       }
     }
 
-    if (name != "")
+    if (name == "")
       name = tk_->getNewImageName();
 
     auto image = tk_->createImage(type, format, name);
@@ -1431,6 +1351,8 @@ run(const Args &args)
     else if (data != "") {
       image->loadData(data);
     }
+
+    setStringResult(name);
   }
   else if (name == "delete") {
     tk_->TODO(name);
@@ -1987,10 +1909,28 @@ run(const Args &args)
     tk_->addOption(pattern, value, ipriority);
   }
   else if (cmd == "clear") {
-    tk_->TODO(cmd);
+    if (numArgs != 1)
+      return tk_->wrongNumArgs("option clear");
+
+    tk_->clearOptions();
   }
   else if (cmd == "get") {
-    tk_->TODO(cmd);
+    if (numArgs != 4)
+      return tk_->wrongNumArgs("option get window name class");
+
+    const auto &windowName = args[1];
+
+    auto *window = tk_->lookupWidgetByName(windowName);
+    if (! window) return false;
+
+    const auto &optName  = args[2];
+    const auto &optClass = args[3];
+
+    std::string optValue;
+    if (! window->getOptionValue(optName, optClass, optValue))
+      return false;
+
+    setStringResult(optValue);
   }
   else if (cmd == "readfile") {
     tk_->TODO(cmd);
@@ -2040,7 +1980,7 @@ run(const Args &args)
       return tk_->wrongNumArgs("pack forget slave ?slave ...?");
 
     for (uint i = 1; i < numArgs; ++i) {
-      auto *child = tk_->lookupWidgetByName(arg);
+      auto *child = tk_->lookupWidgetByName(args[i]);
       if (! child) return false;
 
       auto *layout = child->getParent()->getTkPackLayout();
@@ -2256,6 +2196,9 @@ run(const Args &args)
     if (inparent)
       parent = inparent;
 
+    if (! parent)
+      return tk_->throwError("no parent for \"" + arg + "\"");
+
     auto *layout = parent->getTkPackLayout();
     if (! layout) return tk_->throwError("no pack layout for \"" + arg + "\"");
 
@@ -2265,6 +2208,8 @@ run(const Args &args)
     CTkAppPackLayout::Info info(side, fill, expand, padx, pady, ipadx, ipady);
 
     layout->addWidgets(children, info);
+
+    parent->show();
   }
 
   return true;
@@ -2370,6 +2315,9 @@ run(const Args &args)
     tk_->TODO(arg);
   }
   else if (arg == "forget") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs("place forget args");
+
     tk_->TODO(arg);
   }
   else if (arg == "info") {
@@ -2995,7 +2943,7 @@ run(const Args &args)
     tk_->TODO(arg);
   }
   else if (arg == "scaling") {
-    tk_->TODO(arg);
+    tk_->setRealResult(CScreenUnitsMgrInst->dpi()/72.0);
   }
   else if (arg == "useinputmethods") {
     tk_->TODO(arg);
@@ -3286,6 +3234,21 @@ run(const Args &args)
   if (! tk_->lookupOptionName(optionNames, args[0], arg))
     return false;
 
+  CTkAppWidget *w = nullptr;
+
+  auto getWindow = [&](bool quiet=false) {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs("winfo " + arg + " window");
+
+    std::string widgetName = args[1];
+
+    w = tk_->lookupWidgetByName(widgetName, quiet);
+
+    return (w ? true : false);
+  };
+
+  //---
+
   if      (arg == "atom") {
     tk_->TODO(arg);
   }
@@ -3296,13 +3259,7 @@ run(const Args &args)
     tk_->TODO(arg);
   }
   else if (arg == "children") {
-    if (numArgs < 2)
-      return tk_->wrongNumArgs("winfo children window");
-
-    std::string widgetName = args[1];
-
-    auto *w = tk_->lookupWidgetByName(widgetName);
-    if (! w) return false;
+    if (! getWindow()) return false;
 
     std::vector<CTkAppWidget *> children;
 
@@ -3321,13 +3278,7 @@ run(const Args &args)
     setStringArrayResult(list);
   }
   else if (arg == "class") {
-    if (numArgs < 2)
-      return tk_->wrongNumArgs("winfo class window");
-
-    std::string widgetName = args[1];
-
-    auto *w = tk_->lookupWidgetByName(widgetName);
-    if (! w) return false;
+    if (! getWindow()) return false;
 
     setStringResult(w->getClassName());
   }
@@ -3338,41 +3289,41 @@ run(const Args &args)
     tk_->TODO(arg);
   }
   else if (arg == "depth") {
+    if (! getWindow()) return false;
+
     //tk_->TODO(arg);
     setIntegerResult(24);
   }
   else if (arg == "exists") {
-    if (numArgs < 2)
-      return tk_->wrongNumArgs("winfo children window");
-
-    std::string widgetName = args[1];
-
-    auto *w = tk_->lookupWidgetByName(widgetName, /*quiet*/true);
-
-    setIntegerResult(w ? 1 : 0);
+    setIntegerResult(getWindow(/*quiet*/true) ? 1 : 0);
   }
   else if (arg == "fpixels") {
     tk_->TODO(arg);
   }
   else if (arg == "geometry") {
-    tk_->TODO(arg);
+    if (! getWindow()) return false;
+
+    auto r = w->qwidget()->geometry();
+
+    auto res = QString("%1x%2+%3+%4").arg(r.width()).arg(r.height()).arg(r.x()).arg(r.y());
+
+    setStringResult(res.toStdString());
   }
   else if (arg == "height") {
-    tk_->TODO(arg);
+    if (! getWindow()) return false;
+
+    setIntegerResult(w->qwidget()->height());
   }
   else if (arg == "id") {
-    tk_->TODO(arg);
+    if (! getWindow()) return false;
+
+    setIntegerResult(long(w->qwidget()));
   }
   else if (arg == "interps") {
     tk_->TODO(arg);
   }
   else if (arg == "ismapped") {
-    if (numArgs < 2)
-      return tk_->wrongNumArgs("winfo children window");
-
-    std::string widgetName = args[1];
-
-    auto *w = tk_->lookupWidgetByName(widgetName, /*quiet*/true);
+    if (! getWindow()) return false;
 
     setIntegerResult(w ? w->getQWidget()->isVisible() : 0);
   }
@@ -3380,16 +3331,12 @@ run(const Args &args)
     tk_->TODO(arg);
   }
   else if (arg == "name") {
-    tk_->TODO(arg);
+    if (! getWindow()) return false;
+
+    setStringResult(w->getName());
   }
   else if (arg == "parent") {
-    if (numArgs < 2)
-      return tk_->wrongNumArgs("winfo parent window");
-
-    std::string widgetName = args[1];
-
-    auto *w = tk_->lookupWidgetByName(widgetName);
-    if (! w) return false;
+    if (! getWindow()) return false;
 
     auto *parent = w->getParent();
 
@@ -3411,24 +3358,12 @@ run(const Args &args)
     tk_->TODO(arg);
   }
   else if (arg == "reqheight") {
-    if (numArgs < 2)
-      return tk_->wrongNumArgs("winfo reqheight window");
-
-    std::string widgetName = args[1];
-
-    auto *w = tk_->lookupWidgetByName(widgetName);
-    if (! w) return false;
+    if (! getWindow()) return false;
 
     setIntegerResult(w->qwidget()->sizeHint().width());
   }
   else if (arg == "reqwidth") {
-    if (numArgs < 2)
-      return tk_->wrongNumArgs("winfo reqwidth window");
-
-    std::string widgetName = args[1];
-
-    auto *w = tk_->lookupWidgetByName(widgetName);
-    if (! w) return false;
+    if (! getWindow()) return false;
 
     setIntegerResult(w->qwidget()->sizeHint().width());
   }
@@ -3451,64 +3386,95 @@ run(const Args &args)
     tk_->TODO(arg);
   }
   else if (arg == "screenheight") {
-    tk_->TODO(arg);
+    if (! getWindow()) return false;
+
+    auto r = qApp->primaryScreen()->geometry();
+    setIntegerResult(r.height());
   }
   else if (arg == "screenmmheight") {
-    tk_->TODO(arg);
+    if (! getWindow()) return false;
+
+    auto r = qApp->primaryScreen()->geometry();
+    tk_->setRealResult(r.height()/CScreenUnitsMgrInst->mmSize());
   }
   else if (arg == "screenmmwidth") {
-    tk_->TODO(arg);
+    if (! getWindow()) return false;
+
+    auto r = qApp->primaryScreen()->geometry();
+    tk_->setRealResult(r.width()/CScreenUnitsMgrInst->mmSize());
   }
   else if (arg == "screenvisual") {
     tk_->TODO(arg);
   }
   else if (arg == "screenwidth") {
-    tk_->TODO(arg);
+    if (! getWindow()) return false;
+
+    auto r = qApp->primaryScreen()->geometry();
+    setIntegerResult(r.width());
   }
   else if (arg == "server") {
     tk_->TODO(arg);
   }
   else if (arg == "toplevel") {
+    if (! getWindow()) return false;
+
+    auto *toplevel = w->toplevel();
+    setStringResult(toplevel ? toplevel->getFullName() : "");
+  }
+  else if (arg == "viewable") {
     tk_->TODO(arg);
   }
-  else if (arg == "viewable") { tk_->TODO(arg);
-  }
   else if (arg == "visual") {
-    //tk_->TODO(arg);
-    setStringResult("truecolor");
+    if (! getWindow()) return false;
+
+    setStringResult("truecolor"); // TODO
   }
   else if (arg == "visualid") {
     tk_->TODO(arg);
   }
   else if (arg == "visualsavailable") {
-    //tk_->TODO(arg);
-    setStringResult("{truecolor 24}");
+    if (! getWindow()) return false;
+
+    setStringResult("{truecolor 24}"); // TODO
   }
   else if (arg == "vrootheight") {
-    tk_->TODO(arg);
-    setIntegerResult(1024);
+    if (! getWindow()) return false;
+
+    auto r = qApp->primaryScreen()->geometry();
+    setIntegerResult(r.height());
   }
   else if (arg == "vrootwidth") {
-    tk_->TODO(arg);
-    setIntegerResult(1280);
+    if (! getWindow()) return false;
+
+    auto r = qApp->primaryScreen()->geometry();
+    setIntegerResult(r.width());
   }
   else if (arg == "vrootx") {
-    tk_->TODO(arg);
-  }
-  else if (arg == "vrootx") {
-    tk_->TODO(arg);
+    if (! getWindow()) return false;
+
+    auto r = qApp->primaryScreen()->geometry();
+    setIntegerResult(r.x());
   }
   else if (arg == "vrooty") {
-    tk_->TODO(arg);
+    if (! getWindow()) return false;
+
+    auto r = qApp->primaryScreen()->geometry();
+    setIntegerResult(r.y());
   }
   else if (arg == "width") {
-    tk_->TODO(arg);
+    if (! getWindow()) return false;
+
+    setIntegerResult(w ? w->qwidget()->width() : 0);
   }
   else if (arg == "x") {
-    tk_->TODO(arg);
+    if (! getWindow()) return false;
+
+    setIntegerResult(w ? w->qwidget()->x() : 0);
   }
   else if (arg == "y") {
-    tk_->TODO(arg);
+    if (! getWindow()) return false;
+
+    setIntegerResult(w ? w->qwidget()->y() : 0);
   }
 
   return true;
@@ -3796,6 +3762,13 @@ CTkAppWidgetCommand(CTkAppCommand *command, const std::string &name,
  CTkAppCommand(command->getTk(), name), command_(command), w_(w), opts_(command->getTk())
 {
   opts_.init(opts);
+
+  w->setWidgetCommand(this);
+}
+
+CTkAppWidgetCommand::
+~CTkAppWidgetCommand()
+{
 }
 
 bool
@@ -3915,4 +3888,41 @@ setOptValue(const std::string &name, const std::string &value)
   w_->execConfig(opt->name, value);
 
   return true;
+}
+
+//---
+
+CTkAppCommand::
+CTkAppCommand(CTkApp *tk, const std::string &name) :
+ CTclAppCommand(tk, name), tk_(tk)
+{
+}
+
+bool
+CTkAppCommand::
+proc(int argc, const char **argv)
+{
+  tk_->setCurrentCommand(getName());
+
+  assert(argc > 0);
+
+  arg0_ = std::string(argv[0]);
+
+  Args args;
+
+  for (int i = 1; i < argc; ++i)
+    args.push_back(std::string(argv[i]));
+
+  auto rc = run(args);
+
+  tk_->setCurrentCommand("");
+
+  return rc;
+}
+
+CTkAppRoot *
+CTkAppCommand::
+root() const
+{
+  return tk_->root();
 }

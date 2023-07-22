@@ -65,6 +65,8 @@ class CTclApp {
 
   //---
 
+  bool hasResult() const { return resultSet_; }
+
   void setIntegerResult(int value);
   void setRealResult   (double value);
   void setStringResult (const std::string &value);
@@ -178,6 +180,8 @@ class CTclApp {
   std::string  appName_;
   bool         interactive_ { true };
   bool         isTk_        { false };
+
+  bool resultSet_ { false };
 
   TraceNames     traces_;
   NameTraceProcs traceProcs_;

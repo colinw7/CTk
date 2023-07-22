@@ -42,8 +42,12 @@ class ReadLine : public CReadLine {
 //        line += line1;
 //    }
 
-      if (app_->eval(line1))
-        std::cerr << app_->getStringResult() << "\n";
+      app_->setObjResult(nullptr);
+
+      if (app_->eval(line1)) {
+        if (app_->hasResult())
+          std::cerr << app_->getStringResult() << "\n";
+      }
 
       addHistory(line1);
     }

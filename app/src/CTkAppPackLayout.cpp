@@ -77,6 +77,7 @@ removeWidget(CTkAppWidget *widget)
     auto *wrapper = list_.at(i);
 
     auto *w = dynamic_cast<CTkAppLayoutWidget *>(wrapper->item);
+    if (! w) continue;
 
     auto *widget1 = w->getTkWidget();
     auto *layout1 = dynamic_cast<CTkAppPackLayout *>(w->getLayout());
@@ -215,6 +216,7 @@ setGeometry(const QRect &rect)
     auto *wrapper = list_.at(i);
 
     auto *item = dynamic_cast<CTkAppLayoutWidget *>(wrapper->item);
+    assert(item);
 
     const Info &info = wrapper->info;
 
@@ -285,6 +287,8 @@ setGeometry(const QRect &rect)
 
       item->setGeometry(r);
     }
+
+    item->show();
   }
 }
 
