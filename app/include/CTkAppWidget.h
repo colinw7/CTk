@@ -9,10 +9,13 @@
 #include <QWidgetAction>
 #include <QCheckBox>
 #include <QRadioButton>
+#include <QPushButton>
 #include <QMenu>
 #include <QLabel>
 #include <QBrush>
 #include <QPen>
+
+#include <optional>
 
 class CTkApp;
 class CTkAppRoot;
@@ -28,9 +31,6 @@ class CQSpinList;
 class CQLabelImage;
 
 class QFrame;
-class QPushButton;
-class QRadioButton;
-class QCheckBox;
 class QLineEdit;
 class QGroupBox;
 class QListWidget;
@@ -124,9 +124,9 @@ class CTkAppWidget : public QObject {
 
   //---
 
-  CTkAppPackLayout  *getTkPackLayout();
-  CTkAppGridLayout  *getTkGridLayout();
-  CTkAppPlaceLayout *getTkPlaceLayout();
+  CTkAppPackLayout  *getTkPackLayout(bool create=true);
+  CTkAppGridLayout  *getTkGridLayout(bool create=true);
+  CTkAppPlaceLayout *getTkPlaceLayout(bool create=true);
 
   //---
 
@@ -185,6 +185,10 @@ class CTkAppWidget : public QObject {
 
   bool getOptionValue(const std::string &optName, const std::string &optClass,
                       std::string &optValue) const;
+
+  //---
+
+  void processEvents(QEvent *e, const CTkAppEventData &matchEventData);
 
  protected:
   const std::string &getCommand() const { return command_; }
@@ -289,6 +293,8 @@ class CTkAppRootWidget : public QFrame {
 
 //---
 
+class CTkAppButtonWidget;
+
 class CTkAppButton : public CTkAppWidget {
   Q_OBJECT
 
@@ -301,9 +307,7 @@ class CTkAppButton : public CTkAppWidget {
 
   bool execOp(const Args &args) override;
 
-  void setText(const std::string &text);
-
-  void setImage(CImagePtr image);
+  void setImage(const QImage &image);
 
   void flash();
 
@@ -314,7 +318,36 @@ class CTkAppButton : public CTkAppWidget {
   void clickSlot();
 
  private:
-  QPushButton* qbutton_ { nullptr };
+  CTkAppButtonWidget* qbutton_ { nullptr };
+};
+
+class CTkAppButtonWidget : public QPushButton {
+  Q_OBJECT
+
+ public:
+  CTkAppButtonWidget(CTkAppButton *button);
+
+  const QString &text() const { return text_; }
+  void setText(const QString &s);
+
+  double width() const { return width_; }
+  void setWidth(double r) { width_ = r; }
+
+  double height() const { return height_; }
+  void setHeight(double r) { height_ = r; }
+
+  double wrapLength() const { return wrapLength_; }
+  void setWrapLength(double r);
+
+ private:
+  void updateText();
+
+ private:
+  CTkAppButton *button_     { nullptr };
+  double        width_      { -1 };
+  double        height_     { -1 };
+  double        wrapLength_ { -1 };
+  QString       text_;
 };
 
 //---
@@ -326,6 +359,8 @@ class CTkAppCanvas : public CTkAppWidget {
   Q_OBJECT
 
  public:
+  using Shape = CTkAppCanvasShape;
+
   CTkAppCanvas(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
 
   const char *getClassName() const override { return "Canvas"; }
@@ -343,15 +378,17 @@ class CTkAppCanvas : public CTkAppWidget {
   double height() const { return height_; }
   void setHeight(double r) { height_ = r; }
 
+  void processShapeEvents(Shape *shape, QEvent *w, const CTkAppEventData &matchEventData);
+
  private:
   CTkAppCanvasWidget* qcanvas_ { nullptr };
 
   using IdEventDatas = std::map<std::string, EventDatas>;
 
-  IdEventDatas       idEventDatas_;
-  CTkAppCanvasShape* insideShape_ { nullptr };
-  double             width_  { 400 };
-  double             height_ { 400 };
+  IdEventDatas idEventDatas_;
+  Shape*       insideShape_ { nullptr };
+  double       width_  { 400 };
+  double       height_ { 400 };
 };
 
 enum class CTkAppCanvasShapeType {
@@ -1044,13 +1081,24 @@ class CTkAppCanvasWidget : public QWidget {
 
 class CTkAppCheckButtonVarProc;
 
+class CTkAppCheckButtonWidget;
+
 class CTkAppCheckButton : public CTkAppWidget {
   Q_OBJECT
+
+ public:
+  using OptString = std::optional<std::string>;
 
  public:
   CTkAppCheckButton(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
 
   const char *getClassName() const override { return "CheckButton"; }
+
+  const OptString &onValue() const { return onValue_; }
+  void setOnValue(const OptString &s) { onValue_ = s; }
+
+  const OptString &offValue() const { return offValue_; }
+  void setOffValue(const OptString &s) { offValue_ = s; }
 
   bool execConfig(const std::string &name, const std::string &value) override;
 
@@ -1058,9 +1106,10 @@ class CTkAppCheckButton : public CTkAppWidget {
 
   void setText(const std::string &text);
 
-  void updateVariable();
-
   void setChecked(bool b);
+
+  void updateFromVar();
+  void updateToVar();
 
  private:
   void connectSlots(bool);
@@ -1069,9 +1118,21 @@ class CTkAppCheckButton : public CTkAppWidget {
   void stateChangedSlot(int);
 
  private:
-  QCheckBox*                qcheck_  { nullptr };
+  CTkAppCheckButtonWidget*  qcheck_  { nullptr };
   std::string               varName_;
   CTkAppCheckButtonVarProc* varProc_ { nullptr };
+  OptString                 onValue_;
+  OptString                 offValue_;
+};
+
+class CTkAppCheckButtonWidget : public QCheckBox {
+  Q_OBJECT
+
+ public:
+  CTkAppCheckButtonWidget(CTkAppCheckButton *check);
+
+ private:
+  CTkAppCheckButton *check_ { nullptr };
 };
 
 //---
@@ -1093,9 +1154,9 @@ class CTkAppEntry : public CTkAppWidget {
 
   void setText(const std::string &text);
 
-  void updateVariable();
-
   bool validate(const std::string &) const;
+
+  void updateFromVar();
 
  private:
   void connectSlots(bool);
@@ -1159,7 +1220,7 @@ class CTkAppLabel : public CTkAppWidget {
 
   void setImage(CImagePtr image);
 
-  void updateVariable();
+  void updateFromVar();
 
  private:
   CQLabelImage*       qlabel_ { nullptr };
@@ -1203,7 +1264,7 @@ class CTkAppListBox : public CTkAppWidget {
 
   bool execOp(const Args &args) override;
 
-  void updateVariable();
+  void updateFromVar();
 
  private:
   void connectSlots(bool b);
@@ -1245,7 +1306,7 @@ class CTkAppCheckAction : public QWidgetAction {
   const std::string &varName() const { return varName_; }
   void setVarName(const std::string &s) { varName_ = s; }
 
-  void updateVariable();
+  void updateFromVar();
 
  Q_SIGNALS:
   void stateChanged(int);
@@ -1285,7 +1346,7 @@ class CTkAppRadioAction : public QWidgetAction {
   const std::string &varName() const { return varName_; }
   void setVarName(const std::string &s) { varName_ = s; }
 
-  void updateVariable();
+  void updateFromVar();
 
  Q_SIGNALS:
   void toggled(bool);
@@ -1372,7 +1433,7 @@ class CTkAppMenuButton : public CTkAppWidget {
 
   void setMenu(CTkAppMenu *menu);
 
-  void updateVariable();
+  void updateFromVar();
 
  private:
   void connectSlots(bool);
@@ -1405,7 +1466,7 @@ class CTkAppMessage : public CTkAppWidget {
 
   void setText(const std::string &text);
 
-  void updateVariable();
+  void updateFromVar();
 
  private:
   QTextEdit*            qedit_ { nullptr };
@@ -1434,6 +1495,7 @@ class CTkAppPanedWindow : public CTkAppWidget {
 //---
 
 class CTkAppRadioButtonVarProc;
+class CTkAppRadioButtonWidget;
 
 class CTkAppRadioButton : public CTkAppWidget {
   Q_OBJECT
@@ -1453,7 +1515,8 @@ class CTkAppRadioButton : public CTkAppWidget {
 
   void setChecked(bool b);
 
-  void updateVariable();
+  void updateFromVar();
+  void updateToVar();
 
  private:
   void connectSlots(bool);
@@ -1462,10 +1525,20 @@ class CTkAppRadioButton : public CTkAppWidget {
   void toggleSlot(bool);
 
  private:
-  QRadioButton*             qradio_ { nullptr };
+  CTkAppRadioButtonWidget*  qradio_  { nullptr };
   std::string               varName_;
-  std::string               value_ { "1" };
+  std::string               value_   { "1" };
   CTkAppRadioButtonVarProc* varProc_ { nullptr };
+};
+
+class CTkAppRadioButtonWidget : public QRadioButton {
+  Q_OBJECT
+
+ public:
+  CTkAppRadioButtonWidget(CTkAppRadioButton *radio);
+
+ private:
+  CTkAppRadioButton *radio_ { nullptr };
 };
 
 //---
@@ -1484,7 +1557,8 @@ class CTkAppScale : public CTkAppWidget {
 
   bool execOp(const Args &args) override;
 
-  void updateVariable();
+  void updateFromVar();
+  void updateToVar();
 
  private:
   void connectSlots(bool);
@@ -1544,7 +1618,7 @@ class CTkAppSpinBox : public CTkAppWidget {
 
   void setValue(const std::string &);
 
-  void updateVariable();
+  void updateFromVar();
 
  private:
   CQSpinList*           qspin_ { nullptr };

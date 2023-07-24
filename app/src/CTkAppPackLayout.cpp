@@ -382,3 +382,27 @@ calculateSize(SizeType sizeType) const
 
   return totalSize;
 }
+
+#if 0
+void
+CTkAppPackLayout::
+draw(QPainter *p) const
+{
+  auto nx = xyvals_.getNumXVals();
+  auto ny = xyvals_.getNumYVals();
+
+  for (int iy = 0; iy < ny - 1; ++iy) {
+    auto y1 = xyvals_.yval(iy);
+    auto y2 = xyvals_.yval(iy + 1);
+
+    for (int ix = 0; ix < nx - 1; ++ix) {
+      auto x1 = xyvals_.xval(ix);
+      auto x2 = xyvals_.xval(ix + 1);
+
+      if (xyvals_.insideVal(ix, iy) == 0) {
+        p->fillRect(QRect(x1, y1, x2 - x1, y2 - y1), Qt::red);
+      }
+    }
+  }
+}
+#endif

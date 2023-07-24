@@ -7,6 +7,8 @@
 
 class CTkAppWidget;
 
+class QPainter;
+
 class CTkAppGridLayout : public QLayout {
   Q_OBJECT
 
@@ -31,6 +33,12 @@ class CTkAppGridLayout : public QLayout {
     bool isColValid() const { return col_.isValid(); }
     int  getCol    () const { return col_.getValue(-1); }
     void setCol    (int col) { col_.setValue(col); }
+
+    int  getRowSpan() const { return rowSpan_.getValue(1); }
+    void setRowSpan(int rowSpan) { rowSpan_.setValue(rowSpan); }
+
+    int  getColSpan() const { return colSpan_.getValue(1); }
+    void setColSpan(int colSpan) { colSpan_.setValue(colSpan); }
 
     void setSticky(const std::string &sticky) { sticky_.setValue(sticky); }
 
@@ -60,13 +68,15 @@ class CTkAppGridLayout : public QLayout {
     void setIPadY   (int ipady) { ipady_.setValue(ipady); }
 
     void update(const Info &info) {
-      if (info.row_   .isValid()) row_    = info.row_   ;
-      if (info.col_   .isValid()) col_    = info.col_   ;
-      if (info.sticky_.isValid()) sticky_ = info.sticky_;
-      if (info.padx_  .isValid()) padx_   = info.padx_  ;
-      if (info.pady_  .isValid()) pady_   = info.pady_  ;
-      if (info.ipadx_ .isValid()) ipadx_  = info.ipadx_  ;
-      if (info.ipady_ .isValid()) ipady_  = info.ipady_  ;
+      if (info.row_    .isValid()) row_     = info.row_    ;
+      if (info.col_    .isValid()) col_     = info.col_    ;
+      if (info.rowSpan_.isValid()) rowSpan_ = info.rowSpan_;
+      if (info.colSpan_.isValid()) colSpan_ = info.colSpan_;
+      if (info.sticky_ .isValid()) sticky_  = info.sticky_ ;
+      if (info.padx_   .isValid()) padx_    = info.padx_   ;
+      if (info.pady_   .isValid()) pady_    = info.pady_   ;
+      if (info.ipadx_  .isValid()) ipadx_   = info.ipadx_  ;
+      if (info.ipady_  .isValid()) ipady_   = info.ipady_  ;
     }
 
    private:
@@ -92,6 +102,7 @@ class CTkAppGridLayout : public QLayout {
 
    private:
     COptValT<int>         row_, col_;
+    COptValT<int>         rowSpan_, colSpan_;
     COptValT<std::string> sticky_;
     COptValT<int>         padx_, pady_;
     COptValT<int>         ipadx_, ipady_;
@@ -113,6 +124,32 @@ class CTkAppGridLayout : public QLayout {
   };
 
  public:
+  enum class WidgetType {
+    NONE,
+    WIDGET,
+    COL_SPAN,
+    ROW_SPAN,
+    EMPTY
+  };
+
+  struct WidgetData {
+    WidgetType    type   { WidgetType::NONE };
+    CTkAppWidget* widget { nullptr };
+
+    WidgetData() { }
+
+    WidgetData(CTkAppWidget *w) :
+     type(WidgetType::WIDGET), widget(w) {
+    }
+
+    WidgetData(const WidgetType &t) :
+     type(t), widget(nullptr) {
+    }
+  };
+
+  using WidgetDatas = std::vector<WidgetData>;
+
+ public:
   CTkAppGridLayout(QWidget *parent, int margin = 0, int spacing = -1);
   CTkAppGridLayout(int spacing = -1);
 
@@ -120,8 +157,8 @@ class CTkAppGridLayout : public QLayout {
 
   void addItem(QLayoutItem *item) override;
 
-  void addWidgets(const std::vector<CTkAppWidget *> &widgets, const Info &info);
-  void addWidget(CTkAppWidget *widget, const Info &info);
+  void addWidgets(const WidgetDatas &widgets, const Info &info);
+  void addWidget(const WidgetData &widget, const Info &info);
 
   ItemWrapper *getItem(CTkAppWidget *widget) const;
 
@@ -130,7 +167,10 @@ class CTkAppGridLayout : public QLayout {
   bool setChildWeight(CTkAppWidget *widget, int weight);
 
   void setColumnWeight(int col, int weight);
-  void setRowWeight   (int row, int weight);
+  int  getColumnWeight(int col) const;
+
+  void setRowWeight(int row, int weight);
+  int  getRowWeight(int row) const;
 
   Qt::Orientations expandingDirections() const override;
 
@@ -150,10 +190,19 @@ class CTkAppGridLayout : public QLayout {
 
   void add(QLayoutItem *item, const Info &info);
 
+  void draw(QPainter *p) const;
+
  private:
   enum SizeType { MinimumSize, SizeHint };
 
   QSize calculateSize(SizeType sizeType) const;
+
+  void calculateDims(uint &num_rows, uint &num_cols) const;
+
+  void calcPrefSizes(SizeType sizeType, std::vector<int> &prefColWidths,
+                     std::vector<int> &prefRowHeights, int &prefWidth, int &prefHeight) const;
+
+  ItemWrapper *gridItem(int row, int col) const;
 
  private:
   using ColWeights = std::map<int, int>;
@@ -162,6 +211,8 @@ class CTkAppGridLayout : public QLayout {
   QList<ItemWrapper *> list_;
   int                  row_ { 0 };
   int                  col_ { 0 };
+  int                  rowSpan_ { 1 };
+  int                  colSpan_ { 1 };
   ColWeights           colWeights_;
   RowWeights           rowWeights_;
 };

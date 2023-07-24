@@ -79,7 +79,7 @@ CTkAppLayoutWidget::
 show()
 {
   if (widget_)
-    widget_->getQWidget()->setVisible(true);
+    widget_->show();
 }
 
 QSize

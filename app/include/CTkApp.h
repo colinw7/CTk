@@ -82,7 +82,8 @@ class CTkApp : public CTclApp {
 
   bool triggerKeyPressEvents(const std::string &, CTkAppWidget *, QEvent *e);
 
-  bool execEvent(CTkAppWidget *, QEvent *e, const CTkAppEventData &data);
+  bool execEvent(CTkAppWidget *, QEvent *e, const CTkAppEventData &data,
+                 const std::string &command);
 
   //---
 
@@ -322,13 +323,13 @@ inline bool stringToDistance(const std::string &str, double &r) {
 
   double f = 1.0;
 
-  if      (c == 'c')
+  if      (c == 'c') // centimeters
     f = 1.0/2.54;
-  else if (c == 'i')
+  else if (c == 'i') // inches
     f = 1.0;
-  else if (c == 'm')
+  else if (c == 'm') // millimeters
     f = 1.0/25.4;
-  else if (c == 'p')
+  else if (c == 'p') // points
     f = 1.0/72.0;
   else
     return false;

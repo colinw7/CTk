@@ -95,7 +95,7 @@ class CLASS : public CTkAppCommand { \
   CTkAppCommandDef("tk_popup"            , CTkAppTkPopupCmd)
 //CTkAppCommandDef("tk_setPalette"       , CTkAppTkSetPaletteCmd)
 
-//CTkAppCommandDef("bitmap" , CTkAppBitmapCmd)
+//CTkAppCommandDef("bitmap" , CTkAppBitmapCmd);
 //CTkAppCommandDef("console", CTkAppConsoleCmd);
 //CTkAppCommandDef("photo"  , CTkAppPhotoCmd)
 
@@ -171,12 +171,12 @@ addCommands(CTkApp *tk)
   new CTkAppSendCmd       (tk);
   new CTkAppSpinBoxCmd    (tk);
   new CTkAppTextCmd       (tk);
+  new CTkAppTkCmd         (tk);
   new CTkAppTopLevelCmd   (tk);
   new CTkAppUpdateCmd     (tk);
   new CTkAppWInfoCmd      (tk);
   new CTkAppWmCmd         (tk);
 
-  new CTkAppTkCmd           (tk);
 //new CTkAppTkErrorCmd      (tk);
   new CTkAppTkGetOpenFileCmd(tk);
   new CTkAppTkGetSaveFileCmd(tk);
@@ -254,10 +254,8 @@ run(const Args &args)
 
     CTkAppEventData data;
 
-    if (! tk_->parseEvent(pattern, data)) {
-      (void) tk_->throwError("bad event pattern \"" + pattern + "\"");
-      return true; // TODO
-    }
+    if (! tk_->parseEvent(pattern, data))
+      return tk_->throwError("bad event pattern \"" + pattern + "\"");
 
     if (numArgs > 2) {
       data.command = args[2];
@@ -647,15 +645,42 @@ run(const Args &args)
     return false;
 
   if      (arg == "add") {
+    if (numArgs < 3)
+      return tk_->wrongNumArgs("event add virtual sequence ?sequence ...?");
+
     tk_->TODO(arg);
   }
   else if (arg == "delete") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs("event delete virtual ?sequence ...?");
+
     tk_->TODO(arg);
   }
   else if (arg == "generate") {
-    tk_->TODO(arg);
+    if (numArgs < 3)
+      return tk_->wrongNumArgs("event generate window event ?-option value ...?");
+
+    auto *w = tk_->lookupWidgetByName(args[1]);
+    if (! w) return false;
+
+    CTkAppEventData data;
+
+    if (! tk_->parseEvent(args[2], data))
+      (void) tk_->throwError("bad event pattern \"" + args[2] + "\"");
+
+    w->processEvents(nullptr, data);
   }
   else if (arg == "info") {
+    if (numArgs == 1) {
+      // list virtual events
+    }
+    else if (numArgs == 2) {
+      // list virtual event
+    }
+    else {
+      return tk_->wrongNumArgs("event info ?virtual?");
+    }
+
     tk_->TODO(arg);
   }
 
@@ -1013,8 +1038,10 @@ run(const Args &args)
 
   const auto &arg = args[0];
 
+  bool configure = false;
+
   if      (arg == "configure") {
-    tk_->TODO(arg);
+    configure = true;
   }
   else if (arg == "content") {
     tk_->TODO(arg);
@@ -1156,8 +1183,12 @@ run(const Args &args)
     tk_->TODO(arg);
   }
   else {
-    CTkAppWidget*               parent = nullptr;
-    std::vector<CTkAppWidget *> children;
+    configure = true;
+  }
+
+  if (configure) {
+    CTkAppWidget*                 parent = nullptr;
+    CTkAppGridLayout::WidgetDatas widgetDatas;
 
     CTkAppOptionValueMap optValues;
 
@@ -1167,24 +1198,14 @@ run(const Args &args)
 
       //---
 
-      // check for all dashes
-      uint pos = 0;
-
-      while (pos < arg.size() && arg[pos] == '-')
-        ++pos;
-
-      bool dashes = (pos > 0 && pos >= arg.size());
-
-      //---
-
-      if      (dashes) {
-        tk_->TODO("dashes");
+      if      (arg == "-") {
+        widgetDatas.emplace_back(CTkAppGridLayout::WidgetType::COL_SPAN);
       }
-      else if (arg == "X") {
-        tk_->TODO("X");
+      else if (arg == "x") {
+        widgetDatas.emplace_back(CTkAppGridLayout::WidgetType::EMPTY);
       }
       else if (arg == "^") {
-        tk_->TODO("^");
+        widgetDatas.emplace_back(CTkAppGridLayout::WidgetType::ROW_SPAN);
       }
       else if (arg[0] == '-') {
         if (! tk_->processOption(opts, args, i, optValues))
@@ -1203,7 +1224,7 @@ run(const Args &args)
           if (parent == nullptr)
             parent = parent1;
 
-          children.push_back(child);
+          widgetDatas.emplace_back(child);
         }
       }
     }
@@ -1211,18 +1232,28 @@ run(const Args &args)
     CTkAppGridLayout::Info info;
 
     {
-    auto p = optValues.find("-row");
-    if (p != optValues.end()) info.setRow((*p).second.i);
-    }
-
-    {
     auto p = optValues.find("-column");
     if (p != optValues.end()) info.setCol((*p).second.i);
     }
 
     {
-    auto p = optValues.find("-sticky");
-    if (p != optValues.end()) info.setSticky((*p).second.s);
+    auto p = optValues.find("-columnspan");
+    if (p != optValues.end()) info.setColSpan((*p).second.i);
+    }
+
+    {
+    auto p = optValues.find("-in");
+    if (p != optValues.end()) tk_->TODO("-in");
+    }
+
+    {
+    auto p = optValues.find("-ipadx");
+    if (p != optValues.end()) info.setIPadX((*p).second.i);
+    }
+
+    {
+    auto p = optValues.find("-ipady");
+    if (p != optValues.end()) info.setIPadY((*p).second.i);
     }
 
     {
@@ -1236,13 +1267,18 @@ run(const Args &args)
     }
 
     {
-    auto p = optValues.find("-ipadx");
-    if (p != optValues.end()) info.setIPadX((*p).second.i);
+    auto p = optValues.find("-row");
+    if (p != optValues.end()) info.setRow((*p).second.i);
     }
 
     {
-    auto p = optValues.find("-ipady");
-    if (p != optValues.end()) info.setIPadY((*p).second.i);
+    auto p = optValues.find("-rowspan");
+    if (p != optValues.end()) info.setRowSpan((*p).second.i);
+    }
+
+    {
+    auto p = optValues.find("-sticky");
+    if (p != optValues.end()) info.setSticky((*p).second.s);
     }
 
     if (! parent)
@@ -1251,7 +1287,11 @@ run(const Args &args)
     auto *layout = parent->getTkGridLayout();
     if (! layout) return tk_->throwError("no grid layout for \"" + arg + "\"");
 
-    layout->addWidgets(children, info);
+    layout->addWidgets(widgetDatas, info);
+
+    layout->invalidate();
+
+    parent->show();
   }
 
   return true;
@@ -1281,7 +1321,7 @@ run(const Args &args)
 
     const auto &type = args[1];
 
-    if (type != "photo" && type != "bitmap")
+    if (type != "photo" && type != "bitmap" && type != "svg")
       return tk_->throwError("image type \"" + type + "\" doesn't exist");
 
     std::string name, filename, data, format, background, foreground;
@@ -1346,7 +1386,10 @@ run(const Args &args)
     auto image = tk_->createImage(type, format, name);
 
     if      (filename != "") {
-      image->loadFile(filename);
+      if (type == "svg")
+        image->loadSVG(filename);
+      else
+        image->loadFile(filename);
     }
     else if (data != "") {
       image->loadData(data);
@@ -2209,6 +2252,8 @@ run(const Args &args)
 
     layout->addWidgets(children, info);
 
+    layout->invalidate();
+
     parent->show();
   }
 
@@ -2401,6 +2446,10 @@ run(const Args &args)
     if (! layout) return tk_->throwError("no place layout for \"" + arg + "\"");
 
     layout->addWidgets(children, info);
+
+    layout->invalidate();
+
+    parent->show();
   }
 
   return true;
@@ -3557,8 +3606,10 @@ run(const Args &args)
     tk_->TODO(arg);
   }
   else if (arg == "geometry") {
-    if (numArgs == 3)
-      w->setGeometry(args[2]);
+    if (numArgs == 3) {
+      if (! w->setGeometry(args[2]))
+        return false;
+    }
     else
       setStringResult(w->getGeometry());
   }

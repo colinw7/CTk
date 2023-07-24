@@ -321,13 +321,13 @@ triggerEvents(const std::string &className, CTkAppWidget *w, QEvent *e,
   if (p1 != classEvents_.end()) {
     for (const auto &eventData : (*p1).second) {
       if (eventData == matchEventData)
-        execEvent(w, e, eventData);
+        execEvent(w, e, matchEventData, eventData.command);
     }
   }
 
   for (const auto &eventData : allEvents_) {
     if (eventData == matchEventData)
-      execEvent(w, e, eventData);
+      execEvent(w, e, matchEventData, eventData.command);
   }
 
   return true;
@@ -350,13 +350,13 @@ triggerKeyPressEvents(const std::string &className, CTkAppWidget *w, QEvent *e)
   if (p1 != classEvents_.end()) {
     for (const auto &eventData : (*p1).second) {
       if (eventData == matchEventData)
-        execEvent(w, e, eventData);
+        execEvent(w, e, matchEventData, eventData.command);
     }
   }
 
   for (const auto &eventData : allEvents_) {
     if (eventData == matchEventData)
-      execEvent(w, e, eventData);
+      execEvent(w, e, matchEventData, eventData.command);
   }
 
   return true;
@@ -364,35 +364,80 @@ triggerKeyPressEvents(const std::string &className, CTkAppWidget *w, QEvent *e)
 
 bool
 CTkApp::
-execEvent(CTkAppWidget *w, QEvent *e, const CTkAppEventData &data)
+execEvent(CTkAppWidget *w, QEvent *e, const CTkAppEventData &data, const std::string &command)
 {
-  auto command = data.command;
+  auto *me = dynamic_cast<QMouseEvent *>(e);
 
-  auto replaceStr = [&](const std::string &oldStr, const std::string &newStr) {
-    auto oldLen = oldStr.size();
+  std::string command1;
 
-    auto pos = command.find(oldStr);
+  CStrParse parse(command);
 
-    while (pos != std::string::npos) {
-      command = command.substr(0, pos) + newStr + command.substr(pos + oldLen);
+  while (! parse.eof()) {
+    if (parse.isChar('%')) {
+      parse.skipChar();
 
-      pos = command.find(oldStr);
+      if (! parse.eof()) {
+        auto c = parse.readChar();
+
+        switch (c) {
+          case '%':
+            command1 += '%';
+            break;
+          case 'b': // button
+            command1 += CStrUtil::toString(data.button);
+            break;
+          case 'd': // detail
+            command1 += ""; // TODO
+            break;
+          case 'h': // height
+            command1 += CStrUtil::toString(w->qwidget()->height());
+            break;
+          case 't': // time
+            command1 += ""; // TODO
+            break;
+          case 'w': // width
+            command1 += CStrUtil::toString(w->qwidget()->width());
+            break;
+          case 'x': // x
+            command1 += (me ? CStrUtil::toString(me->x()) : "0");
+            break;
+          case 'y': // y
+            command1 += (me ? CStrUtil::toString(me->y()) : "0");
+            break;
+          case 'A': // key (unicode)
+            command1 += data.key;
+            break;
+          case 'D': // delta
+            command1 += ""; // TODO
+            break;
+          case 'K': // key (keysym)
+            command1 += data.key;
+            break;
+          case 'W': // widget name
+            command1 += w->getFullName();
+            break;
+          case 'X': // root x
+            command1 += (me ? CStrUtil::toString(w->qwidget()->mapToGlobal(me->pos()).x()) : "0");
+            break;
+          case 'Y': // root y
+            command1 += (me ? CStrUtil::toString(w->qwidget()->mapToGlobal(me->pos()).y()) : "0");
+            break;
+          default:
+            command1 += '%';
+            command1 += c;
+            break;
+        }
+      }
+      else
+        command1 += '%';
     }
-  };
-
-  replaceStr("%W", w->getFullName());
-
-  if (data.type == CTkAppEventType::Button) {
-    auto *me = dynamic_cast<QMouseEvent *>(e);
-
-    replaceStr("%x", CStrUtil::toString(me->x()));
-    replaceStr("%y", CStrUtil::toString(me->y()));
-    replaceStr("%b", CStrUtil::toString(data.button));
+    else
+      command1 += parse.readChar();
   }
 
-  //std::cerr << "Exec: " << command << "\n";
+  //std::cerr << "Exec: " << command1 << "\n";
 
-  eval(command);
+  eval(command1);
 
   w->qwidget()->update();
 
@@ -606,21 +651,26 @@ parseEvent(const std::string &pattern, CTkAppEventData &data)
       return true;
     }
 
+    data.anyModifier = true;
+
     while (true) {
       if      (parse.isString("Control")) {
         parse.skipLastString();
 
         data.modifiers |= uint(CTkAppEventModifier::Control);
+        data.anyModifier = false;
       }
       else if (parse.isString("Shift")) {
         parse.skipLastString();
 
         data.modifiers |= uint(CTkAppEventModifier::Shift);
+        data.anyModifier = false;
       }
       else if (parse.isString("Alt")) {
         parse.skipLastString();
 
         data.modifiers |= uint(CTkAppEventModifier::Shift);
+        data.anyModifier = false;
       }
       else
         break;
@@ -789,8 +839,10 @@ parseEvent(const std::string &pattern, CTkAppEventData &data)
         if (! parseClose('>'))
           return false;
       }
-      else
-        data.key = ""; // Any ?
+      else {
+        data.anyKey = true;
+        data.key    = ""; // Any ?
+      }
     }
     else if (parse.isString("Enter")) {
       parse.skipLastString();
