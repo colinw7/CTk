@@ -9,7 +9,7 @@
 
 class CTkAppImage {
  public:
-  CTkAppImage(const std::string &name) :
+  explicit CTkAppImage(const std::string &name) :
    name_(name) {
   }
 

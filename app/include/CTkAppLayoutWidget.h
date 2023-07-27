@@ -13,11 +13,11 @@ class CTkAppLayoutWidget : public QLayoutItem {
  public:
   using TkWidget = CTkAppWidget;
 
-  CTkAppLayoutWidget(TkWidget *widget) :
+  explicit CTkAppLayoutWidget(TkWidget *widget) :
    widget_(widget) {
   }
 
-  CTkAppLayoutWidget(QLayout *layout) :
+  explicit CTkAppLayoutWidget(QLayout *layout) :
    layout_(layout) {
   }
 

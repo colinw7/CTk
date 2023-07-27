@@ -1,4 +1,7 @@
-#include <CTclAppI.h>
+#include <CTclAppCommand.h>
+#include <CTclApp.h>
+
+#include <CStrUtil.h>
 
 #include <tcl.h>
 
@@ -7,8 +10,8 @@ CTclAppCommand(CTclApp *app, const std::string &name) :
  app_(app), name_(name)
 {
   Tcl_CreateCommand(app_->getInterp(), name_.c_str(),
-                    (Tcl_CmdProc *) &CTclAppCommand::commandProc,
-                    (ClientData) this, (Tcl_CmdDeleteProc *) nullptr);
+                    static_cast<Tcl_CmdProc *>(&CTclAppCommand::commandProc),
+                    static_cast<ClientData>(this), nullptr);
 }
 
 CTclAppCommand::
@@ -19,7 +22,7 @@ CTclAppCommand::
 
 int
 CTclAppCommand::
-commandProc(ClientData clientData, Tcl_Interp *interp, int argc, const char **argv)
+commandProc(ClientData clientData, Tcl_Interp *, int argc, const char **argv)
 {
   auto *command = static_cast<CTclAppCommand *>(clientData);
 

@@ -13,7 +13,7 @@ struct Tcl_Obj;
 
 class CTclAppCommand {
  protected:
-  CTclAppCommand(CTclApp *app, const std::string &name);
+  explicit CTclAppCommand(CTclApp *app, const std::string &name);
 
   virtual ~CTclAppCommand();
 

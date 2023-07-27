@@ -24,7 +24,7 @@ class CTkAppGridLayout : public QLayout {
 
   class Info {
    public:
-    Info() { }
+    explicit Info() { }
 
     bool isRowValid() const { return row_.isValid(); }
     int  getRow    () const { return row_.getValue(-1); }
@@ -150,8 +150,8 @@ class CTkAppGridLayout : public QLayout {
   using WidgetDatas = std::vector<WidgetData>;
 
  public:
-  CTkAppGridLayout(QWidget *parent, int margin = 0, int spacing = -1);
-  CTkAppGridLayout(int spacing = -1);
+  explicit CTkAppGridLayout(QWidget *parent, int margin = 0, int spacing = -1);
+  explicit CTkAppGridLayout(int spacing = -1);
 
  ~CTkAppGridLayout();
 

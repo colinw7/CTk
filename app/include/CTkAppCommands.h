@@ -20,7 +20,7 @@ class CTkAppCommand : public CTclAppCommand {
   using Args = std::vector<std::string>;
 
  public:
-  CTkAppCommand(CTkApp *tk, const std::string &name);
+  explicit CTkAppCommand(CTkApp *tk, const std::string &name);
 
   CTkApp *getTk() const { return tk_; }
 
@@ -41,8 +41,11 @@ class CTkAppCommand : public CTclAppCommand {
 
 class CTkAppWidgetCommand : public CTkAppCommand {
  public:
-  CTkAppWidgetCommand(CTkAppCommand *command, const std::string &name,
-                      CTkAppWidget *w, const CTkAppOpt *opts = nullptr);
+  explicit CTkAppWidgetCommand(CTkAppCommand *command, const std::string &name,
+                               CTkAppWidget *w, const CTkAppOpt *opts = nullptr);
+  explicit CTkAppWidgetCommand(CTkApp *app, const std::string &name,
+                               CTkAppWidget *w, const CTkAppOpt *opts = nullptr);
+
  ~CTkAppWidgetCommand();
 
   bool run(const Args &args) override;

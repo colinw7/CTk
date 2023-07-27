@@ -14,7 +14,7 @@ class CTkAppOpt;
 
 class CTkAppOptData {
  public:
-  CTkAppOptData(CTkApp *tk);
+  explicit CTkAppOptData(CTkApp *tk);
 
   void init(const CTkAppOpt *opts) {
    opts_ = opts;

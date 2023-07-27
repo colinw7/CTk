@@ -5,14 +5,18 @@ CTkAppPlaceLayout::
 CTkAppPlaceLayout(QWidget *parent, int margin, int spacing) :
  QLayout(parent)
 {
+  setObjectName("place");
+
   setMargin(margin);
   setSpacing(spacing);
 }
 
 CTkAppPlaceLayout::
 CTkAppPlaceLayout(int spacing) :
- QLayout(NULL)
+ QLayout(nullptr)
 {
+  setObjectName("place");
+
   setSpacing(spacing);
 }
 
@@ -71,7 +75,7 @@ getItem(CTkAppWidget *widget) const
       return wrapper;
   }
 
-  return NULL;
+  return nullptr;
 }
 
 bool
@@ -116,8 +120,8 @@ CTkAppPlaceLayout::itemAt(int index) const
 
   if (wrapper)
     return wrapper->item;
-  else
-    return NULL;
+
+  return nullptr;
 }
 
 QSize

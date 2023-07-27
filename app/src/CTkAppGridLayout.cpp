@@ -11,6 +11,8 @@ CTkAppGridLayout::
 CTkAppGridLayout(QWidget *parent, int margin, int spacing) :
  QLayout(parent)
 {
+  setObjectName("grid");
+
   setMargin(margin);
   setSpacing(spacing);
 }
@@ -19,6 +21,8 @@ CTkAppGridLayout::
 CTkAppGridLayout(int spacing) :
  QLayout(nullptr)
 {
+  setObjectName("grid");
+
   setSpacing(spacing);
 }
 

@@ -10,6 +10,8 @@ CTkAppPackLayout::
 CTkAppPackLayout(QWidget *parent, int margin, int spacing) :
  QLayout(parent)
 {
+  setObjectName("pack");
+
   setMargin(margin);
   setSpacing(spacing);
 }
@@ -17,6 +19,8 @@ CTkAppPackLayout(QWidget *parent, int margin, int spacing) :
 CTkAppPackLayout::
 CTkAppPackLayout(int spacing)
 {
+  setObjectName("pack");
+
   setSpacing(spacing);
 }
 
@@ -43,8 +47,8 @@ addWidgets(const std::vector<CTkAppWidget *> &widgets, const Info &info)
   auto *parent = parentWidget();
 
   for (auto *widget : widgets) {
-    if (widget->getQWidget()->parentWidget() != parent)
-      widget->getQWidget()->setParent(parent);
+    if (widget->parentWidget() != parent)
+      widget->setParentWidget(parent);
   }
 
   auto *layout = new CTkAppPackLayout;
@@ -61,8 +65,8 @@ addWidget(CTkAppWidget *widget, const Info &info)
 {
   auto *parent = parentWidget();
 
-  if (widget->getQWidget()->parentWidget() != parent)
-    widget->getQWidget()->setParent(parent);
+  if (widget->parentWidget() != parent)
+    widget->setParentWidget(parent);
 
   add(new CTkAppLayoutWidget(widget), info);
 }

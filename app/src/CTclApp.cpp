@@ -1,5 +1,4 @@
-#include <CTclAppI.h>
-#include <CTclAppProcs.k>
+#include <CTclApp.h>
 
 #include <CFile.h>
 #include <CStrUtil.h>
@@ -11,22 +10,21 @@
 
 extern "C" {
 #include <tcl.h>
-#include <tk.h>
-#include <tix.h>
 }
 
 CTclApp *CTclApp::app_ = nullptr;
 
-static Tk_ArgvInfo
-argTable[] = {
-  { "", TK_ARGV_END, },
-};
+CTclApp::
+CTclApp(Tcl_Interp *interp) :
+ interp_(interp)
+{
+}
 
 CTclApp::
-CTclApp(int argc, char **argv) :
+CTclApp(int argc, const char **argv) :
  argc_(argc), argv_(argv)
 {
-  char *p = strrchr(argv[0], '/');
+  char *p = strrchr(const_cast<char *>(argv[0]), '/');
 
   if (p)
     appName_ = p + 1;
@@ -39,29 +37,6 @@ CTclApp::
 setAppName(const std::string &appName)
 {
   appName_ = appName;
-}
-
-void
-CTclApp::
-tkInit()
-{
-  isTk_ = true;
-
-  initInterp();
-
-  if (Tk_ParseArgv(interp_, (Tk_Window) nullptr, &argc_, (const char **) argv_,
-                   argTable, 0) != TCL_OK) {
-    std::cerr << getStringResult() << "\n";
-    exit(1);
-  }
-
-  Tcl_DeleteInterp(interp_);
-
-  app_ = this;
-
-  Tk_Main(argc_, argv_, &CTclApp::tkInit_);
-
-  app_ = nullptr;
 }
 
 bool
@@ -89,49 +64,6 @@ init()
   initCommands();
 
   initInteractive();
-}
-
-int
-CTclApp::
-tkInit_(Tcl_Interp *interp)
-{
-  assert(app_->isTk_);
-
-  app_->setInteractive(false);
-
-  app_->interp_ = interp;
-
-  if (Tcl_Init(app_->interp_) == TCL_ERROR)
-    return TCL_ERROR;
-
-  if (Tk_Init(app_->interp_) == TCL_ERROR)
-    return TCL_ERROR;
-
-#ifdef USE_TIX
-  if (Tix_Init(app_->interp_) == TCL_ERROR)
-    return TCL_ERROR;
-#endif
-
-  app_->initCommands();
-
-  (void) app_->eval(CTclAppProcs_TK);
-
-  auto filename = app_->appName_ + ".tcl";
-
-  if (CFile::exists(filename)) {
-    std::cerr << "Using " << filename << std::endl;
-
-    (void) app_->evalFile(filename);
-  }
-  else {
-    (void) app_->eval(app_->getTclStr());
-  }
-
-  app_->initInteractive();
-
-  exit(0);
-
-  return TCL_OK;
 }
 
 void
@@ -164,8 +96,6 @@ mainLoop()
 {
   if (isInteractive())
     interactiveMainLoop();
-  else if (isTk_)
-    tkMainLoop();
 }
 
 void
@@ -187,35 +117,6 @@ interactiveMainLoop()
 
     (void) eval(line);
   }
-}
-
-void
-CTclApp::
-tkMainLoop()
-{
-  assert(isTk_);
-
-  Tk_MainLoop();
-}
-
-void
-CTclApp::
-tkIdleMainLoop()
-{
-  assert(isTk_);
-
-  for (;;) {
-    while (Tcl_DoOneEvent(TCL_DONT_WAIT));
-
-    app_->idle();
-  }
-}
-
-Display *
-CTclApp::
-getDisplay()
-{
-  return Tk_Display(Tk_MainWindow(interp_));
 }
 
 //---
@@ -657,7 +558,7 @@ handleTrace(const char *name, int flags)
 
 char *
 CTclApp::
-traceProc(ClientData data, Tcl_Interp *, const char *name1, const char *name2, int flags)
+traceProc(ClientData data, Tcl_Interp *, const char *name1, const char *, int flags)
 {
   // ignore unset called on trace destruction
   if (flags & TCL_TRACE_UNSETS) return nullptr;
@@ -795,14 +696,14 @@ errorInfo_(int rc) const
 
   Tcl_Obj *errorMsg;
   Tcl_IncrRefCount(key1);
-  Tcl_DictObjGet(NULL, options, key1, &errorMsg);
+  Tcl_DictObjGet(nullptr, options, key1, &errorMsg);
   Tcl_DecrRefCount(key1);
 
   auto msg = stringFromObj(errorMsg);
 
   Tcl_Obj *stackTrace;
   Tcl_IncrRefCount(key2);
-  Tcl_DictObjGet(NULL, options, key2, &stackTrace);
+  Tcl_DictObjGet(nullptr, options, key2, &stackTrace);
   Tcl_DecrRefCount(key2);
 
   auto trace = stringFromObj(stackTrace);

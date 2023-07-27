@@ -5,6 +5,7 @@
 #include <CTkAppPlaceLayout.h>
 #include <CTkAppGridLayout.h>
 #include <CTkAppImage.h>
+#include <CTkAppUtil.h>
 
 #include <CQSlider.h>
 #include <CQSpinList.h>
@@ -173,19 +174,30 @@ CTkAppRoot::
 CTkAppRoot(CTkApp *tk) :
  CTkAppWidget(tk, nullptr, "")
 {
-  qframe_ = new CTkAppRootWidget(this);
+  qroot_ = new CTkAppRootWidget(this);
 
-  setQWidget(qframe_);
+  setQWidget(qroot_);
+}
+
+void
+CTkAppRoot::
+setRoot(QFrame *qroot)
+{
+  delete qroot_;
+
+  qroot_ = qroot;
+
+  setQWidget(qroot_);
 }
 
 void
 CTkAppRoot::
 show()
 {
-  if (! qframe_->isVisible()) {
-    auto s = qframe_->sizeHint();
+  if (! qroot_->isVisible()) {
+    auto s = qroot_->sizeHint();
 
-    qframe_->resize(s.expandedTo(QApplication::globalStrut()));
+    qroot_->resize(s.expandedTo(QApplication::globalStrut()));
   }
 
   CTkAppWidget::show();
@@ -202,8 +214,12 @@ execConfig(const std::string &name, const std::string &value)
 
     auto *menu = dynamic_cast<CTkAppMenu *>(w);
 
-    if (menu)
-      qframe_->setMenu(menu->qmenu());
+    if (menu) {
+      auto *rootWidget = qobject_cast<CTkAppRootWidget *>(qroot_);
+
+      if (rootWidget)
+        rootWidget->setMenu(menu->qmenu());
+    }
   }
   else
     return CTkAppWidget::execConfig(name, value);
@@ -504,7 +520,7 @@ flash()
 
 CTkAppButtonWidget::
 CTkAppButtonWidget(CTkAppButton *button) :
- QPushButton(button->parent() ? button->getParent()->getQWidget() : nullptr), button_(button)
+ QPushButton(button->getParent() ? button->getParent()->getQWidget() : nullptr), button_(button)
 {
 }
 
@@ -4370,6 +4386,17 @@ CTkAppTopLevel(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
   setQWidget(qframe_);
 }
 
+void
+CTkAppTopLevel::
+setFrame(QFrame *qframe)
+{
+  delete qframe_;
+
+  qframe_ = qframe;
+
+  setQWidget(qframe_);
+}
+
 bool
 CTkAppTopLevel::
 execConfig(const std::string &name, const std::string &value)
@@ -4409,6 +4436,15 @@ CTkAppWidget::
   delete qwidget_;
 
   delete getWidgetCommand();
+}
+
+void
+CTkAppWidget::
+setParentWidget(QWidget *w)
+{
+  assert(! isTopLevel());
+
+  qwidget()->setParent(w);
 }
 
 CTkAppRoot *
@@ -4558,7 +4594,7 @@ void
 CTkAppWidget::
 removeChild(CTkAppWidget *w)
 {
-  WidgetMap::iterator p = children_.find(w->getName());
+  auto p = children_.find(w->getName());
 
   if (p != children_.end())
     children_.erase(p);
@@ -4578,7 +4614,7 @@ CTkAppWidget *
 CTkAppWidget::
 getChild(const std::string &name) const
 {
-  WidgetMap::const_iterator p = children_.find(name);
+  auto p = children_.find(name);
 
   if (p == children_.end())
     return nullptr;

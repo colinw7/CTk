@@ -3,6 +3,7 @@
 #include <CTkAppImage.h>
 #include <CTkAppCommands.h>
 #include <CTkAppEventData.h>
+#include <CTkAppUtil.h>
 
 #include <CImageLib.h>
 #include <CStrParse.h>
@@ -23,8 +24,24 @@ static int Tk_SafeInit(Tcl_Interp *) { return TCL_OK; }
 //---
 
 CTkApp::
-CTkApp(int argc, char **argv) :
+CTkApp(Tcl_Interp *interp) :
+ CTclApp(interp)
+{
+  static const char *argv[2] = { "CTkApp", nullptr };
+
+  construct(1, argv);
+}
+
+CTkApp::
+CTkApp(int argc, const char **argv) :
  CTclApp(argc, argv)
+{
+  construct(argc, argv);
+}
+
+void
+CTkApp::
+construct(int argc, const char **argv)
 {
   root_ = new CTkAppRoot(this);
 
@@ -92,6 +109,15 @@ CTkApp::
 addWidgetClass(const std::string &name)
 {
   widgetClasses_.insert(name);
+}
+
+//---
+
+void
+CTkApp::
+setRootFrame(QFrame *frame)
+{
+  root_->setRoot(frame);
 }
 
 //---
@@ -445,6 +471,31 @@ execEvent(CTkAppWidget *w, QEvent *e, const CTkAppEventData &data, const std::st
 }
 
 //---
+
+CTkAppTopLevel *
+CTkApp::
+installToplevel(const std::string &id, QFrame *frame)
+{
+  static CTkAppOpt opts[] = {
+    { nullptr, nullptr, nullptr, nullptr }
+  };
+
+  auto widgetName = "." + id;
+
+  auto *w = lookupWidgetByName(widgetName, /*quiet*/true);
+  if (w) { throwError("widget already exists"); return nullptr; }
+
+  auto *toplevel = new CTkAppTopLevel(this, root(), id);
+
+  toplevel->setFrame(frame);
+
+  auto *cmd = new CTkAppWidgetCommand(this, widgetName, toplevel, opts);
+  assert(cmd);
+
+  addTopLevel(toplevel);
+
+  return toplevel;
+}
 
 void
 CTkApp::

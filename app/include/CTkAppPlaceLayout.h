@@ -16,7 +16,7 @@ class CTkAppPlaceLayout : public QLayout {
     COptValT<double> relx_, rely_;
 
    public:
-    Info() { }
+    explicit Info() { }
 
     bool   isRelXValid() const { return relx_.isValid(); }
     double getRelX    () const { return relx_.getValue(0.0); }
@@ -44,8 +44,8 @@ class CTkAppPlaceLayout : public QLayout {
   };
 
  public:
-  CTkAppPlaceLayout(QWidget *parent, int margin = 0, int spacing = -1);
-  CTkAppPlaceLayout(int spacing = -1);
+  explicit CTkAppPlaceLayout(QWidget *parent, int margin = 0, int spacing = -1);
+  explicit CTkAppPlaceLayout(int spacing = -1);
 
  ~CTkAppPlaceLayout();
 

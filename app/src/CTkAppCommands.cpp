@@ -8,6 +8,7 @@
 #include <CTkAppImage.h>
 #include <CTkAppOptionValue.h>
 #include <CTkAppOptData.h>
+#include <CTkAppUtil.h>
 
 #include <CQUtil.h>
 
@@ -389,7 +390,8 @@ run(const Args &args)
 
   auto *button = new CTkAppButton(tk_, parent, childName);
 
-  CQUtil::setBackground(button->getQWidget(), QColor("#d9d9d9"));
+  if (! tk_->useStyle())
+    CQUtil::setBackground(button->getQWidget(), QColor("#d9d9d9"));
 
   auto *cmd = new CTkAppWidgetCommand(this, widgetName, button, opts);
 
@@ -466,7 +468,8 @@ run(const Args &args)
 
   auto *canvas = new CTkAppCanvas(tk_, parent, childName);
 
-  CQUtil::setBackground(canvas->getQWidget(), QColor("#d9d9d9"));
+  if (! tk_->useStyle())
+    CQUtil::setBackground(canvas->getQWidget(), QColor("#d9d9d9"));
 
   auto *cmd = new CTkAppWidgetCommand(this, widgetName, canvas, opts);
 
@@ -555,7 +558,8 @@ run(const Args &args)
 
   auto *check = new CTkAppCheckButton(tk_, parent, childName);
 
-  CQUtil::setBackground(check->getQWidget(), QColor("#d9d9d9"));
+  if (! tk_->useStyle())
+    CQUtil::setBackground(check->getQWidget(), QColor("#d9d9d9"));
 
   auto *cmd = new CTkAppWidgetCommand(this, widgetName, check, opts);
 
@@ -760,7 +764,8 @@ run(const Args &args)
 
   auto *entry = new CTkAppEntry(tk_, parent, childName);
 
-  CQUtil::setBackground(entry->getQWidget(), QColor("#ffffff"));
+  if (! tk_->useStyle())
+    CQUtil::setBackground(entry->getQWidget(), QColor("#ffffff"));
 
   auto *cmd = new CTkAppWidgetCommand(this, widgetName, entry, opts);
 
@@ -984,7 +989,8 @@ run(const Args &args)
 
   auto *frame = new CTkAppFrame(tk_, parent, childName);
 
-  CQUtil::setBackground(frame->getQWidget(), QColor("#d9d9d9"));
+  if (! tk_->useStyle())
+    CQUtil::setBackground(frame->getQWidget(), QColor("#d9d9d9"));
 
   auto *cmd = new CTkAppWidgetCommand(this, widgetName, frame, opts);
 
@@ -1499,7 +1505,8 @@ run(const Args &args)
 
   auto *label = new CTkAppLabel(tk_, parent, childName);
 
-  CQUtil::setBackground(label->getQWidget(), QColor("#d9d9d9"));
+  if (! tk_->useStyle())
+    CQUtil::setBackground(label->getQWidget(), QColor("#d9d9d9"));
 
   auto *cmd = new CTkAppWidgetCommand(this, widgetName, label, opts);
 
@@ -1571,7 +1578,8 @@ run(const Args &args)
 
   auto *frame = new CTkAppLabelFrame(tk_, parent, childName);
 
-  CQUtil::setBackground(frame->getQWidget(), QColor("#d9d9d9"));
+  if (! tk_->useStyle())
+    CQUtil::setBackground(frame->getQWidget(), QColor("#d9d9d9"));
 
   auto *cmd = new CTkAppWidgetCommand(this, widgetName, frame, opts);
 
@@ -1646,7 +1654,8 @@ run(const Args &args)
 
   auto *list = new CTkAppListBox(tk_, parent, childName);
 
-  CQUtil::setBackground(list->getQWidget(), QColor("#ffffff"));
+  if (! tk_->useStyle())
+    CQUtil::setBackground(list->getQWidget(), QColor("#ffffff"));
 
   auto *cmd = new CTkAppWidgetCommand(this, widgetName, list, opts);
 
@@ -1739,7 +1748,8 @@ run(const Args &args)
 
   auto *menu = new CTkAppMenu(tk_, parent, childName);
 
-  CQUtil::setBackground(menu->getQWidget(), QColor("#d9d9d9"));
+  if (! tk_->useStyle())
+    CQUtil::setBackground(menu->getQWidget(), QColor("#d9d9d9"));
 
   auto *cmd = new CTkAppWidgetCommand(this, widgetName, menu, opts);
 
@@ -1820,7 +1830,8 @@ run(const Args &args)
 
   auto *button = new CTkAppMenuButton(tk_, parent, childName);
 
-  CQUtil::setBackground(button->getQWidget(), QColor("#d9d9d9"));
+  if (! tk_->useStyle())
+    CQUtil::setBackground(button->getQWidget(), QColor("#d9d9d9"));
 
   auto *cmd = new CTkAppWidgetCommand(this, widgetName, button, opts);
 
@@ -1889,7 +1900,8 @@ run(const Args &args)
 
   auto *message = new CTkAppMessage(tk_, parent, childName);
 
-  CQUtil::setBackground(message->getQWidget(), QColor("#d9d9d9"));
+  if (! tk_->useStyle())
+    CQUtil::setBackground(message->getQWidget(), QColor("#d9d9d9"));
 
   auto *cmd = new CTkAppWidgetCommand(this, widgetName, message, opts);
 
@@ -2314,7 +2326,8 @@ run(const Args &args)
 
   auto *pane = new CTkAppPanedWindow(tk_, parent, childName);
 
-  CQUtil::setBackground(pane->getQWidget(), QColor("#d9d9d9"));
+  if (! tk_->useStyle())
+    CQUtil::setBackground(pane->getQWidget(), QColor("#d9d9d9"));
 
   auto *cmd = new CTkAppWidgetCommand(this, widgetName, pane, opts);
 
@@ -2530,7 +2543,8 @@ run(const Args &args)
 
   auto *radio = new CTkAppRadioButton(tk_, parent, childName);
 
-  CQUtil::setBackground(radio->getQWidget(), QColor("#d9d9d9"));
+  if (! tk_->useStyle())
+    CQUtil::setBackground(radio->getQWidget(), QColor("#d9d9d9"));
 
   auto *cmd = new CTkAppWidgetCommand(this, widgetName, radio, opts);
 
@@ -2640,7 +2654,8 @@ run(const Args &args)
 
   auto *scale = new CTkAppScale(tk_, parent, childName);
 
-  CQUtil::setBackground(scale->getQWidget(), QColor("#d9d9d9"));
+  if (! tk_->useStyle())
+    CQUtil::setBackground(scale->getQWidget(), QColor("#d9d9d9"));
 
   auto *cmd = new CTkAppWidgetCommand(this, widgetName, scale, opts);
 
@@ -2708,7 +2723,8 @@ run(const Args &args)
 
   auto *scrollbar = new CTkAppScrollBar(tk_, parent, childName);
 
-  CQUtil::setBackground(scrollbar->getQWidget(), QColor("#d9d9d9"));
+  if (! tk_->useStyle())
+    CQUtil::setBackground(scrollbar->getQWidget(), QColor("#d9d9d9"));
 
   auto *cmd = new CTkAppWidgetCommand(this, widgetName, scrollbar, opts);
 
@@ -2861,7 +2877,8 @@ run(const Args &args)
 
   auto *spin = new CTkAppSpinBox(tk_, parent, childName);
 
-  CQUtil::setBackground(spin->getQWidget(), QColor("#ffffff"));
+  if (! tk_->useStyle())
+    CQUtil::setBackground(spin->getQWidget(), QColor("#ffffff"));
 
   auto *cmd = new CTkAppWidgetCommand(this, widgetName, spin, opts);
 
@@ -2952,7 +2969,8 @@ run(const Args &args)
 
   auto *text = new CTkAppText(tk_, parent, childName);
 
-  CQUtil::setBackground(text->getQWidget(), QColor("#ffffff"));
+  if (! tk_->useStyle())
+    CQUtil::setBackground(text->getQWidget(), QColor("#ffffff"));
 
   auto *cmd = new CTkAppWidgetCommand(this, widgetName, text, opts);
 
@@ -3219,7 +3237,8 @@ run(const Args &args)
 
   auto *toplevel = new CTkAppTopLevel(tk_, parent, childName);
 
-  CQUtil::setBackground(toplevel->getQWidget(), QColor("#d9d9d9"));
+  if (! tk_->useStyle())
+    CQUtil::setBackground(toplevel->getQWidget(), QColor("#d9d9d9"));
 
   auto *cmd = new CTkAppWidgetCommand(this, widgetName, toplevel, opts);
 
@@ -3811,6 +3830,16 @@ CTkAppWidgetCommand::
 CTkAppWidgetCommand(CTkAppCommand *command, const std::string &name,
                     CTkAppWidget *w, const CTkAppOpt *opts) :
  CTkAppCommand(command->getTk(), name), command_(command), w_(w), opts_(command->getTk())
+{
+  opts_.init(opts);
+
+  w->setWidgetCommand(this);
+}
+
+CTkAppWidgetCommand::
+CTkAppWidgetCommand(CTkApp *app, const std::string &name,
+                    CTkAppWidget *w, const CTkAppOpt *opts) :
+ CTkAppCommand(app, name), w_(w), opts_(app)
 {
   opts_.init(opts);
 

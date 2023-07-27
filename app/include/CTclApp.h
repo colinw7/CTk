@@ -28,7 +28,7 @@ class CTclApp;
 
 class CTclTraceProc {
  public:
-  CTclTraceProc(CTclApp *app) : app_(app) { }
+  explicit CTclTraceProc(CTclApp *app) : app_(app) { }
 
   virtual ~CTclTraceProc() = default;
 
@@ -48,6 +48,7 @@ class CTclTraceProc {
 class CTclApp {
  public:
   Tcl_Interp *getInterp() { return interp_; }
+  void setInterp(Tcl_Interp *interp) { interp_ = interp; }
 
   Display *getDisplay();
 
@@ -59,9 +60,6 @@ class CTclApp {
   virtual void idle() { }
 
   void interactiveMainLoop();
-
-  void tkMainLoop();
-  void tkIdleMainLoop();
 
   //---
 
@@ -139,15 +137,14 @@ class CTclApp {
   bool eval(const std::string &str) const;
 
  protected:
-  CTclApp(int argc, char **argv);
+  explicit CTclApp(Tcl_Interp *interp);
+  explicit CTclApp(int argc, const char **argv);
 
   virtual ~CTclApp() { }
 
   void setAppName(const std::string &appName);
 
   bool tclInit();
-
-  void tkInit();
 
   void init();
 
@@ -160,8 +157,6 @@ class CTclApp {
   virtual std::string getTclStr() = 0;
 
  private:
-  static int tkInit_(Tcl_Interp *interp);
-
   void initCommands();
   void initInteractive();
 
@@ -175,11 +170,10 @@ class CTclApp {
   static CTclApp *app_;
 
   int          argc_        { 0 };
-  char**       argv_        { nullptr };
+  const char** argv_        { nullptr };
   Tcl_Interp*  interp_      { nullptr };
   std::string  appName_;
   bool         interactive_ { true };
-  bool         isTk_        { false };
 
   bool resultSet_ { false };
 

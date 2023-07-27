@@ -23,8 +23,9 @@ class CTkAppPackLayout : public QLayout {
     int  ipadx  { 0 };
     int  ipady  { 0 };
 
-    Info(Side side=SIDE_TOP, Fill fill=FILL_NONE, bool expand=false, int padx=0, int pady=0,
-         int ipadx=0, int ipady=0) :
+    explicit Info() { }
+
+    explicit Info(Side side, Fill fill, bool expand, int padx, int pady, int ipadx, int ipady) :
      side(side), fill(fill), expand(expand), padx(padx), pady(pady), ipadx(ipadx), ipady(ipady) {
     }
 
@@ -62,8 +63,8 @@ class CTkAppPackLayout : public QLayout {
   };
 
  public:
-  CTkAppPackLayout(QWidget *parent, int margin=0, int spacing=0);
-  CTkAppPackLayout(int spacing = -1);
+  explicit CTkAppPackLayout(QWidget *parent, int margin=0, int spacing=0);
+  explicit CTkAppPackLayout(int spacing = -1);
 
  ~CTkAppPackLayout();
 

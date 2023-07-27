@@ -110,7 +110,7 @@ main(int argc, char **argv)
 
   argv1[i] = nullptr;
 
-  tk = new CTkApp(argc1, argv1);
+  tk = new CTkApp(argc1, const_cast<const char **>(argv1));
 
   for (const auto &filename : filenames)
     tk->evalFile(filename);
