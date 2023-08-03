@@ -1,4 +1,6 @@
 #include <CTkAppImage.h>
+#include <CTkApp.h>
+
 #include <CImageLib.h>
 #include <CQImage.h>
 
@@ -9,11 +11,16 @@ bool
 CTkAppImage::
 loadFile(const std::string &filename)
 {
+  filename_ = filename;
+
   CImageFileSrc src(filename);
 
-  image_ = CImageMgrInst->createImage(src);
+  image_ = CImageMgrInst->lookupImage(src);
 
-  return image_.isValid();
+  if (! image_.isValid())
+    return tk_->throwError("Failed to read image file '" + filename + "'");
+
+  return true;
 }
 
 bool
@@ -21,7 +28,9 @@ CTkAppImage::
 loadSVG(const std::string &filename)
 {
   QSvgRenderer renderer(QString::fromStdString(filename));
-  if (! renderer.isValid()) return false;
+
+  if (! renderer.isValid())
+    return tk_->throwError("Failed to read SVG image file '" + filename + "'");
 
   int w = 256;
   int h = 256;
@@ -41,7 +50,10 @@ loadData(const std::string &data)
 {
   CImageDataSrc src(data);
 
-  image_ = CImageMgrInst->createImage(src);
+  image_ = CImageMgrInst->lookupImage(src);
+
+  if (! image_.isValid())
+    return tk_->throwError("Failed to read image data");
 
   return image_.isValid();
 }
@@ -57,4 +69,14 @@ getQImage() const
   if (! cqimage) return QImage();
 
   return cqimage->getQImage();
+}
+
+void
+CTkAppImage::
+clear()
+{
+  if (! qimage_.isNull())
+    qimage_.fill(Qt::transparent);
+  else
+    image_->setRGBAData(CRGBA(0.0, 0.0, 0.0, 0.0));
 }

@@ -80,27 +80,33 @@ class CTclApp {
 
   //---
 
-  std::string getStringResult() const;
+  bool getStringResult(std::string &res) const;
 
   //---
 
-  void setIntegerVar(const std::string &var, int value);
-  void setRealVar   (const std::string &var, double value);
-  void setStringVar (const std::string &var, const std::string &value);
-  void setBoolVar   (const std::string &var, bool value);
+  void setIntegerGlobalVar(const std::string &var, int value);
+  void setRealGlobalVar   (const std::string &var, double value);
+  void setStringGlobalVar (const std::string &var, const std::string &value);
+  void setBoolGlobalVar   (const std::string &var, bool value);
 
-  void setStringArrayVar(const std::string &var, const std::vector<std::string> &strs);
+  void setStringArrayGlobalVar (const std::string &var, const std::vector<std::string> &strs);
+  void setIntegerArrayGlobalVar(const std::string &var, const std::vector<int> &strs);
+
+  void setStringVar(const std::string &var, const std::string &value);
+
+  void setStringArrayVar (const std::string &var, const std::vector<std::string> &strs);
+  void setIntegerArrayVar(const std::string &var, const std::vector<int> &strs);
 
   //---
 
-  bool hasVar(const std::string &var) const;
+  bool hasGlobalVar(const std::string &var) const;
 
-  int         getIntegerVar(const std::string &var) const;
-  double      getRealVar   (const std::string &var) const;
-  std::string getStringVar (const std::string &var) const;
-  bool        getBoolVar   (const std::string &var) const;
+  int         getIntegerGlobalVar(const std::string &var) const;
+  double      getRealGlobalVar   (const std::string &var) const;
+  std::string getStringGlobalVar (const std::string &var) const;
+  bool        getBoolGlobalVar   (const std::string &var) const;
 
-  bool getStringArrayVar(const std::string &var, std::vector<std::string> &strs) const;
+  bool getStringArrayGlobalVar(const std::string &var, std::vector<std::string> &strs) const;
 
   //---
 
@@ -110,10 +116,10 @@ class CTclApp {
 
   //---
 
-  void traceVar  (const std::string &name);
-  void traceVar  (const std::string &name, CTclTraceProc *proc);
-  void untraceVar(const std::string &name);
-  void untraceVar(const std::string &name, CTclTraceProc *proc);
+  void traceGlobalVar  (const std::string &name);
+  void traceGlobalVar  (const std::string &name, CTclTraceProc *proc);
+  void untraceGlobalVar(const std::string &name);
+  void untraceGlobalVar(const std::string &name, CTclTraceProc *proc);
 
   void handleTrace(const char *name, int flags);
 

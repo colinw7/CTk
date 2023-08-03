@@ -4,7 +4,7 @@ TARGET = CTkApp
 
 DEPENDPATH += .
 
-QT += widgets
+QT += widgets svg
 
 CONFIG += staticlib
 CONFIG += debug
@@ -35,6 +35,9 @@ CTclAppCanvas.cpp \
 CTclAppCommand.cpp \
 CQLabelImage.cpp \
 CQSpinList.cpp \
+CQSlider.cpp \
+CSVGUtil.cpp \
+CQRotatedText.cpp \
 
 HEADERS += \
 ../include/CTkApp.h \
@@ -53,6 +56,9 @@ HEADERS += \
 ../include/CTclApp.h \
 CQLabelImage.h \
 CQSpinList.h \
+CQSlider.h \
+CSVGUtil.h \
+CQRotatedText.h \
 
 OBJECTS_DIR = ../obj
 
@@ -70,6 +76,7 @@ INCLUDEPATH += \
 ../../../CFile/include \
 ../../../CMath/include \
 ../../../CStrUtil/include \
+../../../CGlob/include \
 ../../../CUtil/include \
 ../../../COS/include \
 /usr/include/tcl \

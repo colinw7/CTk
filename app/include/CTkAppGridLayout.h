@@ -160,6 +160,8 @@ class CTkAppGridLayout : public QLayout {
   void addWidgets(const WidgetDatas &widgets, const Info &info);
   void addWidget(const WidgetData &widget, const Info &info);
 
+  bool removeWidget(CTkAppWidget *widget);
+
   ItemWrapper *getItem(CTkAppWidget *widget) const;
 
   bool getChildInfo(CTkAppWidget *widget, Info &info);
@@ -167,7 +169,16 @@ class CTkAppGridLayout : public QLayout {
   bool setChildWeight(CTkAppWidget *widget, int weight);
 
   void setColumnWeight(int col, int weight);
-  int  getColumnWeight(int col) const;
+  int getColumnWeight(int col) const;
+
+  void setColumnUniform(int col, const std::string &name);
+  std::string getColumnUniform(int col) const;
+
+  void setColumnMinSize(int col, double size);
+  double getColumnMinSize(int col) const;
+
+  void setColumnPad(int col, int pad);
+  int getColumnPad(int col) const;
 
   void setRowWeight(int row, int weight);
   int  getRowWeight(int row) const;
@@ -206,6 +217,9 @@ class CTkAppGridLayout : public QLayout {
 
  private:
   using ColWeights = std::map<int, int>;
+  using ColUniform = std::map<int, std::string>;
+  using ColMinSize = std::map<int, double>;
+  using ColPad     = std::map<int, int>;
   using RowWeights = std::map<int, int>;
 
   QList<ItemWrapper *> list_;
@@ -214,6 +228,9 @@ class CTkAppGridLayout : public QLayout {
   int                  rowSpan_ { 1 };
   int                  colSpan_ { 1 };
   ColWeights           colWeights_;
+  ColUniform           colUniform_;
+  ColMinSize           colMinSize_;
+  ColPad               colPad_;
   RowWeights           rowWeights_;
 };
 

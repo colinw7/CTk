@@ -11,8 +11,10 @@
 #include <CTkAppUtil.h>
 
 #include <CQUtil.h>
+#include <CQUtilGeom.h>
 
 #include <CEncode64.h>
+#include <CMatrix2D.h>
 
 #include <QApplication>
 #include <QClipboard>
@@ -118,6 +120,11 @@ class CLASS : public CTkAppCommand { \
 //CTkAppCommandDef("ttk::sizegrip"   , CTkAppTtkSizGripCmd)
 //CTkAppCommandDef("ttk::treeview"   , CTkAppTtkTreeViewCmd)
 
+#ifdef CTK_APP_TKPATH
+  CTkAppCommandDef("matrix"            , CTkAppMatrixCmd)
+  CTkAppCommandDef("gradientstopsstyle", CTkAppGradientStopStyleCmd)
+#endif
+
 //---
 
 class CTkAppRootCommand :  public CTkAppCommand {
@@ -185,6 +192,11 @@ addCommands(CTkApp *tk)
   new CTkAppTkPopupCmd      (tk);
   new CTkAppTkWaitCmd       (tk);
 
+#ifdef CTK_APP_TKPATH
+  new CTkAppMatrixCmd           (tk);
+  new CTkAppGradientStopStyleCmd(tk);
+#endif
+
   //---
 
   (void) new CTkAppRootCommand(tk);
@@ -198,6 +210,8 @@ bool
 CTkAppBellCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   uint numArgs = args.size();
 
   for (uint i = 1; i < numArgs; ++i) {
@@ -230,6 +244,8 @@ bool
 CTkAppBindCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   uint numArgs = args.size();
 
   if (numArgs < 1 || numArgs > 3)
@@ -275,7 +291,18 @@ run(const Args &args)
       return rc;
     }
     else {
-      tk_->TODO("display pattern bindings");
+      std::vector<std::string> bindings;
+
+      if      (w)
+        w->getBindings(data, bindings);
+      else if (classData)
+        tk_->getClassBindings(name, data, bindings);
+      else if (! all)
+        tk_->getTagBindings(name, data, bindings);
+      else
+        tk_->getAllBindings(data, bindings);
+
+      tk_->setStringArrayResult(bindings);
     }
   }
   else {
@@ -291,6 +318,8 @@ bool
 CTkAppBindTagsCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   uint numArgs = args.size();
 
   if (numArgs < 1)
@@ -324,6 +353,8 @@ bool
 CTkAppButtonCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   static CTkAppOpt opts[] = {
     { "-activebackground"   , "activeBackground"   , "Foreground"         , "#ececec"       },
     { "-activeforeground"   , "activeForeground"   , "Background"         , "#000000"       },
@@ -408,6 +439,8 @@ bool
 CTkAppCanvasCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   static CTkAppOpt opts[] = {
     { "-background"         , "background"         , "Background"         , "#d9d9d9" },
     { "-bg"                 , "-background"         , nullptr              , nullptr  },
@@ -486,6 +519,8 @@ bool
 CTkAppCheckButtonCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   static CTkAppOpt opts[] = {
     { "-activebackground"   , "activeBackground"   , "Foreground"         , "#ececec"       },
     { "-activeforeground"   , "activeForeground"   , "Background"         , "#000000"       },
@@ -576,6 +611,8 @@ bool
 CTkAppClipBoardCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   uint numArgs = args.size();
 
   if (numArgs < 1)
@@ -616,12 +653,23 @@ bool
 CTkAppDestroyCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   uint numArgs = args.size();
 
-  for (uint i = 0; i < numArgs; ++i) {
+  uint i = 0;
+
+  bool quiet = false;
+
+  if (i < numArgs && args[i] == "-quiet") {
+    quiet = true;
+    ++i;
+  }
+
+  for ( ; i < numArgs; ++i) {
     const auto &widgetName = args[i];
 
-    auto *w = tk_->lookupWidgetByName(widgetName);
+    auto *w = tk_->lookupWidgetByName(widgetName, quiet);
     if (! w) continue;
 
     w->deleteLater();
@@ -636,6 +684,8 @@ bool
 CTkAppEventCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   uint numArgs = args.size();
 
   if (numArgs < 1)
@@ -697,6 +747,8 @@ bool
 CTkAppEntryCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   static CTkAppOpt opts[] = {
     { "-background"         , "background"         , "Background"         , "#ffffff"    },
     { "-bd"                 , "-borderwidth"       , nullptr              , nullptr      },
@@ -782,6 +834,8 @@ bool
 CTkAppFocusCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   uint numArgs = args.size();
 
   if      (numArgs == 0) {
@@ -804,8 +858,13 @@ run(const Args &args)
     w->setFocus();
   }
   else {
-    for (uint i = 1; i < numArgs; ++i) {
+    uint i = 1;
+
+    for ( ; i < numArgs; ++i) {
       std::string arg = args[i];
+
+      if (arg[0] != '-')
+        break;
 
       if      (arg == "-displayof") {
         tk_->TODO(arg);
@@ -836,7 +895,10 @@ run(const Args &args)
                                "-displayof, -force, or -lastfor");
     }
 
-    const auto &widgetName = args[numArgs - 1];
+    if (i >= numArgs)
+      return false;
+
+    const auto &widgetName = args[i];
 
     auto *w = tk_->lookupWidgetByName(widgetName);
     if (! w) return false;
@@ -853,6 +915,8 @@ bool
 CTkAppFontCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   uint numArgs = args.size();
 
   if (numArgs == 0)
@@ -891,12 +955,18 @@ run(const Args &args)
     }
   }
   else if (option == "configure") {
+    if (numArgs < 3)
+      return tk_->wrongNumArgs("font configure fontname ?-option value ...?");
+
     tk_->TODO(option);
   }
   else if (option == "create") {
     tk_->TODO(option);
   }
   else if (option == "delete") {
+    if (numArgs < 3)
+      return tk_->wrongNumArgs("font delete fontname ?fontname ...?");
+
     tk_->TODO(option);
   }
   else if (option == "families") {
@@ -922,12 +992,39 @@ run(const Args &args)
     setStringArrayResult(familyNames);
   }
   else if (option == "measure") {
-    tk_->TODO(option);
+    if (numArgs < 3)
+      return tk_->wrongNumArgs("font measure font ?-displayof window? text");
+
+    auto font = args[1];
+
+    auto qfont = CTkAppUtil::stringToQFont(font);
+
+    uint i = 2;
+
+    if (args[i] == "-displayof") {
+      i += 2;
+    }
+
+    if (i >= numArgs)
+      return tk_->wrongNumArgs("font measure font ?-displayof window? text");
+
+    auto text = args[i];
+
+    QFontMetrics fm(qfont);
+
+    auto w = fm.horizontalAdvance(QString::fromStdString(text));
+
+    setIntegerResult(w);
   }
   else if (option == "metrics") {
+    if (numArgs < 3)
+      return tk_->wrongNumArgs("font metrics font ?-displayof window? text");
+
     tk_->TODO(option);
   }
   else if (option == "names") {
+    setStringResult("TkCaptionFont TkSmallCaptionFont TkTooltipFont TkFixedFont "
+                    "TkHeadingFont TkMenuFont TkIconFont TkTextFont TkDefaultFont");
     tk_->TODO(option);
   }
 
@@ -940,6 +1037,8 @@ bool
 CTkAppFrameCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   static CTkAppOpt opts[] = {
     { "-bd"                 , "-borderwidth"       , nullptr              , nullptr   },
     { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "0"       },
@@ -1007,6 +1106,8 @@ bool
 CTkAppGrabCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   uint numArgs = args.size();
 
   if (numArgs == 0)
@@ -1023,6 +1124,8 @@ bool
 CTkAppGridCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   static CTkAppOption opts[] = {
     { "-column"    , CTkAppOptionType::Int   , nullptr },
     { "-columnspan", CTkAppOptionType::Int   , nullptr },
@@ -1046,48 +1149,7 @@ run(const Args &args)
 
   bool configure = false;
 
-  if      (arg == "configure") {
-    configure = true;
-  }
-  else if (arg == "content") {
-    tk_->TODO(arg);
-  }
-  else if (arg == "forget") {
-    if (numArgs < 2)
-      return tk_->wrongNumArgs("grid forget slave ?slave ...?");
-
-    tk_->TODO(arg);
-  }
-  else if (arg == "info") {
-    if (numArgs != 2)
-      return tk_->wrongNumArgs("grid info window");
-
-    const auto &arg = args[1];
-
-    auto *child = tk_->lookupWidgetByName(arg);
-    if (! child) return false;
-
-    auto *layout = child->getParent()->getTkGridLayout();
-    if (! layout) return tk_->throwError("no grid layout for \"" + arg + "\"");
-
-    CTkAppGridLayout::Info info;
-
-    layout->getChildInfo(child, info);
-
-    auto res =
-      CStrUtil::strprintf("-in %s -ipadx %d -ipady %d -padx %d -pady %d",
-                          ".", info.getIPadX(), info.getIPadY(),
-                          info.getPadX(), info.getPadY());
-
-    setStringResult(res);
-  }
-  else if (arg == "propagate") {
-    tk_->TODO(arg);
-  }
-  else if (arg == "slaves") {
-    tk_->TODO(arg);
-  }
-  else if (arg == "anchor") {
+  if      (arg == "anchor") {
     tk_->TODO(arg);
   }
   else if (arg == "bbox") {
@@ -1115,13 +1177,22 @@ run(const Args &args)
       auto value = args[i + 1];
 
       if      (name == "-minsize") {
-        tk_->TODO(name);
+        double size;
+        if (! CTkAppUtil::stringToDistance(value, size))
+          return tk_->throwError("Invalid width \"" + value + "\"");
+
+        layout->setColumnMinSize(index, size);
       }
       else if (name == "-pad") {
-        tk_->TODO(name);
+        long pad;
+
+        if (! CTkAppUtil::stringToInt(value, pad))
+          return tk_->throwError("expected integer but got \"" + value + "\"");
+
+        layout->setColumnPad(index, pad);
       }
       else if (name == "-uniform") {
-        tk_->TODO(name);
+        layout->setColumnUniform(index, value);
       }
       else if (name == "-weight") {
         long weight;
@@ -1136,7 +1207,55 @@ run(const Args &args)
                                "-minsize, -pad, -uniform, or -weight");
     }
   }
+  else if (arg == "configure") {
+    configure = true;
+  }
+  else if (arg == "content") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "forget") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs("grid forget slave ?slave ...?");
+
+    uint i = 2;
+
+    for ( ; i < numArgs; ++i) {
+      auto *child = tk_->lookupWidgetByName(args[i]);
+      if (! child) return false;
+
+      auto *layout = child->getParent()->getTkGridLayout();
+      if (! layout) return tk_->throwError("no grid layout for \"" + arg + "\"");
+
+      (void) layout->removeWidget(child);
+    }
+  }
+  else if (arg == "info") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs("grid info window");
+
+    const auto &arg = args[1];
+
+    auto *child = tk_->lookupWidgetByName(arg);
+    if (! child) return false;
+
+    auto *layout = child->getParent()->getTkGridLayout();
+    if (! layout) return tk_->throwError("no grid layout for \"" + arg + "\"");
+
+    CTkAppGridLayout::Info info;
+
+    layout->getChildInfo(child, info);
+
+    auto res =
+      CStrUtil::strprintf("-in %s -ipadx %d -ipady %d -padx %d -pady %d",
+                          ".", info.getIPadX(), info.getIPadY(),
+                          info.getPadX(), info.getPadY());
+
+    setStringResult(res);
+  }
   else if (arg == "location") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "propagate") {
     tk_->TODO(arg);
   }
   else if (arg == "rowconfigure") {
@@ -1186,6 +1305,9 @@ run(const Args &args)
     tk_->TODO(arg);
   }
   else if (arg == "size") {
+    tk_->TODO(arg);
+  }
+  else if (arg == "slaves") {
     tk_->TODO(arg);
   }
   else {
@@ -1309,6 +1431,8 @@ bool
 CTkAppImageCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   uint numArgs = args.size();
 
   if (numArgs < 1)
@@ -1401,6 +1525,9 @@ run(const Args &args)
       image->loadData(data);
     }
 
+    auto *cmd = new CTkAppImageCommand(tk_, name);
+    assert(cmd);
+
     setStringResult(name);
   }
   else if (name == "delete") {
@@ -1444,6 +1571,8 @@ bool
 CTkAppLabelCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   static CTkAppOpt opts[] = {
     { "-activebackground"   , "activeBackground"   , "Foreground"         , "#ececec"       },
     { "-activeforeground"   , "activeForeground"   , "Background"         , "#000000"       },
@@ -1523,6 +1652,8 @@ bool
 CTkAppLabelFrameCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   static CTkAppOpt opts[] = {
     { "-bd"                 , "-borderwidth"       , nullptr              , nullptr         },
     { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "2"             },
@@ -1596,6 +1727,8 @@ bool
 CTkAppListBoxCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   static CTkAppOpt opts[] = {
     { "-activestyle"        , "activeStyle"        , "ActiveStyle"        , "dotbox"        },
     { "-background"         , "background"         , "Background"         , "#ffffff"       },
@@ -1672,6 +1805,8 @@ bool
 CTkAppLowerCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   uint numArgs = args.size();
 
   if (numArgs < 1)
@@ -1701,6 +1836,8 @@ bool
 CTkAppMenuCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   static CTkAppOpt opts[] = {
     { "-activebackground", "activeBackground", "Foreground" , "#ececec"       },
     { "-activeforeground", "activeForeground", "Background" , "#000000"       },
@@ -1766,6 +1903,8 @@ bool
 CTkAppMenuButtonCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   static CTkAppOpt opts[] = {
     { "-activebackground"   , "activeBackground"   , "Foreground"         , "#ececec"       },
     { "-activeforeground"   , "activeForeground"   , "Background"         , "#000000"       },
@@ -1848,6 +1987,8 @@ bool
 CTkAppMessageCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   static CTkAppOpt opts[] = {
     { "-anchor"             , "anchor"             , "Anchor"             , "center"        },
     { "-aspect"             , "aspect"             , "Aspect"             , ""              },
@@ -1918,6 +2059,8 @@ bool
 CTkAppOptionCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   auto numArgs = args.size();
 
   if (numArgs == 0)
@@ -2002,6 +2145,8 @@ bool
 CTkAppPackCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   static CTkAppOption opts[] = {
     { "-after" , CTkAppOptionType::String, nullptr },
     { "-anchor", CTkAppOptionType::String, nullptr },
@@ -2278,6 +2423,8 @@ bool
 CTkAppPanedWindowCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   static CTkAppOpt opts[] = {
     { "-background"  , "background"  , "Background"  , "#d9d9d9"    },
     { "-bd"          , "-borderwidth", nullptr       , nullptr      },
@@ -2344,6 +2491,8 @@ bool
 CTkAppPlaceCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   static CTkAppOption opts[] = {
     { "-anchor"    , CTkAppOptionType::String, nullptr },
     { "-bordermode", CTkAppOptionType::String, nullptr },
@@ -2472,6 +2621,8 @@ bool
 CTkAppRadioButtonCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   static CTkAppOpt opts[] = {
     { "-activebackground"   , "activeBackground"   , "Foreground"         , "#ececec"        },
     { "-activeforeground"   , "activeForeground"   , "Background"         , "#000000"        },
@@ -2561,6 +2712,8 @@ bool
 CTkAppRaiseCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   uint numArgs = args.size();
 
   if (numArgs < 1)
@@ -2590,6 +2743,8 @@ bool
 CTkAppScaleCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   static CTkAppOpt opts[] = {
     { "-activebackground"   , "activeBackground"   , "Foreground"         , "#ececec"       },
     { "-background"         , "background"         , "Background"         , "#d9d9d9"       },
@@ -2672,6 +2827,8 @@ bool
 CTkAppScrollBarCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   static CTkAppOpt opts[] = {
     { "-activebackground"   , "activeBackground"   , "Foreground"         , "#ececec"  },
     { "-activerelief"       , "activeRelief"       , "Relief"             , "raised"   },
@@ -2741,6 +2898,8 @@ bool
 CTkAppSelectionCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   uint numArgs = args.size();
 
   if (numArgs < 1)
@@ -2781,6 +2940,8 @@ bool
 CTkAppSendCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   uint numArgs = args.size();
 
   if (numArgs == 0)
@@ -2797,6 +2958,8 @@ bool
 CTkAppSpinBoxCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   static CTkAppOpt opts[] = {
     { "-activebackground"   , "activeBackground"   , "Background"         , "#ececec"    },
     { "-background"         , "background"         , "Background"         , "#ffffff"    },
@@ -2895,6 +3058,8 @@ bool
 CTkAppTextCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   static CTkAppOpt opts[] = {
    {"-autoseparators"          , "autoSeparators"          , "AutoSeparators"     , "1"          },
    {"-background"              , "background"              , "Background"         , "#ffffff"    },
@@ -2987,6 +3152,8 @@ bool
 CTkAppTkCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   uint numArgs = args.size();
 
   if (numArgs == 0)
@@ -3016,7 +3183,7 @@ run(const Args &args)
     tk_->TODO(arg);
   }
   else if (arg == "windowingsystem") {
-    tk_->setStringResult("Qt");
+    tk_->setStringResult("x11");
   }
   else
     return tk_->throwError("unknown or ambiguous subcommand \"" + arg + "\": must be "
@@ -3030,8 +3197,10 @@ run(const Args &args)
 
 bool
 CTkAppTkGetOpenFileCmd::
-run(const Args &)
+run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   QWidget *parent = nullptr;
 
   QString              dir;
@@ -3053,6 +3222,8 @@ bool
 CTkAppTkGetSaveFileCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   uint numArgs = args.size();
 
   for (uint i = 0; i < numArgs; ++i) {
@@ -3098,6 +3269,8 @@ bool
 CTkAppTkWaitCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   uint numArgs = args.size();
 
   if (numArgs != 2)
@@ -3130,6 +3303,8 @@ bool
 CTkAppTkMessageBoxCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   std::string message;
   QWidget*    parent = nullptr;
 
@@ -3172,8 +3347,10 @@ run(const Args &args)
 
 bool
 CTkAppTkPopupCmd::
-run(const Args &)
+run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   tk_->TODO("tk_popup");
 
   return true;
@@ -3185,6 +3362,8 @@ bool
 CTkAppTopLevelCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   static CTkAppOpt opts[] = {
     { "-bd"                 , "-borderwidth"       , nullptr              , nullptr    },
     { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "0"        },
@@ -3257,6 +3436,8 @@ bool
 CTkAppUpdateCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   uint numArgs = args.size();
 
   if      (numArgs == 0)
@@ -3284,6 +3465,8 @@ bool
 CTkAppWInfoCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   uint numArgs = args.size();
 
   if (numArgs < 1)
@@ -3439,10 +3622,12 @@ run(const Args &args)
     tk_->TODO(arg);
   }
   else if (arg == "rootx") {
-    tk_->TODO(arg);
+    auto r = qApp->primaryScreen()->geometry();
+    setIntegerResult(r.x());
   }
   else if (arg == "rooty") {
-    tk_->TODO(arg);
+    auto r = qApp->primaryScreen()->geometry();
+    setIntegerResult(r.y());
   }
   else if (arg == "screen") {
     tk_->TODO(arg);
@@ -3487,7 +3672,7 @@ run(const Args &args)
     if (! getWindow()) return false;
 
     auto *toplevel = w->toplevel();
-    setStringResult(toplevel ? toplevel->getFullName() : "");
+    setStringResult(toplevel ? toplevel->getFullName() : ".");
   }
   else if (arg == "viewable") {
     tk_->TODO(arg);
@@ -3554,6 +3739,8 @@ bool
 CTkAppWmCmd::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   uint numArgs = args.size();
 
   if (numArgs < 2)
@@ -3633,6 +3820,8 @@ run(const Args &args)
       setStringResult(w->getGeometry());
   }
   else if (arg == "grid") {
+    setStringResult("80 30 10 19");
+
     tk_->TODO(arg);
   }
   else if (arg == "group") {
@@ -3695,15 +3884,42 @@ run(const Args &args)
     }
   }
   else if (arg == "overrideredirect") {
-    tk_->TODO(arg);
+    if (numArgs != 3)
+      return false;
+
+    bool b;
+    if (! CTkAppUtil::stringToBool(args[2], b))
+      return tk_->throwError("Invalid overrideredirect value");
+
+    if (b == 1)
+      w->getQWidget()->setWindowFlags(
+        Qt::Tool | Qt::FramelessWindowHint | Qt::X11BypassWindowManagerHint);
+    else
+      return false;
   }
   else if (arg == "positionfrom") {
     tk_->TODO(arg);
   }
   else if (arg == "protocol") {
-    tk_->TODO(arg);
+    if (numArgs > 2)
+      tk_->TODO(args[2]);
+    else
+      tk_->TODO(arg);
   }
   else if (arg == "resizable") {
+    if      (numArgs == 2) {
+      tk_->setStringResult("1 1");
+    }
+    else if (numArgs == 4) {
+      long w, h;
+      if (! CTkAppUtil::stringToInt(args[2], w))
+        return tk_->throwError("expected integer but got \"" + args[2] + "\"");
+      if (! CTkAppUtil::stringToInt(args[3], h))
+        return tk_->throwError("expected integer but got \"" + args[3] + "\"");
+    }
+    else
+      return tk_->wrongNumArgs("wm resizable window ?width height?");
+
     tk_->TODO(arg);
   }
   else if (arg == "sizefrom") {
@@ -3728,7 +3944,10 @@ run(const Args &args)
     }
   }
   else if (arg == "transient") {
-    tk_->TODO(arg);
+    if (numArgs != 3)
+      return false;
+
+    (void) tk_->lookupWidgetByName(args[2]);
   }
   else if (arg == "withdraw") {
     w->getQWidget()->hide();
@@ -3775,6 +3994,8 @@ bool
 CTkAppRootCommand::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   uint numArgs = args.size();
 
   if (numArgs == 0)
@@ -3855,6 +4076,8 @@ bool
 CTkAppWidgetCommand::
 run(const Args &args)
 {
+  tk_->debugCmd(name_, args);
+
   uint numArgs = args.size();
 
   if (numArgs == 0)
@@ -3969,6 +4192,233 @@ setOptValue(const std::string &name, const std::string &value)
 
   return true;
 }
+
+//---
+
+CTkAppImageCommand::
+CTkAppImageCommand(CTkApp *app, const std::string &name) :
+ CTkAppCommand(app, name)
+{
+}
+
+CTkAppImageCommand::
+~CTkAppImageCommand()
+{
+}
+
+bool
+CTkAppImageCommand::
+run(const Args &args)
+{
+  tk_->debugCmd(name_, args);
+
+  uint numArgs = args.size();
+
+  if (numArgs < 1)
+    return tk_->wrongNumArgs(getName() + " option ?arg ...?");
+
+  auto image = tk_->getImage(getName());
+  assert(image);
+
+  auto opt = args[0];
+
+  if      (opt == "blank") {
+    if (numArgs != 1)
+      return tk_->wrongNumArgs(getName() + " blank");
+
+    image->clear();
+  }
+  else if (opt == "cget") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " cget option");
+
+    auto opt = args[1];
+
+    if (opt == "-file") {
+      auto filename = image->filename();
+
+      tk_->setStringResult(filename);
+    }
+    else
+      tk_->TODO(args);
+  }
+  else if (opt == "configure") {
+    if      (numArgs == 1) {
+      std::string res;
+
+      auto addData = [&](const std::string &name, const std::string &value) {
+        if (res != "")
+          res += " ";
+
+        res += "{" + name + "{} {} {} {" + value + "}}";
+      };
+
+      auto filename = image->filename();
+
+      addData("-data"   , "");
+      addData("-format" , "");
+      addData("-file"   , filename);
+      addData("-gamma"  , "1");
+      addData("-height" , "0");
+      addData("-palette", "" );
+      addData("-width " , "0");
+
+      tk_->setStringResult(res);
+    }
+    else if (numArgs == 2) {
+      auto opt = args[1];
+
+      if (opt == "-file") {
+        tk_->TODO(args);
+      }
+      else
+        tk_->TODO(args);
+    }
+  }
+  else if (opt == "copy") {
+    if (numArgs < 3)
+      return tk_->wrongNumArgs(getName() + " copy source-image ?-compositingrule rule? "
+        "?-from x1 y1 x2 y2? ?-to x1 y1 x2 y2? ?-zoom x y? ?-subsample x y?");
+
+    tk_->TODO(args);
+  }
+  else if (opt == "data") {
+    tk_->TODO(args);
+  }
+  else if (opt == "get") {
+    if (numArgs != 3)
+      return tk_->wrongNumArgs(getName() + " get x y");
+
+    tk_->TODO(args);
+  }
+  else if (opt == "put") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " put data ?-option value ...?");
+
+    tk_->TODO(args);
+  }
+  else if (opt == "read") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " read fileName ?-option value ...?");
+
+    tk_->TODO(args);
+  }
+  else if (opt == "redither") {
+    if (numArgs != 1)
+      return tk_->wrongNumArgs(getName() + " redither");
+
+    tk_->TODO(args);
+  }
+  else if (opt == "transparency") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " transparency option ?arg ...?");
+
+    tk_->TODO(args);
+  }
+  else if (opt == "write") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " write fileName ?-option value ...?");
+
+    tk_->TODO(args);
+  }
+  else {
+    tk_->throwError("bad option \"" + opt + "\": must be "
+      "blank, cget, configure, copy, data, get, put, read, redither, transparency, or write");
+  }
+
+  return true;
+}
+
+//---
+
+#ifdef CTK_APP_TKPATH
+bool
+CTkAppMatrixCmd::
+run(const Args &args)
+{
+  tk_->debugCmd(name_, args);
+
+  uint numArgs = args.size();
+
+  if (numArgs < 1)
+    return tk_->wrongNumArgs(getName() + " opt ?-option value ...?");
+
+  auto opt = args[0];
+
+  auto mname = tk_->newMatrixName();
+
+  CTkApp::MatrixData mdata;
+
+  if      (opt == "rotate") {
+    if (numArgs < 4)
+      return tk_->wrongNumArgs(getName() + " rotate a x y");
+
+    double a, tx, ty;
+    if (! CTkAppUtil::stringToReal(args[1], a) ||
+        ! CTkAppUtil::stringToReal(args[2], tx) ||
+        ! CTkAppUtil::stringToReal(args[3], ty))
+      return false;
+
+    CMatrix2D m, m1, m2;
+
+    m.setRotation(a);
+
+    m1.setTranslation(-tx, -ty);
+    m2.setTranslation( tx,  ty);
+
+    auto mm = m2*m*m1;
+
+    mdata.transform = CQUtil::toQTransform(mm);
+  }
+  else if (opt == "scale") {
+    tk_->TODO(args);
+  }
+  else if (opt == "skewx") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs(getName() + " skew x");
+
+    double x;
+    if (! CTkAppUtil::stringToReal(args[1], x))
+      return false;
+
+    auto m = CMatrix2D::skewX(x);
+
+    mdata.transform = CQUtil::toQTransform(m);
+  }
+  else if (opt == "skewy") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs(getName() + " skew y");
+
+    double y;
+    if (! CTkAppUtil::stringToReal(args[1], y))
+      return false;
+
+    auto m = CMatrix2D::skewY(y);
+
+    mdata.transform = CQUtil::toQTransform(m);
+  }
+  else if (opt == "translate") {
+    tk_->TODO(args);
+  }
+  else
+    tk_->TODO(args);
+
+  tk_->setNamedMatrix(mname, mdata);
+
+  tk_->setStringResult(mname);
+
+  return true;
+}
+
+bool
+CTkAppGradientStopStyleCmd::
+run(const Args &args)
+{
+  tk_->TODO(args);
+
+  return true;
+}
+#endif
 
 //---
 

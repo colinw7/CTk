@@ -151,28 +151,28 @@ void
 CTclAppCommand::
 setIntegerVar(const std::string &name, int value)
 {
-  app_->setIntegerVar(name, value);
+  app_->setIntegerGlobalVar(name, value);
 }
 
 void
 CTclAppCommand::
 setRealVar(const std::string &name, double value)
 {
-  app_->setRealVar(name, value);
+  app_->setRealGlobalVar(name, value);
 }
 
 void
 CTclAppCommand::
 setStringVar(const std::string &name, const std::string &value)
 {
-  app_->setStringVar(name, value);
+  app_->setStringGlobalVar(name, value);
 }
 
 void
 CTclAppCommand::
 setBoolVar(const std::string &name, bool b)
 {
-  app_->setBoolVar(name, b);
+  app_->setBoolGlobalVar(name, b);
 }
 
 //---
@@ -181,33 +181,33 @@ int
 CTclAppCommand::
 getIntegerVar(const std::string &name) const
 {
-  return app_->getIntegerVar(name);
+  return app_->getIntegerGlobalVar(name);
 }
 
 double
 CTclAppCommand::
 getRealVar(const std::string &name) const
 {
-  return app_->getRealVar(name);
+  return app_->getRealGlobalVar(name);
 }
 
 std::string
 CTclAppCommand::
 getStringVar(const std::string &name) const
 {
-  return app_->getStringVar(name);
+  return app_->getStringGlobalVar(name);
 }
 
 bool
 CTclAppCommand::
 getBoolVar(const std::string &name) const
 {
-  return app_->getBoolVar(name);
+  return app_->getBoolGlobalVar(name);
 }
 
 bool
 CTclAppCommand::
 getStringArrayVar(const std::string &name, std::vector<std::string> &strs) const
 {
-  return app_->getStringArrayVar(name, strs);
+  return app_->getStringArrayGlobalVar(name, strs);
 }

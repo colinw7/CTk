@@ -11,6 +11,8 @@
 
 #include <QColor>
 #include <QFont>
+#include <QPointer>
+#include <QTransform>
 
 #include <memory>
 #include <vector>
@@ -32,7 +34,23 @@ class QMouseEvent;
 
 //---
 
+enum class CTkAppCompoundType {
+  NONE,
+  BOTTOM,
+  TOP,
+  LEFT,
+  RIGHT,
+  CENTER
+};
+
+//---
+
 class CTkApp : public CTclApp {
+ public:
+  struct MatrixData {
+    QTransform transform;
+  };
+
  public:
   explicit CTkApp(Tcl_Interp *interp);
   explicit CTkApp(int argc, const char **argv);
@@ -85,6 +103,13 @@ class CTkApp : public CTclApp {
   bool bindAllEvent  (const CTkAppEventData &data);
   bool bindTagEvent  (const std::string &tagName, const CTkAppEventData &data);
   bool bindClassEvent(const std::string &tagName, const CTkAppEventData &data);
+
+  void getClassBindings(const std::string &name, const CTkAppEventData &data,
+                        std::vector<std::string> &bindings);
+  void getTagBindings(const std::string &name, const CTkAppEventData &data,
+                      std::vector<std::string> &bindings);
+  void getAllBindings(const CTkAppEventData &data,
+                      std::vector<std::string> &bindings);
 
   bool triggerEvents(const std::string &, CTkAppWidget *, QEvent *e,
                      const CTkAppEventData &matchEventData);
@@ -144,11 +169,32 @@ class CTkApp : public CTclApp {
 
   //---
 
+  std::string newMatrixName() const {
+    return "matrix_" + std::to_string(nameMatrices_.size() + 1);
+  }
+
+  void setNamedMatrix(const std::string &name, const MatrixData &d) {
+    nameMatrices_[name] = d;
+  }
+
+  bool getNamedMatrix(const std::string &name, MatrixData &d) {
+    auto pm = nameMatrices_.find(name);
+    if (pm == nameMatrices_.end()) return false;
+    d = (*pm).second;
+    return true;
+  }
+
+  //---
+
   bool wrongNumArgs(const std::string &msg) const;
 
   bool throwError(const std::string &msg) const;
 
+  void debugCmd(const std::string &cmd, const std::vector<std::string> &args) const;
+
   bool TODO(const std::string &msg="") const;
+  bool TODO(const std::vector<std::string> &args) const;
+  bool TODO(const std::string &arg, const std::vector<std::string> &args) const;
 
  protected:
   void construct(int argc, const char **argv);
@@ -165,7 +211,10 @@ class CTkApp : public CTclApp {
   using ClassEventDatas = std::map<std::string, EventDatas>;
   using TagEventDatas   = std::map<std::string, EventDatas>;
   using WidgetSet       = std::set<CTkAppWidget *>;
-  using WidgetArray     = std::vector<CTkAppWidget *>;
+  using WidgetP         = QPointer<CTkAppWidget>;
+  using WidgetArray     = std::vector<WidgetP>;
+
+  //--
 
   struct OptionData {
     std::string pattern;
@@ -180,6 +229,14 @@ class CTkApp : public CTclApp {
   };
 
   using OptionDatas = std::vector<OptionData>;
+
+  //--
+
+  using NamedMatrices = std::map<std::string, MatrixData>;
+
+  NamedMatrices nameMatrices_;
+
+  //--
 
   WidgetClasses widgetClasses_;
 

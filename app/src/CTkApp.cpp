@@ -60,12 +60,12 @@ construct(int argc, const char **argv)
   for (int i = 1; i < argc; ++i)
     args.push_back(std::string(argv[i]));
 
-  setStringArrayVar("argv", args);
-  setIntegerVar    ("argc", args.size());
+  setStringArrayGlobalVar("argv", args);
+  setIntegerGlobalVar    ("argc", args.size());
 
-  setStringVar("tk_version", "8.6");
-  setStringVar("tk_library", "/usr/share/tcltk/tk8.6");
-  setStringVar("tk_patchLevel", "8.6.12");
+  setStringGlobalVar("tk_version", "8.6");
+  setStringGlobalVar("tk_library", "/usr/share/tcltk/tk8.6");
+  setStringGlobalVar("tk_patchLevel", "8.6.12");
 }
 
 std::string
@@ -247,7 +247,7 @@ CTkAppImageRef
 CTkApp::
 createImage(const std::string &, const std::string & /*format*/, const std::string &name)
 {
-  auto image = std::make_shared<CTkAppImage>(name);
+  auto image = std::make_shared<CTkAppImage>(this, name);
 
   images_[name] = image;
 
@@ -335,6 +335,24 @@ bindAllEvent(const CTkAppEventData &data)
   allEvents_.push_back(data);
 
   return true;
+}
+
+void
+CTkApp::
+getClassBindings(const std::string &, const CTkAppEventData &, std::vector<std::string> &)
+{
+}
+
+void
+CTkApp::
+getTagBindings(const std::string &, const CTkAppEventData &, std::vector<std::string> &)
+{
+}
+
+void
+CTkApp::
+getAllBindings(const CTkAppEventData &, std::vector<std::string> &)
+{
 }
 
 bool
@@ -546,8 +564,10 @@ purgeWidgets()
 {
   auto num = deleteWidgets_.size();
 
-  for (uint i = 0; i < num; ++i)
-    delete deleteWidgets_[i];
+  for (uint i = 0; i < num; ++i) {
+    if (deleteWidgets_[i])
+      delete deleteWidgets_[i];
+  }
 
   deleteWidgets_.clear();
 }
@@ -691,10 +711,116 @@ parseEvent(const std::string &pattern, CTkAppEventData &data)
 
       return true;
     }
+    else if (parse.isString("<Paste>")) {
+      parse.skipLastString();
+
+      data.type = CTkAppEventType::Paste;
+
+      if (! parseClose('>'))
+        return false;
+
+      return true;
+    }
     else if (parse.isString("Expose")) {
       parse.skipLastString();
 
       data.type = CTkAppEventType::Expose;
+
+      if (! parseClose('>'))
+        return false;
+
+      return true;
+    }
+    else if (parse.isString("ShiftNext") ||
+             parse.isString("ControlNext") ||
+             parse.isString("Shift-ControlNext")) {
+      parse.skipLastString();
+
+      //data.type = CTkAppEventType::Next;
+
+      if (! parseClose('>'))
+        return false;
+
+      return true;
+    }
+    else if (parse.isString("ShiftPrior") ||
+             parse.isString("ControlPrior") ||
+             parse.isString("Shift-ControlPrior")) {
+      parse.skipLastString();
+
+      //data.type = CTkAppEventType::Prior;
+
+      if (! parseClose('>'))
+        return false;
+
+      return true;
+    }
+    else if (parse.isString("ShiftUp") ||
+             parse.isString("ControlUp") ||
+             parse.isString("Shift-ControlUp")) {
+      parse.skipLastString();
+
+      //data.type = CTkAppEventType::Up;
+
+      if (! parseClose('>'))
+        return false;
+
+      return true;
+    }
+    else if (parse.isString("ShiftDown") ||
+             parse.isString("ControlDown") ||
+             parse.isString("Shift-ControlDown")) {
+      parse.skipLastString();
+
+      //data.type = CTkAppEventType::Up;
+
+      if (! parseClose('>'))
+        return false;
+
+      return true;
+    }
+    else if (parse.isString("ShiftLeft") ||
+             parse.isString("ControlLeft") ||
+             parse.isString("Shift-ControlLeft")) {
+      parse.skipLastString();
+
+      //data.type = CTkAppEventType::Up;
+
+      if (! parseClose('>'))
+        return false;
+
+      return true;
+    }
+    else if (parse.isString("ShiftRight") ||
+             parse.isString("ControlRight") ||
+             parse.isString("Shift-ControlRight")) {
+      parse.skipLastString();
+
+      //data.type = CTkAppEventType::Up;
+
+      if (! parseClose('>'))
+        return false;
+
+      return true;
+    }
+    else if (parse.isString("ShiftHome") ||
+             parse.isString("ControlHome") ||
+             parse.isString("Shift-ControlHome")) {
+      parse.skipLastString();
+
+      //data.type = CTkAppEventType::Up;
+
+      if (! parseClose('>'))
+        return false;
+
+      return true;
+    }
+    else if (parse.isString("ShiftEnd") ||
+             parse.isString("ControlEnd") ||
+             parse.isString("Shift-ControlEnd")) {
+      parse.skipLastString();
+
+      //data.type = CTkAppEventType::Up;
 
       if (! parseClose('>'))
         return false;
@@ -855,6 +981,10 @@ parseEvent(const std::string &pattern, CTkAppEventData &data)
           parse.skipLastString();
 
           data.mode = CTkAppEventMode::Release;
+        }
+        else if (parse.isString("Enter")) {
+          parse.skipLastString();
+          //??
         }
         else
           return false;
@@ -1076,16 +1206,66 @@ bool
 CTkApp::
 throwError(const std::string &msg) const
 {
-  std::cerr << msg << "\n";
+  std::cerr << "Error: " << currentCommand() << " " << msg << "\n";
 
   return false;
 }
+
+#if 0
+void
+CTkApp::
+debugCmd(const std::string &cmd, const std::vector<std::string> &args) const
+{
+  std::cerr << "Run: " << cmd;
+  for (const auto &arg : args)
+    std::cerr << " " << arg;
+  std::cerr << "\n";
+}
+#else
+void
+CTkApp::
+debugCmd(const std::string &, const std::vector<std::string> &) const
+{
+}
+#endif
 
 bool
 CTkApp::
 TODO(const std::string &msg) const
 {
   std::cerr << "TODO: " << currentCommand() << " " << msg << "\n";
+
+  return false;
+}
+
+bool
+CTkApp::
+TODO(const std::vector<std::string> &args) const
+{
+  std::cerr << "TODO: " << currentCommand();
+
+  for (const auto &arg : args)
+    std::cerr << " " << arg;
+
+  std::cerr << "\n";
+
+  return false;
+}
+
+bool
+CTkApp::
+TODO(const std::string &arg, const std::vector<std::string> &args) const
+{
+  std::cerr << "TODO: ";
+
+  std::cerr << arg << " in ";
+
+  std::cerr << currentCommand();
+
+  for (const auto &arg : args)
+    std::cerr << " " << arg;
+
+  std::cerr << "\n";
 
   return false;
 }

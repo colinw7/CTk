@@ -162,9 +162,9 @@ setIntegerArrayResult(const std::vector<int> &values)
 {
   std::vector<std::string> strs;
 
-  int num_values = values.size();
+  auto num_values = values.size();
 
-  for (int i = 0; i < num_values; ++i)
+  for (uint i = 0; i < num_values; ++i)
     strs.push_back(CStrUtil::toString(values[i]));
 
   setStringArrayResult(strs);
@@ -240,43 +240,60 @@ setObjResult(Tcl_Obj *obj)
 
 //---
 
-std::string
+bool
 CTclApp::
-getStringResult() const
+getStringResult(std::string &res) const
 {
-  auto *res = Tcl_GetStringResult(app_->getInterp());
-
-  return std::string(res);
+  auto *resPtr = Tcl_GetObjResult(app_->getInterp());
+  Tcl_IncrRefCount(resPtr);
+  int length;
+  res = std::string(Tcl_GetStringFromObj(resPtr, &length));
+  Tcl_DecrRefCount(resPtr);
+  return (length > 0);
 }
 
 //---
 
 void
 CTclApp::
-setIntegerVar(const std::string &var, int value)
+setIntegerGlobalVar(const std::string &var, int value)
 {
-  setStringVar(var, CStrUtil::toString(value));
+  setStringGlobalVar(var, CStrUtil::toString(value));
 }
 
 void
 CTclApp::
-setRealVar(const std::string &var, double value)
+setRealGlobalVar(const std::string &var, double value)
 {
-  setStringVar(var, CStrUtil::toString(value));
+  setStringGlobalVar(var, CStrUtil::toString(value));
 }
 
 void
 CTclApp::
-setStringVar(const std::string &var, const std::string &value)
+setStringGlobalVar(const std::string &var, const std::string &value)
 {
   Tcl_SetVar(app_->interp_, var.c_str(), value.c_str(), TCL_GLOBAL_ONLY);
 }
 
 void
 CTclApp::
-setBoolVar(const std::string &name, bool b)
+setStringVar(const std::string &var, const std::string &value)
 {
-  setStringVar(name, b ? "1" : "0");
+  Tcl_SetVar(app_->interp_, var.c_str(), value.c_str(), 0);
+}
+
+void
+CTclApp::
+setBoolGlobalVar(const std::string &name, bool b)
+{
+  setStringGlobalVar(name, b ? "1" : "0");
+}
+
+void
+CTclApp::
+setStringArrayGlobalVar(const std::string &var, const std::vector<std::string> &strs)
+{
+  setStringGlobalVar(var, mergeList(strs));
 }
 
 void
@@ -286,11 +303,39 @@ setStringArrayVar(const std::string &var, const std::vector<std::string> &strs)
   setStringVar(var, mergeList(strs));
 }
 
+void
+CTclApp::
+setIntegerArrayGlobalVar(const std::string &var, const std::vector<int> &values)
+{
+  std::vector<std::string> strs;
+
+  auto num_values = values.size();
+
+  for (uint i = 0; i < num_values; ++i)
+    strs.push_back(CStrUtil::toString(values[i]));
+
+  setStringArrayGlobalVar(var, strs);
+}
+
+void
+CTclApp::
+setIntegerArrayVar(const std::string &var, const std::vector<int> &values)
+{
+  std::vector<std::string> strs;
+
+  auto num_values = values.size();
+
+  for (uint i = 0; i < num_values; ++i)
+    strs.push_back(CStrUtil::toString(values[i]));
+
+  setStringArrayVar(var, strs);
+}
+
 //---
 
 bool
 CTclApp::
-hasVar(const std::string &var) const
+hasGlobalVar(const std::string &var) const
 {
   const char *value = Tcl_GetVar(app_->interp_, var.c_str(), TCL_GLOBAL_ONLY);
 
@@ -299,21 +344,21 @@ hasVar(const std::string &var) const
 
 int
 CTclApp::
-getIntegerVar(const std::string &var) const
+getIntegerGlobalVar(const std::string &var) const
 {
-  return CStrUtil::toInteger(getStringVar(var));
+  return CStrUtil::toInteger(getStringGlobalVar(var));
 }
 
 double
 CTclApp::
-getRealVar(const std::string &var) const
+getRealGlobalVar(const std::string &var) const
 {
-  return CStrUtil::toReal(getStringVar(var));
+  return CStrUtil::toReal(getStringGlobalVar(var));
 }
 
 std::string
 CTclApp::
-getStringVar(const std::string &var) const
+getStringGlobalVar(const std::string &var) const
 {
   const char *value = Tcl_GetVar(app_->interp_, var.c_str(), TCL_GLOBAL_ONLY);
   if (! value) return "";
@@ -323,11 +368,11 @@ getStringVar(const std::string &var) const
 
 bool
 CTclApp::
-getBoolVar(const std::string &var) const
+getBoolGlobalVar(const std::string &var) const
 {
   bool b;
 
-  if (! CStrUtil::toBool(getStringVar(var), &b))
+  if (! CStrUtil::toBool(getStringGlobalVar(var), &b))
     b = false;
 
   return b;
@@ -335,7 +380,7 @@ getBoolVar(const std::string &var) const
 
 bool
 CTclApp::
-getStringArrayVar(const std::string &var, std::vector<std::string> &strs) const
+getStringArrayGlobalVar(const std::string &var, std::vector<std::string> &strs) const
 {
   const char *value = Tcl_GetVar(app_->interp_, var.c_str(), TCL_GLOBAL_ONLY);
   if (! value) return false;
@@ -407,7 +452,7 @@ mergeList(const std::vector<std::string> &strs) const
 
 void
 CTclApp::
-traceVar(const std::string &name, CTclTraceProc *proc)
+traceGlobalVar(const std::string &name, CTclTraceProc *proc)
 {
   auto name1 = name;
 
@@ -443,7 +488,7 @@ traceVar(const std::string &name, CTclTraceProc *proc)
 
 void
 CTclApp::
-traceVar(const std::string &name)
+traceGlobalVar(const std::string &name)
 {
   auto name1 = name;
 
@@ -475,7 +520,7 @@ traceVar(const std::string &name)
 
 void
 CTclApp::
-untraceVar(const std::string &name, CTclTraceProc *proc)
+untraceGlobalVar(const std::string &name, CTclTraceProc *proc)
 {
   auto name1 = name;
 
@@ -513,7 +558,7 @@ untraceVar(const std::string &name, CTclTraceProc *proc)
 
 void
 CTclApp::
-untraceVar(const std::string &name)
+untraceGlobalVar(const std::string &name)
 {
   auto name1 = name;
 

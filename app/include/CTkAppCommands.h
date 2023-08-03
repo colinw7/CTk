@@ -66,4 +66,18 @@ class CTkAppWidgetCommand : public CTkAppCommand {
   CTkAppOptData  opts_;
 };
 
+//---
+
+class CTkAppImageCommand : public CTkAppCommand {
+ public:
+  explicit CTkAppImageCommand(CTkApp *app, const std::string &name);
+
+ ~CTkAppImageCommand();
+
+  bool run(const Args &args) override;
+
+ private:
+  CTkApp* app_ { nullptr };
+};
+
 #endif

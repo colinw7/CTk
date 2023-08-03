@@ -1,6 +1,6 @@
 TEMPLATE = app
 
-QT += widgets
+QT += widgets svg
 
 TARGET = CTkTest
 

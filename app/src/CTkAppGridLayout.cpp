@@ -1,5 +1,6 @@
 #include <CTkAppGridLayout.h>
 #include <CTkAppLayoutWidget.h>
+#include <CTkAppWidget.h>
 
 #include <QApplication>
 #include <QWidget>
@@ -132,6 +133,29 @@ addWidget(const WidgetData &widgetData, const Info &info)
   }
 }
 
+bool
+CTkAppGridLayout::
+removeWidget(CTkAppWidget *widget)
+{
+  for (int i = 0; i < list_.size(); ++i) {
+    auto *wrapper = list_.at(i);
+
+    auto *lw = dynamic_cast<CTkAppLayoutWidget *>(wrapper->item);
+
+    if (lw->widget() == widget->qwidget()) {
+      auto *l = takeAt(i);
+
+      delete l;
+
+      widget->qwidget()->hide();
+
+      return true;
+    }
+  }
+
+  return false;
+}
+
 CTkAppGridLayout::ItemWrapper *
 CTkAppGridLayout::
 getItem(CTkAppWidget *widget) const
@@ -189,6 +213,54 @@ getColumnWeight(int col) const
   auto p = colWeights_.find(col);
 
   return (p != colWeights_.end() ? (*p).second : 0);
+}
+
+void
+CTkAppGridLayout::
+setColumnUniform(int col, const std::string &name)
+{
+  colUniform_[col] = name;
+}
+
+std::string
+CTkAppGridLayout::
+getColumnUniform(int col) const
+{
+  auto p = colUniform_.find(col);
+
+  return (p != colUniform_.end() ? (*p).second : "");
+}
+
+void
+CTkAppGridLayout::
+setColumnMinSize(int col, double size)
+{
+  colMinSize_[col] = size;
+}
+
+double
+CTkAppGridLayout::
+getColumnMinSize(int col) const
+{
+  auto p = colMinSize_.find(col);
+
+  return (p != colMinSize_.end() ? (*p).second : 0.0);
+}
+
+void
+CTkAppGridLayout::
+setColumnPad(int col, int pad)
+{
+  colPad_[col] = pad;
+}
+
+int
+CTkAppGridLayout::
+getColumnPad(int col) const
+{
+  auto p = colPad_.find(col);
+
+  return (p != colPad_.end() ? (*p).second : 0);
 }
 
 void
