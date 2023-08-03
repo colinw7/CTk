@@ -7,6 +7,31 @@
 #include <QSvgRenderer>
 #include <QPainter>
 
+CTkAppImage::
+CTkAppImage(CTkApp *tk, const std::string &name) :
+ tk_(tk), name_(name)
+{
+}
+
+CTkAppImage::
+~CTkAppImage()
+{
+}
+
+const CImagePtr &
+CTkAppImage::
+getImage() const
+{
+  return image_;
+}
+
+void
+CTkAppImage::
+setImage(const CImagePtr &image)
+{
+  image_ = image;
+}
+
 bool
 CTkAppImage::
 loadFile(const std::string &filename)
@@ -69,6 +94,17 @@ getQImage() const
   if (! cqimage) return QImage();
 
   return cqimage->getQImage();
+}
+
+QPixmap
+CTkAppImage::
+getQPixmap() const
+{
+  QPixmap pixmap;
+
+  pixmap.convertFromImage(getQImage());
+
+  return pixmap;
 }
 
 void

@@ -5,7 +5,6 @@
 #include <CTkAppEventData.h>
 #include <CTkAppUtil.h>
 
-#include <CImageLib.h>
 #include <CStrParse.h>
 #include <CStrUniqueMatch.h>
 #include <CGlob.h>
@@ -266,7 +265,7 @@ getImage(const std::string &name) const
   return (*p).second;
 }
 
-CImagePtr
+CTkAppImageRef
 CTkApp::
 getBitmap(const std::string &name) const
 {
@@ -289,9 +288,18 @@ getBitmap(const std::string &name) const
       name1 = std::string(env) + "/" + name + ".xbm";
   }
 
-  CImageFileSrc src(name1);
+  auto pm = bitmaps_.find(name1);
 
-  return CImageMgrInst->createImage(src);
+  if (pm == bitmaps_.end()) {
+    auto appImage = std::make_shared<CTkAppImage>(const_cast<CTkApp *>(this), name1);
+
+    if (! appImage->loadFile(name1))
+      return CTkAppImageRef();
+
+    pm = bitmaps_.insert(pm, ImageMap::value_type(name1, appImage));
+  }
+
+  return (*pm).second;
 }
 
 //---

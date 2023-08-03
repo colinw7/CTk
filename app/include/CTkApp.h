@@ -5,7 +5,6 @@
 #include <CTkAppEventData.h>
 
 #include <CTclApp.h>
-#include <CImagePtr.h>
 #include <CStrParse.h>
 #include <CRGBName.h>
 
@@ -92,7 +91,7 @@ class CTkApp : public CTclApp {
 
   CTkAppImageRef getImage(const std::string &name) const;
 
-  CImagePtr getBitmap(const std::string &name) const;
+  CTkAppImageRef getBitmap(const std::string &name) const;
 
   //---
 
@@ -243,12 +242,14 @@ class CTkApp : public CTclApp {
   CTkAppRoot*     root_ { nullptr };
   bool            useStyle_ { false };
   TopLevelArray   toplevels_;
-  ImageMap        images_;
   ClassEventDatas classEvents_;
   TagEventDatas   tagEvents_;
   EventDatas      allEvents_;
   WidgetSet       widgets_;
   WidgetArray     deleteWidgets_;
+
+  ImageMap         images_;
+  mutable ImageMap bitmaps_;
 
   OptionDatas options_;
 

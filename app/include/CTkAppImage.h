@@ -11,17 +11,20 @@ class CTkApp;
 
 class CTkAppImage {
  public:
-  explicit CTkAppImage(CTkApp *tk, const std::string &name) :
-   tk_(tk), name_(name) {
-  }
+  explicit CTkAppImage(CTkApp *tk, const std::string &name);
+
+ ~CTkAppImage();
 
   bool loadFile(const std::string &filename);
   bool loadSVG (const std::string &filename);
   bool loadData(const std::string &data);
 
-  CImagePtr getImage() const { return image_; }
+  const CImagePtr &getImage() const;
+  void setImage(const CImagePtr &image);
 
   QImage getQImage() const;
+
+  QPixmap getQPixmap() const;
 
   const std::string &filename() const { return filename_; }
 

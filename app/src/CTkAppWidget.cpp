@@ -13,7 +13,6 @@
 
 #include <CQUtil.h>
 #include <CQUtilGeom.h>
-#include <CQImage.h>
 #include <CGlob.h>
 #include <CSVGUtil.h>
 #include <CMatrix2D.h>
@@ -600,12 +599,7 @@ execConfig(const std::string &name, const std::string &value)
     if (! image)
       return tk_->throwError("Failed to load bitmap '" + value + "'");
 
-    auto *cqimage = image.cast<CQImage>();
-    if (! cqimage) return false;
-
-    auto &qimage = cqimage->getQImage();
-
-    setImage(qimage);
+    setImage(image);
   }
   else if (name == "-image") {
     auto image = tk_->getImage(value);
@@ -613,7 +607,7 @@ execConfig(const std::string &name, const std::string &value)
     if (! image)
       return tk_->throwError("Failed to get image '" + value + "'");
 
-    setImage(image->getQImage());
+    setImage(image);
   }
   else if (name == "-wraplength") {
     double length;
@@ -656,11 +650,9 @@ execOp(const Args &args)
 
 void
 CTkAppButton::
-setImage(const QImage &qimage)
+setImage(const CTkAppImageRef &image)
 {
-  QPixmap pixmap;
-
-  pixmap.convertFromImage(qimage);
+  auto pixmap = image->getQPixmap();
 
   qbutton_->setIcon(QIcon(pixmap));
 }
@@ -1300,7 +1292,7 @@ execOp(const Args &args)
             if (! appImage)
               return tk_->throwError("Failed to get image '" + value + "'");
 
-            image->setImage(appImage->getImage());
+            image->setImage(appImage);
           }
           else if (name == "-activeimage") {
             tk_->TODO(name, args);
@@ -2432,24 +2424,18 @@ drawShape(QPainter *p, Shape *s)
     case CTkAppCanvasShapeType::IMAGE: {
       auto *i = static_cast<Image *>(s);
 
-      auto *cqimage = i->getImage().cast<CQImage>();
+      auto qimage = i->getImage()->getQImage();
 
-      if (cqimage) {
-        auto &qimage = cqimage->getQImage();
-        p->drawImage(i->pos().x, i->pos().y, qimage);
-      }
+      p->drawImage(i->pos().x, i->pos().y, qimage);
 
       break;
     }
     case CTkAppCanvasShapeType::BITMAP: {
       auto *i = static_cast<Bitmap *>(s);
 
-      auto *cqimage = i->getImage().cast<CQImage>();
+      auto qimage = i->getImage()->getQImage();
 
-      if (cqimage) {
-        auto &qimage = cqimage->getQImage();
-        p->drawImage(i->pos().x, i->pos().y, qimage);
-      }
+      p->drawImage(i->pos().x, i->pos().y, qimage);
 
       break;
     }
@@ -3151,7 +3137,7 @@ execConfig(const std::string &name, const std::string &value)
     if (! image)
       return tk_->throwError("Failed to get image '" + value + "'");
 
-    setImage(image->getImage());
+    setImage(image);
   }
   else if (name == "-textvariable") {
     varName_ = value;
@@ -3211,16 +3197,9 @@ setText(const std::string &text)
 
 void
 CTkAppLabel::
-setImage(CImagePtr image)
+setImage(const CTkAppImageRef &image)
 {
-  auto *cqimage = image.cast<CQImage>();
-  if (! cqimage) return;
-
-  auto &qimage = cqimage->getQImage();
-
-  //QPixmap pixmap;
-  //pixmap.convertFromImage(qimage);
-  //qlabel_->setPixmap(pixmap);
+  auto qimage = image->getQImage();
 
   qlabel_->setImage(qimage);
 }
@@ -4086,7 +4065,7 @@ execConfig(const std::string &name, const std::string &value)
     if (! image)
       return tk_->throwError("Failed to get image '" + value + "'");
 
-    setImage(image->getImage());
+    setImage(image);
   }
   else if (name == "-width") {
     // width in characters for text or screen units for image
@@ -4142,16 +4121,9 @@ setText(const std::string &text)
 
 void
 CTkAppMenuButton::
-setImage(CImagePtr image)
+setImage(const CTkAppImageRef &image)
 {
-  auto *cqimage = image.cast<CQImage>();
-  if (! cqimage) return;
-
-  auto &qimage = cqimage->getQImage();
-
-  QPixmap pixmap;
-
-  pixmap.convertFromImage(qimage);
+  auto pixmap = image->getQPixmap();
 
   qbutton_->setIcon(QIcon(pixmap));
 }
@@ -4528,7 +4500,7 @@ execConfig(const std::string &name, const std::string &value)
     if (! image)
       return tk_->throwError("Failed to get image '" + value + "'");
 
-    setImage(image->getImage());
+    setImage(image);
   }
   else if (name == "-selectcolor") {
     selectColor_ = CTkAppUtil::stringToQColor(value);
@@ -4580,16 +4552,9 @@ setText(const std::string &text)
 
 void
 CTkAppRadioButton::
-setImage(CImagePtr image)
+setImage(const CTkAppImageRef &image)
 {
-  auto *cqimage = image.cast<CQImage>();
-  if (! cqimage) return;
-
-  auto &qimage = cqimage->getQImage();
-
-  //QPixmap pixmap;
-  //pixmap.convertFromImage(qimage);
-  //qradio_->setIcon(QIcon(pixmap));
+  auto qimage = image->getQImage();
 
   if (! qimage.isNull())
     qradio_->setImage(qimage);

@@ -493,33 +493,11 @@ compiler_moc_header_clean:
 		../include/CTkApp.h \
 		../include/CTkAppOptionValue.h \
 		../include/CTclApp.h \
-		../../../CImageLib/include/CImagePtr.h \
-		../../../CUtil/include/CRefPtr.h \
 		../../../CStrUtil/include/CStrParse.h \
 		../../../CRGBName/include/CRGBName.h \
 		../../../CUtil/include/CRGBA.h \
 		../../../CUtil/include/CRGB.h \
-		../../../CImageLib/include/CImageLib.h \
-		../../../CUtil/include/CAlignType.h \
-		../../../CImageLib/include/CImageState.h \
-		../../../CImageLib/include/CImage.h \
-		../../../CUtil/include/CRGBACombineDef.h \
-		../../../CMath/include/CISize2D.h \
-		../../../CMath/include/CIBBox2D.h \
-		../../../CMath/include/CIPoint2D.h \
-		../../../CMath/include/CIVector2D.h \
-		../../../CMath/include/CMathGen.h \
-		../../../CFile/include/CFileType.h \
-		../../../CUtil/include/COptVal.h \
-		../../../CImageLib/include/CImageResizeType.h \
-		../../../CImageLib/include/CImageConvolveData.h \
-		../../../CImageLib/include/CImageTileData.h \
-		../../../CImageLib/include/CImageMgr.h \
-		../../../CFile/include/CFile.h \
-		../../../CFile/include/CFileBase.h \
 		../../../CStrUtil/include/CStrUtil.h \
-		../../../CImageLib/include/CImageAnim.h \
-		../../../CImageLib/include/CImageFile.h \
 		.moc/moc_predefs.h \
 		/usr/lib/qt5/bin/moc
 	/usr/lib/qt5/bin/moc $(DEFINES) --include /home/colinw/git/CTk/app/src/.moc/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I/home/colinw/git/CTk/app/src -I/home/colinw/git/CTk/app/include -I/home/colinw/git/CQUtil/include -I/home/colinw/git/CTclApp/include -I/home/colinw/git/CXLib/include -I/home/colinw/git/CReadLine/include -I/home/colinw/git/CImageLib/include -I/home/colinw/git/CRGBName/include -I/home/colinw/git/CFont/include -I/home/colinw/git/CFile/include -I/home/colinw/git/CMath/include -I/home/colinw/git/CStrUtil/include -I/home/colinw/git/CGlob/include -I/home/colinw/git/CUtil/include -I/home/colinw/git/COS/include -I/usr/include/tcl -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtSvg -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -I/usr/include/c++/11/backward -I/usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include ../include/CTkAppWidget.h -o .moc/moc_CTkAppWidget.cpp
@@ -559,35 +537,15 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../include/CTkAppOptionValue.h \
 		../include/CTkAppEventData.h \
 		../include/CTclApp.h \
-		../../../CImageLib/include/CImagePtr.h \
-		../../../CUtil/include/CRefPtr.h \
 		../../../CStrUtil/include/CStrParse.h \
 		../../../CRGBName/include/CRGBName.h \
 		../../../CUtil/include/CRGBA.h \
 		../../../CUtil/include/CRGB.h \
 		../include/CTkAppWidget.h \
-		../../../CImageLib/include/CImageLib.h \
-		../../../CUtil/include/CAlignType.h \
-		../../../CImageLib/include/CImageState.h \
-		../../../CImageLib/include/CImage.h \
-		../../../CUtil/include/CRGBACombineDef.h \
-		../../../CMath/include/CISize2D.h \
-		../../../CMath/include/CIBBox2D.h \
-		../../../CMath/include/CIPoint2D.h \
-		../../../CMath/include/CIVector2D.h \
-		../../../CMath/include/CMathGen.h \
-		../../../CFile/include/CFileType.h \
-		../../../CUtil/include/COptVal.h \
-		../../../CImageLib/include/CImageResizeType.h \
-		../../../CImageLib/include/CImageConvolveData.h \
-		../../../CImageLib/include/CImageTileData.h \
-		../../../CImageLib/include/CImageMgr.h \
-		../../../CFile/include/CFile.h \
-		../../../CFile/include/CFileBase.h \
 		../../../CStrUtil/include/CStrUtil.h \
-		../../../CImageLib/include/CImageAnim.h \
-		../../../CImageLib/include/CImageFile.h \
 		../include/CTkAppImage.h \
+		../../../CImageLib/include/CImagePtr.h \
+		../../../CUtil/include/CRefPtr.h \
 		../include/CTkAppCommands.h \
 		../include/CTclAppCommand.h \
 		../include/CTkAppOptData.h \
@@ -605,44 +563,30 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../include/CTkApp.h \
 		../include/CTkAppEventData.h \
 		../include/CTclApp.h \
-		../../../CImageLib/include/CImagePtr.h \
-		../../../CUtil/include/CRefPtr.h \
 		../../../CStrUtil/include/CStrParse.h \
 		../../../CRGBName/include/CRGBName.h \
 		../../../CUtil/include/CRGBA.h \
 		../../../CUtil/include/CRGB.h \
 		../include/CTkAppWidget.h \
-		../../../CImageLib/include/CImageLib.h \
-		../../../CUtil/include/CAlignType.h \
-		../../../CImageLib/include/CImageState.h \
-		../../../CImageLib/include/CImage.h \
-		../../../CUtil/include/CRGBACombineDef.h \
-		../../../CMath/include/CISize2D.h \
-		../../../CMath/include/CIBBox2D.h \
-		../../../CMath/include/CIPoint2D.h \
-		../../../CMath/include/CIVector2D.h \
-		../../../CMath/include/CMathGen.h \
-		../../../CFile/include/CFileType.h \
-		../../../CUtil/include/COptVal.h \
-		../../../CImageLib/include/CImageResizeType.h \
-		../../../CImageLib/include/CImageConvolveData.h \
-		../../../CImageLib/include/CImageTileData.h \
-		../../../CImageLib/include/CImageMgr.h \
-		../../../CFile/include/CFile.h \
-		../../../CFile/include/CFileBase.h \
 		../../../CStrUtil/include/CStrUtil.h \
-		../../../CImageLib/include/CImageAnim.h \
-		../../../CImageLib/include/CImageFile.h \
 		../include/CTkAppPackLayout.h \
 		../include/CTkAppPlaceLayout.h \
+		../../../CUtil/include/COptVal.h \
 		../include/CTkAppGridLayout.h \
 		../include/CTkAppImage.h \
+		../../../CImageLib/include/CImagePtr.h \
+		../../../CUtil/include/CRefPtr.h \
 		../include/CTkAppUtil.h \
 		../../../CUtil/include/CScreenUnits.h \
 		../../../CStrUtil/include/CStrMap.h \
 		../../../CQUtil/include/CQUtil.h \
 		../../../CQUtil/include/CQUtilMeta.h \
 		../../../CQUtil/include/CQUtilGeom.h \
+		../../../CMath/include/CIBBox2D.h \
+		../../../CMath/include/CIPoint2D.h \
+		../../../CMath/include/CISize2D.h \
+		../../../CMath/include/CIVector2D.h \
+		../../../CMath/include/CMathGen.h \
 		../../../CMath/include/CBBox2D.h \
 		../../../CMath/include/CPoint2D.h \
 		../../../CMath/include/CVector2D.h \
@@ -661,32 +605,11 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../include/CTkApp.h \
 		../include/CTkAppOptionValue.h \
 		../include/CTclApp.h \
-		../../../CImageLib/include/CImagePtr.h \
-		../../../CUtil/include/CRefPtr.h \
 		../../../CStrUtil/include/CStrParse.h \
 		../../../CRGBName/include/CRGBName.h \
 		../../../CUtil/include/CRGBA.h \
 		../../../CUtil/include/CRGB.h \
-		../../../CImageLib/include/CImageLib.h \
-		../../../CUtil/include/CAlignType.h \
-		../../../CImageLib/include/CImageState.h \
-		../../../CImageLib/include/CImage.h \
-		../../../CUtil/include/CRGBACombineDef.h \
-		../../../CMath/include/CISize2D.h \
-		../../../CMath/include/CIBBox2D.h \
-		../../../CMath/include/CIPoint2D.h \
-		../../../CMath/include/CIVector2D.h \
-		../../../CMath/include/CMathGen.h \
-		../../../CFile/include/CFileType.h \
-		../../../CImageLib/include/CImageResizeType.h \
-		../../../CImageLib/include/CImageConvolveData.h \
-		../../../CImageLib/include/CImageTileData.h \
-		../../../CImageLib/include/CImageMgr.h \
-		../../../CFile/include/CFile.h \
-		../../../CFile/include/CFileBase.h \
-		../../../CStrUtil/include/CStrUtil.h \
-		../../../CImageLib/include/CImageAnim.h \
-		../../../CImageLib/include/CImageFile.h
+		../../../CStrUtil/include/CStrUtil.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTkAppGridLayout.o CTkAppGridLayout.cpp
 
 ../obj/CTkAppImage.o: CTkAppImage.cpp ../include/CTkAppImage.h \
@@ -729,34 +652,12 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../include/CTkAppOptionValue.h \
 		../include/CTkAppEventData.h \
 		../include/CTclApp.h \
-		../../../CImageLib/include/CImagePtr.h \
-		../../../CUtil/include/CRefPtr.h \
 		../../../CStrUtil/include/CStrParse.h \
 		../../../CRGBName/include/CRGBName.h \
 		../../../CUtil/include/CRGBA.h \
 		../../../CUtil/include/CRGB.h \
 		../include/CTkAppWidget.h \
-		../../../CImageLib/include/CImageLib.h \
-		../../../CUtil/include/CAlignType.h \
-		../../../CImageLib/include/CImageState.h \
-		../../../CImageLib/include/CImage.h \
-		../../../CUtil/include/CRGBACombineDef.h \
-		../../../CMath/include/CISize2D.h \
-		../../../CMath/include/CIBBox2D.h \
-		../../../CMath/include/CIPoint2D.h \
-		../../../CMath/include/CIVector2D.h \
-		../../../CMath/include/CMathGen.h \
-		../../../CFile/include/CFileType.h \
-		../../../CUtil/include/COptVal.h \
-		../../../CImageLib/include/CImageResizeType.h \
-		../../../CImageLib/include/CImageConvolveData.h \
-		../../../CImageLib/include/CImageTileData.h \
-		../../../CImageLib/include/CImageMgr.h \
-		../../../CFile/include/CFile.h \
-		../../../CFile/include/CFileBase.h \
-		../../../CStrUtil/include/CStrUtil.h \
-		../../../CImageLib/include/CImageAnim.h \
-		../../../CImageLib/include/CImageFile.h
+		../../../CStrUtil/include/CStrUtil.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTkAppLayoutWidget.o CTkAppLayoutWidget.cpp
 
 ../obj/CTkAppOptData.o: CTkAppOptData.cpp ../include/CTkAppOptData.h \
@@ -764,8 +665,6 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../include/CTkApp.h \
 		../include/CTkAppEventData.h \
 		../include/CTclApp.h \
-		../../../CImageLib/include/CImagePtr.h \
-		../../../CUtil/include/CRefPtr.h \
 		../../../CStrUtil/include/CStrParse.h \
 		../../../CRGBName/include/CRGBName.h \
 		../../../CUtil/include/CRGBA.h \
@@ -779,33 +678,11 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../include/CTkApp.h \
 		../include/CTkAppOptionValue.h \
 		../include/CTclApp.h \
-		../../../CImageLib/include/CImagePtr.h \
-		../../../CUtil/include/CRefPtr.h \
 		../../../CStrUtil/include/CStrParse.h \
 		../../../CRGBName/include/CRGBName.h \
 		../../../CUtil/include/CRGBA.h \
 		../../../CUtil/include/CRGB.h \
-		../../../CImageLib/include/CImageLib.h \
-		../../../CUtil/include/CAlignType.h \
-		../../../CImageLib/include/CImageState.h \
-		../../../CImageLib/include/CImage.h \
-		../../../CUtil/include/CRGBACombineDef.h \
-		../../../CMath/include/CISize2D.h \
-		../../../CMath/include/CIBBox2D.h \
-		../../../CMath/include/CIPoint2D.h \
-		../../../CMath/include/CIVector2D.h \
-		../../../CMath/include/CMathGen.h \
-		../../../CFile/include/CFileType.h \
-		../../../CUtil/include/COptVal.h \
-		../../../CImageLib/include/CImageResizeType.h \
-		../../../CImageLib/include/CImageConvolveData.h \
-		../../../CImageLib/include/CImageTileData.h \
-		../../../CImageLib/include/CImageMgr.h \
-		../../../CFile/include/CFile.h \
-		../../../CFile/include/CFileBase.h \
-		../../../CStrUtil/include/CStrUtil.h \
-		../../../CImageLib/include/CImageAnim.h \
-		../../../CImageLib/include/CImageFile.h
+		../../../CStrUtil/include/CStrUtil.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTkAppPackLayout.o CTkAppPackLayout.cpp
 
 ../obj/CTkAppPlaceLayout.o: CTkAppPlaceLayout.cpp ../include/CTkAppPlaceLayout.h \
@@ -818,40 +695,21 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../include/CTkApp.h \
 		../include/CTkAppOptionValue.h \
 		../include/CTclApp.h \
-		../../../CImageLib/include/CImagePtr.h \
-		../../../CUtil/include/CRefPtr.h \
 		../../../CStrUtil/include/CStrParse.h \
 		../../../CRGBName/include/CRGBName.h \
 		../../../CUtil/include/CRGBA.h \
 		../../../CUtil/include/CRGB.h \
-		../../../CImageLib/include/CImageLib.h \
-		../../../CUtil/include/CAlignType.h \
-		../../../CImageLib/include/CImageState.h \
-		../../../CImageLib/include/CImage.h \
-		../../../CUtil/include/CRGBACombineDef.h \
-		../../../CMath/include/CISize2D.h \
-		../../../CMath/include/CIBBox2D.h \
-		../../../CMath/include/CIPoint2D.h \
-		../../../CMath/include/CIVector2D.h \
-		../../../CMath/include/CMathGen.h \
-		../../../CFile/include/CFileType.h \
-		../../../CUtil/include/COptVal.h \
-		../../../CImageLib/include/CImageResizeType.h \
-		../../../CImageLib/include/CImageConvolveData.h \
-		../../../CImageLib/include/CImageTileData.h \
-		../../../CImageLib/include/CImageMgr.h \
-		../../../CFile/include/CFile.h \
-		../../../CFile/include/CFileBase.h \
 		../../../CStrUtil/include/CStrUtil.h \
-		../../../CImageLib/include/CImageAnim.h \
-		../../../CImageLib/include/CImageFile.h \
 		../include/CTkAppCommands.h \
 		../include/CTclAppCommand.h \
 		../include/CTkAppOptData.h \
 		../include/CTkAppPackLayout.h \
 		../include/CTkAppPlaceLayout.h \
+		../../../CUtil/include/COptVal.h \
 		../include/CTkAppGridLayout.h \
 		../include/CTkAppImage.h \
+		../../../CImageLib/include/CImagePtr.h \
+		../../../CUtil/include/CRefPtr.h \
 		../include/CTkAppUtil.h \
 		../../../CUtil/include/CScreenUnits.h \
 		../../../CStrUtil/include/CStrMap.h \
@@ -861,6 +719,11 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../../../CQUtil/include/CQUtil.h \
 		../../../CQUtil/include/CQUtilMeta.h \
 		../../../CQUtil/include/CQUtilGeom.h \
+		../../../CMath/include/CIBBox2D.h \
+		../../../CMath/include/CIPoint2D.h \
+		../../../CMath/include/CISize2D.h \
+		../../../CMath/include/CIVector2D.h \
+		../../../CMath/include/CMathGen.h \
 		../../../CMath/include/CBBox2D.h \
 		../../../CMath/include/CPoint2D.h \
 		../../../CMath/include/CVector2D.h \
@@ -868,7 +731,6 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../../../COS/include/COSNaN.h \
 		../../../CMath/include/CSize2D.h \
 		../../../CMath/include/CMatrix2D.h \
-		../../../CQUtil/include/CQImage.h \
 		../../../CGlob/include/CGlob.h \
 		CSVGUtil.h \
 		../../../CMath/include/C3Bezier2D.h \
@@ -876,9 +738,6 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTkAppWidget.o CTkAppWidget.cpp
 
 ../obj/CTclApp.o: CTclApp.cpp ../include/CTclApp.h \
-		../../../CFile/include/CFile.h \
-		../../../CFile/include/CFileBase.h \
-		../../../CFile/include/CFileType.h \
 		../../../CStrUtil/include/CStrUtil.h \
 		../../../CReadLine/include/CReadLine.h \
 		../../../CReadLine/include/CHistory.h

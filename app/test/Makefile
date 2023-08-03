@@ -413,8 +413,6 @@ compiler_clean: compiler_moc_predefs_clean
 		../include/CTkAppOptionValue.h \
 		../include/CTkAppEventData.h \
 		../include/CTclApp.h \
-		../../../CImageLib/include/CImagePtr.h \
-		../../../CUtil/include/CRefPtr.h \
 		../../../CStrUtil/include/CStrParse.h \
 		../../../CUtil/include/CRGBName.h \
 		../../../CUtil/include/CRGBA.h \

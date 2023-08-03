@@ -1,6 +1,5 @@
 #include <CTclApp.h>
 
-#include <CFile.h>
 #include <CStrUtil.h>
 #include <CReadLine.h>
 

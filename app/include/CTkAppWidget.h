@@ -4,7 +4,7 @@
 #include <CTkAppEventData.h>
 #include <CTkApp.h>
 
-#include <CImageLib.h>
+#include <CStrUtil.h>
 
 #include <QBrush>
 #include <QCheckBox>
@@ -21,6 +21,7 @@
 #include <QWidgetAction>
 
 #include <optional>
+#include <cmath>
 
 class CTkApp;
 class CTkAppRoot;
@@ -338,7 +339,7 @@ class CTkAppButton : public CTkAppWidget {
 
   bool execOp(const Args &args) override;
 
-  void setImage(const QImage &image);
+  void setImage(const CTkAppImageRef &image);
 
   void flash();
 
@@ -1046,14 +1047,14 @@ class CTkAppCanvasWidget : public QWidget {
 
   class Image : public Shape {
    public:
-    explicit Image(const Point &p, const CImagePtr &image) :
+    explicit Image(const Point &p, const CTkAppImageRef &image) :
      Shape(ShapeType::IMAGE), p_(p), image_(image) {
     }
 
     const Point &pos() const { return p_; }
 
-    const CImagePtr &getImage() const { return image_; }
-    void setImage(const CImagePtr &i) { image_ = i; }
+    const CTkAppImageRef &getImage() const { return image_; }
+    void setImage(const CTkAppImageRef &i) { image_ = i; }
 
     bool inside(double /*x*/, double /*y*/) const override { return false; }
 
@@ -1066,20 +1067,20 @@ class CTkAppCanvasWidget : public QWidget {
     }
 
    protected:
-    Point     p_;
-    CImagePtr image_;
+    Point          p_;
+    CTkAppImageRef image_;
   };
 
   class Bitmap : public Shape {
    public:
-    explicit Bitmap(const Point &p, const CImagePtr &image) :
+    explicit Bitmap(const Point &p, const CTkAppImageRef &image) :
      Shape(ShapeType::BITMAP), p_(p), image_(image) {
     }
 
     const Point &pos() const { return p_; }
 
-    const CImagePtr &getImage() const { return image_; }
-    void setImage(const CImagePtr &i) { image_ = i; }
+    const CTkAppImageRef &getImage() const { return image_; }
+    void setImage(const CTkAppImageRef &i) { image_ = i; }
 
     bool inside(double /*x*/, double /*y*/) const override { return false; }
 
@@ -1092,8 +1093,8 @@ class CTkAppCanvasWidget : public QWidget {
     }
 
    protected:
-    Point     p_;
-    CImagePtr image_;
+    Point          p_;
+    CTkAppImageRef image_;
   };
 
  public:
@@ -1157,13 +1158,13 @@ class CTkAppCanvasWidget : public QWidget {
     return static_cast<Text *>(addShape(textShape));
   }
 
-  Image *addImage(const Point &pos, const CImagePtr &image=CImagePtr()) {
+  Image *addImage(const Point &pos, const CTkAppImageRef &image=CTkAppImageRef()) {
     auto *imageShape = new Image(pos, image);
 
     return static_cast<Image *>(addShape(imageShape));
   }
 
-  Bitmap *addBitmap(const Point &pos, const CImagePtr &image=CImagePtr()) {
+  Bitmap *addBitmap(const Point &pos, const CTkAppImageRef &image=CTkAppImageRef()) {
     auto *bitmapShape = new Bitmap(pos, image);
 
     return static_cast<Bitmap *>(addShape(bitmapShape));
@@ -1579,7 +1580,7 @@ class CTkAppLabel : public CTkAppWidget {
 
   void setText(const std::string &text);
 
-  void setImage(CImagePtr image);
+  void setImage(const CTkAppImageRef &image);
 
   void updateFromVar();
 
@@ -1799,7 +1800,7 @@ class CTkAppMenuButton : public CTkAppWidget {
 
   void setText(const std::string &text);
 
-  void setImage(CImagePtr image);
+  void setImage(const CTkAppImageRef &image);
 
   void updateMenu();
 
@@ -1887,7 +1888,7 @@ class CTkAppRadioButton : public CTkAppWidget {
 
   void setValue(const std::string &value);
 
-  void setImage(CImagePtr image);
+  void setImage(const CTkAppImageRef &image);
 
   void setChecked(bool b);
 
