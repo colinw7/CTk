@@ -7,6 +7,7 @@
 
 static std::string opts = "\
 -debug:f \
+-namespace:f \
 ";
 
 class ReadLine : public CReadLine {
@@ -77,6 +78,11 @@ main(int argc, char **argv)
   if (cargs.getBooleanArg("-debug"))
     debug = true;
 
+  bool useNamespace = false;
+
+  if (cargs.getBooleanArg("-namespace"))
+    useNamespace = true;
+
   std::vector<std::string> filenames;
   std::vector<std::string> args;
   bool                     processing = true;
@@ -109,7 +115,7 @@ main(int argc, char **argv)
 
   argv1[i] = nullptr;
 
-  tk = new CTkApp(argc1, const_cast<const char **>(argv1));
+  tk = new CTkApp(argc1, const_cast<const char **>(argv1), useNamespace);
 
   for (const auto &filename : filenames)
     tk->evalFile(filename);

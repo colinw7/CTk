@@ -1,11 +1,15 @@
 #include <CTkAppImage.h>
 #include <CTkApp.h>
 
+#ifdef CTK_CIMAGE
 #include <CImageLib.h>
 #include <CQImage.h>
+#endif
 
 #include <QSvgRenderer>
 #include <QPainter>
+
+#include <cassert>
 
 CTkAppImage::
 CTkAppImage(CTkApp *tk, const std::string &name) :
@@ -18,6 +22,7 @@ CTkAppImage::
 {
 }
 
+#if 0
 const CImagePtr &
 CTkAppImage::
 getImage() const
@@ -31,6 +36,7 @@ setImage(const CImagePtr &image)
 {
   image_ = image;
 }
+#endif
 
 bool
 CTkAppImage::
@@ -38,12 +44,16 @@ loadFile(const std::string &filename)
 {
   filename_ = filename;
 
+#ifdef CTK_CIMAGE
   CImageFileSrc src(filename);
 
   image_ = CImageMgrInst->lookupImage(src);
 
   if (! image_.isValid())
     return tk_->throwError("Failed to read image file '" + filename + "'");
+#else
+  qimage_ = QImage(QString::fromStdString(filename_));
+#endif
 
   return true;
 }
@@ -73,6 +83,7 @@ bool
 CTkAppImage::
 loadData(const std::string &data)
 {
+#ifdef CTK_CIMAGE
   CImageDataSrc src(data);
 
   image_ = CImageMgrInst->lookupImage(src);
@@ -81,6 +92,11 @@ loadData(const std::string &data)
     return tk_->throwError("Failed to read image data");
 
   return image_.isValid();
+#else
+  assert(data.size());
+
+  return false;
+#endif
 }
 
 QImage
@@ -90,10 +106,14 @@ getQImage() const
   if (! qimage_.isNull())
     return qimage_;
 
+#ifdef CTK_CIMAGE
   auto *cqimage = image_.cast<CQImage>();
   if (! cqimage) return QImage();
 
   return cqimage->getQImage();
+#else
+  return QImage();
+#endif
 }
 
 QPixmap
@@ -113,6 +133,8 @@ clear()
 {
   if (! qimage_.isNull())
     qimage_.fill(Qt::transparent);
+#ifdef CTK_CIMAGE
   else
     image_->setRGBAData(CRGBA(0.0, 0.0, 0.0, 0.0));
+#endif
 }

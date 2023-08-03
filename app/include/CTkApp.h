@@ -51,8 +51,10 @@ class CTkApp : public CTclApp {
   };
 
  public:
-  explicit CTkApp(Tcl_Interp *interp);
-  explicit CTkApp(int argc, const char **argv);
+  explicit CTkApp(Tcl_Interp *interp, bool useNamespace=false);
+  explicit CTkApp(int argc, const char **argv, bool useNamespace=false);
+
+  //---
 
   std::string getTclStr() override;
 
@@ -66,6 +68,13 @@ class CTkApp : public CTclApp {
 
   bool useStyle() const { return useStyle_; }
   void setUseStyle(bool b) { useStyle_ = b; }
+
+  std::string mapName(const std::string &name) const {
+    if (useNamespace_)
+      return "::tkapp::" + name;
+    else
+      return name;
+  }
 
   //---
 
@@ -233,11 +242,12 @@ class CTkApp : public CTclApp {
 
   using NamedMatrices = std::map<std::string, MatrixData>;
 
-  NamedMatrices nameMatrices_;
-
   //--
 
+  bool useNamespace_ = false;
+
   WidgetClasses widgetClasses_;
+  NamedMatrices nameMatrices_;
 
   CTkAppRoot*     root_ { nullptr };
   bool            useStyle_ { false };

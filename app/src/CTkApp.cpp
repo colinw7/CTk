@@ -17,14 +17,14 @@
 
 //---
 
-static int Tk_Init(Tcl_Interp *) { return TCL_OK; }
-static int Tk_SafeInit(Tcl_Interp *) { return TCL_OK; }
+static int CTkApp_Init(Tcl_Interp *) { return TCL_OK; }
+static int CTkApp_SafeInit(Tcl_Interp *) { return TCL_OK; }
 
 //---
 
 CTkApp::
-CTkApp(Tcl_Interp *interp) :
- CTclApp(interp)
+CTkApp(Tcl_Interp *interp, bool useNamespace) :
+ CTclApp(interp), useNamespace_(useNamespace)
 {
   static const char *argv[2] = { "CTkApp", nullptr };
 
@@ -32,8 +32,8 @@ CTkApp(Tcl_Interp *interp) :
 }
 
 CTkApp::
-CTkApp(int argc, const char **argv) :
- CTclApp(argc, argv)
+CTkApp(int argc, const char **argv, bool useNamespace) :
+ CTclApp(argc, argv), useNamespace_(useNamespace)
 {
   construct(argc, argv);
 }
@@ -46,9 +46,12 @@ construct(int argc, const char **argv)
 
   tclInit();
 
-  Tcl_StaticPackage(getInterp(), "Tk", Tk_Init, Tk_SafeInit);
+  Tcl_StaticPackage(getInterp(), "Tk", CTkApp_Init, CTkApp_SafeInit);
 
   Tcl_PkgProvide(getInterp(), "Tk", "8.0");
+
+  if (useNamespace_)
+    Tcl_CreateNamespace(getInterp(), "::tkapp", nullptr, nullptr);
 
   setInteractive(false);
 

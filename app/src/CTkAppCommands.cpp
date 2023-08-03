@@ -29,7 +29,7 @@
 class CLASS : public CTkAppCommand { \
  public: \
   CLASS(CTkApp *tk) : \
-    CTkAppCommand(tk, NAME) { \
+    CTkAppCommand(tk, tk->mapName(NAME)) { \
   } \
 \
  protected: \

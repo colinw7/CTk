@@ -1,6 +1,8 @@
 *.a
 *.o
 
+moc_*.cpp
+
 bin/
 obj/
 lib/

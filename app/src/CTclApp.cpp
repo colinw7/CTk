@@ -1,7 +1,10 @@
 #include <CTclApp.h>
 
 #include <CStrUtil.h>
+
+#ifdef CTCL_APP_READLINE
 #include <CReadLine.h>
+#endif
 
 #include <iostream>
 #include <cstring>
@@ -101,6 +104,7 @@ void
 CTclApp::
 interactiveMainLoop()
 {
+#ifdef CTCL_APP_READLINE
   CReadLine readline;
 
   readline.setAutoHistory(true);
@@ -116,6 +120,9 @@ interactiveMainLoop()
 
     (void) eval(line);
   }
+#else
+  assert(false);
+#endif
 }
 
 //---
