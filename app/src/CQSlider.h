@@ -175,11 +175,11 @@ class CQRealSlider : public CQSliderBase {
 
   int valueWidthToPos(double v, int width) const;
 
- signals:
+ Q_SIGNALS:
   void valueChanged(double);
   void rangeChanged(double, double);
 
- private slots:
+ private Q_SLOTS:
   void valueChangedSlot(int);
 
 

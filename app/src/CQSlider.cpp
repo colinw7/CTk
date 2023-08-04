@@ -12,7 +12,8 @@ CQSliderBase(QWidget *parent, Qt::Orientation orient) :
 {
   setTickPosition(TicksBelow);
 
-  setInvertedAppearance(true);
+  if (orient == Qt::Vertical)
+    setInvertedAppearance(true);
 
   updateFonts();
 }
@@ -476,6 +477,7 @@ CQRealSlider::
 CQRealSlider(Qt::Orientation orient) :
  CQSliderBase(nullptr, orient)
 {
+  init();
 }
 
 void
@@ -486,6 +488,7 @@ init()
   CQSliderBase::setMaximum(int(scale_));
 
   CQSliderBase::setSingleStep(1);
+  CQSliderBase::setPageStep(1);
 
   connect(this, SIGNAL(valueChanged(int)), this, SLOT(valueChangedSlot(int)));
 }
@@ -514,7 +517,7 @@ setMinimum(double r)
 
   update();
 
-  emit rangeChanged(minimum_, maximum_);
+  Q_EMIT rangeChanged(minimum_, maximum_);
 }
 
 void
@@ -525,7 +528,7 @@ setMaximum(double r)
 
   update();
 
-  emit rangeChanged(minimum_, maximum_);
+  Q_EMIT rangeChanged(minimum_, maximum_);
 }
 
 void
@@ -537,7 +540,7 @@ setRange(double minimum, double maximum)
 
   update();
 
-  emit rangeChanged(minimum_, maximum_);
+  Q_EMIT rangeChanged(minimum_, maximum_);
 }
 
 void
@@ -546,7 +549,7 @@ setSingleStep(double r)
 {
   singleStep_ = r;
 
-  int is = int(scale_*(pageStep_/(maximum() - minimum())));
+  int is = int(scale_*(singleStep_/(maximum() - minimum())));
 
   CQSliderBase::setSingleStep(is);
 }
@@ -870,7 +873,7 @@ valueChangedSlot(int v)
     connect(this, SIGNAL(valueChanged(int)), this, SLOT(valueChangedSlot(int)));
   }
 
-  emit valueChanged(value_);
+  Q_EMIT valueChanged(value_);
 }
 
 QSize
