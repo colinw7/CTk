@@ -8,7 +8,7 @@
 
 CTkAppPackLayout::
 CTkAppPackLayout(QWidget *parent, int margin, int spacing) :
- QLayout(parent)
+ CTkAppLayout(parent)
 {
   setObjectName("pack");
 
@@ -17,7 +17,8 @@ CTkAppPackLayout(QWidget *parent, int margin, int spacing) :
 }
 
 CTkAppPackLayout::
-CTkAppPackLayout(int spacing)
+CTkAppPackLayout(int spacing) :
+ CTkAppLayout(nullptr)
 {
   setObjectName("pack");
 
@@ -212,7 +213,7 @@ void
 CTkAppPackLayout::
 setGeometry(const QRect &rect)
 {
-  QLayout::setGeometry(rect);
+  CTkAppLayout::setGeometry(rect);
 
   auto placeRect = rect;
 

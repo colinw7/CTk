@@ -1,6 +1,7 @@
 #include <CTkApp.h>
 #include <CTkAppWidget.h>
 #include <CTkAppImage.h>
+#include <CTkAppFont.h>
 #include <CTkAppCommands.h>
 #include <CTkAppEventData.h>
 #include <CTkAppUtil.h>
@@ -12,8 +13,76 @@
 #include <QApplication>
 #include <QMouseEvent>
 #include <QKeyEvent>
+#include <QFontDialog>
 
 #include <tcl.h>
+
+//---
+
+namespace {
+
+struct VirtualEventData {
+  std::string            name;
+  CTkAppVirtualEventType type { CTkAppVirtualEventType::None };
+};
+
+static VirtualEventData virtualEventData[] = {
+  { "<<AltUnderlined>>"  , CTkAppVirtualEventType::AltUnderlined  },
+  { "<<Invoke>>"         , CTkAppVirtualEventType::Invoke         },
+  { "<<ListboxSelect>>"  , CTkAppVirtualEventType::ListboxSelect  },
+  { "<<MenuSelect>>"     , CTkAppVirtualEventType::MenuSelect     },
+  { "<<Modified>>"       , CTkAppVirtualEventType::Modified       },
+  { "<<Selection>>"      , CTkAppVirtualEventType::Selection      },
+  { "<<ThemeChanged>>"   , CTkAppVirtualEventType::ThemeChanged   },
+  { "<<TkWorldChanged>>" , CTkAppVirtualEventType::TkWorldChanged },
+  { "<<TraverseIn>>"     , CTkAppVirtualEventType::TraverseIn     },
+  { "<<TraverseOut>>"    , CTkAppVirtualEventType::TraverseOut    },
+  { "<<UndoStack>>"      , CTkAppVirtualEventType::UndoStack      },
+  { "<<WidgetViewSync>>" , CTkAppVirtualEventType::WidgetViewSync },
+
+  { "<<Clear>>"          , CTkAppVirtualEventType::Clear           },
+  { "<<Copy>>"           , CTkAppVirtualEventType::Copy            },
+  { "<<Cut>>"            , CTkAppVirtualEventType::Cut             },
+  { "<<LineEnd>>"        , CTkAppVirtualEventType::LineEnd         },
+  { "<<LineStart>>"      , CTkAppVirtualEventType::LineStart       },
+  { "<<NextChar>>"       , CTkAppVirtualEventType::NextChar        },
+  { "<<NextLine>>"       , CTkAppVirtualEventType::NextLine        },
+  { "<<NextPara>>"       , CTkAppVirtualEventType::NextPara        },
+  { "<<NextWord>>"       , CTkAppVirtualEventType::NextWord        },
+  { "<<Paste>>"          , CTkAppVirtualEventType::Paste           },
+  { "<<PasteSelection>>" , CTkAppVirtualEventType::PasteSelection  },
+  { "<<PrevChar>>"       , CTkAppVirtualEventType::PrevChar        },
+  { "<<PrevLine>>"       , CTkAppVirtualEventType::PrevLine        },
+  { "<<PrevPara>>"       , CTkAppVirtualEventType::PrevPara        },
+  { "<<PrevWindow>>"     , CTkAppVirtualEventType::PrevWindow      },
+  { "<<PrevWord>>"       , CTkAppVirtualEventType::PrevWord        },
+  { "<<Redo>>"           , CTkAppVirtualEventType::Redo            },
+  { "<<SelectAll>>"      , CTkAppVirtualEventType::SelectAll       },
+  { "<<SelectLineEnd>>"  , CTkAppVirtualEventType::SelectLineEnd   },
+  { "<<SelectLineStart>>", CTkAppVirtualEventType::SelectLineStart },
+  { "<<SelectNextChar>>" , CTkAppVirtualEventType::SelectNextChar  },
+  { "<<SelectNextLine>>" , CTkAppVirtualEventType::SelectNextLine  },
+  { "<<SelectNextPara>>" , CTkAppVirtualEventType::SelectNextPara  },
+  { "<<SelectNextWord>>" , CTkAppVirtualEventType::SelectNextWord  },
+  { "<<SelectNone>>"     , CTkAppVirtualEventType::SelectNone      },
+  { "<<SelectPrevChar>>" , CTkAppVirtualEventType::SelectPrevChar  },
+  { "<<SelectPrevLine>>" , CTkAppVirtualEventType::SelectPrevLine  },
+  { "<<SelectPrevPara>>" , CTkAppVirtualEventType::SelectPrevPara  },
+  { "<<SelectPrevWord>>" , CTkAppVirtualEventType::SelectPrevWord  },
+  { "<<ToggleSelection>>", CTkAppVirtualEventType::ToggleSelection },
+  { "<<Undo>>"           , CTkAppVirtualEventType::Undo            },
+
+  { "<<Help>>"           , CTkAppVirtualEventType::Help            },
+
+#if 0
+  { "<<TkFontchooserVisibility>>" , CTkAppVirtualEventType::FontchooserVisibility  },
+  { "<<TkFontchooserFontChanged>>", CTkAppVirtualEventType::FontchooserFontChanged },
+#endif
+
+  { ""                   , CTkAppVirtualEventType::None            }
+};
+
+}
 
 //---
 
@@ -68,6 +137,19 @@ construct(int argc, const char **argv)
   setStringGlobalVar("tk_version", "8.6");
   setStringGlobalVar("tk_library", "/usr/share/tcltk/tk8.6");
   setStringGlobalVar("tk_patchLevel", "8.6.12");
+
+  //---
+
+  // standard fonts
+  createFont("TkCaptionFont");
+  createFont("TkSmallCaptionFont");
+  createFont("TkTooltipFont");
+  createFont("TkFixedFont");
+  createFont("TkHeadingFont");
+  createFont("TkMenuFont");
+  createFont("TkIconFont");
+  createFont("TkTextFont");
+  createFont("TkDefaultFont");
 }
 
 std::string
@@ -247,13 +329,23 @@ getNewImageName() const
 
 CTkAppImageRef
 CTkApp::
-createImage(const std::string &, const std::string & /*format*/, const std::string &name)
+createImage(const std::string &type, const std::string & /*format*/, const std::string &name,
+            int width, int height)
 {
-  auto image = std::make_shared<CTkAppImage>(this, name);
+  auto image = std::make_shared<CTkAppImage>(this, name, width, height);
+
+  image->setType(type);
 
   images_[name] = image;
 
   return image;
+}
+
+void
+CTkApp::
+deleteImage(const CTkAppImageRef &image)
+{
+  images_.erase(image->name());
 }
 
 CTkAppImageRef
@@ -305,6 +397,126 @@ getBitmap(const std::string &name) const
   return (*pm).second;
 }
 
+void
+CTkApp::
+getImageNames(std::vector<std::string> &names) const
+{
+  for (const auto &pi : images_)
+    names.push_back(pi.first);
+}
+
+//---
+
+std::string
+CTkApp::
+getNewFontName() const
+{
+  static uint id = 1;
+
+  std::string name = CStrUtil::strprintf("font%u", id);
+
+  while (fonts_.find(name) != fonts_.end()) {
+    ++id;
+
+    name = CStrUtil::strprintf("font%u", id);
+  }
+
+  ++id;
+
+  return name;
+}
+
+CTkAppFontRef
+CTkApp::
+createFont(const std::string &name)
+{
+  auto font = std::make_shared<CTkAppFont>(this, name);
+
+  fonts_[name] = font;
+
+  return font;
+}
+
+void
+CTkApp::
+deleteFont(const CTkAppFontRef &font)
+{
+  fonts_.erase(font->name());
+}
+
+CTkAppFontRef
+CTkApp::
+getFont(const std::string &name) const
+{
+  auto p = fonts_.find(name);
+
+  if (p == fonts_.end())
+    return CTkAppFontRef();
+
+  return (*p).second;
+}
+
+QFont
+CTkApp::
+getQFont(const std::string &name) const
+{
+  auto font = getFont(name);
+
+  QFont qfont;
+
+  if (font)
+    return font->getQFont();
+
+  CTkAppUtil::stringToQFont(name, qfont);
+
+  return qfont;
+}
+
+void
+CTkApp::
+getFontData(const QFont &qfont, FontData &data) const
+{
+  data.family     = qfont.family().toStdString();
+  data.size       = qfont.pointSizeF();
+  data.weight     = (qfont.bold() ? "bold" : "normal");
+  data.slant      = (qfont.italic() ? "italic" : "roman");
+  data.underline  = qfont.underline();
+  data.overstrike = qfont.strikeOut();
+
+  QFontMetricsF fm(qfont);
+
+  data.ascent    = fm.ascent();
+  data.descent   = fm.descent();
+  data.linespace = fm.height();
+  data.fixed     = qfont.fixedPitch();
+}
+
+void
+CTkApp::
+getFontNames(std::vector<std::string> &names) const
+{
+  for (const auto &pf : fonts_)
+    names.push_back(pf.first);
+}
+
+void
+CTkApp::
+showFontDialog(bool b)
+{
+  static QFontDialog *dialog;
+
+  if (b) {
+    if (! dialog)
+      dialog = new QFontDialog(root_->qwidget());
+
+    dialog->show();
+  }
+  else {
+    if (dialog)
+      dialog->hide();
+  }
+}
+
 //---
 
 void *
@@ -350,20 +562,70 @@ bindAllEvent(const CTkAppEventData &data)
 
 void
 CTkApp::
-getClassBindings(const std::string &, const CTkAppEventData &, std::vector<std::string> &)
+getClassBindings(const std::string &name, const CTkAppEventData &data,
+                 std::vector<std::string> &bindings)
 {
+  auto pc = classEvents_.find(name);
+  if (pc == classEvents_.end()) return;
+
+  for (const auto &cdata : (*pc).second) {
+    if (cdata == data)
+      bindings.push_back(cdata.pattern);
+  }
 }
 
 void
 CTkApp::
-getTagBindings(const std::string &, const CTkAppEventData &, std::vector<std::string> &)
+getTagBindings(const std::string &name, const CTkAppEventData &data,
+               std::vector<std::string> &bindings)
 {
+  auto pt = tagEvents_.find(name);
+  if (pt == tagEvents_.end()) return;
+
+  for (const auto &tdata : (*pt).second) {
+    if (tdata == data)
+      bindings.push_back(tdata.pattern);
+  }
 }
 
 void
 CTkApp::
-getAllBindings(const CTkAppEventData &, std::vector<std::string> &)
+getAllBindings(const CTkAppEventData &data, std::vector<std::string> &bindings)
 {
+  for (const auto &adata : allEvents_) {
+    if (adata == data)
+      bindings.push_back(adata.pattern);
+  }
+}
+
+void
+CTkApp::
+getClassBindings(const std::string &name, std::vector<std::string> &bindings)
+{
+  auto pc = classEvents_.find(name);
+  if (pc == classEvents_.end()) return;
+
+  for (const auto &cdata : (*pc).second)
+    bindings.push_back(cdata.pattern);
+}
+
+void
+CTkApp::
+getTagBindings(const std::string &name, std::vector<std::string> &bindings)
+{
+  auto pt = tagEvents_.find(name);
+  if (pt == tagEvents_.end()) return;
+
+  for (const auto &tdata : (*pt).second)
+    bindings.push_back(tdata.pattern);
+}
+
+void
+CTkApp::
+getAllBindings(std::vector<std::string> &bindings)
+{
+  for (const auto &adata : allEvents_)
+    bindings.push_back(adata.pattern);
 }
 
 bool
@@ -631,6 +893,34 @@ encodeEvent(QMouseEvent *e, CTkAppEventMode mode, int button, CTkAppEventData &d
 
 bool
 CTkApp::
+stringToVirtualEvent(const std::string &str, CTkAppVirtualEventData &data, bool quiet) const
+{
+  CStrParse parse(str);
+
+  parse.skipSpace();
+
+  for (uint i = 0; virtualEventData[i].type != CTkAppVirtualEventType::None; ++i) {
+    if (parse.isString(virtualEventData[i].name)) {
+      parse.skipLastString();
+      parse.skipSpace();
+
+      if (! parse.eof()) {
+        if (! quiet) return throwError("invalid virtual event \"" + str + " \"");
+        return false;
+      }
+
+      data.type = virtualEventData[i].type;
+
+      return true;
+    }
+  }
+
+  if (! quiet) return throwError("invalid virtual event \"" + str + " \"");
+  return false;
+}
+
+bool
+CTkApp::
 parseEvent(const std::string &pattern, CTkAppEventData &data)
 {
   // See xmodmap ?
@@ -675,6 +965,7 @@ parseEvent(const std::string &pattern, CTkAppEventData &data)
   Visibility
   */
 
+  // Virtual Events
   data.pattern = pattern;
 
   CStrParse parse(pattern);
@@ -702,35 +993,23 @@ parseEvent(const std::string &pattern, CTkAppEventData &data)
 
     parse.skipSpace();
 
-    if      (parse.isString("<Help>")) {
-      parse.skipLastString();
+    if      (parse.isChar('<')) {
+      for (uint i = 0; virtualEventData[i].type != CTkAppVirtualEventType::None; ++i) {
+        if (parse.isString(virtualEventData[i].name.substr(1))) {
+          parse.skipLastString();
+          parse.skipSpace();
 
-      data.type = CTkAppEventType::Help;
+          data.type  = CTkAppEventType::Virtual;
+          data.vtype = virtualEventData[i].type;
 
-      if (! parseClose('>'))
-        return false;
+          if (! parse.eof())
+            return false;
 
-      return true;
-    }
-    else if (parse.isString("<MenuSelect>")) {
-      parse.skipLastString();
+          return true;
+        }
+      }
 
-      data.type = CTkAppEventType::MenuSelect;
-
-      if (! parseClose('>'))
-        return false;
-
-      return true;
-    }
-    else if (parse.isString("<Paste>")) {
-      parse.skipLastString();
-
-      data.type = CTkAppEventType::Paste;
-
-      if (! parseClose('>'))
-        return false;
-
-      return true;
+      return false;
     }
     else if (parse.isString("Expose")) {
       parse.skipLastString();
@@ -1077,6 +1356,33 @@ parseEvent(const std::string &pattern, CTkAppEventData &data)
   return true;
 }
 
+void
+CTkApp::
+addVirtualEventData(const CTkAppVirtualEventData &vdata, const CTkAppEventData &edata)
+{
+  virtualEventData_[vdata].push_back(edata);
+}
+
+void
+CTkApp::
+virtualEventNames(std::vector<std::string> &names) const
+{
+  for (uint i = 0; virtualEventData[i].type != CTkAppVirtualEventType::None; ++i)
+    names.push_back(virtualEventData[i].name);
+}
+
+void
+CTkApp::
+virtualEventNames(const CTkAppVirtualEventData &vdata, std::vector<std::string> &names) const
+{
+  for (const auto &pv : virtualEventData_) {
+    if (pv.first == vdata) {
+      for (const auto &edata : pv.second)
+        names.push_back(edata.pattern);
+    }
+  }
+}
+
 //---
 
 void
@@ -1203,6 +1509,22 @@ getOptionReal(const std::string &name, const std::string &value, double &r) cons
 
   return true;
 }
+
+//---
+
+QTransform
+CTkApp::
+toQTransform(const CMatrix2D &m) const
+{
+  double a, b, c, d, tx, ty;
+
+  m.getValues(&a, &b, &c, &d, &tx, &ty);
+
+  //return QTransform(a, b, c, d, tx, ty);
+  return QTransform(a, c, b, d, tx, ty);
+}
+
+//---
 
 bool
 CTkApp::

@@ -9,10 +9,59 @@ enum class CTkAppEventType {
   Key,
   Enter,
   Leave,
-  Help,
-  MenuSelect,
   Expose,
-  Paste
+  Virtual,
+};
+
+enum class CTkAppVirtualEventType {
+  None,
+
+  AltUnderlined,
+  Invoke,
+  ListboxSelect,
+  MenuSelect,
+  Modified,
+  Selection,
+  ThemeChanged,
+  TkWorldChanged,
+  TraverseIn,
+  TraverseOut,
+  UndoStack,
+  WidgetViewSync,
+
+  Clear,
+  Copy,
+  Cut,
+  LineEnd,
+  LineStart,
+  NextChar,
+  NextLine,
+  NextPara,
+  NextWord,
+  Paste,
+  PasteSelection,
+  PrevChar,
+  PrevLine,
+  PrevPara,
+  PrevWindow,
+  PrevWord,
+  Redo,
+  SelectAll,
+  SelectLineEnd,
+  SelectLineStart,
+  SelectNextChar,
+  SelectNextLine,
+  SelectNextPara,
+  SelectNextWord,
+  SelectNone,
+  SelectPrevChar,
+  SelectPrevLine,
+  SelectPrevPara,
+  SelectPrevWord,
+  ToggleSelection,
+  Undo,
+
+  Help
 };
 
 enum class CTkAppEventMode {
@@ -32,18 +81,31 @@ enum class CTkAppEventModifier {
   Meta    = (1<<5)
 };
 
+struct CTkAppVirtualEventData {
+  CTkAppVirtualEventType type { CTkAppVirtualEventType::None };
+
+  bool operator<(const CTkAppVirtualEventData &rhs) const {
+    return (type < rhs.type);
+  }
+
+  bool operator==(const CTkAppVirtualEventData &rhs) const {
+    return (type == rhs.type);
+  }
+};
+
 struct CTkAppEventData {
-  std::string     pattern;
-  CTkAppEventType type        { CTkAppEventType::None };
-  CTkAppEventMode mode        { CTkAppEventMode::None };
-  bool            anyButton   { false };
-  int             button      { 0 };
-  int             clicks      { 1 };
-  bool            anyKey      { false };
-  std::string     key;
-  bool            anyModifier { false };
-  uint            modifiers   { 0 };
-  std::string     command;
+  std::string            pattern;
+  CTkAppEventType        type        { CTkAppEventType::None };
+  CTkAppVirtualEventType vtype       { CTkAppVirtualEventType::None };
+  CTkAppEventMode        mode        { CTkAppEventMode::None };
+  bool                   anyButton   { false };
+  int                    button      { 0 };
+  int                    clicks      { 1 };
+  bool                   anyKey      { false };
+  std::string            key;
+  bool                   anyModifier { false };
+  uint                   modifiers   { 0 };
+  std::string            command;
 
   friend bool operator==(const CTkAppEventData &lhs, const CTkAppEventData &rhs) {
     if (lhs.type != rhs.type) return false;

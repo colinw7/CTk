@@ -1,15 +1,15 @@
 #ifndef CTkAppGridLayout_H
 #define CTkAppGridLayout_H
 
-#include <COptVal.h>
+#include <CTkAppLayout.h>
 
-#include <QLayout>
+#include <COptVal.h>
 
 class CTkAppWidget;
 
 class QPainter;
 
-class CTkAppGridLayout : public QLayout {
+class CTkAppGridLayout : public CTkAppLayout {
   Q_OBJECT
 
  public:
@@ -154,6 +154,8 @@ class CTkAppGridLayout : public QLayout {
   explicit CTkAppGridLayout(int spacing = -1);
 
  ~CTkAppGridLayout();
+
+  std::string name() const override { return "grid"; }
 
   void addItem(QLayoutItem *item) override;
 

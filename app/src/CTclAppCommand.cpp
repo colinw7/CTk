@@ -59,6 +59,13 @@ setStringResult(const std::string &value)
 
 void
 CTclAppCommand::
+setBoolResult(bool b)
+{
+  setStringResult(b ? "1" : "0");
+}
+
+void
+CTclAppCommand::
 setIntegerArrayResult(int *values, int num_values)
 {
   std::vector<std::string> strs;

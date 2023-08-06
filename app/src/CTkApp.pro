@@ -25,14 +25,17 @@ CTkApp.cpp \
 CTkAppCommands.cpp \
 CTkAppGridLayout.cpp \
 CTkAppImage.cpp \
+CTkAppFont.cpp \
 CTkAppLayoutWidget.cpp \
 CTkAppOptData.cpp \
 CTkAppPackLayout.cpp \
 CTkAppPlaceLayout.cpp \
 CTkAppWidget.cpp \
+CTkAppUtil.cpp \
+\
 CTclApp.cpp \
-CTclAppCanvas.cpp \
 CTclAppCommand.cpp \
+\
 CQLabelImage.cpp \
 CQSpinList.cpp \
 CQSlider.cpp \
@@ -45,15 +48,19 @@ HEADERS += \
 ../include/CTkAppEventData.h \
 ../include/CTkAppGridLayout.h \
 ../include/CTkAppImage.h \
+../include/CTkAppFont.h \
 ../include/CTkAppLayoutWidget.h \
 ../include/CTkAppOptData.h \
 ../include/CTkAppOptionValue.h \
 ../include/CTkAppPackLayout.h \
 ../include/CTkAppPlaceLayout.h \
+../include/CTkAppLayout.h \
 ../include/CTkAppWidget.h \
-../include/CTclAppCanvas.h \
+../include/CTkAppUtil.h \
+\
 ../include/CTclAppCommand.h \
 ../include/CTclApp.h \
+\
 CQLabelImage.h \
 CQSpinList.h \
 CQSlider.h \

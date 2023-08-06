@@ -21,25 +21,25 @@
 QT_BEGIN_MOC_NAMESPACE
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
-struct qt_meta_stringdata_CTkPackLayout_t {
+struct qt_meta_stringdata_CTkAppLayout_t {
     QByteArrayData data[1];
-    char stringdata0[14];
+    char stringdata0[13];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
-    qptrdiff(offsetof(qt_meta_stringdata_CTkPackLayout_t, stringdata0) + ofs \
+    qptrdiff(offsetof(qt_meta_stringdata_CTkAppLayout_t, stringdata0) + ofs \
         - idx * sizeof(QByteArrayData)) \
     )
-static const qt_meta_stringdata_CTkPackLayout_t qt_meta_stringdata_CTkPackLayout = {
+static const qt_meta_stringdata_CTkAppLayout_t qt_meta_stringdata_CTkAppLayout = {
     {
-QT_MOC_LITERAL(0, 0, 13) // "CTkPackLayout"
+QT_MOC_LITERAL(0, 0, 12) // "CTkAppLayout"
 
     },
-    "CTkPackLayout"
+    "CTkAppLayout"
 };
 #undef QT_MOC_LITERAL
 
-static const uint qt_meta_data_CTkPackLayout[] = {
+static const uint qt_meta_data_CTkAppLayout[] = {
 
  // content:
        8,       // revision
@@ -55,7 +55,7 @@ static const uint qt_meta_data_CTkPackLayout[] = {
        0        // eod
 };
 
-void CTkPackLayout::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
+void CTkAppLayout::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
 {
     (void)_o;
     (void)_id;
@@ -63,170 +63,30 @@ void CTkPackLayout::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _i
     (void)_a;
 }
 
-QT_INIT_METAOBJECT const QMetaObject CTkPackLayout::staticMetaObject = { {
+QT_INIT_METAOBJECT const QMetaObject CTkAppLayout::staticMetaObject = { {
     QMetaObject::SuperData::link<QLayout::staticMetaObject>(),
-    qt_meta_stringdata_CTkPackLayout.data,
-    qt_meta_data_CTkPackLayout,
+    qt_meta_stringdata_CTkAppLayout.data,
+    qt_meta_data_CTkAppLayout,
     qt_static_metacall,
     nullptr,
     nullptr
 } };
 
 
-const QMetaObject *CTkPackLayout::metaObject() const
+const QMetaObject *CTkAppLayout::metaObject() const
 {
     return QObject::d_ptr->metaObject ? QObject::d_ptr->dynamicMetaObject() : &staticMetaObject;
 }
 
-void *CTkPackLayout::qt_metacast(const char *_clname)
+void *CTkAppLayout::qt_metacast(const char *_clname)
 {
     if (!_clname) return nullptr;
-    if (!strcmp(_clname, qt_meta_stringdata_CTkPackLayout.stringdata0))
+    if (!strcmp(_clname, qt_meta_stringdata_CTkAppLayout.stringdata0))
         return static_cast<void*>(this);
     return QLayout::qt_metacast(_clname);
 }
 
-int CTkPackLayout::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
-{
-    _id = QLayout::qt_metacall(_c, _id, _a);
-    return _id;
-}
-struct qt_meta_stringdata_CTkGridLayout_t {
-    QByteArrayData data[1];
-    char stringdata0[14];
-};
-#define QT_MOC_LITERAL(idx, ofs, len) \
-    Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
-    qptrdiff(offsetof(qt_meta_stringdata_CTkGridLayout_t, stringdata0) + ofs \
-        - idx * sizeof(QByteArrayData)) \
-    )
-static const qt_meta_stringdata_CTkGridLayout_t qt_meta_stringdata_CTkGridLayout = {
-    {
-QT_MOC_LITERAL(0, 0, 13) // "CTkGridLayout"
-
-    },
-    "CTkGridLayout"
-};
-#undef QT_MOC_LITERAL
-
-static const uint qt_meta_data_CTkGridLayout[] = {
-
- // content:
-       8,       // revision
-       0,       // classname
-       0,    0, // classinfo
-       0,    0, // methods
-       0,    0, // properties
-       0,    0, // enums/sets
-       0,    0, // constructors
-       0,       // flags
-       0,       // signalCount
-
-       0        // eod
-};
-
-void CTkGridLayout::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
-{
-    (void)_o;
-    (void)_id;
-    (void)_c;
-    (void)_a;
-}
-
-QT_INIT_METAOBJECT const QMetaObject CTkGridLayout::staticMetaObject = { {
-    QMetaObject::SuperData::link<QLayout::staticMetaObject>(),
-    qt_meta_stringdata_CTkGridLayout.data,
-    qt_meta_data_CTkGridLayout,
-    qt_static_metacall,
-    nullptr,
-    nullptr
-} };
-
-
-const QMetaObject *CTkGridLayout::metaObject() const
-{
-    return QObject::d_ptr->metaObject ? QObject::d_ptr->dynamicMetaObject() : &staticMetaObject;
-}
-
-void *CTkGridLayout::qt_metacast(const char *_clname)
-{
-    if (!_clname) return nullptr;
-    if (!strcmp(_clname, qt_meta_stringdata_CTkGridLayout.stringdata0))
-        return static_cast<void*>(this);
-    return QLayout::qt_metacast(_clname);
-}
-
-int CTkGridLayout::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
-{
-    _id = QLayout::qt_metacall(_c, _id, _a);
-    return _id;
-}
-struct qt_meta_stringdata_CTkPlaceLayout_t {
-    QByteArrayData data[1];
-    char stringdata0[15];
-};
-#define QT_MOC_LITERAL(idx, ofs, len) \
-    Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
-    qptrdiff(offsetof(qt_meta_stringdata_CTkPlaceLayout_t, stringdata0) + ofs \
-        - idx * sizeof(QByteArrayData)) \
-    )
-static const qt_meta_stringdata_CTkPlaceLayout_t qt_meta_stringdata_CTkPlaceLayout = {
-    {
-QT_MOC_LITERAL(0, 0, 14) // "CTkPlaceLayout"
-
-    },
-    "CTkPlaceLayout"
-};
-#undef QT_MOC_LITERAL
-
-static const uint qt_meta_data_CTkPlaceLayout[] = {
-
- // content:
-       8,       // revision
-       0,       // classname
-       0,    0, // classinfo
-       0,    0, // methods
-       0,    0, // properties
-       0,    0, // enums/sets
-       0,    0, // constructors
-       0,       // flags
-       0,       // signalCount
-
-       0        // eod
-};
-
-void CTkPlaceLayout::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
-{
-    (void)_o;
-    (void)_id;
-    (void)_c;
-    (void)_a;
-}
-
-QT_INIT_METAOBJECT const QMetaObject CTkPlaceLayout::staticMetaObject = { {
-    QMetaObject::SuperData::link<QLayout::staticMetaObject>(),
-    qt_meta_stringdata_CTkPlaceLayout.data,
-    qt_meta_data_CTkPlaceLayout,
-    qt_static_metacall,
-    nullptr,
-    nullptr
-} };
-
-
-const QMetaObject *CTkPlaceLayout::metaObject() const
-{
-    return QObject::d_ptr->metaObject ? QObject::d_ptr->dynamicMetaObject() : &staticMetaObject;
-}
-
-void *CTkPlaceLayout::qt_metacast(const char *_clname)
-{
-    if (!_clname) return nullptr;
-    if (!strcmp(_clname, qt_meta_stringdata_CTkPlaceLayout.stringdata0))
-        return static_cast<void*>(this);
-    return QLayout::qt_metacast(_clname);
-}
-
-int CTkPlaceLayout::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
+int CTkAppLayout::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
 {
     _id = QLayout::qt_metacall(_c, _id, _a);
     return _id;

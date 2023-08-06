@@ -5,11 +5,8 @@
 #include <CTkAppEventData.h>
 
 #include <CTclApp.h>
-#include <CStrParse.h>
-#include <CRGBName.h>
+#include <CMatrix2D.h>
 
-#include <QColor>
-#include <QFont>
 #include <QPointer>
 #include <QTransform>
 
@@ -22,8 +19,10 @@ class CTkAppRoot;
 class CTkAppTopLevel;
 class CTkAppWidget;
 class CTkAppImage;
+class CTkAppFont;
 
 using CTkAppImageRef = std::shared_ptr<CTkAppImage>;
+using CTkAppFontRef  = std::shared_ptr<CTkAppFont>;
 
 class QFrame;
 class QWidget;
@@ -96,11 +95,46 @@ class CTkApp : public CTclApp {
   std::string getNewImageName() const;
 
   CTkAppImageRef createImage(const std::string &type, const std::string &format,
-                             const std::string &name);
+                             const std::string &name, int width=-1, int height=-1);
+
+  void deleteImage(const CTkAppImageRef &image);
 
   CTkAppImageRef getImage(const std::string &name) const;
 
   CTkAppImageRef getBitmap(const std::string &name) const;
+
+  void getImageNames(std::vector<std::string> &names) const;
+
+  //---
+
+  std::string getNewFontName() const;
+
+  CTkAppFontRef createFont(const std::string &name);
+  void deleteFont(const CTkAppFontRef &font);
+
+  CTkAppFontRef getFont(const std::string &name) const;
+
+  QFont getQFont(const std::string &name) const;
+
+  struct FontData {
+    std::string family     { };
+    double      size       { 12.0 };
+    std::string weight     { "normal" };
+    std::string slant      { "roman" };
+    bool        underline  { false };
+    bool        overstrike { false };
+
+    double ascent    { 10 };
+    double descent   { 2 };
+    double linespace { 12 };
+    bool   fixed     { false };
+  };
+
+  void getFontData(const QFont &qfont, FontData &data) const;
+
+  void getFontNames(std::vector<std::string> &names) const;
+
+  void showFontDialog(bool b);
 
   //---
 
@@ -118,6 +152,10 @@ class CTkApp : public CTclApp {
                       std::vector<std::string> &bindings);
   void getAllBindings(const CTkAppEventData &data,
                       std::vector<std::string> &bindings);
+
+  void getClassBindings(const std::string &name, std::vector<std::string> &bindings);
+  void getTagBindings(const std::string &name, std::vector<std::string> &bindings);
+  void getAllBindings(std::vector<std::string> &bindings);
 
   bool triggerEvents(const std::string &, CTkAppWidget *, QEvent *e,
                      const CTkAppEventData &matchEventData);
@@ -148,7 +186,16 @@ class CTkApp : public CTclApp {
   void encodeEvent(QKeyEvent *e, bool press, CTkAppEventData &data) const;
   void encodeEvent(QMouseEvent *e, CTkAppEventMode mode, int button, CTkAppEventData &data) const;
 
+  bool stringToVirtualEvent(const std::string &str, CTkAppVirtualEventData &data,
+                            bool quiet=false) const;
+
   bool parseEvent(const std::string &str, CTkAppEventData &data);
+
+  void addVirtualEventData(const CTkAppVirtualEventData &vdata, const CTkAppEventData &edata);
+
+  void virtualEventNames(std::vector<std::string> &names) const;
+  void virtualEventNames(const CTkAppVirtualEventData &vdata,
+                         std::vector<std::string> &names) const;
 
   //---
 
@@ -192,6 +239,8 @@ class CTkApp : public CTclApp {
     return true;
   }
 
+  QTransform toQTransform(const CMatrix2D &m) const;
+
   //---
 
   bool wrongNumArgs(const std::string &msg) const;
@@ -212,15 +261,17 @@ class CTkApp : public CTclApp {
   void addWidgetClass(const std::string &name);
 
  private:
-  using WidgetClasses   = std::set<std::string>;
-  using ImageMap        = std::map<std::string, CTkAppImageRef>;
-  using TopLevelArray   = std::vector<CTkAppTopLevel *>;
-  using EventDatas      = std::vector<CTkAppEventData>;
-  using ClassEventDatas = std::map<std::string, EventDatas>;
-  using TagEventDatas   = std::map<std::string, EventDatas>;
-  using WidgetSet       = std::set<CTkAppWidget *>;
-  using WidgetP         = QPointer<CTkAppWidget>;
-  using WidgetArray     = std::vector<WidgetP>;
+  using WidgetClasses    = std::set<std::string>;
+  using ImageMap         = std::map<std::string, CTkAppImageRef>;
+  using FontMap          = std::map<std::string, CTkAppFontRef>;
+  using TopLevelArray    = std::vector<CTkAppTopLevel *>;
+  using EventDatas       = std::vector<CTkAppEventData>;
+  using ClassEventDatas  = std::map<std::string, EventDatas>;
+  using TagEventDatas    = std::map<std::string, EventDatas>;
+  using WidgetSet        = std::set<CTkAppWidget *>;
+  using WidgetP          = QPointer<CTkAppWidget>;
+  using WidgetArray      = std::vector<WidgetP>;
+  using VirtualEventData = std::map<CTkAppVirtualEventData, EventDatas>;
 
   //--
 
@@ -261,9 +312,13 @@ class CTkApp : public CTclApp {
   ImageMap         images_;
   mutable ImageMap bitmaps_;
 
+  FontMap fonts_;
+
   OptionDatas options_;
 
   std::string currentCommand_;
+
+  VirtualEventData virtualEventData_;
 };
 
 #endif

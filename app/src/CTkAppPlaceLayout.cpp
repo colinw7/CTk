@@ -3,7 +3,7 @@
 
 CTkAppPlaceLayout::
 CTkAppPlaceLayout(QWidget *parent, int margin, int spacing) :
- QLayout(parent)
+ CTkAppLayout(parent)
 {
   setObjectName("place");
 
@@ -13,7 +13,7 @@ CTkAppPlaceLayout(QWidget *parent, int margin, int spacing) :
 
 CTkAppPlaceLayout::
 CTkAppPlaceLayout(int spacing) :
- QLayout(nullptr)
+ CTkAppLayout(nullptr)
 {
   setObjectName("place");
 
@@ -135,7 +135,7 @@ void
 CTkAppPlaceLayout::
 setGeometry(const QRect &rect)
 {
-  QLayout::setGeometry(rect);
+  CTkAppLayout::setGeometry(rect);
 
   for (int i = 0; i < list_.size(); ++i) {
     ItemWrapper *wrapper = list_.at(i);

@@ -68,9 +68,11 @@ class CTclApp {
   void setIntegerResult(int value);
   void setRealResult   (double value);
   void setStringResult (const std::string &value);
+  void setBoolResult   (bool b);
 
   void setIntegerArrayResult(int *values, int num_values);
   void setIntegerArrayResult(const std::vector<int> &values);
+  void setIntegerArrayResult(std::initializer_list<int> l);
   void setRealArrayResult   (double *values, int num_values);
   void setRealArrayResult   (const std::vector<double> &values);
   void setStringArrayResult (char **values, int num_values);

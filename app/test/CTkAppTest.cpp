@@ -99,8 +99,15 @@ main(int argc, char **argv)
     else if (arg[0] == '-') {
       std::cerr << "Invalid arg '" << arg << "'\n";
     }
-    else
-      filenames.push_back(arg);
+    else {
+      if (filenames.empty()) {
+        filenames.push_back(arg);
+
+        processing = false;
+      }
+      else
+        args.push_back(arg);
+    }
   }
 
   int    argc1 = int(args.size()) + 1;

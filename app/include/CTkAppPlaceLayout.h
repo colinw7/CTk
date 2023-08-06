@@ -1,13 +1,13 @@
 #ifndef CTkAppPlaceLayout_H
 #define CTkAppPlaceLayout_H
 
-#include <COptVal.h>
+#include <CTkAppLayout.h>
 
-#include <QLayout>
+#include <COptVal.h>
 
 class CTkAppWidget;
 
-class CTkAppPlaceLayout : public QLayout {
+class CTkAppPlaceLayout : public CTkAppLayout {
   Q_OBJECT
 
  public:
@@ -48,6 +48,8 @@ class CTkAppPlaceLayout : public QLayout {
   explicit CTkAppPlaceLayout(int spacing = -1);
 
  ~CTkAppPlaceLayout();
+
+  std::string name() const override { return "place"; }
 
   void addItem(QLayoutItem *item) override;
 

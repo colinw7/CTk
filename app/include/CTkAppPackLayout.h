@@ -1,13 +1,13 @@
 #ifndef CTkAppPackLayout_H
 #define CTkAppPackLayout_H
 
-#include <QLayout>
+#include <CTkAppLayout.h>
 
 class CTkAppWidget;
 
 class QPainter;
 
-class CTkAppPackLayout : public QLayout {
+class CTkAppPackLayout : public CTkAppLayout {
   Q_OBJECT
 
  public:
@@ -67,6 +67,8 @@ class CTkAppPackLayout : public QLayout {
   explicit CTkAppPackLayout(int spacing = -1);
 
  ~CTkAppPackLayout();
+
+  std::string name() const override { return "pack"; }
 
   bool isPropagate() const { return propagate_; }
   void setPropagate(bool b) { propagate_ = b; }

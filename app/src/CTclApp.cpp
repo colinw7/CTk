@@ -152,6 +152,13 @@ setStringResult(const std::string &value)
 
 void
 CTclApp::
+setBoolResult(bool b)
+{
+  setStringResult(b ? "1" : "0");
+}
+
+void
+CTclApp::
 setIntegerArrayResult(int *values, int num_values)
 {
   std::vector<std::string> strs;
@@ -174,6 +181,18 @@ setIntegerArrayResult(const std::vector<int> &values)
     strs.push_back(CStrUtil::toString(values[i]));
 
   setStringArrayResult(strs);
+}
+
+void
+CTclApp::
+setIntegerArrayResult(std::initializer_list<int> l)
+{
+  std::vector<int> il;
+
+  for (const auto &i : l)
+    il.push_back(i);
+
+  setIntegerArrayResult(il);
 }
 
 void

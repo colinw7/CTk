@@ -26,6 +26,7 @@ class CTclAppCommand {
   void setIntegerResult(int value);
   void setRealResult   (double value);
   void setStringResult (const std::string &value);
+  void setBoolResult   (bool b);
 
   void setIntegerArrayResult(int *values, int num_values);
   void setIntegerArrayResult(const std::vector<int> &values);

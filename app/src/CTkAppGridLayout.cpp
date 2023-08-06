@@ -10,7 +10,7 @@
 
 CTkAppGridLayout::
 CTkAppGridLayout(QWidget *parent, int margin, int spacing) :
- QLayout(parent)
+ CTkAppLayout(parent)
 {
   setObjectName("grid");
 
@@ -20,7 +20,7 @@ CTkAppGridLayout(QWidget *parent, int margin, int spacing) :
 
 CTkAppGridLayout::
 CTkAppGridLayout(int spacing) :
- QLayout(nullptr)
+ CTkAppLayout(nullptr)
 {
   setObjectName("grid");
 
@@ -339,7 +339,7 @@ void
 CTkAppGridLayout::
 setGeometry(const QRect &rect)
 {
-  QLayout::setGeometry(rect);
+  CTkAppLayout::setGeometry(rect);
 
   //---
 

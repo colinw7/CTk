@@ -64,7 +64,7 @@ void CTkAppGridLayout::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int
 }
 
 QT_INIT_METAOBJECT const QMetaObject CTkAppGridLayout::staticMetaObject = { {
-    QMetaObject::SuperData::link<QLayout::staticMetaObject>(),
+    QMetaObject::SuperData::link<CTkAppLayout::staticMetaObject>(),
     qt_meta_stringdata_CTkAppGridLayout.data,
     qt_meta_data_CTkAppGridLayout,
     qt_static_metacall,
@@ -83,12 +83,12 @@ void *CTkAppGridLayout::qt_metacast(const char *_clname)
     if (!_clname) return nullptr;
     if (!strcmp(_clname, qt_meta_stringdata_CTkAppGridLayout.stringdata0))
         return static_cast<void*>(this);
-    return QLayout::qt_metacast(_clname);
+    return CTkAppLayout::qt_metacast(_clname);
 }
 
 int CTkAppGridLayout::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
 {
-    _id = QLayout::qt_metacall(_c, _id, _a);
+    _id = CTkAppLayout::qt_metacall(_c, _id, _a);
     return _id;
 }
 QT_WARNING_POP

@@ -413,10 +413,13 @@ compiler_clean: compiler_moc_predefs_clean
 		../include/CTkAppOptionValue.h \
 		../include/CTkAppEventData.h \
 		../include/CTclApp.h \
-		../../../CStrUtil/include/CStrParse.h \
-		../../../CUtil/include/CRGBName.h \
-		../../../CUtil/include/CRGBA.h \
-		../../../CUtil/include/CRGB.h \
+		../../../CMath/include/CMatrix2D.h \
+		../../../CMath/include/CPoint2D.h \
+		../../../CMath/include/CVector2D.h \
+		../../../CMath/include/CMathGen.h \
+		../../../CMath/include/CIPoint2D.h \
+		../../../CMath/include/CMathUtil.h \
+		../../../COS/include/COSNaN.h \
 		../../../CQUtil/include/CQApp.h \
 		../../../CArgs/include/CArgs.h \
 		../../../CReadLine/include/CReadLine.h \
