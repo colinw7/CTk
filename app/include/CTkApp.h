@@ -209,10 +209,10 @@ class CTkApp : public CTclApp {
   //---
 
   bool lookupOptionName(const std::vector<std::string> &names,
-                        const std::string &arg, std::string &opt) const;
+                        const std::string &arg, std::string &opt, bool quiet=false) const;
 
   bool lookupName(const std::string &msg, const std::vector<std::string> &names,
-                  const std::string &arg, std::string &opt) const;
+                  const std::string &arg, std::string &opt, bool quiet=false) const;
 
   bool getOptionInt (const std::string &name, const std::string &value, long &i) const;
   bool getOptionReal(const std::string &name, const std::string &value, double &r) const;

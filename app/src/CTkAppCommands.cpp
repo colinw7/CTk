@@ -1363,17 +1363,22 @@ run(const Args &args)
   if (numArgs < 1)
     return tk_->wrongNumArgs("grid option arg ?arg ...?");
 
-  const auto &arg = args[0];
-
   bool configure = false;
 
-  if      (arg == "anchor") {
+  static auto optionNames = std::vector<std::string>({
+    "anchor", "bbox", "columnconfigure", "configure", "content", "forget",
+    "info", "location", "propagate", "rowconfigure", "remove", "size", "slaves" });
+
+  std::string option;
+  (void) tk_->lookupName("option", optionNames, args[0], option);
+
+  if      (option == "anchor") {
     tk_->TODO(args);
   }
-  else if (arg == "bbox") {
+  else if (option == "bbox") {
     tk_->TODO(args);
   }
-  else if (arg == "columnconfigure") {
+  else if (option == "columnconfigure") {
     if (numArgs < 3)
       return tk_->wrongNumArgs("grid columnconfigure master index ?-option value...?");
 
@@ -1383,7 +1388,7 @@ run(const Args &args)
     if (! master) return false;
 
     auto *layout = master->getTkGridLayout();
-    if (! layout) return tk_->throwError("no grid layout for \"" + arg + "\"");
+    if (! layout) return tk_->throwError("no grid layout for \"" + option + "\"");
 
     long index;
     if (! CTkAppUtil::stringToInt(args[2], index))
@@ -1425,13 +1430,13 @@ run(const Args &args)
                                "-minsize, -pad, -uniform, or -weight");
     }
   }
-  else if (arg == "configure") {
+  else if (option == "configure") {
     configure = true;
   }
-  else if (arg == "content") {
+  else if (option == "content") {
     tk_->TODO(args);
   }
-  else if (arg == "forget") {
+  else if (option == "forget") {
     if (numArgs < 2)
       return tk_->wrongNumArgs("grid forget slave ?slave ...?");
 
@@ -1442,22 +1447,22 @@ run(const Args &args)
       if (! child) return false;
 
       auto *layout = child->getParent()->getTkGridLayout();
-      if (! layout) return tk_->throwError("no grid layout for \"" + arg + "\"");
+      if (! layout) return tk_->throwError("no grid layout for \"" + option + "\"");
 
       (void) layout->removeWidget(child);
     }
   }
-  else if (arg == "info") {
+  else if (option == "info") {
     if (numArgs != 2)
       return tk_->wrongNumArgs("grid info window");
 
-    const auto &arg = args[1];
+    const auto &window = args[1];
 
-    auto *child = tk_->lookupWidgetByName(arg);
+    auto *child = tk_->lookupWidgetByName(window);
     if (! child) return false;
 
     auto *layout = child->getParent()->getTkGridLayout();
-    if (! layout) return tk_->throwError("no grid layout for \"" + arg + "\"");
+    if (! layout) return tk_->throwError("no grid layout for \"" + window + "\"");
 
     CTkAppGridLayout::Info info;
 
@@ -1470,13 +1475,13 @@ run(const Args &args)
 
     setStringResult(res);
   }
-  else if (arg == "location") {
+  else if (option == "location") {
     tk_->TODO(args);
   }
-  else if (arg == "propagate") {
+  else if (option == "propagate") {
     tk_->TODO(args);
   }
-  else if (arg == "rowconfigure") {
+  else if (option == "rowconfigure") {
     if (numArgs < 3)
       return tk_->wrongNumArgs("grid rowconfigure master index ?-option value...?");
 
@@ -1486,7 +1491,7 @@ run(const Args &args)
     if (! master) return false;
 
     auto *layout = master->getTkGridLayout();
-    if (! layout) return tk_->throwError("no grid layout for \"" + arg + "\"");
+    if (! layout) return tk_->throwError("no grid layout for \"" + option + "\"");
 
     long index;
     if (! CTkAppUtil::stringToInt(args[2], index))
@@ -1519,18 +1524,20 @@ run(const Args &args)
                                "-minsize, -pad, -uniform, or -weight");
     }
   }
-  else if (arg == "remove") {
+  else if (option == "remove") {
     tk_->TODO(args);
   }
-  else if (arg == "size") {
+  else if (option == "size") {
     tk_->TODO(args);
   }
-  else if (arg == "slaves") {
+  else if (option == "slaves") {
     tk_->TODO(args);
   }
   else {
     configure = true;
   }
+
+  //---
 
   if (configure) {
     CTkAppWidget*                 parent = nullptr;
@@ -1631,7 +1638,7 @@ run(const Args &args)
       return false;
 
     auto *layout = parent->getTkGridLayout();
-    if (! layout) return tk_->throwError("no grid layout for \"" + arg + "\"");
+    if (! layout) return tk_->throwError("no grid layout for \"" + option + "\"");
 
     layout->addWidgets(widgetDatas, info);
 

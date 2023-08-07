@@ -1445,15 +1445,15 @@ clearOptions()
 bool
 CTkApp::
 lookupOptionName(const std::vector<std::string> &names,
-                 const std::string &arg, std::string &opt) const
+                 const std::string &arg, std::string &opt, bool quiet) const
 {
-  return lookupName("option", names, arg, opt);
+  return lookupName("option", names, arg, opt, quiet);
 }
 
 bool
 CTkApp::
 lookupName(const std::string &msg, const std::vector<std::string> &names,
-           const std::string &arg, std::string &opt) const
+           const std::string &arg, std::string &opt, bool quiet) const
 {
   auto concatOptionNames = [&]() {
     std::string str;
@@ -1478,8 +1478,12 @@ lookupName(const std::string &msg, const std::vector<std::string> &names,
 
   int argNum = -1;
 
-  if (! optionValues.match(arg, argNum))
-    return throwError("bad " + msg + " \"" + arg + "\": must be " + concatOptionNames());
+  if (! optionValues.match(arg, argNum)) {
+    if (! quiet)
+      return throwError("bad " + msg + " \"" + arg + "\": must be " + concatOptionNames());
+    else
+      return false;
+  }
 
   opt = names[argNum];
 
