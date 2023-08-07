@@ -23,6 +23,9 @@ DESTDIR     = ../bin
 OBJECTS_DIR = ../obj
 LIB_DIR     = ../lib
 
+PRE_TARGETDEPS = \
+$(LIB_DIR)/libCTkApp.a \
+
 INCLUDEPATH += \
 . \
 ../include \

@@ -170,6 +170,8 @@ class CTkAppGridLayout : public CTkAppLayout {
 
   bool setChildWeight(CTkAppWidget *widget, int weight);
 
+  //---
+
   void setColumnWeight(int col, int weight);
   int getColumnWeight(int col) const;
 
@@ -182,8 +184,21 @@ class CTkAppGridLayout : public CTkAppLayout {
   void setColumnPad(int col, int pad);
   int getColumnPad(int col) const;
 
+  //---
+
   void setRowWeight(int row, int weight);
   int  getRowWeight(int row) const;
+
+  void setRowUniform(int col, const std::string &name);
+  std::string getRowUniform(int col) const;
+
+  void setRowMinSize(int col, double size);
+  double getRowMinSize(int col) const;
+
+  void setRowPad(int col, int pad);
+  int getRowPad(int col) const;
+
+  //---
 
   Qt::Orientations expandingDirections() const override;
 
@@ -218,22 +233,27 @@ class CTkAppGridLayout : public CTkAppLayout {
   ItemWrapper *gridItem(int row, int col) const;
 
  private:
-  using ColWeights = std::map<int, int>;
-  using ColUniform = std::map<int, std::string>;
-  using ColMinSize = std::map<int, double>;
-  using ColPad     = std::map<int, int>;
-  using RowWeights = std::map<int, int>;
+  using RowColWeights = std::map<int, int>;
+  using RowColUniform = std::map<int, std::string>;
+  using RowColMinSize = std::map<int, double>;
+  using RowColPad     = std::map<int, int>;
+  using RowWeights    = std::map<int, int>;
 
   QList<ItemWrapper *> list_;
   int                  row_ { 0 };
   int                  col_ { 0 };
   int                  rowSpan_ { 1 };
   int                  colSpan_ { 1 };
-  ColWeights           colWeights_;
-  ColUniform           colUniform_;
-  ColMinSize           colMinSize_;
-  ColPad               colPad_;
-  RowWeights           rowWeights_;
+
+  RowColWeights colWeights_;
+  RowColUniform colUniform_;
+  RowColMinSize colMinSize_;
+  RowColPad     colPad_;
+
+  RowColWeights rowWeights_;
+  RowColUniform rowUniform_;
+  RowColMinSize rowMinSize_;
+  RowColPad     rowPad_;
 };
 
 #endif

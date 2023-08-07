@@ -27,12 +27,20 @@
 #define CTkAppCommandDef(NAME, CLASS) \
 class CLASS : public CTkAppCommand { \
  public: \
-  CLASS(CTkApp *tk) : \
-    CTkAppCommand(tk, tk->mapName(NAME)) { \
+  CLASS(CTkApp *tk, const char *name=NAME) : \
+   CTkAppCommand(tk, tk->mapName(name)) { \
   } \
 \
  protected: \
   bool run(const Args &args) override; \
+};
+
+#define CTkAppDerivedCommandDef(NAME, CLASS, DERIVED) \
+class CLASS : public DERIVED { \
+ public: \
+  CLASS(CTkApp *tk) : \
+   DERIVED(tk, NAME) { \
+  } \
 };
 
 //---
@@ -41,6 +49,7 @@ class CLASS : public CTkAppCommand { \
   CTkAppCommandDef("button"     , CTkAppButtonCmd)
   CTkAppCommandDef("canvas"     , CTkAppCanvasCmd)
   CTkAppCommandDef("checkbutton", CTkAppCheckButtonCmd)
+  CTkAppCommandDef("combobox"   , CTkAppComboBoxCmd)
   CTkAppCommandDef("entry"      , CTkAppEntryCmd)
   CTkAppCommandDef("frame"      , CTkAppFrameCmd)
   CTkAppCommandDef("label"      , CTkAppLabelCmd)
@@ -49,6 +58,7 @@ class CLASS : public CTkAppCommand { \
   CTkAppCommandDef("menu"       , CTkAppMenuCmd)
   CTkAppCommandDef("menubutton" , CTkAppMenuButtonCmd)
   CTkAppCommandDef("message"    , CTkAppMessageCmd)
+  CTkAppCommandDef("notebook"   , CTkAppNoteBookCmd)
   CTkAppCommandDef("panedwindow", CTkAppPanedWindowCmd)
   CTkAppCommandDef("radiobutton", CTkAppRadioButtonCmd)
   CTkAppCommandDef("scale"      , CTkAppScaleCmd)
@@ -56,6 +66,7 @@ class CLASS : public CTkAppCommand { \
   CTkAppCommandDef("spinbox"    , CTkAppSpinBoxCmd)
   CTkAppCommandDef("text"       , CTkAppTextCmd)
   CTkAppCommandDef("toplevel"   , CTkAppTopLevelCmd)
+  CTkAppCommandDef("treeview"   , CTkAppTreeViewCmd)
 
   // widget manipulation
   CTkAppCommandDef("bell"     , CTkAppBellCmd)
@@ -97,27 +108,29 @@ class CLASS : public CTkAppCommand { \
   CTkAppCommandDef("tk_popup"            , CTkAppTkPopupCmd)
 //CTkAppCommandDef("tk_setPalette"       , CTkAppTkSetPaletteCmd)
 
-//CTkAppCommandDef("bitmap" , CTkAppBitmapCmd);
-//CTkAppCommandDef("console", CTkAppConsoleCmd);
-//CTkAppCommandDef("photo"  , CTkAppPhotoCmd)
+  CTkAppDerivedCommandDef("ttk::button"     , CTkAppTtkButtonCmd     , CTkAppButtonCmd)
+  CTkAppDerivedCommandDef("ttk::checkbutton", CTkAppTtkCheckButtonCmd, CTkAppCheckButtonCmd)
+  CTkAppDerivedCommandDef("ttk::combobox"   , CTkAppTtkComboBoxCmd   , CTkAppComboBoxCmd)
+  CTkAppDerivedCommandDef("ttk::entry"      , CTkAppTtkEntryCmd      , CTkAppEntryCmd)
+  CTkAppDerivedCommandDef("ttk::frame"      , CTkAppTtkFrameCmd      , CTkAppFrameCmd)
+  CTkAppDerivedCommandDef("ttk::label"      , CTkAppTtkLabeCmd       , CTkAppLabelCmd)
+  CTkAppDerivedCommandDef("ttk::labelframe" , CTkAppTtkLabeFrameCmd  , CTkAppLabelFrameCmd)
+  CTkAppDerivedCommandDef("ttk::menubutton" , CTkAppTtkMenuButtonCmd , CTkAppMenuButtonCmd)
+  CTkAppDerivedCommandDef("ttk::notebook"   , CTkAppTtkNoteBookCmd   , CTkAppNoteBookCmd)
+  CTkAppDerivedCommandDef("ttk::panedwindow", CTkAppTtkPanedWindowCmd, CTkAppPanedWindowCmd)
+//CTkAppCommandDef       ("ttk::progressbar", CTkAppTtkProgressBarCmd)
+  CTkAppDerivedCommandDef("ttk::radiobutton", CTkAppTtkRadioButtonCmd, CTkAppRadioButtonCmd)
+  CTkAppDerivedCommandDef("ttk::scale"      , CTkAppTtkScaleCmd      , CTkAppScaleCmd)
+  CTkAppDerivedCommandDef("ttk::scrollbar"  , CTkAppTtkScrollBarCmd  , CTkAppScrollBarCmd)
+//CTkAppCommandDef       ("ttk::separator"  , CTkAppTtkSeparatorCmd)
+//CTkAppCommandDef       ("ttk::sizegrip"   , CTkAppTtkSizeGripCmd)
+  CTkAppDerivedCommandDef("ttk::spinbox"    , CTkAppTtkSpinBoxCmd    , CTkAppSpinBoxCmd)
+  CTkAppDerivedCommandDef("ttk::treeview"   , CTkAppTtkTreeViewCmd   , CTkAppTreeViewCmd)
 
-//CTkAppCommandDef("ttk::button"     , CTkAppTtkButtonCmd)
-//CTkAppCommandDef("ttk::checkbutton", CTkAppTtkCheckButtonCmd)
-//CTkAppCommandDef("ttk::combobox"   , CTkAppTtkComboBoxCmd)
-//CTkAppCommandDef("ttk::entry"      , CTkAppTtkEntryCmd)
-//CTkAppCommandDef("ttk::frame"      , CTkAppTtkFrameCmd)
-//CTkAppCommandDef("ttk::label"      , CTkAppTtkLabeCmd)
-//CTkAppCommandDef("ttk::labelframe" , CTkAppTtkLabeFrameCmd)
-//CTkAppCommandDef("ttk::menubutton" , CTkAppTtkMenuButtonCmd)
-//CTkAppCommandDef("ttk::notebook"   , CTkAppTtkNoteBookCmd)
-//CTkAppCommandDef("ttk::panedwindow", CTkAppTtkPanedWindowCmd)
-//CTkAppCommandDef("ttk::progressbar", CTkAppTtkProgressBarCmd)
-//CTkAppCommandDef("ttk::radiobutton", CTkAppTtkRadioButtonCmd)
-//CTkAppCommandDef("ttk::scale"      , CTkAppTtkScaleCmd)
-//CTkAppCommandDef("ttk::scrollbar"  , CTkAppTtkScrollBarCmd)
-//CTkAppCommandDef("ttk::separator"  , CTkAppTtkSeparatorCmd)
-//CTkAppCommandDef("ttk::sizegrip"   , CTkAppTtkSizGripCmd)
-//CTkAppCommandDef("ttk::treeview"   , CTkAppTtkTreeViewCmd)
+//CTkAppCommandDef("ttk::style", CTkAppTtkStyleCmd)
+
+//CTkAppCommandDef("ttk_image", CTkAppTtkImageCmd);
+//CTkAppCommandDef("ttk_vsapi", CTkAppTtkVsAPICmd);
 
 #ifdef CTK_APP_TKPATH
   CTkAppCommandDef("matrix"            , CTkAppMatrixCmd)
@@ -150,6 +163,7 @@ addCommands(CTkApp *tk)
   new CTkAppButtonCmd     (tk);
   new CTkAppCanvasCmd     (tk);
   new CTkAppCheckButtonCmd(tk);
+//new CTkAppComboBoxCmd   (tk);
   new CTkAppDestroyCmd    (tk);
   new CTkAppEventCmd      (tk);
   new CTkAppEntryCmd      (tk);
@@ -165,6 +179,7 @@ addCommands(CTkApp *tk)
   new CTkAppMenuCmd       (tk);
   new CTkAppMenuButtonCmd (tk);
   new CTkAppMessageCmd    (tk);
+//new CTkAppNoteBookCmd   (tk);
   new CTkAppLowerCmd      (tk);
   new CTkAppOptionCmd     (tk);
   new CTkAppPackCmd       (tk);
@@ -180,6 +195,7 @@ addCommands(CTkApp *tk)
   new CTkAppTextCmd       (tk);
   new CTkAppTkCmd         (tk);
   new CTkAppTopLevelCmd   (tk);
+//new CTkAppTreeViewCmd   (tk);
   new CTkAppUpdateCmd     (tk);
   new CTkAppWInfoCmd      (tk);
   new CTkAppWmCmd         (tk);
@@ -195,6 +211,25 @@ addCommands(CTkApp *tk)
   new CTkAppMatrixCmd           (tk);
   new CTkAppGradientStopStyleCmd(tk);
 #endif
+
+  new CTkAppTtkButtonCmd     (tk);
+  new CTkAppTtkCheckButtonCmd(tk);
+  new CTkAppTtkComboBoxCmd   (tk);
+  new CTkAppTtkEntryCmd      (tk);
+  new CTkAppTtkFrameCmd      (tk);
+  new CTkAppTtkLabeCmd       (tk);
+  new CTkAppTtkLabeFrameCmd  (tk);
+  new CTkAppTtkMenuButtonCmd (tk);
+  new CTkAppTtkNoteBookCmd   (tk);
+  new CTkAppTtkPanedWindowCmd(tk);
+//new CTkAppTtkProgressBarCmd(tk);
+  new CTkAppTtkRadioButtonCmd(tk);
+  new CTkAppTtkScaleCmd      (tk);
+  new CTkAppTtkScrollBarCmd  (tk);
+//new CTkAppTtkSeparatorCmd  (tk);
+//new CTkAppTtkSizeGripCmd   (tk);
+  new CTkAppTtkSpinBoxCmd    (tk);
+  new CTkAppTtkTreeViewCmd   (tk);
 
   //---
 
@@ -604,6 +639,96 @@ run(const Args &args)
     return tk_->throwError("Invalid widget name '" + widgetName + "'");
 
   auto *check = new CTkAppCheckButton(tk_, parent, childName);
+
+  if (! tk_->useStyle())
+    check->setBackground(QColor("#d9d9d9"));
+
+  auto *cmd = new CTkAppWidgetCommand(this, widgetName, check, opts);
+
+  cmd->processArgs(args);
+
+  setStringResult(widgetName);
+
+  return true;
+}
+
+//---
+
+bool
+CTkAppComboBoxCmd::
+run(const Args &args)
+{
+  tk_->debugCmd(name_, args);
+
+  static CTkAppOpt opts[] = {
+    { "-background"         , "background"         , "Background"         , "#ffffff"    },
+    { "-bd"                 , "-borderwidth"       , nullptr              , nullptr      },
+    { "-bg"                 , "-background"        , nullptr              , nullptr      },
+    { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "1"          },
+    { "-cursor"             , "cursor"             , "Cursor"             , "xterm"      },
+    { "-disabledbackground" , "disabledBackground" , "DisabledBackground" , "#d9d9d9"    },
+    { "-disabledforeground" , "disabledForeground" , "DisabledForeground" , "#a3a3a3"    },
+    { "-exportselection"    , "exportSelection"    , "ExportSelection"    , "1"          },
+    { "-fg"                 , "-foreground"        , nullptr              , nullptr      },
+    { "-font"               , "font"               , "Font"               , "TkTextFont" },
+    { "-foreground"         , "foreground"         , "Foreground"         , "#000000"    },
+    { "-height"             , "height"             , "Height"             , "0"       },
+    { "-highlightbackground", "highlightBackground", "HighlightBackground", "#d9d9d9"    },
+    { "-highlightcolor"     , "highlightColor"     , "HighlightColor"     , "#000000"    },
+    { "-highlightthickness" , "highlightThickness" , "HighlightThickness" , "1"          },
+    { "-insertbackground"   , "insertBackground"   , "Foreground"         , "#000000"    },
+    { "-insertborderwidth"  , "insertBorderWidth"  , "BorderWidth"        , "0"          },
+    { "-insertofftime"      , "insertOffTime"      , "OffTime"            , "300"        },
+    { "-insertontime"       , "insertOnTime"       , "OnTime"             , "600"        },
+    { "-insertwidth"        , "insertWidth"        , "InsertWidth"        , "2"          },
+    { "-invalidcommand"     , "invalidCommand"     , "InvalidCommand"     , ""           },
+    { "-invcmd"             , "-invalidcommand"    , nullptr              , nullptr      },
+    { "-justify"            , "justify"            , "Justify"            , "left"       },
+    { "-postcommand"        , "postCommand"        , "PostCommand"        , ""           },
+    { "-readonlybackground" , "readonlyBackground" , "ReadonlyBackground" , "#d9d9d9"    },
+    { "-relief"             , "relief"             , "Relief"             , "sunken"     },
+    { "-selectbackground"   , "selectBackground"   , "Foreground"         , "#c3c3c3"    },
+    { "-selectborderwidth"  , "selectBorderWidth"  , "BorderWidth"        , "0"          },
+    { "-selectforeground"   , "selectForeground"   , "Background"         , "#000000"    },
+    { "-show"               , "show"               , "Show"               , ""           },
+    { "-state"              , "state"              , "State"              , "normal"     },
+    { "-takefocus"          , "takeFocus"          , "TakeFocus"          , ""           },
+    { "-textvariable"       , "textVariable"       , "Variable"           , ""           },
+    { "-validate"           , "validate"           , "Validate"           , "none"       },
+    { "-validatecommand"    , "validateCommand"    , "ValidateCommand"    , ""           },
+    { "-values"             , "values"             , "Values"             , ""           },
+    { "-vcmd"               , "-validatecommand"   , nullptr              , nullptr      },
+    { "-width"              , "width"              , "Width"              , "20"         },
+    { "-xscrollcommand"     , "xScrollCommand"     , "ScrollCommand"      , ""           },
+    { nullptr               , nullptr              , nullptr              , nullptr      }
+  };
+
+  uint numArgs = args.size();
+
+  std::string widgetName;
+
+  for (uint i = 0; i < numArgs; ++i) {
+    const auto &name = args[i];
+
+    if (name.size() > 0 && name[0] == '-') {
+      ++i;
+
+      continue;
+    }
+    else
+      widgetName = name;
+  }
+
+  if (widgetName == "")
+    return tk_->throwError("No name");
+
+  CTkAppWidget* parent = nullptr;
+  std::string   childName;
+
+  if (! root()->decodeWidgetName(widgetName, &parent, childName))
+    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+
+  auto *check = new CTkAppComboBox(tk_, parent, childName);
 
   if (! tk_->useStyle())
     check->setBackground(QColor("#d9d9d9"));
@@ -1370,7 +1495,7 @@ run(const Args &args)
     "info", "location", "propagate", "rowconfigure", "remove", "size", "slaves" });
 
   std::string option;
-  (void) tk_->lookupName("option", optionNames, args[0], option);
+  (void) tk_->lookupName("option", optionNames, args[0], option, /*quiet*/true);
 
   if      (option == "anchor") {
     tk_->TODO(args);
@@ -1503,13 +1628,22 @@ run(const Args &args)
       auto value = args[i + 1];
 
       if      (name == "-minsize") {
-        tk_->TODO(name);
+        double size;
+        if (! CTkAppUtil::stringToDistance(value, size))
+          return tk_->throwError("Invalid width \"" + value + "\"");
+
+        layout->setRowMinSize(index, size);
       }
       else if (name == "-pad") {
-        tk_->TODO(name);
+        long pad;
+
+        if (! CTkAppUtil::stringToInt(value, pad))
+          return tk_->throwError("expected integer but got \"" + value + "\"");
+
+        layout->setRowPad(index, pad);
       }
       else if (name == "-uniform") {
-        tk_->TODO(name);
+        layout->setRowUniform(index, value);
       }
       else if (name == "-weight") {
         long weight;
@@ -2259,6 +2393,62 @@ run(const Args &args)
 //---
 
 bool
+CTkAppNoteBookCmd::
+run(const Args &args)
+{
+  tk_->debugCmd(name_, args);
+
+  static CTkAppOpt opts[] = {
+    { "-state"    , ""         , ""         , "normal" },
+    { "-text"     , "text"     , "Text"     , ""       },
+    { "-image"    , "image"    , "Image"    , nullptr  },
+    { "-compound" , "compound" , "Compound" , nullptr  },
+    { "-underline", "underline", "Underline", ""       },
+    { nullptr     , nullptr    , nullptr    , nullptr  }
+  };
+
+  uint numArgs = args.size();
+
+  std::string widgetName;
+
+  for (uint i = 0; i < numArgs; ++i) {
+    const auto &name = args[i];
+
+    if (name.size() > 0 && name[0] == '-') {
+      ++i;
+
+      continue;
+    }
+    else
+      widgetName = name;
+  }
+
+  if (widgetName == "")
+    return tk_->throwError("No name");
+
+  CTkAppWidget* parent = nullptr;
+  std::string   childName;
+
+  if (! root()->decodeWidgetName(widgetName, &parent, childName))
+    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+
+  auto *button = new CTkAppNoteBook(tk_, parent, childName);
+
+  if (! tk_->useStyle())
+    button->setBackground(QColor("#d9d9d9"));
+
+  auto *cmd = new CTkAppWidgetCommand(this, widgetName, button, opts);
+
+  cmd->processArgs(args);
+
+  setStringResult(widgetName);
+
+  return true;
+}
+
+//---
+
+bool
 CTkAppMessageCmd::
 run(const Args &args)
 {
@@ -2441,15 +2631,21 @@ run(const Args &args)
   if (numArgs < 1)
     return tk_->wrongNumArgs("pack option arg ?arg ...?");
 
-  const auto &arg = args[0];
+  bool configure = false;
 
-  if      (arg == "configure") {
+  static auto optionNames = std::vector<std::string>({
+    "configure", "content", "forget", "info", "propagate", "slaves" });
+
+  std::string option;
+  (void) tk_->lookupName("option", optionNames, args[0], option, /*quiet*/true);
+
+  if      (option == "configure") {
+    configure = true;
+  }
+  else if (option == "content") {
     tk_->TODO(args);
   }
-  else if (arg == "content") {
-    tk_->TODO(args);
-  }
-  else if (arg == "forget") {
+  else if (option == "forget") {
     if (numArgs < 2)
       return tk_->wrongNumArgs("pack forget slave ?slave ...?");
 
@@ -2458,12 +2654,12 @@ run(const Args &args)
       if (! child) return false;
 
       auto *layout = child->getParent()->getTkPackLayout();
-      if (! layout) return tk_->throwError("no pack layout for \"" + arg + "\"");
+      if (! layout) return tk_->throwError("no pack layout for \"" + option + "\"");
 
       layout->removeWidget(child);
     }
   }
-  else if (arg == "info") {
+  else if (option == "info") {
     if (numArgs != 2)
       return tk_->wrongNumArgs("pack info window");
 
@@ -2496,7 +2692,7 @@ run(const Args &args)
 
     setStringResult(res);
   }
-  else if (arg == "propagate") {
+  else if (option == "propagate") {
     if (numArgs < 2 || numArgs > 3)
       return tk_->wrongNumArgs("pack option arg ?arg ...?");
 
@@ -2520,7 +2716,7 @@ run(const Args &args)
       layout->setPropagate(b);
     }
   }
-  else if (arg == "slaves") {
+  else if (option == "slaves") {
     if (numArgs != 2)
       return tk_->wrongNumArgs("pack slaves arg ?arg ...?");
 
@@ -2546,6 +2742,12 @@ run(const Args &args)
       tk_->TODO(args);
   }
   else {
+    configure = true;
+  }
+
+  //---
+
+  if (configure) {
     CTkAppPackLayout::Side      side     = CTkAppPackLayout::SIDE_NONE;
     CTkAppPackLayout::Fill      fill     = CTkAppPackLayout::FILL_NONE;
     bool                        expand   = false;
@@ -2670,10 +2872,10 @@ run(const Args &args)
       parent = inparent;
 
     if (! parent)
-      return tk_->throwError("no parent for \"" + arg + "\"");
+      return tk_->throwError("no parent for \"" + option + "\"");
 
     auto *layout = parent->getTkPackLayout();
-    if (! layout) return tk_->throwError("no pack layout for \"" + arg + "\"");
+    if (! layout) return tk_->throwError("no pack layout for \"" + option + "\"");
 
     if (side == CTkAppPackLayout::SIDE_NONE)
       side = CTkAppPackLayout::SIDE_TOP;
@@ -2786,21 +2988,27 @@ run(const Args &args)
   if (numArgs < 1)
     return tk_->wrongNumArgs("place option|pathName args");
 
-  const auto &arg = args[0];
+  bool configure = false;
 
-  if      (arg == "configure") {
+  static auto optionNames = std::vector<std::string>({
+    "configure", "content", "forget", "info", "propagate", "slaves" });
+
+  std::string option;
+  (void) tk_->lookupName("option", optionNames, args[0], option, /*quiet*/true);
+
+  if      (option == "configure") {
+    configure = true;
+  }
+  else if (option == "content") {
     tk_->TODO(args);
   }
-  else if (arg == "content") {
-    tk_->TODO(args);
-  }
-  else if (arg == "forget") {
+  else if (option == "forget") {
     if (numArgs < 2)
       return tk_->wrongNumArgs("place forget args");
 
     tk_->TODO(args);
   }
-  else if (arg == "info") {
+  else if (option == "info") {
     if (numArgs != 2)
       return tk_->wrongNumArgs("place info window");
 
@@ -2828,13 +3036,19 @@ run(const Args &args)
 
     setStringResult(res);
   }
-  else if (arg == "propagate") {
+  else if (option == "propagate") {
     tk_->TODO(args);
   }
-  else if (arg == "slaves") {
+  else if (option == "slaves") {
     tk_->TODO(args);
   }
   else {
+    configure = true;
+  }
+
+  //---
+
+  if (configure) {
     CTkAppWidget*               parent = nullptr;
     std::vector<CTkAppWidget *> children;
 
@@ -2878,7 +3092,7 @@ run(const Args &args)
     }
 
     auto *layout = parent->getTkPlaceLayout();
-    if (! layout) return tk_->throwError("no place layout for \"" + arg + "\"");
+    if (! layout) return tk_->throwError("no place layout for \"" + option + "\"");
 
     layout->addWidgets(children, info);
 
@@ -3816,6 +4030,65 @@ run(const Args &args)
   cmd->processArgs(args);
 
   tk_->addTopLevel(toplevel);
+
+  setStringResult(widgetName);
+
+  return true;
+}
+
+//---
+
+bool
+CTkAppTreeViewCmd::
+run(const Args &args)
+{
+  tk_->debugCmd(name_, args);
+
+  static CTkAppOpt opts[] = {
+    { "-text"       , "text"       , "Text"       , ""      },
+    { "-height"     , "height"     , "Height"     , "1"     },
+    { "-hidden"     , "hidden"     , "Hidden"     , "0"     },
+    { "-image"      , "image"      , "Image"      , nullptr },
+    { "-imageanchor", "imageAnchor", "ImageAnchor", nullptr },
+    { "-values"     , "values"     , "Values"     , nullptr },
+    { "-open"       , "open"       , "Open"       , "0"     },
+    { "-tags"       , "tags"       , "Tags"       , nullptr },
+    { nullptr       , nullptr      , nullptr      , nullptr }
+  };
+
+  uint numArgs = args.size();
+
+  std::string widgetName;
+
+  for (uint i = 0; i < numArgs; ++i) {
+    const auto &name = args[i];
+
+    if (name.size() > 0 && name[0] == '-') {
+      ++i;
+
+      continue;
+    }
+    else
+      widgetName = name;
+  }
+
+  if (widgetName == "")
+    return tk_->throwError("No name");
+
+  CTkAppWidget* parent = nullptr;
+  std::string   childName;
+
+  if (! root()->decodeWidgetName(widgetName, &parent, childName))
+    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+
+  auto *toplevel = new CTkAppTreeView(tk_, parent, childName);
+
+  if (! tk_->useStyle())
+    toplevel->setBackground(QColor("#d9d9d9"));
+
+  auto *cmd = new CTkAppWidgetCommand(this, widgetName, toplevel, opts);
+
+  cmd->processArgs(args);
 
   setStringResult(widgetName);
 

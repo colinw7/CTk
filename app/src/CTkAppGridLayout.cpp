@@ -199,6 +199,8 @@ setChildWeight(CTkAppWidget *widget, int weight)
   return true;
 }
 
+//---
+
 void
 CTkAppGridLayout::
 setColumnWeight(int col, int weight)
@@ -263,21 +265,73 @@ getColumnPad(int col) const
   return (p != colPad_.end() ? (*p).second : 0);
 }
 
+//---
+
 void
 CTkAppGridLayout::
-setRowWeight(int col, int weight)
+setRowWeight(int row, int weight)
 {
-  rowWeights_[col] = std::max(weight, 0);
+  rowWeights_[row] = std::max(weight, 0);
 }
 
 int
 CTkAppGridLayout::
-getRowWeight(int col) const
+getRowWeight(int row) const
 {
-  auto p = rowWeights_.find(col);
+  auto p = rowWeights_.find(row);
 
   return (p != rowWeights_.end() ? (*p).second : 0);
 }
+
+void
+CTkAppGridLayout::
+setRowUniform(int row, const std::string &name)
+{
+  rowUniform_[row] = name;
+}
+
+std::string
+CTkAppGridLayout::
+getRowUniform(int row) const
+{
+  auto p = rowUniform_.find(row);
+
+  return (p != rowUniform_.end() ? (*p).second : "");
+}
+
+void
+CTkAppGridLayout::
+setRowMinSize(int row, double size)
+{
+  rowMinSize_[row] = size;
+}
+
+double
+CTkAppGridLayout::
+getRowMinSize(int row) const
+{
+  auto p = rowMinSize_.find(row);
+
+  return (p != rowMinSize_.end() ? (*p).second : 0.0);
+}
+
+void
+CTkAppGridLayout::
+setRowPad(int row, int pad)
+{
+  rowPad_[row] = pad;
+}
+
+int
+CTkAppGridLayout::
+getRowPad(int row) const
+{
+  auto p = rowPad_.find(row);
+
+  return (p != rowPad_.end() ? (*p).second : 0);
+}
+
+//---
 
 Qt::Orientations
 CTkAppGridLayout::

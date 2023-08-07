@@ -17,17 +17,19 @@
 #include <CStrParse.h>
 
 #include <QApplication>
+#include <QComboBox>
 #include <QGroupBox>
+#include <QHBoxLayout>
 #include <QMenu>
 #include <QMenuBar>
+#include <QMouseEvent>
+#include <QPainter>
 #include <QRadioButton>
 #include <QScrollBar>
 #include <QSplitter>
-#include <QToolButton>
-#include <QHBoxLayout>
-#include <QMouseEvent>
-#include <QPainter>
 #include <QTextBlock>
+#include <QToolButton>
+#include <QTreeWidget>
 
 namespace CTkAppUtil {
 
@@ -2779,6 +2781,68 @@ CTkAppCheckButtonWidget(CTkAppCheckButton *check) :
 
 //----------
 
+CTkAppComboBox::
+CTkAppComboBox(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
+ CTkAppWidget(tk, parent, name)
+{
+  qcombo_ = new QComboBox(parent ? parent->getQWidget() : nullptr);
+
+  setQWidget(qcombo_);
+}
+
+bool
+CTkAppComboBox::
+execConfig(const std::string &name, const std::string &value)
+{
+  if      (name == "-exportselection") {
+    tk_->TODO(name);
+  }
+  else if (name == "-justify") {
+    tk_->TODO(name);
+  }
+  else if (name == "-height") {
+    tk_->TODO(name);
+  }
+  else if (name == "-postcommand") {
+    tk_->TODO(name);
+  }
+  else if (name == "-state") {
+    tk_->TODO(name);
+  }
+  else if (name == "-textvariable") {
+    tk_->TODO(name);
+  }
+  else if (name == "-values") {
+    std::vector<std::string> strs;
+    if (! tk_->splitList(value, strs))
+      return tk_->throwError("Invalid values \"" + value + "\"");
+
+    QStringList qstrs;
+
+    for (const auto &str : strs)
+      qstrs << QString::fromStdString(str);
+
+    qcombo_->clear();
+    qcombo_->addItems(qstrs);
+  }
+  else if (name == "-width") {
+    tk_->TODO(name);
+  }
+  else
+    return CTkAppWidget::execConfig(name, value);
+
+  return true;
+}
+
+bool
+CTkAppComboBox::
+execOp(const Args &args)
+{
+  return CTkAppWidget::execOp(args);
+}
+
+//----------
+
 class CTkAppEntryVarProc : public CTclTraceProc {
  public:
   CTkAppEntryVarProc(CTkApp *tk, CTkAppEntry *entry) :
@@ -3120,10 +3184,7 @@ CTkAppFrame::
 CTkAppFrame(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
-  if (parent)
-    qframe_ = new QFrame(getParent()->getQWidget());
-  else
-    qframe_ = new QFrame(nullptr);
+  qframe_ = new QFrame(parent ? parent->getQWidget() : nullptr);
 
   setQWidget(qframe_);
 }
@@ -3168,10 +3229,7 @@ CTkAppLabel::
 CTkAppLabel(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
-  if (parent)
-    qlabel_ = new CQLabelImage(getParent()->getQWidget());
-  else
-    qlabel_ = new CQLabelImage(nullptr);
+  qlabel_ = new CQLabelImage(parent ? parent->getQWidget() : nullptr);
 
   setQWidget(qlabel_);
 }
@@ -3266,10 +3324,7 @@ CTkAppLabelFrame::
 CTkAppLabelFrame(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
-  if (parent)
-    qframe_ = new QGroupBox(getParent()->getQWidget());
-  else
-    qframe_ = new QGroupBox(nullptr);
+  qframe_ = new QGroupBox(parent ? parent->getQWidget() : nullptr);
 
   setQWidget(qframe_);
 }
@@ -3349,7 +3404,13 @@ bool
 CTkAppListBox::
 execConfig(const std::string &name, const std::string &value)
 {
-  if      (name == "-listvariable") {
+  if      (name == "-exportselection") {
+    bool b;
+    if (! CTkAppUtil::stringToBool(value, b))
+      return false;
+    exportSelection_ = b;
+  }
+  else if (name == "-listvariable") {
     varName_ = value;
 
     updateFromVar();
@@ -3373,12 +3434,6 @@ execConfig(const std::string &name, const std::string &value)
     }
     else
       return false;
-  }
-  else if (name == "-exportselection") {
-    bool b;
-    if (! CTkAppUtil::stringToBool(value, b))
-      return false;
-    exportSelection_ = b;
   }
   else
     return CTkAppWidget::execConfig(name, value);
@@ -3759,10 +3814,7 @@ CTkAppMenu::
 CTkAppMenu(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
-  if (parent)
-    qmenu_ = new QMenu(getParent()->getQWidget());
-  else
-    qmenu_ = new QMenu(nullptr);
+  qmenu_ = new QMenu(parent ? parent->getQWidget() : nullptr);
 
   setQWidget(qmenu_);
 
@@ -4056,10 +4108,7 @@ CTkAppMenuButton::
 CTkAppMenuButton(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
-  if (parent)
-    qbutton_ = new QToolButton(getParent()->getQWidget());
-  else
-    qbutton_ = new QToolButton(nullptr);
+  qbutton_ = new QToolButton(parent ? parent->getQWidget() : nullptr);
 
   qbutton_->setToolButtonStyle(Qt::ToolButtonTextOnly);
 
@@ -4224,10 +4273,7 @@ CTkAppMessage::
 CTkAppMessage(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
-  if (parent)
-    qedit_ = new QTextEdit(getParent()->getQWidget());
-  else
-    qedit_ = new QTextEdit(nullptr);
+  qedit_ = new QTextEdit(parent ? parent->getQWidget() : nullptr);
 
   qedit_->setReadOnly(true);
 
@@ -4289,14 +4335,124 @@ updateFromVar()
 
 //----------
 
+CTkAppNoteBook::
+CTkAppNoteBook(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
+ CTkAppWidget(tk, parent, name)
+{
+  qtab_ = new QTabWidget(parent ? parent->getQWidget() : nullptr);
+
+  setQWidget(qtab_);
+}
+
+bool
+CTkAppNoteBook::
+execConfig(const std::string &name, const std::string &value)
+{
+  return CTkAppWidget::execConfig(name, value);
+}
+
+bool
+CTkAppNoteBook::
+execOp(const Args &args)
+{
+  uint numArgs = args.size();
+
+  if (numArgs == 0)
+    return tk_->wrongNumArgs(getName() + " option ?arg ...?");
+
+  auto arg = args[0];
+
+  if      (arg == "add") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " add window ?-option value ...?");
+
+    auto *w = tk_->lookupWidgetByName(args[1], /*quiet*/true);
+    if (! w) return false;
+
+    qtab_->addTab(w->qwidget(), "");
+  }
+  else if (arg == "configure") {
+    if (numArgs == 1)
+      tk_->setStringResult("{-width width Width 0 0} "
+                           "{-height height Height 0 0} "
+                           "{-padding padding Padding {} {}} "
+                           "{-takefocus takeFocus TakeFocus ttk::takefocus ttk::takefocus} "
+                           "{-cursor cursor Cursor {} {}} "
+                           "{-style style Style {} {}} "
+                           "{-class {} {} {} {}}");
+    else
+      tk_->TODO(args);
+  }
+  else if (arg == "cget") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs(getName() + " cget option");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "forget") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs(getName() + " forget tab");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "hide") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs(getName() + " hide tab");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "identify") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " identify ?what? x y");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "index") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs(getName() + " index tab");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "insert") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " insert index slave ?-option value ...?");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "instate") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " instate state-spec ?script?");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "select") {
+    tk_->TODO(args);
+  }
+  else if (arg == "state") {
+    tk_->TODO(args);
+  }
+  else if (arg == "tab") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " tab tab ?-option ?value??...");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "tabs") {
+    tk_->TODO(args);
+  }
+  else
+    return CTkAppWidget::execOp(args);
+
+  return true;
+}
+
+//----------
+
 CTkAppPanedWindow::
 CTkAppPanedWindow(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
-  if (parent)
-    qpane_ = new QSplitter(getParent()->getQWidget());
-  else
-    qpane_ = new QSplitter(nullptr);
+  qpane_ = new QSplitter(parent ? parent->getQWidget() : nullptr);
 
   qpane_->setChildrenCollapsible(false);
 
@@ -4723,10 +4879,7 @@ CTkAppScale::
 CTkAppScale(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
-  if (parent)
-    qscale_ = new CQRealSlider(getParent()->getQWidget());
-  else
-    qscale_ = new CQRealSlider(nullptr);
+  qscale_ = new CQRealSlider(parent ? parent->getQWidget() : nullptr);
 
   qscale_->setValuePosition(CQSliderBase::ValuePosition::NONE);
 
@@ -4943,10 +5096,7 @@ CTkAppScrollBar::
 CTkAppScrollBar(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
-  if (parent)
-    qscrollbar_ = new QScrollBar(getParent()->getQWidget());
-  else
-    qscrollbar_ = new QScrollBar(nullptr);
+  qscrollbar_ = new QScrollBar(parent ? parent->getQWidget() : nullptr);
 
   qscrollbar_->setRange(0, 1000);
 
@@ -5055,10 +5205,7 @@ CTkAppSpinBox::
 CTkAppSpinBox(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
-  if (parent)
-    qspin_ = new CQSpinList(getParent()->getQWidget());
-  else
-    qspin_ = new CQSpinList(nullptr);
+  qspin_ = new CQSpinList(parent ? parent->getQWidget() : nullptr);
 
   setQWidget(qspin_);
 
@@ -6454,6 +6601,31 @@ execConfig(const std::string &name, const std::string &value)
 
 bool
 CTkAppTopLevel::
+execOp(const Args &args)
+{
+  return CTkAppWidget::execOp(args);
+}
+
+//----------
+
+CTkAppTreeView::
+CTkAppTreeView(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
+ CTkAppWidget(tk, parent, name)
+{
+  qtree_ = new QTreeWidget(nullptr);
+
+  setQWidget(qtree_);
+}
+
+bool
+CTkAppTreeView::
+execConfig(const std::string &name, const std::string &value)
+{
+  return CTkAppWidget::execConfig(name, value);
+}
+
+bool
+CTkAppTreeView::
 execOp(const Args &args)
 {
   return CTkAppWidget::execOp(args);

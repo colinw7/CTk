@@ -154,7 +154,7 @@ TARGET        = ../bin/CTkTest
 first: all
 ####### Build rules
 
-../bin/CTkTest:  $(OBJECTS)  
+../bin/CTkTest: $(LIB_DIR)/libCTkApp.a $(OBJECTS)  
 	@test -d ../bin/ || mkdir -p ../bin/
 	$(LINK) $(LFLAGS) -o $(TARGET) $(OBJECTS) $(OBJCOMP) $(LIBS)
 

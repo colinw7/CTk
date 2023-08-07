@@ -454,6 +454,9 @@ mergeList(const std::vector<std::string> &strs) const
 {
   auto argc = strs.size();
 
+  if (argc == 0)
+    return "";
+
   std::vector<char *> argv;
 
   argv.resize(argc);

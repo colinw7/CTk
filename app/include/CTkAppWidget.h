@@ -38,14 +38,17 @@ class CQSpinList;
 class CQLabelImage;
 
 class QBoxLayout;
+class QComboBox;
 class QFrame;
 class QGroupBox;
 class QMenuBar;
 class QScrollBar;
 class QSplitter;
+class QTabWidget;
 class QTextCursor;
 class QTextEdit;
 class QToolButton;
+class QTreeWidget;
 
 //---
 
@@ -1545,6 +1548,24 @@ class CTkAppCheckButtonWidget : public QCheckBox {
 
 //---
 
+class CTkAppComboBox : public CTkAppWidget {
+  Q_OBJECT
+
+ public:
+  explicit CTkAppComboBox(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
+
+  const char *getClassName() const override { return "ComboBox"; }
+
+  bool execConfig(const std::string &name, const std::string &value) override;
+
+  bool execOp(const Args &args) override;
+
+ private:
+  QComboBox* qcombo_ { nullptr };
+};
+
+//---
+
 class CTkAppEntryWidget;
 class CTkAppEntryVarProc;
 class CTkAppEntryValidator;
@@ -1913,6 +1934,24 @@ class CTkAppMessage : public CTkAppWidget {
 
 //---
 
+class CTkAppNoteBook : public CTkAppWidget {
+  Q_OBJECT
+
+ public:
+  explicit CTkAppNoteBook(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
+
+  const char *getClassName() const override { return "NoteBook"; }
+
+  bool execConfig(const std::string &name, const std::string &value) override;
+
+  bool execOp(const Args &args) override;
+
+ private:
+  QTabWidget* qtab_ { nullptr };
+};
+
+//---
+
 class CTkAppPanedWindow : public CTkAppWidget {
   Q_OBJECT
 
@@ -2244,6 +2283,24 @@ class CTkAppTopLevel : public CTkAppWidget {
 
  private:
   QFrame* qframe_ { nullptr };
+};
+
+//---
+
+class CTkAppTreeView : public CTkAppWidget {
+  Q_OBJECT
+
+ public:
+  explicit CTkAppTreeView(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
+
+  const char *getClassName() const override { return "TreeView"; }
+
+  bool execConfig(const std::string &name, const std::string &value) override;
+
+  bool execOp(const Args &args) override;
+
+ private:
+  QTreeWidget* qtree_ { nullptr };
 };
 
 #endif
