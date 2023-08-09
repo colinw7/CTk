@@ -17,7 +17,6 @@
 #include <CStrParse.h>
 
 #include <QApplication>
-#include <QComboBox>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QMenu>
@@ -1868,7 +1867,7 @@ execOp(const Args &args)
     if      (opt == "cget") {
       tk_->TODO(opt, args);
     }
-    else if (opt == "configure") {
+    else if (opt == "configure" || opt == "config") {
       tk_->TODO(opt, args);
     }
     else if (opt == "create") {
@@ -2528,6 +2527,8 @@ class CTkAppCheckButtonVarProc : public CTclTraceProc {
   CTkAppCheckButton *check_ { nullptr };
 };
 
+//---
+
 CTkAppCheckButton::
 CTkAppCheckButton(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
@@ -2781,13 +2782,41 @@ CTkAppCheckButtonWidget(CTkAppCheckButton *check) :
 
 //----------
 
+class CTkAppComboBoxVarProc : public CTclTraceProc {
+ public:
+  CTkAppComboBoxVarProc(CTkApp *tk, CTkAppComboBox *combo) :
+   CTclTraceProc(tk), combo_(combo) {
+  }
+
+  void handleWrite(const char *) override {
+    combo_->updateFromVar();
+  }
+
+ private:
+  CTkAppComboBox *combo_ { nullptr };
+};
+
+//---
+
 CTkAppComboBox::
 CTkAppComboBox(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
-  qcombo_ = new QComboBox(parent ? parent->getQWidget() : nullptr);
+  qcombo_ = new CTkAppComboBoxWidget(this);
 
   setQWidget(qcombo_);
+
+  connectSlots(true);
+}
+
+void
+CTkAppComboBox::
+connectSlots(bool b)
+{
+  if (b)
+    connect(qcombo_, SIGNAL(currentIndexChanged(int)), this, SLOT(indexChangedSlot(int)));
+  else
+    disconnect(qcombo_, SIGNAL(currentIndexChanged(int)), this, SLOT(indexChangedSlot(int)));
 }
 
 bool
@@ -2807,10 +2836,21 @@ execConfig(const std::string &name, const std::string &value)
     tk_->TODO(name);
   }
   else if (name == "-state") {
-    tk_->TODO(name);
+    if (! CTkAppUtil::setWidgetState(this, value))
+      return false;
   }
   else if (name == "-textvariable") {
-    tk_->TODO(name);
+    varName_ = value;
+
+    if (! isInitNotify() && ! tk_->hasGlobalVar(varName_))
+      tk_->setStringGlobalVar(varName_, "");
+
+    if (tk_->hasGlobalVar(varName_))
+      setText(tk_->getStringGlobalVar(varName_));
+
+    varProc_ = new CTkAppComboBoxVarProc(tk_, this);
+
+    tk_->traceGlobalVar(varName_, varProc_);
   }
   else if (name == "-values") {
     std::vector<std::string> strs;
@@ -2826,7 +2866,10 @@ execConfig(const std::string &name, const std::string &value)
     qcombo_->addItems(qstrs);
   }
   else if (name == "-width") {
-    tk_->TODO(name);
+    long w;
+    if (! CTkAppUtil::stringToInt(value, w))
+      return tk_->throwError("Invalid width \"" + value + "\"");
+    qcombo_->setWidth(w);
   }
   else
     return CTkAppWidget::execConfig(name, value);
@@ -2838,7 +2881,155 @@ bool
 CTkAppComboBox::
 execOp(const Args &args)
 {
-  return CTkAppWidget::execOp(args);
+  uint numArgs = args.size();
+
+  if (numArgs == 0)
+    return tk_->wrongNumArgs(getName() + " option ?arg ...?");
+
+  auto arg = args[0];
+
+  if      (arg == "bbox") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs(getName() + " bbox index");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "current") {
+    if (numArgs != 1 && numArgs != 2)
+      return tk_->wrongNumArgs(getName() + " current ?newIndex?");
+
+    if (numArgs == 1) {
+      auto i = qcombo_->currentIndex();
+
+      tk_->setIntegerResult(i);
+    }
+    else {
+      long i;
+      if (! CTkAppUtil::stringToInt(args[1], i))
+        return tk_->throwError("Incorrect index \"" + args[1] + "\"");
+      qcombo_->setCurrentIndex(i);
+    }
+  }
+  else if (arg == "delete") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " delete firstIndex ?lastIndex?");
+
+    tk_->TODO(args); // delete items
+  }
+  else if (arg == "get") {
+    if (numArgs != 1)
+      return tk_->wrongNumArgs(getName() + " get");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "icursor") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs(getName() + " icursor pos");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "identify") {
+    if (numArgs != 3 && numArgs != 4)
+      return tk_->wrongNumArgs(getName() + " identify ?what? x y");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "index") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs(getName() + " index string");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "insert") {
+    if (numArgs != 3)
+      return tk_->wrongNumArgs(getName() + " insert index text");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "instate") {
+    if (numArgs != 2 && numArgs != 3)
+      return tk_->wrongNumArgs(getName() + " instate state-spec ?script?");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "selection") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " selection option ?arg ...?");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "state") {
+    if (numArgs > 2)
+      return tk_->wrongNumArgs(getName() + " state state-spec");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "set") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs(getName() + " set value");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "validate") {
+    if (numArgs != 1)
+      return tk_->wrongNumArgs(getName() + " validate");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "xview") {
+    tk_->TODO(args);
+    tk_->setStringResult("0.0 1.0");
+  }
+  else
+    return CTkAppWidget::execOp(args);
+
+  return true;
+}
+
+void
+CTkAppComboBox::
+indexChangedSlot(int i)
+{
+  if (varName_ != "") {
+    if (varProc_)
+      varProc_->setEnabled(false);
+
+    tk_->setIntegerGlobalVar(varName_, i);
+
+    if (varProc_)
+      varProc_->setEnabled(true);
+  }
+}
+
+void
+CTkAppComboBox::
+updateFromVar()
+{
+  if (varName_ != "" && tk_->hasGlobalVar(varName_))
+    qcombo_->setCurrentIndex(tk_->getIntegerGlobalVar(varName_));
+}
+
+//---
+
+CTkAppComboBoxWidget::
+CTkAppComboBoxWidget(CTkAppComboBox *combo) :
+ QComboBox(combo->getParent() ? combo->getParent()->getQWidget() : nullptr), combo_(combo)
+{
+  setObjectName("qwcombo");
+}
+
+QSize
+CTkAppComboBoxWidget::
+sizeHint() const
+{
+  auto s = QComboBox::sizeHint();
+
+  QFontMetrics fm(font());
+
+  if (width_ > 0)
+    s.setWidth(width_*fm.horizontalAdvance("0"));
+
+  return s;
 }
 
 //----------
@@ -2857,6 +3048,8 @@ class CTkAppEntryVarProc : public CTclTraceProc {
   CTkAppEntry *entry_ { nullptr };
 };
 
+//---
+
 class CTkAppEntryValidator : public QValidator {
  public:
   CTkAppEntryValidator(CTkApp *tk, CTkAppEntry *entry) :
@@ -2874,6 +3067,8 @@ class CTkAppEntryValidator : public QValidator {
   CTkApp*      tk_    { nullptr };
   CTkAppEntry* entry_ { nullptr };
 };
+
+//---
 
 CTkAppEntry::
 CTkAppEntry(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
@@ -2902,7 +3097,18 @@ bool
 CTkAppEntry::
 execConfig(const std::string &name, const std::string &value)
 {
-  if      (name == "-textvariable") {
+  if      (name == "-show") {
+    qedit_->setEchoMode(QLineEdit::Password);
+  }
+  else if (name == "-state") {
+    if (value == "readonly")
+      qedit_->setReadOnly(true);
+    else {
+      if (! CTkAppUtil::setWidgetState(this, value))
+        return false;
+    }
+  }
+  else if (name == "-textvariable") {
     varName_ = value;
 
     if (! isInitNotify() && ! tk_->hasGlobalVar(varName_))
@@ -2914,15 +3120,6 @@ execConfig(const std::string &name, const std::string &value)
     varProc_ = new CTkAppEntryVarProc(tk_, this);
 
     tk_->traceGlobalVar(varName_, varProc_);
-  }
-  else if (name == "-show") {
-    qedit_->setEchoMode(QLineEdit::Password);
-  }
-  else if (name == "-width") {
-    long w;
-    if (! CTkAppUtil::stringToInt(value, w))
-      return tk_->throwError("Invalid width \"" + value + "\"");
-    qedit_->setWidth(w);
   }
   else if (name == "-validate") {
     if      (value == "none"    ) validateMode_ = ValidateMode::NONE;
@@ -2942,9 +3139,11 @@ execConfig(const std::string &name, const std::string &value)
   else if (name == "-validatecommand") {
     validateCmd_ = value;
   }
-  else if (name == "-state") {
-    if (! CTkAppUtil::setWidgetState(this, value))
-      return false;
+  else if (name == "-width") {
+    long w;
+    if (! CTkAppUtil::stringToInt(value, w))
+      return tk_->throwError("Invalid width \"" + value + "\"");
+    qedit_->setWidth(w);
   }
   else
     return CTkAppWidget::execConfig(name, value);
@@ -2972,6 +3171,9 @@ execOp(const Args &args)
   };
 
   if      (arg == "bbox") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs(getName() + " bbox index");
+
     tk_->TODO(args);
   }
   else if (arg == "delete") {
@@ -2994,9 +3196,15 @@ execOp(const Args &args)
     tk_->setStringResult(qedit_->text().toStdString());
   }
   else if (arg == "icursor") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs(getName() + " icursor pos");
+
     tk_->TODO(args);
   }
   else if (arg == "index") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs(getName() + " index string");
+
     tk_->TODO(args);
   }
   else if (arg == "insert") {
@@ -3015,6 +3223,9 @@ execOp(const Args &args)
     qedit_->insert(QString::fromStdString(args[2]));
   }
   else if (arg == "scan") {
+    if (numArgs != 3)
+      return tk_->wrongNumArgs(getName() + " scan mark|dragto x");
+
     tk_->TODO(args);
   }
   else if (arg == "selection") {
@@ -3071,10 +3282,14 @@ execOp(const Args &args)
       return false;
   }
   else if (arg == "validate") {
+    if (numArgs != 1)
+      return tk_->wrongNumArgs(getName() + " validate");
+
     tk_->TODO(args);
   }
   else if (arg == "xview") {
     tk_->TODO(args);
+    tk_->setStringResult("0.0 1.0");
   }
   else
     return CTkAppWidget::execOp(args);
@@ -3225,6 +3440,8 @@ class CTkAppLabelVarProc : public CTclTraceProc {
   CTkAppLabel *label_ { nullptr };
 };
 
+//---
+
 CTkAppLabel::
 CTkAppLabel(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
@@ -3367,6 +3584,8 @@ class CTkAppListBoxVarProc : public CTclTraceProc {
  private:
   CTkAppListBox *listBox_ { nullptr };
 };
+
+//---
 
 CTkAppListBox::
 CTkAppListBox(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
@@ -3646,7 +3865,7 @@ execOp(const Args &args)
 
       if      (opt == "moveto") {
         if (numArgs < 3)
-          return tk_->wrongNumArgs(getName() + "xview moveto number");
+          return tk_->wrongNumArgs(getName() + " xview moveto number");
 
         double x;
 
@@ -3657,7 +3876,7 @@ execOp(const Args &args)
       }
       else if (opt == "scroll") {
         if (numArgs < 4)
-          return tk_->wrongNumArgs(getName() + "xview scroll number pages|units");
+          return tk_->wrongNumArgs(getName() + " xview scroll number pages|units");
 
         double x;
 
@@ -3702,7 +3921,7 @@ execOp(const Args &args)
 
       if      (opt == "moveto") {
         if (numArgs < 3)
-          return tk_->wrongNumArgs(getName() + "yview moveto number");
+          return tk_->wrongNumArgs(getName() + " yview moveto number");
 
         double y;
 
@@ -3713,7 +3932,7 @@ execOp(const Args &args)
       }
       else if (opt == "scroll") {
         if (numArgs < 4)
-          return tk_->wrongNumArgs(getName() + "yview scroll number pages|units");
+          return tk_->wrongNumArgs(getName() + " yview scroll number pages|units");
 
         double y;
 
@@ -4104,6 +4323,8 @@ class CTkAppMenuButtonVarProc : public CTclTraceProc {
   CTkAppMenuButton *menuButton_ { nullptr };
 };
 
+//---
+
 CTkAppMenuButton::
 CTkAppMenuButton(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
@@ -4186,8 +4407,9 @@ execOp(const Args &args)
 
   const auto &arg = args[0];
 
-  if (arg == "invoke")
+  if (arg == "invoke") {
     runCommand();
+  }
   else
     return CTkAppWidget::execOp(args);
 
@@ -4268,6 +4490,8 @@ class CTkAppMessageVarProc : public CTclTraceProc {
  private:
   CTkAppMessage *message_ { nullptr };
 };
+
+//---
 
 CTkAppMessage::
 CTkAppMessage(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
@@ -4371,7 +4595,7 @@ execOp(const Args &args)
 
     qtab_->addTab(w->qwidget(), "");
   }
-  else if (arg == "configure") {
+  else if (arg == "configure" || arg == "config") {
     if (numArgs == 1)
       tk_->setStringResult("{-width width Width 0 0} "
                            "{-height height Height 0 0} "
@@ -4613,6 +4837,8 @@ class CTkAppRadioButtonVarProc : public CTclTraceProc {
  private:
   CTkAppRadioButton *radio_ { nullptr };
 };
+
+//---
 
 CTkAppRadioButton::
 CTkAppRadioButton(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
@@ -4874,6 +5100,8 @@ class CTkAppScaleVarProc : public CTclTraceProc {
  private:
   CTkAppScale *scale_ { nullptr };
 };
+
+//---
 
 CTkAppScale::
 CTkAppScale(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
@@ -5201,6 +5429,8 @@ class CTkAppSpinBoxVarProc : public CTclTraceProc {
   CTkAppSpinBox *spin_ { nullptr };
 };
 
+//---
+
 CTkAppSpinBox::
 CTkAppSpinBox(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
@@ -5484,7 +5714,7 @@ execOp(const Args &args)
     tk_->TODO(args);
   }
   else if (arg == "debug") {
-    if (numArgs > 1)
+    if (numArgs > 2)
       return tk_->wrongNumArgs(getName() + " debug boolean");
 
     tk_->TODO(args);
@@ -5523,6 +5753,9 @@ execOp(const Args &args)
     }
   }
   else if (arg == "dlineinfo") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs(getName() + " dlineinfo index");
+
     tk_->TODO(args);
   }
   else if (arg == "dump") {
@@ -5577,6 +5810,9 @@ execOp(const Args &args)
     tk_->setStringArrayResult(strs);
   }
   else if (arg == "image") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " image option ?arg ...?");
+
     tk_->TODO(args);
   }
   else if (arg == "index") {
@@ -5737,15 +5973,29 @@ execOp(const Args &args)
       return false;
   }
   else if (arg == "peer") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " peer option ?arg ...?");
+
     tk_->TODO(args);
   }
   else if (arg == "pendingsync") {
+    if (numArgs != 1)
+      return tk_->wrongNumArgs(getName() + " pendingsync");
+
     tk_->TODO(args);
   }
   else if (arg == "replace") {
+    if (numArgs < 4)
+      return tk_->wrongNumArgs(getName() +
+        " replace index1 index2 chars ?tagList chars tagList ...?");
+
     tk_->TODO(args);
   }
   else if (arg == "scan") {
+    if (numArgs < 4)
+      return tk_->wrongNumArgs(getName() + " scan mark x y\" or \"" +
+                               getName() + " scan dragto x y ?gain?");
+
     tk_->TODO(args);
   }
   else if (arg == "search") {
@@ -5878,20 +6128,31 @@ execOp(const Args &args)
     tk_->setStringArrayResult(startInds);
   }
   else if (arg == "see") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs(getName() + " see index");
+
     tk_->TODO(args);
   }
   else if (arg == "sync") {
+    uint i = 1;
+
+    if (i < numArgs && args[i] == "-command")
+      ++i;
+
+    if (i != numArgs)
+      return tk_->wrongNumArgs(getName() + " sync ?-command command?");
+
     tk_->TODO(args);
   }
   else if (arg == "tag") {
     if (numArgs < 2)
-      return tk_->wrongNumArgs(getName() + "tag option ?arg ...?");
+      return tk_->wrongNumArgs(getName() + " tag option ?arg ...?");
 
     auto opt = args[1];
 
     if      (opt == "add") {
       if (numArgs < 4)
-        return tk_->wrongNumArgs(getName() + "tag add tagName index1 ?index2 index1 index2 ...?");
+        return tk_->wrongNumArgs(getName() + " tag add tagName index1 ?index2 index1 index2 ...?");
 
       auto tag = args[2];
 
@@ -5924,7 +6185,7 @@ execOp(const Args &args)
     else if (opt == "cget") {
       tk_->TODO(args);
     }
-    else if (opt == "configure") {
+    else if (opt == "configure" || opt == "config") {
       if (numArgs < 3)
         return tk_->wrongNumArgs(getName() +
           "tag configure tagName ?-option? ?value? ?-option value ...?");
@@ -5983,7 +6244,7 @@ execOp(const Args &args)
     }
     else if (opt == "delete") {
       if (numArgs < 3)
-        return tk_->wrongNumArgs(getName() + "tag delete tagName ?tagName ...?");
+        return tk_->wrongNumArgs(getName() + " tag delete tagName ?tagName ...?");
 
       uint i = 2;
 
@@ -5995,7 +6256,7 @@ execOp(const Args &args)
     }
     else if (opt == "lower") {
       if (numArgs != 3 && numArgs != 4)
-        return tk_->wrongNumArgs(getName() + "tag lower tagName ?aboveThis?");
+        return tk_->wrongNumArgs(getName() + " tag lower tagName ?aboveThis?");
 
       auto tag = args[2];
 
@@ -6020,7 +6281,7 @@ execOp(const Args &args)
     }
     else if (opt == "raise") {
       if (numArgs != 3 && numArgs != 4)
-        return tk_->wrongNumArgs(getName() + "tag raise tagName ?aboveThis?");
+        return tk_->wrongNumArgs(getName() + " tag raise tagName ?aboveThis?");
 
       auto tag = args[2];
 
@@ -6033,7 +6294,7 @@ execOp(const Args &args)
     }
     else if (opt == "ranges") {
       if (numArgs != 3)
-        return tk_->wrongNumArgs(getName() + "tag ranges tagName");
+        return tk_->wrongNumArgs(getName() + " tag ranges tagName");
 
       auto tag = args[2];
 
@@ -6066,7 +6327,37 @@ execOp(const Args &args)
         "raise, ranges, or remove");
   }
   else if (arg == "window") {
-    tk_->TODO(args);
+    if (numArgs < 1)
+      return tk_->wrongNumArgs(getName() + " window option ?arg ...?");
+
+    auto opt = args[1];
+
+    if      (opt == "cget") {
+      if (numArgs != 4)
+        return tk_->wrongNumArgs(getName() + " window cget index option");
+
+      tk_->TODO(args);
+    }
+    else if (opt == "configure" || opt == "config") {
+      if (numArgs < 3)
+        return tk_->wrongNumArgs(getName() + " window configure index ?-option value ...?");
+
+      tk_->TODO(args);
+    }
+    else if (opt == "create") {
+      if (numArgs < 3)
+        return tk_->wrongNumArgs(getName() + " window create index ?-option value ...?");
+
+      tk_->TODO(args);
+    }
+    else if (opt == "names") {
+      if (numArgs != 2)
+        return tk_->wrongNumArgs(getName() + " window names");
+
+      tk_->TODO(args);
+    }
+    else
+      return false;
   }
   else if (arg == "xview") {
     int step  = qtext_->horizontalScrollBar()->pageStep();
@@ -6087,7 +6378,7 @@ execOp(const Args &args)
 
       if      (opt == "moveto") {
         if (numArgs < 3)
-          return tk_->wrongNumArgs(getName() + "xview moveto number");
+          return tk_->wrongNumArgs(getName() + " xview moveto number");
 
         double x;
 
@@ -6098,7 +6389,7 @@ execOp(const Args &args)
       }
       else if (opt == "scroll") {
         if (numArgs < 4)
-          return tk_->wrongNumArgs(getName() + "xview scroll number pages|units");
+          return tk_->wrongNumArgs(getName() + " xview scroll number pages|units");
 
         double x;
 
@@ -6143,7 +6434,7 @@ execOp(const Args &args)
 
       if      (opt == "moveto") {
         if (numArgs < 3)
-          return tk_->wrongNumArgs(getName() + "yview moveto number");
+          return tk_->wrongNumArgs(getName() + " yview moveto number");
 
         double y;
 
@@ -6154,7 +6445,7 @@ execOp(const Args &args)
       }
       else if (opt == "scroll") {
         if (numArgs < 4)
-          return tk_->wrongNumArgs(getName() + "yview scroll number pages|units");
+          return tk_->wrongNumArgs(getName() + " yview scroll number pages|units");
 
         double y;
 

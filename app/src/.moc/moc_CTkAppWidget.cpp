@@ -769,8 +769,8 @@ int CTkAppCheckButtonWidget::qt_metacall(QMetaObject::Call _c, int _id, void **_
     return _id;
 }
 struct qt_meta_stringdata_CTkAppComboBox_t {
-    QByteArrayData data[1];
-    char stringdata0[15];
+    QByteArrayData data[3];
+    char stringdata0[33];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -779,10 +779,12 @@ struct qt_meta_stringdata_CTkAppComboBox_t {
     )
 static const qt_meta_stringdata_CTkAppComboBox_t qt_meta_stringdata_CTkAppComboBox = {
     {
-QT_MOC_LITERAL(0, 0, 14) // "CTkAppComboBox"
+QT_MOC_LITERAL(0, 0, 14), // "CTkAppComboBox"
+QT_MOC_LITERAL(1, 15, 16), // "indexChangedSlot"
+QT_MOC_LITERAL(2, 32, 0) // ""
 
     },
-    "CTkAppComboBox"
+    "CTkAppComboBox\0indexChangedSlot\0"
 };
 #undef QT_MOC_LITERAL
 
@@ -792,22 +794,32 @@ static const uint qt_meta_data_CTkAppComboBox[] = {
        8,       // revision
        0,       // classname
        0,    0, // classinfo
-       0,    0, // methods
+       1,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
        0,       // flags
        0,       // signalCount
 
+ // slots: name, argc, parameters, tag, flags
+       1,    1,   19,    2, 0x08 /* Private */,
+
+ // slots: parameters
+    QMetaType::Void, QMetaType::Int,    2,
+
        0        // eod
 };
 
 void CTkAppComboBox::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
 {
-    (void)_o;
-    (void)_id;
-    (void)_c;
-    (void)_a;
+    if (_c == QMetaObject::InvokeMetaMethod) {
+        auto *_t = static_cast<CTkAppComboBox *>(_o);
+        (void)_t;
+        switch (_id) {
+        case 0: _t->indexChangedSlot((*reinterpret_cast< int(*)>(_a[1]))); break;
+        default: ;
+        }
+    }
 }
 
 QT_INIT_METAOBJECT const QMetaObject CTkAppComboBox::staticMetaObject = { {
@@ -836,6 +848,87 @@ void *CTkAppComboBox::qt_metacast(const char *_clname)
 int CTkAppComboBox::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
 {
     _id = CTkAppWidget::qt_metacall(_c, _id, _a);
+    if (_id < 0)
+        return _id;
+    if (_c == QMetaObject::InvokeMetaMethod) {
+        if (_id < 1)
+            qt_static_metacall(this, _c, _id, _a);
+        _id -= 1;
+    } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
+        if (_id < 1)
+            *reinterpret_cast<int*>(_a[0]) = -1;
+        _id -= 1;
+    }
+    return _id;
+}
+struct qt_meta_stringdata_CTkAppComboBoxWidget_t {
+    QByteArrayData data[1];
+    char stringdata0[21];
+};
+#define QT_MOC_LITERAL(idx, ofs, len) \
+    Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
+    qptrdiff(offsetof(qt_meta_stringdata_CTkAppComboBoxWidget_t, stringdata0) + ofs \
+        - idx * sizeof(QByteArrayData)) \
+    )
+static const qt_meta_stringdata_CTkAppComboBoxWidget_t qt_meta_stringdata_CTkAppComboBoxWidget = {
+    {
+QT_MOC_LITERAL(0, 0, 20) // "CTkAppComboBoxWidget"
+
+    },
+    "CTkAppComboBoxWidget"
+};
+#undef QT_MOC_LITERAL
+
+static const uint qt_meta_data_CTkAppComboBoxWidget[] = {
+
+ // content:
+       8,       // revision
+       0,       // classname
+       0,    0, // classinfo
+       0,    0, // methods
+       0,    0, // properties
+       0,    0, // enums/sets
+       0,    0, // constructors
+       0,       // flags
+       0,       // signalCount
+
+       0        // eod
+};
+
+void CTkAppComboBoxWidget::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
+{
+    (void)_o;
+    (void)_id;
+    (void)_c;
+    (void)_a;
+}
+
+QT_INIT_METAOBJECT const QMetaObject CTkAppComboBoxWidget::staticMetaObject = { {
+    QMetaObject::SuperData::link<QComboBox::staticMetaObject>(),
+    qt_meta_stringdata_CTkAppComboBoxWidget.data,
+    qt_meta_data_CTkAppComboBoxWidget,
+    qt_static_metacall,
+    nullptr,
+    nullptr
+} };
+
+
+const QMetaObject *CTkAppComboBoxWidget::metaObject() const
+{
+    return QObject::d_ptr->metaObject ? QObject::d_ptr->dynamicMetaObject() : &staticMetaObject;
+}
+
+void *CTkAppComboBoxWidget::qt_metacast(const char *_clname)
+{
+    if (!_clname) return nullptr;
+    if (!strcmp(_clname, qt_meta_stringdata_CTkAppComboBoxWidget.stringdata0))
+        return static_cast<void*>(this);
+    return QComboBox::qt_metacast(_clname);
+}
+
+int CTkAppComboBoxWidget::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
+{
+    _id = QComboBox::qt_metacall(_c, _id, _a);
     return _id;
 }
 struct qt_meta_stringdata_CTkAppEntry_t {

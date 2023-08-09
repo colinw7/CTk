@@ -8,6 +8,7 @@
 
 #include <QBrush>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QFrame>
 #include <QLabel>
 #include <QLineEdit>
@@ -38,7 +39,6 @@ class CQSpinList;
 class CQLabelImage;
 
 class QBoxLayout;
-class QComboBox;
 class QFrame;
 class QGroupBox;
 class QMenuBar;
@@ -1548,6 +1548,9 @@ class CTkAppCheckButtonWidget : public QCheckBox {
 
 //---
 
+class CTkAppComboBoxWidget;
+class CTkAppComboBoxVarProc;
+
 class CTkAppComboBox : public CTkAppWidget {
   Q_OBJECT
 
@@ -1560,8 +1563,34 @@ class CTkAppComboBox : public CTkAppWidget {
 
   bool execOp(const Args &args) override;
 
+  void updateFromVar();
+
  private:
-  QComboBox* qcombo_ { nullptr };
+  void connectSlots(bool);
+
+ private Q_SLOTS:
+  void indexChangedSlot(int);
+
+ private:
+  CTkAppComboBoxWidget*  qcombo_ { nullptr };
+  std::string            varName_;
+  CTkAppComboBoxVarProc* varProc_ { nullptr };
+};
+
+class CTkAppComboBoxWidget : public QComboBox {
+  Q_OBJECT
+
+ public:
+  CTkAppComboBoxWidget(CTkAppComboBox *combo);
+
+  int width() const { return width_; }
+  void setWidth(int i) { width_ = i; }
+
+  QSize sizeHint() const override;
+
+ private:
+  CTkAppComboBox* combo_ { nullptr };
+  int             width_ { -1 };
 };
 
 //---
