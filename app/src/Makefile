@@ -66,7 +66,8 @@ SOURCES       = CTkApp.cpp \
 		CQSpinList.cpp \
 		CQSlider.cpp \
 		CSVGUtil.cpp \
-		CQRotatedText.cpp .moc/moc_CTkAppGridLayout.cpp \
+		CQRotatedText.cpp .moc/moc_CTkApp.cpp \
+		.moc/moc_CTkAppGridLayout.cpp \
 		.moc/moc_CTkAppPackLayout.cpp \
 		.moc/moc_CTkAppPlaceLayout.cpp \
 		.moc/moc_CTkAppLayout.cpp \
@@ -92,6 +93,7 @@ OBJECTS       = ../obj/CTkApp.o \
 		../obj/CQSlider.o \
 		../obj/CSVGUtil.o \
 		../obj/CQRotatedText.o \
+		../obj/moc_CTkApp.o \
 		../obj/moc_CTkAppGridLayout.o \
 		../obj/moc_CTkAppPackLayout.o \
 		../obj/moc_CTkAppPlaceLayout.o \
@@ -475,9 +477,24 @@ compiler_moc_predefs_clean:
 .moc/moc_predefs.h: /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp
 	g++ -pipe -std=c++17 -DCQUTIL_PEN -DCQUTIL_BRUSH -DCQUTIL_FONT -DCQUTIL_IMAGE -DCBRUSH_IMAGE -g -fPIC -Wall -Wextra -dM -E -o .moc/moc_predefs.h /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp
 
-compiler_moc_header_make_all: .moc/moc_CTkAppGridLayout.cpp .moc/moc_CTkAppPackLayout.cpp .moc/moc_CTkAppPlaceLayout.cpp .moc/moc_CTkAppLayout.cpp .moc/moc_CTkAppWidget.cpp .moc/moc_CQLabelImage.cpp .moc/moc_CQSpinList.cpp .moc/moc_CQSlider.cpp
+compiler_moc_header_make_all: .moc/moc_CTkApp.cpp .moc/moc_CTkAppGridLayout.cpp .moc/moc_CTkAppPackLayout.cpp .moc/moc_CTkAppPlaceLayout.cpp .moc/moc_CTkAppLayout.cpp .moc/moc_CTkAppWidget.cpp .moc/moc_CQLabelImage.cpp .moc/moc_CQSpinList.cpp .moc/moc_CQSlider.cpp
 compiler_moc_header_clean:
-	-$(DEL_FILE) .moc/moc_CTkAppGridLayout.cpp .moc/moc_CTkAppPackLayout.cpp .moc/moc_CTkAppPlaceLayout.cpp .moc/moc_CTkAppLayout.cpp .moc/moc_CTkAppWidget.cpp .moc/moc_CQLabelImage.cpp .moc/moc_CQSpinList.cpp .moc/moc_CQSlider.cpp
+	-$(DEL_FILE) .moc/moc_CTkApp.cpp .moc/moc_CTkAppGridLayout.cpp .moc/moc_CTkAppPackLayout.cpp .moc/moc_CTkAppPlaceLayout.cpp .moc/moc_CTkAppLayout.cpp .moc/moc_CTkAppWidget.cpp .moc/moc_CQLabelImage.cpp .moc/moc_CQSpinList.cpp .moc/moc_CQSlider.cpp
+.moc/moc_CTkApp.cpp: ../include/CTkApp.h \
+		../include/CTkAppOptionValue.h \
+		../include/CTkAppEventData.h \
+		../include/CTclApp.h \
+		../../../CMath/include/CMatrix2D.h \
+		../../../CMath/include/CPoint2D.h \
+		../../../CMath/include/CVector2D.h \
+		../../../CMath/include/CMathGen.h \
+		../../../CMath/include/CIPoint2D.h \
+		../../../CMath/include/CMathUtil.h \
+		../../../COS/include/COSNaN.h \
+		.moc/moc_predefs.h \
+		/usr/lib/qt5/bin/moc
+	/usr/lib/qt5/bin/moc $(DEFINES) --include /home/colinw/git/CTk/app/src/.moc/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I/home/colinw/git/CTk/app/src -I/home/colinw/git/CTk/app/include -I/home/colinw/git/CQUtil/include -I/home/colinw/git/CTclApp/include -I/home/colinw/git/CXLib/include -I/home/colinw/git/CReadLine/include -I/home/colinw/git/CImageLib/include -I/home/colinw/git/CRGBName/include -I/home/colinw/git/CFont/include -I/home/colinw/git/CFile/include -I/home/colinw/git/CMath/include -I/home/colinw/git/CStrUtil/include -I/home/colinw/git/CGlob/include -I/home/colinw/git/CUtil/include -I/home/colinw/git/COS/include -I/usr/include/tcl -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtSvg -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -I/usr/include/c++/11/backward -I/usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include ../include/CTkApp.h -o .moc/moc_CTkApp.cpp
+
 .moc/moc_CTkAppGridLayout.cpp: ../include/CTkAppGridLayout.h \
 		../include/CTkAppLayout.h \
 		../../../CUtil/include/COptVal.h \
@@ -814,6 +831,9 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 
 ../obj/CQRotatedText.o: CQRotatedText.cpp CQRotatedText.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CQRotatedText.o CQRotatedText.cpp
+
+../obj/moc_CTkApp.o: .moc/moc_CTkApp.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/moc_CTkApp.o .moc/moc_CTkApp.cpp
 
 ../obj/moc_CTkAppGridLayout.o: .moc/moc_CTkAppGridLayout.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/moc_CTkAppGridLayout.o .moc/moc_CTkAppGridLayout.cpp

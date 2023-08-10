@@ -29,6 +29,7 @@ class QWidget;
 class QEvent;
 class QKeyEvent;
 class QMouseEvent;
+class QTimer;
 
 //---
 
@@ -43,7 +44,9 @@ enum class CTkAppCompoundType {
 
 //---
 
-class CTkApp : public CTclApp {
+class CTkApp : public QObject, public CTclApp {
+  Q_OBJECT
+
  public:
   struct MatrixData {
     QTransform transform;
@@ -76,6 +79,8 @@ class CTkApp : public CTclApp {
   }
 
   //---
+
+  int waitForEventProc();
 
   void processEvents();
 
@@ -260,6 +265,9 @@ class CTkApp : public CTclApp {
 
   void addWidgetClass(const std::string &name);
 
+ private Q_SLOTS:
+  void timerSlot();
+
  private:
   using WidgetClasses    = std::set<std::string>;
   using ImageMap         = std::map<std::string, CTkAppImageRef>;
@@ -300,7 +308,10 @@ class CTkApp : public CTclApp {
   WidgetClasses widgetClasses_;
   NamedMatrices nameMatrices_;
 
-  CTkAppRoot*     root_ { nullptr };
+  CTkAppRoot* root_ { nullptr };
+
+  QTimer *timer_ { nullptr };
+
   bool            useStyle_ { false };
   TopLevelArray   toplevels_;
   ClassEventDatas classEvents_;

@@ -3,6 +3,7 @@
 
 #include <set>
 #include <map>
+#include <iostream>
 
 template<typename T>
 class CStrUniqueMatchValues {

@@ -14,12 +14,15 @@
 #include <QMouseEvent>
 #include <QKeyEvent>
 #include <QFontDialog>
+#include <QTimer>
 
 #include <tcl.h>
 
 //---
 
 namespace {
+
+static CTkApp *s_app;
 
 struct VirtualEventData {
   std::string            name;
@@ -82,6 +85,16 @@ static VirtualEventData virtualEventData[] = {
   { ""                   , CTkAppVirtualEventType::None            }
 };
 
+static Tcl_NotifierProcs s_notifierProcs;
+//static Tcl_NotifierProcs s_noNotifierProcs;
+
+int s_waitForEventProc(const Tcl_Time *) {
+  if (s_app)
+    return s_app->waitForEventProc();
+
+  return 0;
+}
+
 }
 
 //---
@@ -111,6 +124,8 @@ void
 CTkApp::
 construct(int argc, const char **argv)
 {
+  s_app = this;
+
   root_ = new CTkAppRoot(this);
 
   tclInit();
@@ -150,6 +165,50 @@ construct(int argc, const char **argv)
   createFont("TkIconFont");
   createFont("TkTextFont");
   createFont("TkDefaultFont");
+
+  //---
+
+  s_notifierProcs.waitForEventProc = s_waitForEventProc;
+
+  Tcl_SetNotifier(&s_notifierProcs);
+
+  timer_ = new QTimer;
+
+  connect(timer_, SIGNAL(timeout()), this, SLOT(timerSlot()));
+
+  timer_->start(100);
+}
+
+int
+CTkApp::
+waitForEventProc()
+{
+  timer_->stop();
+
+  processEvents();
+
+//Tcl_SetNotifier(&s_noNotifierProcs);
+
+//Tcl_Time time;
+//time.sec  = 0;
+//time.usec = 100;
+
+//auto rc = Tcl_WaitForEvent(&time);
+
+//Tcl_SetNotifier(&s_notifierProcs);
+
+//return rc;
+
+  timer_->start(100);
+
+  return 1;
+}
+
+void
+CTkApp::
+timerSlot()
+{
+  Tcl_DoOneEvent(TCL_ALL_EVENTS);
 }
 
 std::string
