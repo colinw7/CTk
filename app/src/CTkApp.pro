@@ -37,6 +37,8 @@ CTclApp.cpp \
 CTclAppCommand.cpp \
 \
 CQLabelImage.cpp \
+CQButtonImage.cpp \
+CQTextWidget.cpp \
 CQSpinList.cpp \
 CQSlider.cpp \
 CSVGUtil.cpp \
@@ -61,11 +63,13 @@ HEADERS += \
 ../include/CTclAppCommand.h \
 ../include/CTclApp.h \
 \
-CQLabelImage.h \
-CQSpinList.h \
-CQSlider.h \
-CSVGUtil.h \
-CQRotatedText.h \
+../include/CQLabelImage.h \
+../include/CQButtonImage.h \
+../include/CQTextWidget.h \
+../include/CQSpinList.h \
+../include/CQSlider.h \
+../include/CSVGUtil.h \
+../include/CQRotatedText.h \
 
 OBJECTS_DIR = ../obj
 

@@ -3911,40 +3911,144 @@ run(const Args &args)
 {
   tk_->debugCmd(name_, args);
 
-  std::string message;
-  QWidget*    parent = nullptr;
-
   uint numArgs = args.size();
+
+  auto *messageBox = new QMessageBox(root()->getQWidget());
+
+  messageBox->setIcon(QMessageBox::Information);
+  messageBox->setText("Information");
+
+  auto missingValue = [&](const std::string &name) {
+    return tk_->throwError("value for \"" + name + "\" missing");
+  };
+
+  auto stringToButton = [&](const std::string &name, const std::string &value,
+                            QMessageBox::StandardButton &button) {
+    if      (value == "abort" ) button = QMessageBox::Abort;
+    else if (value == "retry" ) button = QMessageBox::Retry;
+    else if (value == "ignore") button = QMessageBox::Ignore;
+    else if (value == "ok"    ) button = QMessageBox::Ok;
+    else if (value == "cancel") button = QMessageBox::Cancel;
+    else if (value == "no"    ) button = QMessageBox::No;
+    else if (value == "yes"   ) button = QMessageBox::Yes;
+    else return tk_->throwError("bad " + name + " value \"" + value + "\": must be "
+                  "abort, retry, ignore, ok, cancel, no, or yes");
+    return true;
+  };
+
+  auto stringToIcon = [&](const std::string &name, const std::string &value,
+                          QMessageBox::Icon &icon) {
+    if      (value == "error"   ) icon = QMessageBox::Critical;
+    else if (value == "info"    ) icon = QMessageBox::Information;
+    else if (value == "question") icon = QMessageBox::Question;
+    else if (value == "warning" ) icon = QMessageBox::Warning;
+    else return tk_->throwError("bad " + name + " value \"" + value + "\": must be "
+                  "error, info, question, or warning");
+    return true;
+  };
+
+  bool buttonsAdded = false;
 
   for (uint i = 0; i < numArgs; ++i) {
     const auto &name = args[i];
 
     if (name.size() > 0 && name[0] == '-') {
-      auto value = (i < numArgs - 1 ? args[++i] : "");
+      bool hasValue = (i < numArgs - 1);
+      auto value    = (hasValue ? args[++i] : "");
 
-      if      (name == "-type") {
-        tk_->TODO(name);
+      if      (name == "-default") {
+        if (! hasValue) return missingValue(name);
+
+        QMessageBox::StandardButton button;
+        if (! stringToButton(name, value, button))
+          return false;
+
+        messageBox->setDefaultButton(button);
+      }
+      else if (name == "-detail") {
+        if (! hasValue) return missingValue(name);
+
+        messageBox->setDetailedText(QString::fromStdString(value));
       }
       else if (name == "-icon") {
-        tk_->TODO(name);
+        if (! hasValue) return missingValue(name);
+
+        QMessageBox::Icon icon;
+        if (! stringToIcon(name, value, icon))
+          return false;
+
+        messageBox->setIcon(icon);
       }
       else if (name == "-message") {
-        message = value;
+        if (! hasValue) return missingValue(name);
+
+        messageBox->setText(QString::fromStdString(value));
       }
       else if (name == "-parent") {
+        if (! hasValue) return missingValue(name);
+
         auto *w = tk_->lookupWidgetByName(value);
         if (! w) return false;
 
-        parent = w->qwidget();
+        auto *parent = w->qwidget();
+
+        messageBox->setParent(parent);
+      }
+      else if (name == "-title") {
+        if (! hasValue) return missingValue(name);
+
+        messageBox->setWindowTitle(QString::fromStdString(value));
+      }
+      else if (name == "-type") {
+        if (! hasValue) return missingValue(name);
+
+        if      (value == "abortretryignore") {
+          messageBox->addButton(QMessageBox::Abort);
+          messageBox->addButton(QMessageBox::Retry);
+          messageBox->addButton(QMessageBox::Ignore);
+          buttonsAdded = true;
+        }
+        else if (value == "ok") {
+          messageBox->addButton(QMessageBox::Ok);
+        }
+        else if (value == "okcancel") {
+          messageBox->addButton(QMessageBox::Ok);
+          messageBox->addButton(QMessageBox::Cancel);
+          buttonsAdded = true;
+        }
+        else if (value == "retrycancel") {
+          messageBox->addButton(QMessageBox::Retry);
+          messageBox->addButton(QMessageBox::Cancel);
+          buttonsAdded = true;
+        }
+        else if (value == "yesno") {
+          messageBox->addButton(QMessageBox::Yes);
+          messageBox->addButton(QMessageBox::No);
+          buttonsAdded = true;
+        }
+        else if (value == "yesnocancel") {
+          messageBox->addButton(QMessageBox::Yes);
+          messageBox->addButton(QMessageBox::No);
+          messageBox->addButton(QMessageBox::Cancel);
+          buttonsAdded = true;
+        }
+        else
+          return tk_->throwError("bad -type value \"" + value + "\": must be "
+            "abortretryignore, ok, okcancel, retrycancel, yesno, or yesnocancel");
       }
       else
-        tk_->TODO(name);
+        return false;
     }
     else
       tk_->TODO(name);
   }
 
-  QMessageBox::information(parent, "Information", QString::fromStdString(message));
+  if (! buttonsAdded)
+    messageBox->addButton(QMessageBox::Ok);
+
+  messageBox->exec();
+
+  delete messageBox;
 
   return true;
 }
@@ -4045,15 +4149,19 @@ run(const Args &args)
   tk_->debugCmd(name_, args);
 
   static CTkAppOpt opts[] = {
-    { "-text"       , "text"       , "Text"       , ""      },
-    { "-height"     , "height"     , "Height"     , "1"     },
-    { "-hidden"     , "hidden"     , "Hidden"     , "0"     },
-    { "-image"      , "image"      , "Image"      , nullptr },
-    { "-imageanchor", "imageAnchor", "ImageAnchor", nullptr },
-    { "-values"     , "values"     , "Values"     , nullptr },
-    { "-open"       , "open"       , "Open"       , "0"     },
-    { "-tags"       , "tags"       , "Tags"       , nullptr },
-    { nullptr       , nullptr      , nullptr      , nullptr }
+    { "-class"         , "class"         , "Class"         , "Frame"        },
+    { "-cursor"        , "cursor"        , "Cursor"        , ""             },
+    { "-padding"       , "padding"       , "Padding"       , ""             },
+    { "-style"         , "style"         , "Style"         , ""             },
+    { "-takefocus"     , "takeFocus"     , "TakeFocus"     , "0"            },
+    { "-xscrollcommand", "xScrollCommand", "ScrollCommand" , ""             },
+    { "-yscrollcommand", "yScrollCommand", "ScrollCommand" , ""             },
+    { "-columns"       , "columns"       , "Columns"       , ""             },
+    { "-displaycolumns", "displayColumns", "DisplayColumns", ""             },
+    { "-height"        , "height"        , "Height"        , ""             },
+    { "-selectmode"    , "selectMode"    , "SelectMode"    , "browse"       },
+    { "-show"          , "show"          , "Show"          , "tree headings"},
+    { nullptr          , nullptr         , nullptr         , nullptr        }
   };
 
   uint numArgs = args.size();
@@ -5298,7 +5406,8 @@ run(const Args &args)
       }
     }
 
-    tk_->TODO(args);
+    if (! image->loadFile(filename))
+      return false;
   }
   else if (opt == "redither") {
     if (numArgs != 1)

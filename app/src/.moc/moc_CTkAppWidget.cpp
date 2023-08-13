@@ -438,7 +438,7 @@ void CTkAppButtonWidget::qt_static_metacall(QObject *_o, QMetaObject::Call _c, i
 }
 
 QT_INIT_METAOBJECT const QMetaObject CTkAppButtonWidget::staticMetaObject = { {
-    QMetaObject::SuperData::link<QPushButton::staticMetaObject>(),
+    QMetaObject::SuperData::link<CQButtonImage::staticMetaObject>(),
     qt_meta_stringdata_CTkAppButtonWidget.data,
     qt_meta_data_CTkAppButtonWidget,
     qt_static_metacall,
@@ -457,12 +457,12 @@ void *CTkAppButtonWidget::qt_metacast(const char *_clname)
     if (!_clname) return nullptr;
     if (!strcmp(_clname, qt_meta_stringdata_CTkAppButtonWidget.stringdata0))
         return static_cast<void*>(this);
-    return QPushButton::qt_metacast(_clname);
+    return CQButtonImage::qt_metacast(_clname);
 }
 
 int CTkAppButtonWidget::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
 {
-    _id = QPushButton::qt_metacall(_c, _id, _a);
+    _id = CQButtonImage::qt_metacall(_c, _id, _a);
     return _id;
 }
 struct qt_meta_stringdata_CTkAppCanvas_t {
@@ -1306,8 +1306,8 @@ int CTkAppLabelFrame::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     return _id;
 }
 struct qt_meta_stringdata_CTkAppListBox_t {
-    QByteArrayData data[5];
-    char stringdata0[45];
+    QByteArrayData data[6];
+    char stringdata0[59];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -1317,14 +1317,15 @@ struct qt_meta_stringdata_CTkAppListBox_t {
 static const qt_meta_stringdata_CTkAppListBox_t qt_meta_stringdata_CTkAppListBox = {
     {
 QT_MOC_LITERAL(0, 0, 13), // "CTkAppListBox"
-QT_MOC_LITERAL(1, 14, 11), // "vscrollSlot"
-QT_MOC_LITERAL(2, 26, 0), // ""
-QT_MOC_LITERAL(3, 27, 5), // "value"
-QT_MOC_LITERAL(4, 33, 11) // "hscrollSlot"
+QT_MOC_LITERAL(1, 14, 13), // "selectionSlot"
+QT_MOC_LITERAL(2, 28, 0), // ""
+QT_MOC_LITERAL(3, 29, 11), // "vscrollSlot"
+QT_MOC_LITERAL(4, 41, 5), // "value"
+QT_MOC_LITERAL(5, 47, 11) // "hscrollSlot"
 
     },
-    "CTkAppListBox\0vscrollSlot\0\0value\0"
-    "hscrollSlot"
+    "CTkAppListBox\0selectionSlot\0\0vscrollSlot\0"
+    "value\0hscrollSlot"
 };
 #undef QT_MOC_LITERAL
 
@@ -1334,7 +1335,7 @@ static const uint qt_meta_data_CTkAppListBox[] = {
        8,       // revision
        0,       // classname
        0,    0, // classinfo
-       2,   14, // methods
+       3,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -1342,12 +1343,14 @@ static const uint qt_meta_data_CTkAppListBox[] = {
        0,       // signalCount
 
  // slots: name, argc, parameters, tag, flags
-       1,    1,   24,    2, 0x08 /* Private */,
-       4,    1,   27,    2, 0x08 /* Private */,
+       1,    0,   29,    2, 0x08 /* Private */,
+       3,    1,   30,    2, 0x08 /* Private */,
+       5,    1,   33,    2, 0x08 /* Private */,
 
  // slots: parameters
-    QMetaType::Void, QMetaType::Int,    3,
-    QMetaType::Void, QMetaType::Int,    3,
+    QMetaType::Void,
+    QMetaType::Void, QMetaType::Int,    4,
+    QMetaType::Void, QMetaType::Int,    4,
 
        0        // eod
 };
@@ -1358,8 +1361,9 @@ void CTkAppListBox::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _i
         auto *_t = static_cast<CTkAppListBox *>(_o);
         (void)_t;
         switch (_id) {
-        case 0: _t->vscrollSlot((*reinterpret_cast< int(*)>(_a[1]))); break;
-        case 1: _t->hscrollSlot((*reinterpret_cast< int(*)>(_a[1]))); break;
+        case 0: _t->selectionSlot(); break;
+        case 1: _t->vscrollSlot((*reinterpret_cast< int(*)>(_a[1]))); break;
+        case 2: _t->hscrollSlot((*reinterpret_cast< int(*)>(_a[1]))); break;
         default: ;
         }
     }
@@ -1394,13 +1398,13 @@ int CTkAppListBox::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 2)
+        if (_id < 3)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 2;
+        _id -= 3;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 2)
+        if (_id < 3)
             *reinterpret_cast<int*>(_a[0]) = -1;
-        _id -= 2;
+        _id -= 3;
     }
     return _id;
 }
@@ -2546,8 +2550,8 @@ int CTkAppScrollBar::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     return _id;
 }
 struct qt_meta_stringdata_CTkAppSpinBox_t {
-    QByteArrayData data[1];
-    char stringdata0[14];
+    QByteArrayData data[3];
+    char stringdata0[32];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -2556,10 +2560,12 @@ struct qt_meta_stringdata_CTkAppSpinBox_t {
     )
 static const qt_meta_stringdata_CTkAppSpinBox_t qt_meta_stringdata_CTkAppSpinBox = {
     {
-QT_MOC_LITERAL(0, 0, 13) // "CTkAppSpinBox"
+QT_MOC_LITERAL(0, 0, 13), // "CTkAppSpinBox"
+QT_MOC_LITERAL(1, 14, 16), // "valueChangedSlot"
+QT_MOC_LITERAL(2, 31, 0) // ""
 
     },
-    "CTkAppSpinBox"
+    "CTkAppSpinBox\0valueChangedSlot\0"
 };
 #undef QT_MOC_LITERAL
 
@@ -2569,21 +2575,32 @@ static const uint qt_meta_data_CTkAppSpinBox[] = {
        8,       // revision
        0,       // classname
        0,    0, // classinfo
-       0,    0, // methods
+       1,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
        0,       // flags
        0,       // signalCount
 
+ // slots: name, argc, parameters, tag, flags
+       1,    0,   19,    2, 0x08 /* Private */,
+
+ // slots: parameters
+    QMetaType::Void,
+
        0        // eod
 };
 
 void CTkAppSpinBox::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
 {
-    (void)_o;
-    (void)_id;
-    (void)_c;
+    if (_c == QMetaObject::InvokeMetaMethod) {
+        auto *_t = static_cast<CTkAppSpinBox *>(_o);
+        (void)_t;
+        switch (_id) {
+        case 0: _t->valueChangedSlot(); break;
+        default: ;
+        }
+    }
     (void)_a;
 }
 
@@ -2613,6 +2630,87 @@ void *CTkAppSpinBox::qt_metacast(const char *_clname)
 int CTkAppSpinBox::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
 {
     _id = CTkAppWidget::qt_metacall(_c, _id, _a);
+    if (_id < 0)
+        return _id;
+    if (_c == QMetaObject::InvokeMetaMethod) {
+        if (_id < 1)
+            qt_static_metacall(this, _c, _id, _a);
+        _id -= 1;
+    } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
+        if (_id < 1)
+            *reinterpret_cast<int*>(_a[0]) = -1;
+        _id -= 1;
+    }
+    return _id;
+}
+struct qt_meta_stringdata_CTkAppSpinBoxWidget_t {
+    QByteArrayData data[1];
+    char stringdata0[20];
+};
+#define QT_MOC_LITERAL(idx, ofs, len) \
+    Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
+    qptrdiff(offsetof(qt_meta_stringdata_CTkAppSpinBoxWidget_t, stringdata0) + ofs \
+        - idx * sizeof(QByteArrayData)) \
+    )
+static const qt_meta_stringdata_CTkAppSpinBoxWidget_t qt_meta_stringdata_CTkAppSpinBoxWidget = {
+    {
+QT_MOC_LITERAL(0, 0, 19) // "CTkAppSpinBoxWidget"
+
+    },
+    "CTkAppSpinBoxWidget"
+};
+#undef QT_MOC_LITERAL
+
+static const uint qt_meta_data_CTkAppSpinBoxWidget[] = {
+
+ // content:
+       8,       // revision
+       0,       // classname
+       0,    0, // classinfo
+       0,    0, // methods
+       0,    0, // properties
+       0,    0, // enums/sets
+       0,    0, // constructors
+       0,       // flags
+       0,       // signalCount
+
+       0        // eod
+};
+
+void CTkAppSpinBoxWidget::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
+{
+    (void)_o;
+    (void)_id;
+    (void)_c;
+    (void)_a;
+}
+
+QT_INIT_METAOBJECT const QMetaObject CTkAppSpinBoxWidget::staticMetaObject = { {
+    QMetaObject::SuperData::link<CQSpinList::staticMetaObject>(),
+    qt_meta_stringdata_CTkAppSpinBoxWidget.data,
+    qt_meta_data_CTkAppSpinBoxWidget,
+    qt_static_metacall,
+    nullptr,
+    nullptr
+} };
+
+
+const QMetaObject *CTkAppSpinBoxWidget::metaObject() const
+{
+    return QObject::d_ptr->metaObject ? QObject::d_ptr->dynamicMetaObject() : &staticMetaObject;
+}
+
+void *CTkAppSpinBoxWidget::qt_metacast(const char *_clname)
+{
+    if (!_clname) return nullptr;
+    if (!strcmp(_clname, qt_meta_stringdata_CTkAppSpinBoxWidget.stringdata0))
+        return static_cast<void*>(this);
+    return CQSpinList::qt_metacast(_clname);
+}
+
+int CTkAppSpinBoxWidget::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
+{
+    _id = CQSpinList::qt_metacall(_c, _id, _a);
     return _id;
 }
 struct qt_meta_stringdata_CTkAppText_t {
@@ -2756,7 +2854,7 @@ void CTkAppTextWidget::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int
 }
 
 QT_INIT_METAOBJECT const QMetaObject CTkAppTextWidget::staticMetaObject = { {
-    QMetaObject::SuperData::link<QTextEdit::staticMetaObject>(),
+    QMetaObject::SuperData::link<CQTextWidget::staticMetaObject>(),
     qt_meta_stringdata_CTkAppTextWidget.data,
     qt_meta_data_CTkAppTextWidget,
     qt_static_metacall,
@@ -2775,12 +2873,12 @@ void *CTkAppTextWidget::qt_metacast(const char *_clname)
     if (!_clname) return nullptr;
     if (!strcmp(_clname, qt_meta_stringdata_CTkAppTextWidget.stringdata0))
         return static_cast<void*>(this);
-    return QTextEdit::qt_metacast(_clname);
+    return CQTextWidget::qt_metacast(_clname);
 }
 
 int CTkAppTextWidget::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
 {
-    _id = QTextEdit::qt_metacall(_c, _id, _a);
+    _id = CQTextWidget::qt_metacall(_c, _id, _a);
     return _id;
 }
 struct qt_meta_stringdata_CTkAppTopLevel_t {
@@ -2854,8 +2952,8 @@ int CTkAppTopLevel::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     return _id;
 }
 struct qt_meta_stringdata_CTkAppTreeView_t {
-    QByteArrayData data[1];
-    char stringdata0[15];
+    QByteArrayData data[3];
+    char stringdata0[30];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -2864,10 +2962,12 @@ struct qt_meta_stringdata_CTkAppTreeView_t {
     )
 static const qt_meta_stringdata_CTkAppTreeView_t qt_meta_stringdata_CTkAppTreeView = {
     {
-QT_MOC_LITERAL(0, 0, 14) // "CTkAppTreeView"
+QT_MOC_LITERAL(0, 0, 14), // "CTkAppTreeView"
+QT_MOC_LITERAL(1, 15, 13), // "selectionSlot"
+QT_MOC_LITERAL(2, 29, 0) // ""
 
     },
-    "CTkAppTreeView"
+    "CTkAppTreeView\0selectionSlot\0"
 };
 #undef QT_MOC_LITERAL
 
@@ -2877,21 +2977,32 @@ static const uint qt_meta_data_CTkAppTreeView[] = {
        8,       // revision
        0,       // classname
        0,    0, // classinfo
-       0,    0, // methods
+       1,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
        0,       // flags
        0,       // signalCount
 
+ // slots: name, argc, parameters, tag, flags
+       1,    0,   19,    2, 0x08 /* Private */,
+
+ // slots: parameters
+    QMetaType::Void,
+
        0        // eod
 };
 
 void CTkAppTreeView::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
 {
-    (void)_o;
-    (void)_id;
-    (void)_c;
+    if (_c == QMetaObject::InvokeMetaMethod) {
+        auto *_t = static_cast<CTkAppTreeView *>(_o);
+        (void)_t;
+        switch (_id) {
+        case 0: _t->selectionSlot(); break;
+        default: ;
+        }
+    }
     (void)_a;
 }
 
@@ -2921,6 +3032,87 @@ void *CTkAppTreeView::qt_metacast(const char *_clname)
 int CTkAppTreeView::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
 {
     _id = CTkAppWidget::qt_metacall(_c, _id, _a);
+    if (_id < 0)
+        return _id;
+    if (_c == QMetaObject::InvokeMetaMethod) {
+        if (_id < 1)
+            qt_static_metacall(this, _c, _id, _a);
+        _id -= 1;
+    } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
+        if (_id < 1)
+            *reinterpret_cast<int*>(_a[0]) = -1;
+        _id -= 1;
+    }
+    return _id;
+}
+struct qt_meta_stringdata_CTkAppTreeViewWidget_t {
+    QByteArrayData data[1];
+    char stringdata0[21];
+};
+#define QT_MOC_LITERAL(idx, ofs, len) \
+    Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
+    qptrdiff(offsetof(qt_meta_stringdata_CTkAppTreeViewWidget_t, stringdata0) + ofs \
+        - idx * sizeof(QByteArrayData)) \
+    )
+static const qt_meta_stringdata_CTkAppTreeViewWidget_t qt_meta_stringdata_CTkAppTreeViewWidget = {
+    {
+QT_MOC_LITERAL(0, 0, 20) // "CTkAppTreeViewWidget"
+
+    },
+    "CTkAppTreeViewWidget"
+};
+#undef QT_MOC_LITERAL
+
+static const uint qt_meta_data_CTkAppTreeViewWidget[] = {
+
+ // content:
+       8,       // revision
+       0,       // classname
+       0,    0, // classinfo
+       0,    0, // methods
+       0,    0, // properties
+       0,    0, // enums/sets
+       0,    0, // constructors
+       0,       // flags
+       0,       // signalCount
+
+       0        // eod
+};
+
+void CTkAppTreeViewWidget::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
+{
+    (void)_o;
+    (void)_id;
+    (void)_c;
+    (void)_a;
+}
+
+QT_INIT_METAOBJECT const QMetaObject CTkAppTreeViewWidget::staticMetaObject = { {
+    QMetaObject::SuperData::link<QTreeWidget::staticMetaObject>(),
+    qt_meta_stringdata_CTkAppTreeViewWidget.data,
+    qt_meta_data_CTkAppTreeViewWidget,
+    qt_static_metacall,
+    nullptr,
+    nullptr
+} };
+
+
+const QMetaObject *CTkAppTreeViewWidget::metaObject() const
+{
+    return QObject::d_ptr->metaObject ? QObject::d_ptr->dynamicMetaObject() : &staticMetaObject;
+}
+
+void *CTkAppTreeViewWidget::qt_metacast(const char *_clname)
+{
+    if (!_clname) return nullptr;
+    if (!strcmp(_clname, qt_meta_stringdata_CTkAppTreeViewWidget.stringdata0))
+        return static_cast<void*>(this);
+    return QTreeWidget::qt_metacast(_clname);
+}
+
+int CTkAppTreeViewWidget::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
+{
+    _id = QTreeWidget::qt_metacall(_c, _id, _a);
     return _id;
 }
 QT_WARNING_POP

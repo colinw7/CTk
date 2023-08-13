@@ -30,18 +30,20 @@ struct VirtualEventData {
 };
 
 static VirtualEventData virtualEventData[] = {
-  { "<<AltUnderlined>>"  , CTkAppVirtualEventType::AltUnderlined  },
-  { "<<Invoke>>"         , CTkAppVirtualEventType::Invoke         },
-  { "<<ListboxSelect>>"  , CTkAppVirtualEventType::ListboxSelect  },
-  { "<<MenuSelect>>"     , CTkAppVirtualEventType::MenuSelect     },
-  { "<<Modified>>"       , CTkAppVirtualEventType::Modified       },
-  { "<<Selection>>"      , CTkAppVirtualEventType::Selection      },
-  { "<<ThemeChanged>>"   , CTkAppVirtualEventType::ThemeChanged   },
-  { "<<TkWorldChanged>>" , CTkAppVirtualEventType::TkWorldChanged },
-  { "<<TraverseIn>>"     , CTkAppVirtualEventType::TraverseIn     },
-  { "<<TraverseOut>>"    , CTkAppVirtualEventType::TraverseOut    },
-  { "<<UndoStack>>"      , CTkAppVirtualEventType::UndoStack      },
-  { "<<WidgetViewSync>>" , CTkAppVirtualEventType::WidgetViewSync },
+  { "<<AltUnderlined>>"  , CTkAppVirtualEventType::AltUnderlined   },
+  { "<<Invoke>>"         , CTkAppVirtualEventType::Invoke          },
+  { "<<Modified>>"       , CTkAppVirtualEventType::Modified        },
+  { "<<Selection>>"      , CTkAppVirtualEventType::Selection       },
+  { "<<ThemeChanged>>"   , CTkAppVirtualEventType::ThemeChanged    },
+  { "<<TkWorldChanged>>" , CTkAppVirtualEventType::TkWorldChanged  },
+  { "<<TraverseIn>>"     , CTkAppVirtualEventType::TraverseIn      },
+  { "<<TraverseOut>>"    , CTkAppVirtualEventType::TraverseOut     },
+  { "<<UndoStack>>"      , CTkAppVirtualEventType::UndoStack       },
+  { "<<WidgetViewSync>>" , CTkAppVirtualEventType::WidgetViewSync  },
+
+  { "<<ListboxSelect>>"  , CTkAppVirtualEventType::ListboxSelect   },
+  { "<<MenuSelect>>"     , CTkAppVirtualEventType::MenuSelect      },
+  { "<<TreeviewSelect>>" , CTkAppVirtualEventType::TreeviewSelect  },
 
   { "<<Clear>>"          , CTkAppVirtualEventType::Clear           },
   { "<<Copy>>"           , CTkAppVirtualEventType::Copy            },
@@ -711,28 +713,21 @@ triggerEvents(const std::string &className, CTkAppWidget *w, QEvent *e,
 
 bool
 CTkApp::
-triggerKeyPressEvents(const std::string &className, CTkAppWidget *w, QEvent *e)
+triggerVirtualEvents(const std::string &className, CTkAppWidget *w,
+                     const CTkAppEventData &matchEventData)
 {
-  auto *ke = dynamic_cast<QKeyEvent *>(e);
-
-  CTkAppEventData matchEventData;
-
-  encodeEvent(ke, /*press*/true, matchEventData);
-
-  //---
-
   auto p1 = classEvents_.find(className);
 
   if (p1 != classEvents_.end()) {
     for (const auto &eventData : (*p1).second) {
       if (eventData == matchEventData)
-        execEvent(w, e, matchEventData, eventData.command);
+        execVirtualEvent(w, matchEventData, eventData.command);
     }
   }
 
   for (const auto &eventData : allEvents_) {
     if (eventData == matchEventData)
-      execEvent(w, e, matchEventData, eventData.command);
+      execVirtualEvent(w, matchEventData, eventData.command);
   }
 
   return true;
@@ -797,6 +792,62 @@ execEvent(CTkAppWidget *w, QEvent *e, const CTkAppEventData &data, const std::st
             break;
           case 'Y': // root y
             command1 += (me ? CStrUtil::toString(w->qwidget()->mapToGlobal(me->pos()).y()) : "0");
+            break;
+          default:
+            command1 += '%';
+            command1 += c;
+            break;
+        }
+      }
+      else
+        command1 += '%';
+    }
+    else
+      command1 += parse.readChar();
+  }
+
+  //std::cerr << "Exec: " << command1 << "\n";
+
+  eval(command1);
+
+  w->qwidget()->update();
+
+  return true;
+}
+
+bool
+CTkApp::
+execVirtualEvent(CTkAppWidget *w, const CTkAppEventData &, const std::string &command)
+{
+  std::string command1;
+
+  CStrParse parse(command);
+
+  while (! parse.eof()) {
+    if (parse.isChar('%')) {
+      parse.skipChar();
+
+      if (! parse.eof()) {
+        auto c = parse.readChar();
+
+        switch (c) {
+          case '%':
+            command1 += '%';
+            break;
+          case 'd': // detail
+            command1 += ""; // TODO
+            break;
+          case 'h': // height
+            command1 += CStrUtil::toString(w->qwidget()->height());
+            break;
+          case 't': // time
+            command1 += ""; // TODO
+            break;
+          case 'w': // width
+            command1 += CStrUtil::toString(w->qwidget()->width());
+            break;
+          case 'W': // widget name
+            command1 += w->getFullName();
             break;
           default:
             command1 += '%';

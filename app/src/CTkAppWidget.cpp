@@ -8,8 +8,8 @@
 #include <CTkAppUtil.h>
 
 #include <CQSlider.h>
-#include <CQSpinList.h>
 #include <CQLabelImage.h>
+#include <CQUtil.h>
 
 #include <CGlob.h>
 #include <CSVGUtil.h>
@@ -19,16 +19,15 @@
 #include <QApplication>
 #include <QGroupBox>
 #include <QHBoxLayout>
-#include <QMenu>
 #include <QMenuBar>
 #include <QMouseEvent>
 #include <QPainter>
-#include <QRadioButton>
 #include <QScrollBar>
 #include <QSplitter>
 #include <QTextBlock>
 #include <QToolButton>
-#include <QTreeWidget>
+
+#include <deque>
 
 namespace CTkAppUtil {
 
@@ -574,10 +573,8 @@ void
 CTkAppButton::
 connectSlots(bool b)
 {
-  if (b)
-    connect(qbutton_, SIGNAL(clicked()), this, SLOT(clickSlot()));
-  else
-    disconnect(qbutton_, SIGNAL(clicked()), this, SLOT(clickSlot()));
+  CQUtil::connectDisconnect(b, qbutton_,
+    SIGNAL(clicked()), this, SLOT(clickSlot()));
 }
 
 bool
@@ -605,7 +602,7 @@ execConfig(const std::string &name, const std::string &value)
     if (! CTkAppUtil::stringToDistance(value, h))
       return tk_->throwError("Invalid height \"" + value + "\"");
 
-    qbutton_->setHeight(h);
+    qbutton_->setUserHeight(h);
   }
   else if (name == "-overrelief") {
     if (value == "raised")
@@ -629,7 +626,7 @@ execConfig(const std::string &name, const std::string &value)
     if (! CTkAppUtil::stringToDistance(value, w))
       return tk_->throwError("Invalid width \"" + value + "\"");
 
-    qbutton_->setWidth(w);
+    qbutton_->setUserWidth(w);
   }
   else if (name == "-wraplength") {
     double length;
@@ -681,9 +678,7 @@ setImage(const CTkAppImageRef &image)
 {
   CTkAppWidget::setImage(image);
 
-  auto pixmap = image_->getQPixmap();
-
-  qbutton_->setIcon(QIcon(pixmap));
+  qbutton_->setImage(image->getQImage());
 }
 
 void
@@ -716,7 +711,7 @@ appearanceChanged()
 
 CTkAppButtonWidget::
 CTkAppButtonWidget(CTkAppButton *button) :
- QPushButton(button->getParent() ? button->getParent()->getQWidget() : nullptr), button_(button)
+ CQButtonImage(button->getParent() ? button->getParent()->getQWidget() : nullptr), button_(button)
 {
   setObjectName("qbutton");
 }
@@ -773,13 +768,13 @@ updateText()
 
       text = strs.join("\n");
 
-      QPushButton::setText(text);
+      CQButtonImage::setLabel(text);
     }
     else
-      QPushButton::setText(text_);
+      CQButtonImage::setLabel(text_);
   }
   else
-    QPushButton::setText(text_);
+    CQButtonImage::setLabel(text_);
 }
 
 //----------
@@ -790,9 +785,9 @@ CTkAppCanvas(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
 {
   qcanvas_ = new CTkAppCanvasWidget(this);
 
-  setQWidget(qcanvas_);
+  qcanvas_->setFocusPolicy(Qt::StrongFocus);
 
-  qwidget_->setFocusPolicy(Qt::StrongFocus);
+  setQWidget(qcanvas_);
 }
 
 bool
@@ -808,7 +803,7 @@ execConfig(const std::string &name, const std::string &value)
   else if (name == "-height") {
     double height;
     if (! CTkAppUtil::stringToDistance(value, height))
-      return tk_->throwError("Invalid width \"" + value + "\"");
+      return tk_->throwError("Invalid height \"" + value + "\"");
     setHeight(height);
   }
   else if (name == "-scrollregion") {
@@ -2544,10 +2539,8 @@ void
 CTkAppCheckButton::
 connectSlots(bool b)
 {
-  if (b)
-    connect(qcheck_, SIGNAL(stateChanged(int)), this, SLOT(stateChangedSlot(int)));
-  else
-    disconnect(qcheck_, SIGNAL(stateChanged(int)), this, SLOT(stateChangedSlot(int)));
+  CQUtil::connectDisconnect(b, qcheck_,
+    SIGNAL(stateChanged(int)), this, SLOT(stateChangedSlot(int)));
 }
 
 bool
@@ -2563,7 +2556,6 @@ execConfig(const std::string &name, const std::string &value)
   else if (name == "-height") {
     // height of image (pixels) or text (chars)
     double h;
-
     if (! CTkAppUtil::stringToDistance(value, h))
       return tk_->throwError("Invalid height \"" + value + "\"");
 
@@ -2813,10 +2805,8 @@ void
 CTkAppComboBox::
 connectSlots(bool b)
 {
-  if (b)
-    connect(qcombo_, SIGNAL(currentIndexChanged(int)), this, SLOT(indexChangedSlot(int)));
-  else
-    disconnect(qcombo_, SIGNAL(currentIndexChanged(int)), this, SLOT(indexChangedSlot(int)));
+  CQUtil::connectDisconnect(b, qcombo_,
+    SIGNAL(currentIndexChanged(int)), this, SLOT(indexChangedSlot(int)));
 }
 
 bool
@@ -2888,6 +2878,18 @@ execOp(const Args &args)
 
   auto arg = args[0];
 
+  //--
+
+  auto stringToIndex = [&](const std::string &str, int &ind) {
+    long l;
+    if (! CTkAppUtil::stringToInt(str, l))
+      return tk_->throwError("Incorrect index \"" + str + "\"");
+    ind = l;
+    return true;
+  };
+
+  //--
+
   if      (arg == "bbox") {
     if (numArgs != 2)
       return tk_->wrongNumArgs(getName() + " bbox index");
@@ -2904,15 +2906,25 @@ execOp(const Args &args)
       tk_->setIntegerResult(i);
     }
     else {
-      long i;
-      if (! CTkAppUtil::stringToInt(args[1], i))
-        return tk_->throwError("Incorrect index \"" + args[1] + "\"");
+      int i;
+      if (! stringToIndex(args[1], i))
+        return false;
       qcombo_->setCurrentIndex(i);
     }
   }
   else if (arg == "delete") {
-    if (numArgs < 2)
+    if (numArgs != 2 && numArgs != 3)
       return tk_->wrongNumArgs(getName() + " delete firstIndex ?lastIndex?");
+
+    int firstIndex;
+    if (! stringToIndex(args[1], firstIndex))
+      return false;
+
+    int lastIndex = -1;
+    if (numArgs == 3) {
+      if (! stringToIndex(args[2], lastIndex))
+        return false;
+    }
 
     tk_->TODO(args); // delete items
   }
@@ -2944,7 +2956,11 @@ execOp(const Args &args)
     if (numArgs != 3)
       return tk_->wrongNumArgs(getName() + " insert index text");
 
-    tk_->TODO(args);
+    int ind;
+    if (! stringToIndex(args[1], ind))
+      return false;
+
+    qcombo_->insertItem(ind, QString::fromStdString(args[2]));
   }
   else if (arg == "instate") {
     if (numArgs != 2 && numArgs != 3)
@@ -3076,9 +3092,9 @@ CTkAppEntry(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
 {
   qedit_ = new CTkAppEntryWidget(this);
 
-  setQWidget(qedit_);
+  qedit_->setFocusPolicy(Qt::StrongFocus);
 
-  qwidget_->setFocusPolicy(Qt::StrongFocus);
+  setQWidget(qedit_);
 
   connectSlots(true);
 }
@@ -3087,10 +3103,8 @@ void
 CTkAppEntry::
 connectSlots(bool b)
 {
-  if (b)
-    connect(qedit_, SIGNAL(editingFinished()), this, SLOT(valueChangedSlot()));
-  else
-    disconnect(qedit_, SIGNAL(editingFinished()), this, SLOT(valueChangedSlot()));
+  CQUtil::connectDisconnect(b, qedit_,
+    SIGNAL(editingFinished()), this, SLOT(valueChangedSlot()));
 }
 
 bool
@@ -3214,9 +3228,6 @@ execOp(const Args &args)
     int ind;
     if (! stringToIndex(args[1], ind))
       return false;
-
-    if (ind == CTkAppUtil::END_INDEX)
-      ind = qedit_->text().length() - 1;
 
     qedit_->setCursorPosition(ind);
 
@@ -3593,10 +3604,10 @@ CTkAppListBox(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
 {
   qlist_ = new CTkAppListBoxWidget(this);
 
-  setQWidget(qlist_);
-
   qlist_->verticalScrollBar  ()->setVisible(false);
   qlist_->horizontalScrollBar()->setVisible(false);
+
+  setQWidget(qlist_);
 
   connectSlots(true);
 }
@@ -3605,29 +3616,32 @@ void
 CTkAppListBox::
 connectSlots(bool b)
 {
-  if (b) {
-    connect(qlist_->verticalScrollBar(), SIGNAL(valueChanged(int)),
-            this, SLOT(vscrollSlot(int)));
-    connect(qlist_->horizontalScrollBar(), SIGNAL(valueChanged(int)),
-            this, SLOT(hscrollSlot(int)));
-  }
-  else {
-    disconnect(qlist_->verticalScrollBar(), SIGNAL(valueChanged(int)),
-               this, SLOT(vscrollSlot(int)));
-    disconnect(qlist_->horizontalScrollBar(), SIGNAL(valueChanged(int)),
-               this, SLOT(hscrollSlot(int)));
-  }
+  CQUtil::connectDisconnect(b, qlist_,
+    SIGNAL(itemSelectionChanged()), this, SLOT(selectionSlot()));
+  CQUtil::connectDisconnect(b, qlist_->verticalScrollBar(),
+    SIGNAL(valueChanged(int)), this, SLOT(vscrollSlot(int)));
+  CQUtil::connectDisconnect(b, qlist_->horizontalScrollBar(),
+    SIGNAL(valueChanged(int)), this, SLOT(hscrollSlot(int)));
 }
 
 bool
 CTkAppListBox::
 execConfig(const std::string &name, const std::string &value)
 {
-  if      (name == "-exportselection") {
+  if      (name == "-activestyle") {
+    tk_->TODO(name);
+  }
+  else if (name == "-exportselection") {
     bool b;
     if (! CTkAppUtil::stringToBool(value, b))
       return false;
     exportSelection_ = b;
+  }
+  else if (name == "-height") {
+    double h;
+    if (! CTkAppUtil::stringToDistance(value, h))
+      return tk_->throwError("Invalid height \"" + value + "\"");
+    qlist_->setHeight(CTkAppListBoxWidget::OptReal(h));
   }
   else if (name == "-listvariable") {
     varName_ = value;
@@ -3654,6 +3668,13 @@ execConfig(const std::string &name, const std::string &value)
     else
       return false;
   }
+  else if (name == "-width") {
+    double w;
+    if (! CTkAppUtil::stringToDistance(value, w))
+      return tk_->throwError("Invalid width \"" + value + "\"");
+
+    qlist_->setWidth(CTkAppListBoxWidget::OptReal(w));
+  }
   else
     return CTkAppWidget::execConfig(name, value);
 
@@ -3669,21 +3690,77 @@ execOp(const Args &args)
   if (numArgs == 0)
     return tk_->wrongNumArgs(getName() + " option ?arg ...?");
 
-  const auto &arg = args[0];
+  //---
 
   auto stringToIndex = [&](const std::string &str, int &ind) {
-    if (! CTkAppUtil::stringToIndex(str, ind))
-      return false;
-    if (ind == CTkAppUtil::END_INDEX)
+    ind = -1;
+
+    if (str == "active") return false;
+    if (str == "anchor") return false;
+
+    if (str == "end") {
+      if (qlist_->count() == 0)
+        return false;
+
       ind = qlist_->count() - 1;
+
+      return true;
+    }
+
+    if (str[0] == '@') {
+      return false; // @x,y
+    }
+
+    long i;
+    if (! CTkAppUtil::stringToInt(str, i))
+      return false;
+    if (i < 0 || i >= qlist_->count())
+      return false;
+    ind = int(i);
     return true;
   };
 
-  if      (arg == "curselection") {
+  auto stringToItem = [&](const std::string &str) {
+    int i;
+    if (! stringToIndex(str, i))
+      return static_cast<QListWidgetItem *>(nullptr);
+
+    return qlist_->item(i);
+  };
+
+  //---
+
+  const auto &arg = args[0];
+
+  if      (arg == "activate") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs(getName() + " activate index");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "bbox") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs(getName() + " bbox index");
+
+    auto *item = stringToItem(args[1]);
+    if (! item) return false;
+
+    auto r = qlist_->visualItemRect(item);
+
+    tk_->setIntegerArrayResult({{r.x(), r.y(), r.width(), r.height()}});
+  }
+  else if (arg == "curselection") {
     if (numArgs != 1)
       return tk_->wrongNumArgs(getName() + " curselection");
 
-    tk_->TODO(args);
+    auto items = qlist_->selectedItems();
+
+    std::vector<int> rows;
+
+    for (auto *item : items)
+      rows.push_back(qlist_->row(item));
+
+    tk_->setIntegerArrayResult(rows);
   }
   else if (arg == "delete") {
     if (numArgs != 2 && numArgs != 3)
@@ -3966,6 +4043,18 @@ execOp(const Args &args)
 
 void
 CTkAppListBox::
+selectionSlot()
+{
+  CTkAppEventData eventData;
+
+  eventData.type  = CTkAppEventType::Virtual;
+  eventData.vtype = CTkAppVirtualEventType::ListboxSelect;
+
+  triggerVirtualEvents(eventData);
+}
+
+void
+CTkAppListBox::
 vscrollSlot(int value)
 {
   if (yScrollCommand_ != "") {
@@ -4025,6 +4114,37 @@ CTkAppListBoxWidget(CTkAppListBox *listbox) :
  listbox_(listbox)
 {
   setObjectName("qlistbox");
+}
+
+void
+CTkAppListBoxWidget::
+setWidth(const OptReal &w)
+{
+  width_ = w;
+}
+
+void
+CTkAppListBoxWidget::
+setHeight(const OptReal &h)
+{
+  height_ = h;
+}
+
+QSize
+CTkAppListBoxWidget::
+sizeHint() const
+{
+  auto s = QListWidget::sizeHint();
+
+  QFontMetrics fm(font());
+
+  if (width_)
+    s.setWidth((*width_)*fm.horizontalAdvance("0"));
+
+  if (height_)
+    s.setHeight((*height_)*fm.height());
+
+  return s;
 }
 
 //----------
@@ -4342,10 +4462,8 @@ void
 CTkAppMenuButton::
 connectSlots(bool b)
 {
-  if (b)
-    connect(qbutton_, SIGNAL(clicked()), this, SLOT(clickSlot()));
-  else
-    disconnect(qbutton_, SIGNAL(clicked()), this, SLOT(clickSlot()));
+  CQUtil::connectDisconnect(b, qbutton_,
+    SIGNAL(clicked()), this, SLOT(clickSlot()));
 }
 
 bool
@@ -4586,6 +4704,14 @@ execOp(const Args &args)
 
   auto arg = args[0];
 
+  auto stringToIndex = [&](const std::string &str, int &ind) {
+    if (! CTkAppUtil::stringToIndex(str, ind))
+      return false;
+    if (ind == CTkAppUtil::END_INDEX)
+      ind = qtab_->count() - 1;
+    return true;
+  };
+
   if      (arg == "add") {
     if (numArgs < 2)
       return tk_->wrongNumArgs(getName() + " add window ?-option value ...?");
@@ -4640,6 +4766,10 @@ execOp(const Args &args)
   else if (arg == "insert") {
     if (numArgs < 2)
       return tk_->wrongNumArgs(getName() + " insert index slave ?-option value ...?");
+
+    int ind;
+    if (! stringToIndex(args[1], ind))
+      return false;
 
     tk_->TODO(args);
   }
@@ -4862,10 +4992,8 @@ void
 CTkAppRadioButton::
 connectSlots(bool b)
 {
-  if (b)
-    connect(qradio_, SIGNAL(toggled(bool)), this, SLOT(toggleSlot(bool)));
-  else
-    disconnect(qradio_, SIGNAL(toggled(bool)), this, SLOT(toggleSlot(bool)));
+  CQUtil::connectDisconnect(b, qradio_,
+    SIGNAL(toggled(bool)), this, SLOT(toggleSlot(bool)));
 }
 
 bool
@@ -5120,10 +5248,8 @@ void
 CTkAppScale::
 connectSlots(bool b)
 {
-  if (b)
-    connect(qscale_, SIGNAL(valueChanged(int)), this, SLOT(valueSlot(int)));
-  else
-    disconnect(qscale_, SIGNAL(valueChanged(int)), this, SLOT(valueSlot(int)));
+  CQUtil::connectDisconnect(b, qscale_,
+    SIGNAL(valueChanged(int)), this, SLOT(valueSlot(int)));
 }
 
 bool
@@ -5337,10 +5463,8 @@ void
 CTkAppScrollBar::
 connectSlots(bool b)
 {
-  if (b)
-    connect(qscrollbar_, SIGNAL(valueChanged(int)), this, SLOT(scrollSlot(int)));
-  else
-    disconnect(qscrollbar_, SIGNAL(valueChanged(int)), this, SLOT(scrollSlot(int)));
+  CQUtil::connectDisconnect(b, qscrollbar_,
+    SIGNAL(valueChanged(int)), this, SLOT(scrollSlot(int)));
 }
 
 bool
@@ -5431,35 +5555,73 @@ class CTkAppSpinBoxVarProc : public CTclTraceProc {
 
 //---
 
+class CTkAppSpinBoxValidator : public QValidator {
+ public:
+  CTkAppSpinBoxValidator(CTkApp *tk, CTkAppSpinBox *spin) :
+   QValidator(spin), tk_(tk), spin_(spin) {
+  }
+
+  State validate(QString &input, int & /*pos*/) const override {
+    if (spin_->validate(input.toStdString()))
+      return Acceptable;
+
+    return Invalid;
+  }
+
+ private:
+  CTkApp*        tk_   { nullptr };
+  CTkAppSpinBox* spin_ { nullptr };
+};
+
+//---
+
 CTkAppSpinBox::
 CTkAppSpinBox(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
-  qspin_ = new CQSpinList(parent ? parent->getQWidget() : nullptr);
+  qspin_ = new CTkAppSpinBoxWidget(this);
+
+  qspin_->setFocusPolicy(Qt::StrongFocus);
 
   setQWidget(qspin_);
 
-  qwidget_->setFocusPolicy(Qt::StrongFocus);
+  connectSlots(true);
+}
+
+void
+CTkAppSpinBox::
+connectSlots(bool b)
+{
+  CQUtil::connectDisconnect(b, qspin_,
+    SIGNAL(editingFinished()), this, SLOT(valueChangedSlot()));
 }
 
 bool
 CTkAppSpinBox::
 execConfig(const std::string &name, const std::string &value)
 {
-  if      (name == "-textvariable") {
-    varName_ = value;
-
-    if (! isInitNotify() && ! tk_->hasGlobalVar(varName_))
-      tk_->setStringGlobalVar(varName_, "");
-
-    if (tk_->hasGlobalVar(varName_))
-      setValue(tk_->getStringGlobalVar(varName_));
-
-    varProc_ = new CTkAppSpinBoxVarProc(tk_, this);
-
-    tk_->traceGlobalVar(varName_, varProc_);
+  if      (name == "-buttonbackground") {
+    tk_->TODO(name);
   }
-  else if (name == "-width") {
+  else if (name == "-buttoncursor") {
+    tk_->TODO(name);
+  }
+  else if (name == "-buttondownrelief") {
+    tk_->TODO(name);
+  }
+  else if (name == "-buttonuprelief") {
+    tk_->TODO(name);
+  }
+  else if (name == "-command") {
+    setCommand(value);
+  }
+  else if (name == "-disabledbackground") {
+    tk_->TODO(name);
+  }
+  else if (name == "-disabledforeground") {
+    tk_->TODO(name);
+  }
+  else if (name == "-format") {
     tk_->TODO(name);
   }
   else if (name == "-from") {
@@ -5469,12 +5631,8 @@ execConfig(const std::string &name, const std::string &value)
 
     qspin_->setMinimum(from);
   }
-  else if (name == "-to") {
-    long to;
-    if (! tk_->getOptionInt(name, value, to))
-      return false;
-
-    qspin_->setMaximum(to);
+  else if (name == "-invalidcommand") {
+    setInvalidCommand(value);
   }
   else if (name == "-increment") {
     long step;
@@ -5482,6 +5640,55 @@ execConfig(const std::string &name, const std::string &value)
       return false;
 
     qspin_->setSingleStep(step);
+  }
+  else if (name == "-readonlybackground") {
+    tk_->TODO(name);
+  }
+  else if (name == "-state") {
+    if (value == "readonly")
+      qspin_->setReadOnly(true);
+    else {
+      if (! CTkAppUtil::setWidgetState(this, value))
+        return false;
+    }
+  }
+  else if (name == "-textvariable") {
+    varName_ = value;
+
+    if (! isInitNotify() && ! tk_->hasGlobalVar(varName_))
+      tk_->setStringGlobalVar(varName_, "");
+
+    if (tk_->hasGlobalVar(varName_))
+      setText(tk_->getStringGlobalVar(varName_));
+
+    varProc_ = new CTkAppSpinBoxVarProc(tk_, this);
+
+    tk_->traceGlobalVar(varName_, varProc_);
+  }
+  else if (name == "-to") {
+    long to;
+    if (! tk_->getOptionInt(name, value, to))
+      return false;
+
+    qspin_->setMaximum(to);
+  }
+  else if (name == "-validate") {
+    if      (value == "none"    ) validateMode_ = ValidateMode::NONE;
+    else if (value == "focus"   ) validateMode_ = ValidateMode::FOCUS;
+    else if (value == "focusin" ) validateMode_ = ValidateMode::FOCUSIN;
+    else if (value == "focusout") validateMode_ = ValidateMode::FOCUSOUT;
+    else if (value == "key"     ) validateMode_ = ValidateMode::KEY;
+    else if (value == "all"     ) validateMode_ = ValidateMode::ALL;
+    else return tk_->throwError("Invalid validate mode '" + value + "'");
+
+    if (! validateProc_) {
+      validateProc_ = new CTkAppSpinBoxValidator(tk_, this);
+
+      qspin_->setValidator(validateProc_);
+    }
+  }
+  else if (name == "-validatecommand") {
+    validateCmd_ = value;
   }
   else if (name == "-values") {
     std::vector<std::string> strs;
@@ -5495,13 +5702,14 @@ execConfig(const std::string &name, const std::string &value)
 
     qspin_->setStrings(qstrs);
   }
-  else if (name == "-state") {
-    if (value == "readonly")
-      qspin_->setReadOnly(true);
-    else {
-      if (! CTkAppUtil::setWidgetState(this, value))
-        return false;
-    }
+  else if (name == "-width") {
+    long w;
+    if (! CTkAppUtil::stringToInt(value, w))
+      return tk_->throwError("Invalid width \"" + value + "\"");
+    qspin_->setWidth(w);
+  }
+  else if (name == "-wrap") {
+    tk_->TODO(name);
   }
   else
     return CTkAppWidget::execConfig(name, value);
@@ -5520,11 +5728,153 @@ execOp(const Args &args)
 
   const auto &arg = args[0];
 
-  if      (arg == "delete") {
+  auto stringToIndex = [&](const std::string &str, int &ind) {
+    if (! CTkAppUtil::stringToIndex(str, ind))
+      return false;
+    //if (ind == CTkAppUtil::END_INDEX)
+    //  ind = qedit_->text().length() - 1;
+    return true;
+  };
+
+  if      (arg == "bbox") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs(getName() + " bbox index");
+
+    int index;
+    if (! stringToIndex(args[1], index))
+      return false;
+  }
+  else if (arg == "delete") {
+    if (numArgs != 2 && numArgs != 3)
+      return tk_->wrongNumArgs(getName() + " delete firstIndex ?lastIndex?");
+
+    int startIndex, endIndex;
+    if (! stringToIndex(args[1], startIndex))
+      return false;
+    if (! stringToIndex(args[2], endIndex))
+      return false;
+
+    qspin_->deleteChars(startIndex, endIndex - startIndex);
+  }
+  else if (arg == "get") {
+    if (numArgs != 1)
+      return tk_->wrongNumArgs(getName() + " get");
+
+    tk_->setStringResult(qspin_->text().toStdString());
+  }
+  else if (arg == "icursor") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs(getName() + " icursor pos");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "identify") {
+    if (numArgs != 3)
+      return tk_->wrongNumArgs(getName() + " identify x y");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "index") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs(getName() + " index string");
+
     tk_->TODO(args);
   }
   else if (arg == "insert") {
+    if (numArgs != 3)
+      return tk_->wrongNumArgs(getName() + " insert index text");
+
+    int ind;
+    if (! stringToIndex(args[1], ind))
+      return false;
+
+    qspin_->insertChars(ind, QString::fromStdString(args[2]));
+  }
+  else if (arg == "invoke") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs(getName() + " invoke elemName");
+
     tk_->TODO(args);
+  }
+  else if (arg == "scan") {
+    if (numArgs != 3)
+      return tk_->wrongNumArgs(getName() + " scan mark|dragto x");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "selection") {
+    if (numArgs != 2 && numArgs != 2)
+      return tk_->wrongNumArgs(getName() + " selection option ?index?");
+
+    if      (args[1] == "adjust") {
+      tk_->TODO(arg + " " + args[1]);
+    }
+    else if (args[1] == "clear") {
+      if (numArgs != 2)
+        return tk_->wrongNumArgs(getName() + " selection clear");
+
+      qspin_->deselectAll();
+    }
+    else if (args[1] == "from") {
+      if (numArgs != 3)
+        return tk_->wrongNumArgs(getName() + " selection from index");
+
+      int ind;
+      if (! stringToIndex(args[2], ind))
+        return false;
+
+      qspin_->setCursorPos(ind);
+    }
+    else if (args[1] == "present") {
+      tk_->TODO(arg + " " + args[1]);
+    }
+    else if (args[1] == "range") {
+      if (numArgs != 4)
+        return tk_->wrongNumArgs(getName() + " selection clear");
+
+      int startIndex, endIndex;
+      if (! stringToIndex(args[2], startIndex))
+        return false;
+      if (! stringToIndex(args[3], endIndex))
+        return false;
+
+      //qedit_->setSelection(startIndex, endIndex - startIndex);
+    }
+    else if (args[1] == "to") {
+      if (numArgs != 3)
+        return tk_->wrongNumArgs(getName() + " selection to index");
+
+      int endIndex;
+      if (! stringToIndex(args[2], endIndex))
+        return false;
+
+      int startIndex = qspin_->cursorPos();
+
+      qspin_->selectChars(startIndex, endIndex - startIndex);
+    }
+    else
+      return false;
+
+    tk_->TODO(args);
+  }
+  else if (arg == "set") {
+    if (numArgs != 1 && numArgs != 1)
+      return tk_->wrongNumArgs(getName() + " set ?string?");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "validate") {
+    if (numArgs != 1)
+      return tk_->wrongNumArgs(getName() + " validate");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "xview") {
+    if (numArgs > 4)
+      return tk_->wrongNumArgs(getName() + "xview ?moveto|scroll index?");
+
+    tk_->TODO(args);
+    tk_->setStringResult("0.0 1.0");
   }
   else
     return CTkAppWidget::execOp(args);
@@ -5534,8 +5884,68 @@ execOp(const Args &args)
 
 void
 CTkAppSpinBox::
-setValue(const std::string &)
+setText(const std::string &)
 {
+  if (qspin_->mode() == CQSpinList::Mode::INTEGER)
+    qspin_->setValue(tk_->getIntegerGlobalVar(varName_));
+  else
+    qspin_->setText(QString::fromStdString(tk_->getStringGlobalVar(varName_)));
+}
+
+void
+CTkAppSpinBox::
+valueChangedSlot()
+{
+  if (varName_ != "") {
+    if (varProc_)
+      varProc_->setEnabled(false);
+
+    if (! tk_->hasGlobalVar(varName_))
+      tk_->setStringGlobalVar(varName_, "");
+
+    //tk_->setStringGlobalVar(varName_, qedit_->text().toStdString());
+
+    if (varProc_)
+      varProc_->setEnabled(true);
+  }
+}
+
+bool
+CTkAppSpinBox::
+validate(const std::string &s) const
+{
+  if (validateCmd_ != "") {
+    // %d Type of action: 1 for insert, 0 for delete, or -1 for focus,
+    //    forced or textvariable validation.
+    // %i Index of char string to be inserted/deleted, if any, otherwise -1.
+    // %P Value of the entry if the edit is allowed.
+    //    If you are configuring the entry widget to have a new textvariable,
+    //    this will be the value of that textvariable.
+    // %s Current value of entry prior to editing.
+    // %S Text string being inserted/deleted, if any, {} otherwise.
+    // %v Type of validation currently set.
+    // %V Type of validation that triggered the callback (key, focusin, focusout, forced).
+    // %W Name of the entry widget.
+
+    auto cmd = validateCmd_;
+
+    auto pos = cmd.find("%P");
+    if (pos != std::string::npos)
+      cmd = cmd.substr(0, pos) + "{" + s + "}" + cmd.substr(pos + 2);
+
+    if (! tk_->eval(cmd))
+      return false;
+
+    bool b = false;
+    std::string res;
+    if (tk_->getStringResult(res)) {
+      if (! CTkAppUtil::stringToBool(res, b))
+        return false;
+    }
+    return b;
+  }
+
+  return true;
 }
 
 void
@@ -5546,6 +5956,29 @@ updateFromVar()
     qspin_->setValue(tk_->getIntegerGlobalVar(varName_));
 }
 
+//---
+
+CTkAppSpinBoxWidget::
+CTkAppSpinBoxWidget(CTkAppSpinBox *spin) :
+ CQSpinList(spin->getParent() ? spin->getParent()->getQWidget() : nullptr), spin_(spin)
+{
+  setObjectName("qspin");
+}
+
+QSize
+CTkAppSpinBoxWidget::
+sizeHint() const
+{
+  auto s = CQSpinList::sizeHint();
+
+  QFontMetrics fm(font());
+
+  if (width_ > 0)
+    s.setWidth(width_*fm.horizontalAdvance("0"));
+
+  return s;
+}
+
 //----------
 
 CTkAppText::
@@ -5554,10 +5987,10 @@ CTkAppText(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
 {
   qtext_ = new CTkAppTextWidget(this);
 
-  setQWidget(qtext_);
-
   qtext_->verticalScrollBar  ()->setVisible(false);
   qtext_->horizontalScrollBar()->setVisible(false);
+
+  setQWidget(qtext_);
 
   connectSlots(true);
 }
@@ -5566,18 +5999,10 @@ void
 CTkAppText::
 connectSlots(bool b)
 {
-  if (b) {
-    connect(qtext_->verticalScrollBar(), SIGNAL(valueChanged(int)),
-            this, SLOT(vscrollSlot(int)));
-    connect(qtext_->horizontalScrollBar(), SIGNAL(valueChanged(int)),
-            this, SLOT(hscrollSlot(int)));
-  }
-  else {
-    disconnect(qtext_->verticalScrollBar(), SIGNAL(valueChanged(int)),
-               this, SLOT(vscrollSlot(int)));
-    disconnect(qtext_->horizontalScrollBar(), SIGNAL(valueChanged(int)),
-               this, SLOT(hscrollSlot(int)));
-  }
+  CQUtil::connectDisconnect(b, qtext_->verticalScrollBar(),
+    SIGNAL(valueChanged(int)), this, SLOT(vscrollSlot(int)));
+  CQUtil::connectDisconnect(b, qtext_->horizontalScrollBar(),
+    SIGNAL(valueChanged(int)), this, SLOT(hscrollSlot(int)));
 }
 
 bool
@@ -5599,7 +6024,7 @@ execConfig(const std::string &name, const std::string &value)
   else if (name == "-height") {
     long h;
     if (! CTkAppUtil::stringToInt(value, h))
-      return tk_->throwError("Invalid width \"" + value + "\"");
+      return tk_->throwError("Invalid height \"" + value + "\"");
     qtext_->setHeight(h);
   }
   else if (name == "-inactiveselectbackground") {
@@ -5746,10 +6171,8 @@ execOp(const Args &args)
     for (const auto &indRange : indRanges) {
       auto indRange1 = remapIndRange(indRange);
 
-      auto cursor = qtext_->textCursor();
-      setCurrentInd(cursor, indRange1.start);
-      setCurrentInd(cursor, indRange1.end  , QTextCursor::KeepAnchor);
-      cursor.removeSelectedText();
+      qtext_->deleteText(indRange1.start.lineNum, indRange1.start.charNum,
+                         indRange1.end  .lineNum, indRange1.end  .charNum);
     }
   }
   else if (arg == "dlineinfo") {
@@ -5789,6 +6212,7 @@ execOp(const Args &args)
       TextInd ind1;
       if (! stringToTextInd(args[i], ind1))
         return false;
+
       auto cursor = qtext_->textCursor();
       setCurrentInd(cursor, ind1);
 
@@ -6348,7 +6772,49 @@ execOp(const Args &args)
       if (numArgs < 3)
         return tk_->wrongNumArgs(getName() + " window create index ?-option value ...?");
 
-      tk_->TODO(args);
+      TextInd ind;
+      if (! stringToTextInd(args[2], ind))
+        return false;
+
+      uint i = 3;
+
+      for ( ; i < numArgs; ++i) {
+        if      (args[i] == "-align") {
+          tk_->TODO(args);
+          ++i;
+        }
+        else if (args[i] == "-create") {
+          tk_->TODO(args);
+          ++i;
+        }
+        else if (args[i] == "-padx") {
+          tk_->TODO(args);
+          ++i;
+        }
+        else if (args[i] == "-pady") {
+          tk_->TODO(args);
+          ++i;
+        }
+        else if (args[i] == "-stretch") {
+          tk_->TODO(args);
+          ++i;
+        }
+        else if (args[i] == "-window") {
+          if (i + 1 >= numArgs)
+            return false;
+
+          auto window = args[++i];
+
+          auto *w = tk_->lookupWidgetByName(window);
+          if (! w) return false;
+
+          qtext_->setCurrentInd(ind.lineNum, ind.charNum);
+
+          qtext_->insertWidget(w->getQWidget());
+        }
+        else
+          return false;
+      }
     }
     else if (opt == "names") {
       if (numArgs != 2)
@@ -6481,9 +6947,7 @@ void
 CTkAppText::
 setCurrentInd(const TextInd &ind, const QTextCursor::MoveMode &moveMode) const
 {
-  auto cursor = qtext_->textCursor();
-  setCurrentInd(cursor, ind, moveMode);
-  qtext_->setTextCursor(cursor);
+  qtext_->setCurrentInd(ind.lineNum, ind.charNum, moveMode);
 }
 
 void
@@ -6491,10 +6955,7 @@ CTkAppText::
 setCurrentInd(QTextCursor &cursor, const TextInd &ind,
               const QTextCursor::MoveMode &moveMode) const
 {
-  cursor.movePosition(QTextCursor::Start, moveMode, 0);
-  cursor.movePosition(QTextCursor::NextBlock, moveMode, ind.lineNum - 1);
-  cursor.movePosition(QTextCursor::StartOfBlock, moveMode);
-  cursor.movePosition(QTextCursor::NextCharacter, moveMode, ind.charNum);
+  qtext_->setCurrentInd(cursor, ind.lineNum, ind.charNum, moveMode);
 }
 
 void
@@ -6835,7 +7296,7 @@ tagData(const std::string &name)
 
 CTkAppTextWidget::
 CTkAppTextWidget(CTkAppText *text) :
- QTextEdit(text->getParent() ? text->getParent()->getQWidget() : nullptr), text_(text)
+ CQTextWidget(text->getParent() ? text->getParent()->getQWidget() : nullptr), text_(text)
 {
   setObjectName("qtext");
 
@@ -6846,7 +7307,7 @@ QSize
 CTkAppTextWidget::
 sizeHint() const
 {
-  auto s = QTextEdit::sizeHint();
+  auto s = CQTextWidget::sizeHint();
 
   QFontMetrics fm(font());
 
@@ -6903,23 +7364,676 @@ CTkAppTreeView::
 CTkAppTreeView(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
-  qtree_ = new QTreeWidget(nullptr);
+  qtree_ = new CTkAppTreeViewWidget(this);
+
+  qtree_->setColumnCount(1);
 
   setQWidget(qtree_);
+
+  connectSlots(true);
+}
+
+void
+CTkAppTreeView::
+connectSlots(bool b)
+{
+  CQUtil::connectDisconnect(b, qtree_,
+    SIGNAL(itemSelectionChanged()), this, SLOT(selectionSlot()));
 }
 
 bool
 CTkAppTreeView::
 execConfig(const std::string &name, const std::string &value)
 {
-  return CTkAppWidget::execConfig(name, value);
+  if      (name == "-columns") {
+    std::vector<std::string> strs;
+    if (! tk_->splitList(value, strs))
+      return tk_->throwError("Invalid columns \"" + value + "\"");
+
+    qtree_->setColumnCount(strs.size() + 1);
+  }
+  else if (name == "-displaycolumns") {
+    // TODO: reorder columns
+    tk_->TODO(name);
+  }
+  else if (name == "-height") {
+    long h;
+    if (! CTkAppUtil::stringToInt(value, h))
+      return tk_->throwError("Invalid height \"" + value + "\"");
+    qtree_->setHeight(h);
+  }
+  else if (name == "-selectmode") {
+    if      (value == "single") {
+      qtree_->setSelectionMode(QAbstractItemView::SingleSelection);
+    }
+    else if (value == "browse") {
+      qtree_->setSelectionMode(QAbstractItemView::SingleSelection); // TODO
+    }
+    else if (value == "multiple") {
+      qtree_->setSelectionMode(QAbstractItemView::MultiSelection);
+    }
+    else if (value == "extended") {
+      qtree_->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    }
+    else
+      return false;
+  }
+  else if (name == "-show") {
+    if      (value == "tree") {
+      tk_->TODO(name);
+    }
+    else if (value == "headings") {
+      tk_->TODO(name);
+    }
+    else
+      return false;
+  }
+  else
+    return CTkAppWidget::execConfig(name, value);
+
+  return true;
 }
 
 bool
 CTkAppTreeView::
 execOp(const Args &args)
 {
-  return CTkAppWidget::execOp(args);
+  uint numArgs = args.size();
+
+  if (numArgs == 0)
+    return tk_->wrongNumArgs(getName() + " option ?arg ...?");
+
+  const auto &arg = args[0];
+
+  //---
+
+  auto stringToColumn = [&](const std::string &arg, int &c) {
+    if (arg == "#0") {
+      c = 0;
+      return true;
+    }
+
+    long l;
+    if (! CTkAppUtil::stringToInt(arg, l))
+      return false;
+    c = int(l + 1);
+
+    if (c < 0 || c >= qtree_->columnCount())
+      return false;
+
+    return true;
+  };
+
+  auto stringToRootIndex = [&](const std::string &arg, Index &ind) {
+    if (arg == "") {
+      ind.setRoot(true);
+      return true;
+    }
+
+    if (getIdIndex(arg, ind))
+      return true;
+
+    CStrParse parse(arg);
+
+    if (parse.isString("IND")) {
+      parse.skipLastString();
+
+      auto parent = Index::root();
+
+      while (true) {
+        long r;
+        if (! parse.readInteger(&r))
+          return false;
+
+        if (! parse.isChar('.'))
+          return false;
+
+        parse.skipChar();
+
+        long c;
+        if (! parse.readInteger(&c))
+          return false;
+
+        ind = Index();
+
+        ind.setRow(r);
+        ind.setCol(c);
+
+        if (! parent.isRoot())
+          ind.setParent(parent);
+
+        parent = ind;
+
+        if (parse.eof())
+          break;
+
+        if (! parse.isChar('|'))
+          return false;
+
+        parse.skipChar();
+      }
+    }
+    else {
+      long l;
+      if (! parse.readInteger(&l))
+        return false;
+
+      ind.setRow(l);
+      ind.setCol(0);
+    }
+
+    if (! parse.eof())
+      return false;
+
+    return true;
+  };
+
+  auto stringToChildIndex = [&](const std::string &arg, Index &parentInd,
+                                Index &ind, bool quiet=false) {
+    if (arg == "")
+      return (quiet ? true : false);
+
+    long l;
+    if (! CTkAppUtil::stringToInt(arg, l))
+      return (quiet ? true : false);
+
+    ind.setRow(l);
+    ind.setCol(0);
+
+    if (! parentInd.isRoot())
+      ind.setParent(parentInd);
+
+    return true;
+  };
+
+  auto getIndexItem = [&](const Index &ind, bool create) {
+    auto ind1 = ind;
+
+    std::deque<Index> inds;
+
+    while (ind1.hasParent()) {
+      inds.push_front(ind1);
+
+      ind1 = ind1.parent();
+    }
+
+    assert(ind1.row() >= 0);
+    auto *item = qtree_->topLevelItem(ind1.row());
+
+    if (! item) {
+      if (! create)
+        return static_cast<QTreeWidgetItem *>(nullptr);
+
+      item = new QTreeWidgetItem(QStringList() << "");
+
+      qtree_->addTopLevelItem(item);
+    }
+
+    for (auto &ind2 : inds) {
+      assert(ind2.row() >= 0);
+      auto *child = item->child(ind2.row());
+
+      if (! child) {
+        if (! create)
+          return static_cast<QTreeWidgetItem *>(nullptr);
+
+        child = new QTreeWidgetItem(QStringList() << "");
+
+        item->addChild(child);
+      }
+
+      item = child;
+    }
+
+    return item;
+  };
+
+  auto indexToString = [&](const Index &ind) {
+    std::string str;
+
+    if (getIndexId(ind, str))
+      return str;
+
+    str = "IND";
+
+    auto ind1 = ind;
+
+    std::deque<Index> inds;
+
+    while (ind1.hasParent()) {
+      inds.push_front(ind1);
+
+      ind1 = ind1.parent();
+    }
+
+    str += std::to_string(ind1.row()) + "." + std::to_string(ind1.col());
+
+    for (auto &ind2 : inds)
+      str += "|" + std::to_string(ind2.row()) + "." + std::to_string(ind2.col());
+
+    return str;
+  };
+
+  auto itemToIndex = [&](QTreeWidgetItem  *item) {
+    std::deque<int> inds;
+
+    auto *parent = item->parent();
+
+    while (parent) {
+      auto ind = parent->indexOfChild(item);
+
+      item   = parent;
+      parent = item->parent();
+
+      inds.push_front(ind);
+    }
+
+    auto ind = qtree_->indexOfTopLevelItem(item);
+
+    inds.push_front(ind);
+
+    auto parentInd = Index::root();
+
+    auto itemInd = parentInd;
+
+    for (auto &ind : inds) {
+      Index ind1;
+
+      ind1.setRow(ind);
+      ind1.setCol(0);
+
+      if (! parentInd.isRoot())
+        ind1.setParent(parentInd);
+
+      itemInd   = ind1;
+      parentInd = ind1;
+    }
+
+    return itemInd;
+  };
+
+  auto itemToString = [&](QTreeWidgetItem  *item) {
+    return indexToString(itemToIndex(item));
+  };
+
+  //---
+
+  if      (arg == "bbox") {
+    if (numArgs != 2 && numArgs != 3)
+      return tk_->wrongNumArgs(getName() + " bbox itemid ?column");
+
+    Index ind;
+    if (! stringToRootIndex(args[1], ind))
+      return false;
+
+    if (numArgs == 3) {
+      int c;
+      if (! stringToColumn(args[2], c))
+        return false;
+      ind.setCol(c);
+    }
+
+    auto *item = getIndexItem(ind, /*create*/false);
+    if (! item) return false;
+
+    auto r = qtree_->visualItemRect(item);
+
+    tk_->setIntegerArrayResult({{r.x(), r.y(), r.width(), r.height()}});
+  }
+  else if (arg == "children") {
+   if (numArgs != 2 && numArgs != 3)
+     return tk_->wrongNumArgs(getName() + " children item ?newchildren?");
+
+    tk_->TODO(args);
+  }
+  else if (arg == "column") {
+    tk_->TODO(args);
+  }
+  else if (arg == "delete") {
+    tk_->TODO(args);
+  }
+  else if (arg == "detach") {
+    tk_->TODO(args);
+  }
+  else if (arg == "drag") {
+    tk_->TODO(args);
+  }
+  else if (arg == "drop") {
+    tk_->TODO(args);
+  }
+  else if (arg == "exists") {
+    tk_->TODO(args);
+  }
+  else if (arg == "focus") {
+    tk_->TODO(args);
+  }
+  else if (arg == "heading") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " heading column -option value...");
+
+    int c;
+    if (! stringToColumn(args[1], c))
+      return false;
+
+    uint i = 2;
+
+    for ( ; i < numArgs; ++i) {
+      if (args[i] == "-text") {
+        auto text = args[++i];
+
+        auto *item = qtree_->headerItem();
+
+        item->setText(c, QString::fromStdString(text));
+      }
+      else
+        return false;
+    }
+  }
+  else if (arg == "identify") {
+    tk_->TODO(args);
+  }
+  else if (arg == "index") {
+    tk_->TODO(args);
+  }
+  else if (arg == "instate") {
+    tk_->TODO(args);
+  }
+  else if (arg == "insert") {
+    if (numArgs < 3)
+      return tk_->wrongNumArgs(getName() + " insert parent index ?-id id? -options...");
+
+    Index parentInd;
+    if (! stringToRootIndex(args[1], parentInd))
+      return false;
+
+    Index ind;
+    if (! stringToChildIndex(args[2], parentInd, ind))
+      return false;
+
+    auto *item = getIndexItem(ind, /*create*/true);
+
+    uint i = 3;
+
+    for ( ; i < numArgs; ++i) {
+      if      (args[i] == "-id") {
+        auto id = args[++i];
+
+        setIdIndex(id, ind);
+      }
+      else if (args[i] == "-text") {
+        auto text = args[++i];
+
+        item->setText(ind.col(), QString::fromStdString(text));
+      }
+      else if (args[i] == "-values") {
+        auto value = args[++i];
+
+        std::vector<std::string> strs;
+        if (! tk_->splitList(value, strs))
+          return tk_->throwError("Invalid values \"" + value + "\"");
+
+        int col = 1;
+
+        for (auto &str : strs)
+          item->setText(col++, QString::fromStdString(str));
+      }
+      else
+        return false;
+    }
+
+    tk_->setStringResult(indexToString(ind));
+  }
+  else if (arg == "item") {
+    tk_->TODO(args);
+  }
+  else if (arg == "move") {
+    tk_->TODO(args);
+  }
+  else if (arg == "next") {
+    tk_->TODO(args);
+  }
+  else if (arg == "parent") {
+    tk_->TODO(args);
+  }
+  else if (arg == "prev") {
+    tk_->TODO(args);
+  }
+  else if (arg == "see") {
+    tk_->TODO(args);
+  }
+  else if (arg == "selection") {
+    if (numArgs == 1) {
+      auto items = qtree_->selectedItems();
+
+      std::vector<std::string> strs;
+
+      for (auto *item : items) {
+        strs.push_back(itemToString(item));
+      }
+
+      tk_->setStringArrayResult(strs);
+    }
+    else {
+      auto arg = args[1];
+
+      if      (arg == "add") {
+        tk_->TODO(args);
+      }
+      else if (arg == "remove") {
+        tk_->TODO(args);
+      }
+      else if (arg == "set") {
+        tk_->TODO(args);
+      }
+      else if (arg == "toggle") {
+        tk_->TODO(args);
+      }
+      else {
+        return tk_->wrongNumArgs(getName() + " selection ?add|remove|set|toggle items?");
+      }
+    }
+  }
+  else if (arg == "set") {
+    tk_->TODO(args);
+  }
+  else if (arg == "state") {
+    tk_->TODO(args);
+  }
+  else if (arg == "tag") {
+    tk_->TODO(args);
+  }
+  else if (arg == "xview") {
+    int step  = qtree_->horizontalScrollBar()->pageStep();
+    int min   = qtree_->horizontalScrollBar()->minimum();
+    int max   = qtree_->horizontalScrollBar()->maximum() - step;
+    int value = qtree_->horizontalScrollBar()->value();
+
+    if (numArgs < 2) {
+      std::vector<double> reals;
+
+      reals.push_back( value        /1000.0);
+      reals.push_back((value + step)/1000.0);
+
+      tk_->setRealArrayResult(reals);
+    }
+    else {
+      auto opt = args[1];
+
+      if      (opt == "moveto") {
+        if (numArgs < 3)
+          return tk_->wrongNumArgs(getName() + " xview moveto number");
+
+        double x;
+
+        if (! tk_->getOptionReal(opt, args[2], x))
+          return false;
+
+        qtree_->horizontalScrollBar()->setValue(min + (max - min)*x);
+      }
+      else if (opt == "scroll") {
+        if (numArgs < 4)
+          return tk_->wrongNumArgs(getName() + " xview scroll number pages|units");
+
+        double x;
+
+        if (! tk_->getOptionReal(opt, args[2], x))
+          return false;
+
+        if      (args[3] == "pages")
+          value += x*1000*step;
+        else if (args[3] == "units")
+          value += x*1000;
+        else
+          return tk_->throwError("bad argument '" + args[3] + "' ust be pages or units");
+
+        qtree_->horizontalScrollBar()->setValue(min + (max - min)*x);
+      }
+      else {
+        double x;
+
+        if (! CTkAppUtil::stringToReal(opt, x))
+          return tk_->throwError("Invalid xview value '" + opt + "'");
+
+        qtree_->horizontalScrollBar()->setValue(min + (max - min)*x);
+      }
+    }
+  }
+  else if (arg == "yview") {
+    int step  = qtree_->verticalScrollBar()->pageStep();
+    int min   = qtree_->verticalScrollBar()->minimum();
+    int max   = qtree_->verticalScrollBar()->maximum() - step;
+    int value = qtree_->verticalScrollBar()->value();
+
+    if (numArgs < 2) {
+      std::vector<double> reals;
+
+      reals.push_back( value        /1000.0);
+      reals.push_back((value + step)/1000.0);
+
+      tk_->setRealArrayResult(reals);
+    }
+    else {
+      auto opt = args[1];
+
+      if      (opt == "moveto") {
+        if (numArgs < 3)
+          return tk_->wrongNumArgs(getName() + " yview moveto number");
+
+        double y;
+
+        if (! tk_->getOptionReal(opt, args[2], y))
+          return false;
+
+        qtree_->verticalScrollBar()->setValue(min + (max - min)*y);
+      }
+      else if (opt == "scroll") {
+        if (numArgs < 4)
+          return tk_->wrongNumArgs(getName() + " yview scroll number pages|units");
+
+        double y;
+
+        if (! tk_->getOptionReal(opt, args[2], y))
+          return false;
+
+        if      (args[3] == "pages")
+          value += y*1000*step;
+        else if (args[3] == "units")
+          value += y*1000;
+        else
+          return tk_->throwError("bad argument '" + args[3] + "' ust be pages or units");
+
+        qtree_->verticalScrollBar()->setValue(min + (max - min)*y);
+      }
+      else {
+        double y;
+
+        if (! CTkAppUtil::stringToReal(opt, y))
+          return tk_->throwError("Invalid yview value '" + opt + "'");
+
+        qtree_->verticalScrollBar()->setValue(min + (max - min)*y);
+      }
+    }
+  }
+  else
+    return CTkAppWidget::execOp(args);
+
+  return true;
+}
+
+void
+CTkAppTreeView::
+selectionSlot()
+{
+  CTkAppEventData eventData;
+
+  eventData.type  = CTkAppEventType::Virtual;
+  eventData.vtype = CTkAppVirtualEventType::TreeviewSelect;
+
+  triggerVirtualEvents(eventData);
+}
+
+void
+CTkAppTreeView::
+setIdIndex(const std::string &id, const Index &ind)
+{
+  ids_[id] = ind;
+}
+
+bool
+CTkAppTreeView::
+getIdIndex(const std::string &id, Index &ind) const
+{
+  auto p = ids_.find(id);
+  if (p == ids_.end()) return false;
+
+  ind = (*p).second;
+
+  return true;
+}
+
+bool
+CTkAppTreeView::
+getIndexId(const Index &ind, std::string &id) const
+{
+  for (const auto &pi : ids_) {
+    if (pi.second == ind) {
+      id = pi.first;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+//---
+
+CTkAppTreeViewWidget::
+CTkAppTreeViewWidget(CTkAppTreeView *treeview) :
+ QTreeWidget(treeview->getParent() ? treeview->getParent()->getQWidget() : nullptr),
+ treeview_(treeview)
+{
+  setObjectName("qtreeview");
+}
+
+void
+CTkAppTreeViewWidget::
+setHeight(const OptReal &h)
+{
+  height_ = h;
+}
+
+QSize
+CTkAppTreeViewWidget::
+sizeHint() const
+{
+  auto s = QTreeWidget::sizeHint();
+
+  QFontMetrics fm(font());
+
+  if (height_)
+    s.setHeight((*height_)*fm.height());
+
+  return s;
 }
 
 //----------
@@ -7703,15 +8817,7 @@ getBindings(std::vector<std::string> &bindings)
     bindings.push_back(edata.pattern);
 }
 
-bool
-CTkAppWidget::
-triggerEvents(QEvent *e, const CTkAppEventData &matchEventData)
-{
-  processEvents(e, matchEventData);
-
-  // class and global events
-  return tk_->triggerEvents(getClassName(), this, e, matchEventData);
-}
+//---
 
 bool
 CTkAppWidget::
@@ -7723,9 +8829,7 @@ triggerMousePressEvents(QEvent *e, int button)
 
   tk_->encodeEvent(me, CTkAppEventMode::Press, button, matchEventData);
 
-  processEvents(e, matchEventData);
-
-  return true;
+  return triggerEvents(e, matchEventData);
 }
 
 bool
@@ -7741,9 +8845,7 @@ triggerMouseMoveEvents(QEvent *e, int button, bool pressed)
 
   tk_->encodeEvent(me, CTkAppEventMode::Motion, button, matchEventData);
 
-  processEvents(e, matchEventData);
-
-  return true;
+  return triggerEvents(e, matchEventData);
 }
 
 bool
@@ -7756,9 +8858,7 @@ triggerMouseReleaseEvents(QEvent *e, int button)
 
   tk_->encodeEvent(me, CTkAppEventMode::Release, button, matchEventData);
 
-  processEvents(e, matchEventData);
-
-  return true;
+  return triggerEvents(e, matchEventData);
 }
 
 bool
@@ -7771,10 +8871,52 @@ triggerKeyPressEvents(QEvent *e)
 
   tk_->encodeEvent(ke, /*press*/true, matchEventData);
 
+  return triggerEvents(e, matchEventData);
+}
+
+bool
+CTkAppWidget::
+triggerEvents(QEvent *e, const CTkAppEventData &matchEventData)
+{
   processEvents(e, matchEventData);
 
-  return tk_->triggerKeyPressEvents(getClassName(), this, e);
+  // class and global events
+  return tk_->triggerEvents(getClassName(), this, e, matchEventData);
 }
+
+bool
+CTkAppWidget::
+triggerVirtualEvents(const CTkAppEventData &matchEventData)
+{
+  processVirtualEvents(matchEventData);
+
+  // class and global events
+  return tk_->triggerVirtualEvents(getClassName(), this, matchEventData);
+}
+
+void
+CTkAppWidget::
+processEvents(QEvent *e, const CTkAppEventData &matchEventData)
+{
+  for (const auto &eventData : eventDatas_) {
+    if (eventData == matchEventData) {
+      tk_->execEvent(this, e, matchEventData, eventData.command);
+    }
+  }
+}
+
+void
+CTkAppWidget::
+processVirtualEvents(const CTkAppEventData &matchEventData)
+{
+  for (const auto &eventData : eventDatas_) {
+    if (eventData == matchEventData) {
+      tk_->execVirtualEvent(this, matchEventData, eventData.command);
+    }
+  }
+}
+
+//---
 
 void
 CTkAppWidget::
@@ -7824,17 +8966,6 @@ getOptionValue(const std::string &optName, const std::string &optClass,
     widgetClass << ":" << optName << " " << optClass << " = " << optValue << "\n";
 
   return true;
-}
-
-void
-CTkAppWidget::
-processEvents(QEvent *e, const CTkAppEventData &matchEventData)
-{
-  for (const auto &eventData : eventDatas_) {
-    if (eventData == matchEventData) {
-      tk_->execEvent(this, e, matchEventData, eventData.command);
-    }
-  }
 }
 
 //----------
@@ -7926,14 +9057,10 @@ void
 CTkAppSubMenu::
 connectSlots(bool b)
 {
-  if (b) {
-    connect(this, SIGNAL(aboutToShow()), this, SLOT(showSlot()));
-    connect(this, SIGNAL(aboutToHide()), this, SLOT(hideSlot()));
-  }
-  else {
-    disconnect(this, SIGNAL(aboutToShow()), this, SLOT(showSlot()));
-    disconnect(this, SIGNAL(aboutToHide()), this, SLOT(hideSlot()));
-  }
+  CQUtil::connectDisconnect(b, this,
+    SIGNAL(aboutToShow()), this, SLOT(showSlot()));
+  CQUtil::connectDisconnect(b, this,
+    SIGNAL(aboutToHide()), this, SLOT(hideSlot()));
 }
 
 void
@@ -7942,7 +9069,7 @@ showSlot()
 {
   //std::cerr << "Show " << menu_ << "\n";
 
-  auto *w    = tk_->lookupWidgetByName(menu_);
+  auto *w = tk_->lookupWidgetByName(menu_);
   auto *menu = dynamic_cast<CTkAppMenu *>(w);
   if (! menu) { std::cerr << "No menu '" << menu_ << "'\n"; return; }
 

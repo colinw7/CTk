@@ -25,6 +25,19 @@ class CQSpinList : public QSpinBox {
   const QStringList &strings() const { return strings_; }
   void setStrings(const QStringList &s);
 
+  void setText(const QString &text);
+
+  void setValidator(QValidator *validator);
+
+  void deleteChars(int start, int len);
+  void insertChars(int pos, const QString &text);
+
+  void deselectAll();
+  void selectChars(int start, int len);
+
+  int cursorPos() const;
+  void setCursorPos(int pos);
+
  private:
   QString textFromValue(int value) const override;
   int valueFromText(const QString &text) const override;

@@ -162,13 +162,17 @@ class CTkApp : public QObject, public CTclApp {
   void getTagBindings(const std::string &name, std::vector<std::string> &bindings);
   void getAllBindings(std::vector<std::string> &bindings);
 
+  //---
+
   bool triggerEvents(const std::string &, CTkAppWidget *, QEvent *e,
                      const CTkAppEventData &matchEventData);
-
-  bool triggerKeyPressEvents(const std::string &, CTkAppWidget *, QEvent *e);
+  bool triggerVirtualEvents(const std::string &, CTkAppWidget *,
+                            const CTkAppEventData &matchEventData);
 
   bool execEvent(CTkAppWidget *, QEvent *e, const CTkAppEventData &data,
                  const std::string &command);
+  bool execVirtualEvent(CTkAppWidget *, const CTkAppEventData &data,
+                        const std::string &command);
 
   //---
 

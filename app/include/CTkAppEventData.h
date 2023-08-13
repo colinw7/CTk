@@ -18,8 +18,6 @@ enum class CTkAppVirtualEventType {
 
   AltUnderlined,
   Invoke,
-  ListboxSelect,
-  MenuSelect,
   Modified,
   Selection,
   ThemeChanged,
@@ -28,6 +26,10 @@ enum class CTkAppVirtualEventType {
   TraverseOut,
   UndoStack,
   WidgetViewSync,
+
+  ListboxSelect,
+  MenuSelect,
+  TreeviewSelect,
 
   Clear,
   Copy,

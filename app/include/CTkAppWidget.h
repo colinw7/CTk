@@ -4,6 +4,10 @@
 #include <CTkAppEventData.h>
 #include <CTkApp.h>
 
+#include <CQSpinList.h>
+#include <CQButtonImage.h>
+#include <CQTextWidget.h>
+
 #include <CStrUtil.h>
 
 #include <QBrush>
@@ -18,7 +22,7 @@
 #include <QPen>
 #include <QPushButton>
 #include <QRadioButton>
-#include <QTextEdit>
+#include <QTreeWidget>
 #include <QWidgetAction>
 
 #include <optional>
@@ -35,7 +39,7 @@ class CTkAppGridLayout;
 class CTkAppPlaceLayout;
 
 class CQRealSlider;
-class CQSpinList;
+class CQLabelImage;
 class CQLabelImage;
 
 class QBoxLayout;
@@ -225,13 +229,17 @@ class CTkAppWidget : public QObject {
   void getBindings(const CTkAppEventData &data, std::vector<std::string> &bindings);
   void getBindings(std::vector<std::string> &bindings);
 
-  virtual bool triggerEvents(QEvent *e, const CTkAppEventData &matchEventData);
-
   virtual bool triggerMousePressEvents  (QEvent *e, int button);
   virtual bool triggerMouseMoveEvents   (QEvent *e, int button, bool pressed);
   virtual bool triggerMouseReleaseEvents(QEvent *e, int button);
 
   virtual bool triggerKeyPressEvents(QEvent *e);
+
+  virtual bool triggerEvents(QEvent *e, const CTkAppEventData &matchEventData);
+  virtual bool triggerVirtualEvents(const CTkAppEventData &matchEventData);
+
+  void processEvents(QEvent *e, const CTkAppEventData &matchEventData);
+  void processVirtualEvents(const CTkAppEventData &matchEventData);
 
   //---
 
@@ -245,8 +253,6 @@ class CTkAppWidget : public QObject {
                       std::string &optValue) const;
 
   //---
-
-  void processEvents(QEvent *e, const CTkAppEventData &matchEventData);
 
  protected:
   const std::string &getCommand() const { return command_; }
@@ -408,7 +414,7 @@ class CTkAppButton : public CTkAppWidget {
   bool                overRaised_ { false };
 };
 
-class CTkAppButtonWidget : public QPushButton {
+class CTkAppButtonWidget : public CQButtonImage {
   Q_OBJECT
 
  public:
@@ -417,27 +423,15 @@ class CTkAppButtonWidget : public QPushButton {
   const QString &text() const { return text_; }
   void setText(const QString &s);
 
-  double width() const { return width_; }
-  void setWidth(double r) { width_ = r; }
-
-  double height() const { return height_; }
-  void setHeight(double r) { height_ = r; }
-
   double wrapLength() const { return wrapLength_; }
   void setWrapLength(double r);
-
-  bool isAutoRaise() const { return autoRaise_; }
-  void setAutoRaise(bool b) { autoRaise_ = b; }
 
  private:
   void updateText();
 
  private:
   CTkAppButton *button_     { nullptr };
-  double        width_      { -1 };
-  double        height_     { -1 };
   double        wrapLength_ { -1 };
-  bool          autoRaise_  { false };
   QString       text_;
 };
 
@@ -1725,6 +1719,7 @@ class CTkAppLabelFrame : public CTkAppWidget {
 
 //---
 
+class CTkAppListBoxWidget;
 class CTkAppListBoxVarProc;
 
 class CTkAppListBox : public CTkAppWidget {
@@ -1745,11 +1740,13 @@ class CTkAppListBox : public CTkAppWidget {
   void connectSlots(bool b);
 
  private Q_SLOTS:
+  void selectionSlot();
+
   void vscrollSlot(int value);
   void hscrollSlot(int value);
 
  private:
-  QListWidget*          qlist_ { nullptr };
+  CTkAppListBoxWidget*  qlist_ { nullptr };
   std::string           varName_;
   CTkAppListBoxVarProc* varProc_ { nullptr };
   bool                  exportSelection_ { true };
@@ -1759,10 +1756,24 @@ class CTkAppListBoxWidget : public QListWidget {
   Q_OBJECT
 
  public:
+  using OptReal = std::optional<double>;
+
+ public:
   CTkAppListBoxWidget(CTkAppListBox *listbox);
+
+  const OptReal &width() const { return width_; }
+  void setWidth(const OptReal &w);
+
+  const OptReal &height() const { return height_; }
+  void setHeight(const OptReal &h);
+
+  QSize sizeHint() const override;
 
  private:
   CTkAppListBox* listbox_ { nullptr };
+
+  OptReal width_;
+  OptReal height_;
 };
 
 //---
@@ -1999,8 +2010,8 @@ class CTkAppPanedWindow : public CTkAppWidget {
 
 //---
 
-class CTkAppRadioButtonVarProc;
 class CTkAppRadioButtonWidget;
+class CTkAppRadioButtonVarProc;
 
 class CTkAppRadioButton : public CTkAppWidget {
   Q_OBJECT
@@ -2121,7 +2132,9 @@ class CTkAppScrollBar : public CTkAppWidget {
 
 //---
 
+class CTkAppSpinBoxWidget;
 class CTkAppSpinBoxVarProc;
+class CTkAppSpinBoxValidator;
 
 class CTkAppSpinBox : public CTkAppWidget {
   Q_OBJECT
@@ -2135,14 +2148,54 @@ class CTkAppSpinBox : public CTkAppWidget {
 
   bool execOp(const Args &args) override;
 
-  void setValue(const std::string &);
+  const std::string &getInvalidCommand() const { return invalidCommand_; }
+  void setInvalidCommand(const std::string &command) { invalidCommand_ = command; }
+
+  void setText(const std::string &text) override;
+
+  bool validate(const std::string &) const;
 
   void updateFromVar();
 
  private:
-  CQSpinList*           qspin_ { nullptr };
-  std::string           varName_;
-  CTkAppSpinBoxVarProc* varProc_;
+  void connectSlots(bool);
+
+ private Q_SLOTS:
+  void valueChangedSlot();
+
+ private:
+  enum class ValidateMode {
+    NONE,
+    FOCUS,
+    FOCUSIN,
+    FOCUSOUT,
+    KEY,
+    ALL
+  };
+
+  CTkAppSpinBoxWidget*    qspin_ { nullptr };
+  std::string             varName_;
+  CTkAppSpinBoxVarProc*   varProc_;
+  ValidateMode            validateMode_ { ValidateMode::NONE };
+  std::string             validateCmd_;
+  CTkAppSpinBoxValidator* validateProc_ { nullptr };
+  std::string             invalidCommand_;
+};
+
+class CTkAppSpinBoxWidget : public CQSpinList {
+  Q_OBJECT
+
+ public:
+  explicit CTkAppSpinBoxWidget(CTkAppSpinBox *spin);
+
+  int width() const { return width_; }
+  void setWidth(int i) { width_ = i; }
+
+  QSize sizeHint() const override;
+
+ private:
+  CTkAppSpinBox* spin_  { nullptr };
+  int            width_ { -1 };
 };
 
 //---
@@ -2272,7 +2325,7 @@ class CTkAppText : public CTkAppWidget {
   Tags              tags_;
 };
 
-class CTkAppTextWidget : public QTextEdit {
+class CTkAppTextWidget : public CQTextWidget {
   Q_OBJECT
 
  public:
@@ -2316,8 +2369,74 @@ class CTkAppTopLevel : public CTkAppWidget {
 
 //---
 
+class CTkAppTreeViewWidget;
+
 class CTkAppTreeView : public CTkAppWidget {
   Q_OBJECT
+
+ public:
+  class Index {
+   public:
+    static Index root() { Index ind; ind.root_ = true; return ind; }
+
+    Index() { }
+
+   ~Index() { delete parent_; }
+
+    Index(const Index &i) {
+      root_   = i.root_;
+      row_    = i.row_;
+      col_    = i.col_;
+      parent_ = (i.parent_ ? new Index(*i.parent_) : nullptr);
+    }
+
+    Index &operator=(const Index &i) {
+      delete parent_;
+
+      root_   = i.root_;
+      row_    = i.row_;
+      col_    = i.col_;
+      parent_ = (i.parent_ ? new Index(*i.parent_) : nullptr);
+
+      return *this;
+    }
+
+    bool operator==(const Index &rhs) const {
+      if (root_ && rhs.root_)
+        return true;
+
+      if (row_ != rhs.row_ || col_ != rhs.col_)
+        return false;
+
+      if (! parent_ || ! rhs.parent_)
+        return (parent_ == rhs.parent_);
+
+      return (*parent_ == *rhs.parent_);
+    }
+
+    bool isRoot() const { return root_; }
+    void setRoot(bool b) { root_ = b; }
+
+    int row() const { return row_; }
+    void setRow(int i) { row_ = i; }
+
+    int col() const { return col_; }
+    void setCol(int i) { col_ = i; }
+
+    bool hasParent() const { return parent_; }
+
+    Index parent() const { return *parent_; }
+
+    void setParent(const Index &ind) {
+      parent_ = new Index(ind);
+    }
+
+   private:
+    bool   root_   { false };
+    int    row_    { -1 };
+    int    col_    { -1 };
+    Index *parent_ { nullptr };
+  };
 
  public:
   explicit CTkAppTreeView(CTkApp *tk, CTkAppWidget *parent=nullptr, const std::string &name="");
@@ -2329,7 +2448,40 @@ class CTkAppTreeView : public CTkAppWidget {
   bool execOp(const Args &args) override;
 
  private:
-  QTreeWidget* qtree_ { nullptr };
+  void connectSlots(bool b);
+
+  void setIdIndex(const std::string &id, const Index &ind);
+  bool getIdIndex(const std::string &id, Index &ind) const;
+  bool getIndexId(const Index &ind, std::string &id) const;
+
+ private Q_SLOTS:
+  void selectionSlot();
+
+ private:
+  using Ids = std::map<std::string, Index>;
+
+  CTkAppTreeViewWidget* qtree_ { nullptr };
+  Ids                   ids_;
+};
+
+class CTkAppTreeViewWidget : public QTreeWidget {
+  Q_OBJECT
+
+ public:
+  using OptReal = std::optional<double>;
+
+ public:
+  CTkAppTreeViewWidget(CTkAppTreeView *listbox);
+
+  const OptReal &height() const { return height_; }
+  void setHeight(const OptReal &h);
+
+  QSize sizeHint() const override;
+
+ private:
+  CTkAppTreeView* treeview_ { nullptr };
+
+  OptReal height_;
 };
 
 #endif

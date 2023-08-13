@@ -1,6 +1,8 @@
 #include <CQSpinList.h>
 #include <CQStrUtil.h>
 
+#include <QLineEdit>
+
 #include <iostream>
 
 CQSpinList::
@@ -18,6 +20,64 @@ setStrings(const QStringList &s)
   strings_ = s;
 
   setRange(0, strings_.length() - 1);
+}
+
+void
+CQSpinList::
+setValidator(QValidator *validator)
+{
+  lineEdit()->setValidator(validator);
+}
+
+void
+CQSpinList::
+setText(const QString &text)
+{
+  lineEdit()->setText(text);
+}
+
+void
+CQSpinList::
+deleteChars(int start, int len)
+{
+  lineEdit()->setSelection(start, len);
+  lineEdit()->del();
+}
+
+void
+CQSpinList::
+insertChars(int pos, const QString &text)
+{
+  lineEdit()->setCursorPosition(pos);
+  lineEdit()->insert(text);
+}
+
+void
+CQSpinList::
+deselectAll()
+{
+  lineEdit()->deselect();
+}
+
+void
+CQSpinList::
+selectChars(int start, int len)
+{
+  lineEdit()->setSelection(start, len);
+}
+
+int
+CQSpinList::
+cursorPos() const
+{
+  return lineEdit()->cursorPosition();
+}
+
+void
+CQSpinList::
+setCursorPos(int pos)
+{
+  lineEdit()->setCursorPosition(pos);
 }
 
 QString
