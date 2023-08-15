@@ -36,6 +36,8 @@ CTkAppUtil.cpp \
 CTclApp.cpp \
 CTclAppCommand.cpp \
 \
+CTkWidget.cpp \
+\
 CQLabelImage.cpp \
 CQButtonImage.cpp \
 CQTextWidget.cpp \
@@ -62,6 +64,8 @@ HEADERS += \
 \
 ../include/CTclAppCommand.h \
 ../include/CTclApp.h \
+\
+../include/CTkWidget.h \
 \
 ../include/CQLabelImage.h \
 ../include/CQButtonImage.h \
