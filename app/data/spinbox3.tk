@@ -1,0 +1,9 @@
+label .label -text "Spinbox"
+
+spinbox .spin -width 10 -textvariable svalue
+
+.spin config -values {One Two Three Four}
+
+.spin delete 1
+
+grid .label .spin -padx 2m -pady 2m

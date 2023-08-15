@@ -8,3 +8,5 @@ label  .l
 
 pack .b
 pack .l
+
+puts [gorilla cget -file]

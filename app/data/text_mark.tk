@@ -1,0 +1,38 @@
+text .text -relief raised -bd 2 -yscrollcommand {.scroll set}
+
+scrollbar .scroll -command {.text yview}
+
+grid .text   -row 0 -column 0 -sticky nsew
+grid .scroll -row 0 -column 1 -sticky ns
+
+grid rowconfigure    . 0 -weight 1
+grid columnconfigure . 0 -weight 1
+
+proc loadFile {file} {
+  .text delete 1.0 end
+  set f [open $file]
+  .text insert end [read $f]
+  close $f
+}
+
+loadFile Makefile
+
+proc forAllMatches {w pattern script} {
+  set countList [list]
+
+  set startList [$w search -all -regexp -count countList $pattern 1.0 end]
+
+  foreach first $startList count $countList {
+    $w mark set first $first
+    $w mark set last [$w index "$first + $count chars"]
+    uplevel 1 $script 
+  }
+}
+
+proc matches { pattern } {
+  forAllMatches .text $pattern {
+    puts "[.text index first] --> [.text index last]"
+  }
+}
+
+matches Tk

@@ -25,7 +25,6 @@
 #include <QScrollBar>
 #include <QSplitter>
 #include <QTextBlock>
-#include <QToolButton>
 
 #include <deque>
 
@@ -584,7 +583,7 @@ execConfig(const std::string &name, const std::string &value)
   long underlinePos = -1;
 
   if      (name == "-command") {
-    setCommand(value);
+    setCommand(QString::fromStdString(value));
   }
   else if (name == "-default") {
     if      (value == "normal")
@@ -613,8 +612,12 @@ execConfig(const std::string &name, const std::string &value)
     appearanceChanged();
   }
   else if (name == "-state") {
-    if (! CTkAppUtil::setWidgetState(this, value))
-      return false;
+    if (value == "readonly")
+      qbutton_->setReadOnly(true);
+    else {
+      if (! CTkAppUtil::setWidgetState(this, value))
+        return false;
+    }
   }
   else if (name == "-underline") {
     if (! tk_->getOptionInt(name, value, underlinePos))
@@ -665,11 +668,11 @@ execOp(const Args &args)
 
 void
 CTkAppButton::
-setText(const std::string &text)
+setText(const QString &text)
 {
   CTkAppWidget::setText(text);
 
-  qbutton_->setText(QString::fromStdString(text));
+  qbutton_->setText(text);
 }
 
 void
@@ -1709,7 +1712,7 @@ execOp(const Args &args)
             text->setJustify(align);
           }
           else if (name == "-text") {
-            text->setText(value);
+            text->setText(QString::fromStdString(value));
           }
 #ifdef CTK_APP_TKPATH
           else if (name == "-textanchor") {
@@ -2150,14 +2153,22 @@ execOp(const Args &args)
         ! CTkAppUtil::stringToDistance(args[3], dy))
       return tk_->throwError("Invalid coord \"" + args[2] + " " + args[3] + "\"");
 
-    if (! qcanvas_->moveShape(id, dx, dy))
+    if (! qcanvas_->moveShapeBy(id, dx, dy))
       return tk_->throwError("No shape \"" + id + "\"");
   }
   else if (arg == "moveto") {
     if (numArgs < 2)
       return tk_->wrongNumArgs(getName() + " moveto tagOrId x y");
 
-    tk_->TODO(arg, args);
+    const auto &id = args[1];
+
+    double x, y;
+    if (! CTkAppUtil::stringToDistance(args[2], x) ||
+        ! CTkAppUtil::stringToDistance(args[3], y))
+      return false;
+
+    if (! qcanvas_->moveShapeTo(id, x, y))
+      return tk_->throwError("No shape \"" + id + "\"");
   }
   else if (arg == "postscript") {
     tk_->TODO(arg, args);
@@ -2212,12 +2223,50 @@ execOp(const Args &args)
     tk_->TODO(arg, args);
   }
   else if (arg == "xview") {
-    tk_->TODO(arg, args);
-    tk_->setStringResult("0.0 1.0");
+    if      (numArgs == 1) {
+      tk_->setStringResult("0.0 1.0");
+    }
+    else if (args[1] == "moveto") {
+      if (numArgs != 2)
+        return tk_->wrongNumArgs(getName() + " xview moveto fraction");
+
+      double f;
+      if (! CTkAppUtil::stringToReal(args[2], f))
+        return false;
+
+      tk_->TODO(args);
+    }
+    else if (args[1] == "scroll") {
+      if (numArgs != 3)
+        return tk_->wrongNumArgs(getName() + " xview scroll number what");
+
+      tk_->TODO(args);
+    }
+    else
+      return false;
   }
   else if (arg == "yview") {
-    tk_->TODO(arg, args);
-    tk_->setStringResult("0.0 1.0");
+    if      (numArgs == 1) {
+      tk_->setStringResult("0.0 1.0");
+    }
+    else if (args[1] == "moveto") {
+      if (numArgs != 2)
+        return tk_->wrongNumArgs(getName() + " yview moveto fraction");
+
+      double f;
+      if (! CTkAppUtil::stringToReal(args[2], f))
+        return false;
+
+      tk_->TODO(args);
+    }
+    else if (args[1] == "scroll") {
+      if (numArgs != 3)
+        return tk_->wrongNumArgs(getName() + " yview scroll number what");
+
+      tk_->TODO(args);
+    }
+    else
+      return false;
   }
   else
     return CTkAppWidget::execOp(args);
@@ -2432,7 +2481,7 @@ drawShape(QPainter *p, Shape *s)
 
       p->setFont(t->font());
 
-      auto text = QString::fromStdString(t->text());
+      auto text = t->getText();
 
       QFontMetricsF fm(p->font());
       auto tw = fm.horizontalAdvance(text);
@@ -2450,7 +2499,7 @@ drawShape(QPainter *p, Shape *s)
       else if (j & Qt::AlignVCenter) { dty = (fm.ascent() - fm.descent())/2.0; }
       else if (j & Qt::AlignBottom ) { dty = -fm.descent(); }
 
-      p->drawText(tx + dtx, ty + dty, QString::fromStdString(t->text()));
+      p->drawText(tx + dtx, ty + dty, text);
 
       break;
     }
@@ -2484,6 +2533,13 @@ drawShape(QPainter *p, Shape *s)
       auto *i = static_cast<Bitmap *>(s);
 
       auto qimage = i->getImage()->getQImage();
+
+      auto iw = qimage.width();
+      auto ih = qimage.height();
+
+      auto rect = QRectF(i->pos().x, i->pos().y, iw, ih);
+
+      i->setDrawRect(rect);
 
       p->drawImage(i->pos().x, i->pos().y, qimage);
 
@@ -2550,7 +2606,7 @@ execConfig(const std::string &name, const std::string &value)
   long underlinePos = -1;
 
   if      (name == "-command") {
-    setCommand(value);
+    setCommand(QString::fromStdString(value));
   }
 #if 0
   else if (name == "-height") {
@@ -2605,20 +2661,24 @@ execConfig(const std::string &name, const std::string &value)
     tk_->TODO(name);
   }
   else if (name == "-state") {
-    if (! CTkAppUtil::setWidgetState(this, value))
-      return false;
+    if (value == "readonly")
+      qcheck_->setReadOnly(true);
+    else {
+      if (! CTkAppUtil::setWidgetState(this, value))
+        return false;
+    }
   }
   else if (name == "-variable") {
-    varName_ = value;
+    setVarName(value);
 
-    if (! isInitNotify() && ! tk_->hasGlobalVar(varName_))
+    if (! isInitNotify() && ! tk_->hasGlobalVar(varName()))
       updateToVar();
 
     updateFromVar();
 
     varProc_ = new CTkAppCheckButtonVarProc(tk_, this);
 
-    tk_->traceGlobalVar(varName_, varProc_);
+    tk_->traceGlobalVar(varName(), varProc_);
   }
 #if 0
   else if (name == "-width") {
@@ -2684,11 +2744,11 @@ execOp(const Args &args)
 
 void
 CTkAppCheckButton::
-setText(const std::string &text)
+setText(const QString &text)
 {
   CTkAppWidget::setText(text);
 
-  qcheck_->setText(QString::fromStdString(text));
+  qcheck_->setText(text);
 }
 
 void
@@ -2719,15 +2779,15 @@ void
 CTkAppCheckButton::
 updateFromVar()
 {
-  if (varName_ != "" && tk_->hasGlobalVar(varName_)) {
+  if (varName() != "" && tk_->hasGlobalVar(varName())) {
     bool checked = false;
 
-    if      (onValue() && tk_->getStringGlobalVar(varName_) == *onValue())
+    if      (onValue() && tk_->getStringGlobalVar(varName()) == *onValue())
       checked = true;
-    else if (offValue() && tk_->getStringGlobalVar(varName_) == *offValue())
+    else if (offValue() && tk_->getStringGlobalVar(varName()) == *offValue())
       checked = true;
     else {
-      bool checked1 = tk_->getBoolGlobalVar(varName_);
+      bool checked1 = tk_->getBoolGlobalVar(varName());
 
       if ((checked1 && ! onValue()) || (! checked && ! offValue()))
         checked = checked1;
@@ -2741,21 +2801,21 @@ void
 CTkAppCheckButton::
 updateToVar()
 {
-  if (varName_ != "") {
+  if (varName() != "") {
     if (varProc_)
       varProc_->setEnabled(false);
 
     if (qcheck_->isChecked()) {
       if (onValue())
-        tk_->setStringGlobalVar(varName_, *onValue());
+        tk_->setStringGlobalVar(varName(), *onValue());
       else
-        tk_->setBoolGlobalVar(varName_, true);
+        tk_->setBoolGlobalVar(varName(), true);
     }
     else {
       if (offValue())
-        tk_->setStringGlobalVar(varName_, *offValue());
+        tk_->setStringGlobalVar(varName(), *offValue());
       else
-        tk_->setBoolGlobalVar(varName_, false);
+        tk_->setBoolGlobalVar(varName(), false);
     }
 
     if (varProc_)
@@ -2826,21 +2886,25 @@ execConfig(const std::string &name, const std::string &value)
     tk_->TODO(name);
   }
   else if (name == "-state") {
-    if (! CTkAppUtil::setWidgetState(this, value))
-      return false;
+    if (value == "readonly")
+      qcombo_->setReadOnly(true);
+    else {
+      if (! CTkAppUtil::setWidgetState(this, value))
+        return false;
+    }
   }
   else if (name == "-textvariable") {
-    varName_ = value;
+    setVarName(value);
 
-    if (! isInitNotify() && ! tk_->hasGlobalVar(varName_))
-      tk_->setStringGlobalVar(varName_, "");
+    if (! isInitNotify() && ! tk_->hasGlobalVar(varName()))
+      tk_->setStringGlobalVar(varName(), "");
 
-    if (tk_->hasGlobalVar(varName_))
-      setText(tk_->getStringGlobalVar(varName_));
+    if (tk_->hasGlobalVar(varName()))
+      setText(QString::fromStdString(tk_->getStringGlobalVar(varName())));
 
     varProc_ = new CTkAppComboBoxVarProc(tk_, this);
 
-    tk_->traceGlobalVar(varName_, varProc_);
+    tk_->traceGlobalVar(varName(), varProc_);
   }
   else if (name == "-values") {
     std::vector<std::string> strs;
@@ -2993,8 +3057,42 @@ execOp(const Args &args)
     tk_->TODO(args);
   }
   else if (arg == "xview") {
-    tk_->TODO(args);
-    tk_->setStringResult("0.0 1.0");
+    if      (numArgs == 1) {
+      tk_->setStringResult("0.0 1.0");
+    }
+    else if (args[1] == "moveto") {
+      if (numArgs != 2)
+        return tk_->wrongNumArgs(getName() + " xview moveto fraction");
+
+      double f;
+      if (! CTkAppUtil::stringToReal(args[2], f))
+        return false;
+
+//    int len = qcombo_->text().length();
+//    int pos = std::min(std::max(int(len*f), 0), len);
+
+//    qcombo_->setCursorPosition(pos);
+
+      tk_->TODO(args);
+    }
+    else if (args[1] == "scroll") {
+      if (numArgs != 3)
+        return tk_->wrongNumArgs(getName() + " xview scroll number what");
+
+      tk_->TODO(args);
+    }
+    else {
+      if (numArgs != 2)
+        return tk_->wrongNumArgs(getName() + " xview index");
+
+      int ind;
+      if (! stringToIndex(args[2], ind))
+        return false;
+
+//    qcombo_->setCursorPosition(ind);
+
+      tk_->TODO(args);
+    }
   }
   else
     return CTkAppWidget::execOp(args);
@@ -3006,11 +3104,11 @@ void
 CTkAppComboBox::
 indexChangedSlot(int i)
 {
-  if (varName_ != "") {
+  if (varName() != "") {
     if (varProc_)
       varProc_->setEnabled(false);
 
-    tk_->setIntegerGlobalVar(varName_, i);
+    tk_->setIntegerGlobalVar(varName(), i);
 
     if (varProc_)
       varProc_->setEnabled(true);
@@ -3021,8 +3119,8 @@ void
 CTkAppComboBox::
 updateFromVar()
 {
-  if (varName_ != "" && tk_->hasGlobalVar(varName_))
-    qcombo_->setCurrentIndex(tk_->getIntegerGlobalVar(varName_));
+  if (varName() != "" && tk_->hasGlobalVar(varName()))
+    qcombo_->setCurrentIndex(tk_->getIntegerGlobalVar(varName()));
 }
 
 //---
@@ -3123,17 +3221,17 @@ execConfig(const std::string &name, const std::string &value)
     }
   }
   else if (name == "-textvariable") {
-    varName_ = value;
+    setVarName(value);
 
-    if (! isInitNotify() && ! tk_->hasGlobalVar(varName_))
-      tk_->setStringGlobalVar(varName_, "");
+    if (! isInitNotify() && ! tk_->hasGlobalVar(varName()))
+      tk_->setStringGlobalVar(varName(), "");
 
-    if (tk_->hasGlobalVar(varName_))
-      setText(tk_->getStringGlobalVar(varName_));
+    if (tk_->hasGlobalVar(varName()))
+      setText(QString::fromStdString(tk_->getStringGlobalVar(varName())));
 
     varProc_ = new CTkAppEntryVarProc(tk_, this);
 
-    tk_->traceGlobalVar(varName_, varProc_);
+    tk_->traceGlobalVar(varName(), varProc_);
   }
   else if (name == "-validate") {
     if      (value == "none"    ) validateMode_ = ValidateMode::NONE;
@@ -3299,8 +3397,38 @@ execOp(const Args &args)
     tk_->TODO(args);
   }
   else if (arg == "xview") {
-    tk_->TODO(args);
-    tk_->setStringResult("0.0 1.0");
+    if      (numArgs == 1) {
+      tk_->setStringResult("0.0 1.0");
+    }
+    else if (args[1] == "moveto") {
+      if (numArgs != 2)
+        return tk_->wrongNumArgs(getName() + " xview moveto fraction");
+
+      double f;
+      if (! CTkAppUtil::stringToReal(args[2], f))
+        return false;
+
+      int len = qedit_->text().length();
+      int pos = std::min(std::max(int(len*f), 0), len);
+
+      qedit_->setCursorPosition(pos);
+    }
+    else if (args[1] == "scroll") {
+      if (numArgs != 3)
+        return tk_->wrongNumArgs(getName() + " xview scroll number what");
+
+      tk_->TODO(args);
+    }
+    else {
+      if (numArgs != 2)
+        return tk_->wrongNumArgs(getName() + " xview index");
+
+      int ind;
+      if (! stringToIndex(args[2], ind))
+        return false;
+
+      qedit_->setCursorPosition(ind);
+    }
   }
   else
     return CTkAppWidget::execOp(args);
@@ -3310,25 +3438,25 @@ execOp(const Args &args)
 
 void
 CTkAppEntry::
-setText(const std::string &text)
+setText(const QString &text)
 {
   CTkAppWidget::setText(text);
 
-  qedit_->setText(QString::fromStdString(text));
+  qedit_->setText(text);
 }
 
 void
 CTkAppEntry::
 valueChangedSlot()
 {
-  if (varName_ != "") {
+  if (varName() != "") {
     if (varProc_)
       varProc_->setEnabled(false);
 
-    if (! tk_->hasGlobalVar(varName_))
-      tk_->setStringGlobalVar(varName_, "");
+    if (! tk_->hasGlobalVar(varName()))
+      tk_->setStringGlobalVar(varName(), "");
 
-    tk_->setStringGlobalVar(varName_, qedit_->text().toStdString());
+    tk_->setStringGlobalVar(varName(), qedit_->text().toStdString());
 
     if (varProc_)
       varProc_->setEnabled(true);
@@ -3377,8 +3505,8 @@ void
 CTkAppEntry::
 updateFromVar()
 {
-  if (varName_ != "" && tk_->hasGlobalVar(varName_))
-    setText(tk_->getStringGlobalVar(varName_));
+  if (varName() != "" && tk_->hasGlobalVar(varName()))
+    setText(QString::fromStdString(tk_->getStringGlobalVar(varName())));
 }
 
 //---
@@ -3469,17 +3597,17 @@ execConfig(const std::string &name, const std::string &value)
   long underlinePos = -1;
 
   if      (name == "-textvariable") {
-    varName_ = value;
+    setVarName(value);
 
-    if (! isInitNotify() && ! tk_->hasGlobalVar(varName_))
-      tk_->setStringGlobalVar(varName_, "");
+    if (! isInitNotify() && ! tk_->hasGlobalVar(varName()))
+      tk_->setStringGlobalVar(varName(), "");
 
-    if (tk_->hasGlobalVar(varName_))
-      setText(tk_->getStringGlobalVar(varName_));
+    if (tk_->hasGlobalVar(varName()))
+      setText(QString::fromStdString(tk_->getStringGlobalVar(varName())));
 
     varProc_ = new CTkAppLabelVarProc(tk_, this);
 
-    tk_->traceGlobalVar(varName_, varProc_);
+    tk_->traceGlobalVar(varName(), varProc_);
   }
   else if (name == "-compound") {
     // none, bottom, top, left, right, or center.
@@ -3502,8 +3630,13 @@ execConfig(const std::string &name, const std::string &value)
       return false;
   }
   else if (name == "-state") {
-    if (! CTkAppUtil::setWidgetState(this, value))
-      return false;
+    if (value == "readonly") {
+      //qlabel_->setReadOnly(true);
+    }
+    else {
+      if (! CTkAppUtil::setWidgetState(this, value))
+        return false;
+    }
   }
   else
     return CTkAppWidget::execConfig(name, value);
@@ -3520,11 +3653,11 @@ execOp(const Args &args)
 
 void
 CTkAppLabel::
-setText(const std::string &text)
+setText(const QString &text)
 {
   CTkAppWidget::setText(text);
 
-  qlabel_->setLabel(QString::fromStdString(text));
+  qlabel_->setLabel(text);
 }
 
 void
@@ -3542,8 +3675,8 @@ void
 CTkAppLabel::
 updateFromVar()
 {
-  if (varName_ != "" && tk_->hasGlobalVar(varName_))
-    setText(tk_->getStringGlobalVar(varName_));
+  if (varName() != "" && tk_->hasGlobalVar(varName()))
+    setText(QString::fromStdString(tk_->getStringGlobalVar(varName())));
 }
 
 //----------
@@ -3573,11 +3706,11 @@ execOp(const Args &args)
 
 void
 CTkAppLabelFrame::
-setText(const std::string &text)
+setText(const QString &text)
 {
   CTkAppWidget::setText(text);
 
-  qframe_->setTitle(QString::fromStdString(text));
+  qframe_->setTitle(text);
 }
 
 //----------
@@ -3644,13 +3777,13 @@ execConfig(const std::string &name, const std::string &value)
     qlist_->setHeight(CTkAppListBoxWidget::OptReal(h));
   }
   else if (name == "-listvariable") {
-    varName_ = value;
+    setVarName(value);
 
     updateFromVar();
 
     varProc_ = new CTkAppListBoxVarProc(tk_, this);
 
-    tk_->traceGlobalVar(varName_, varProc_);
+    tk_->traceGlobalVar(varName(), varProc_);
   }
   else if (name == "-selectmode") {
     if      (value == "single") {
@@ -3667,6 +3800,14 @@ execConfig(const std::string &name, const std::string &value)
     }
     else
       return false;
+  }
+  else if (name == "-state") {
+    if (value == "readonly")
+      qlist_->setReadOnly(true);
+    else {
+      if (! CTkAppUtil::setWidgetState(this, value))
+        return false;
+    }
   }
   else if (name == "-width") {
     double w;
@@ -4093,10 +4234,10 @@ void
 CTkAppListBox::
 updateFromVar()
 {
-  if (varName_ != "" && tk_->hasGlobalVar(varName_)) {
+  if (varName() != "" && tk_->hasGlobalVar(varName())) {
     std::vector<std::string> strs;
 
-    if (! tk_->getStringArrayGlobalVar(varName_, strs))
+    if (! tk_->getStringArrayGlobalVar(varName(), strs))
       return;
 
      qlist_->clear();
@@ -4235,7 +4376,7 @@ execOp(const Args &args)
         const auto &value = args[i + 1];
 
         if      (name == "-label") {
-          check->setText(value);
+          check->setText(QString::fromStdString(value));
         }
         else if (name == "-command") {
           check->setProperty("CTkApp::Command", QString::fromStdString(value));
@@ -4299,7 +4440,7 @@ execOp(const Args &args)
         const auto &value = args[i + 1];
 
         if      (name == "-label") {
-          radio->setText(value);
+          radio->setText(QString::fromStdString(value));
         }
         else if (name == "-variable") {
           radio->setVarName(value);
@@ -4410,8 +4551,8 @@ void
 CTkAppCheckAction::
 updateFromVar()
 {
-  if (varName_ != "") {
-    tk_->setBoolGlobalVar(varName_, check_->isChecked());
+  if (varName() != "") {
+    tk_->setBoolGlobalVar(varName(), check_->isChecked());
   }
 }
 
@@ -4419,11 +4560,11 @@ void
 CTkAppRadioAction::
 updateFromVar()
 {
-  if (varName_ != "") {
+  if (varName() != "") {
     if (value_ != "")
-      tk_->setStringGlobalVar(varName_, value_);
+      tk_->setStringGlobalVar(varName(), value_);
     else
-      tk_->setBoolGlobalVar(varName_, radio_->isChecked());
+      tk_->setBoolGlobalVar(varName(), radio_->isChecked());
   }
 }
 
@@ -4449,9 +4590,7 @@ CTkAppMenuButton::
 CTkAppMenuButton(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  CTkAppWidget(tk, parent, name)
 {
-  qbutton_ = new QToolButton(parent ? parent->getQWidget() : nullptr);
-
-  qbutton_->setToolButtonStyle(Qt::ToolButtonTextOnly);
+  qbutton_ = new CTkAppMenuButtonWidget(this);
 
   setQWidget(qbutton_);
 
@@ -4473,20 +4612,20 @@ execConfig(const std::string &name, const std::string &value)
   long underlinePos = -1;
 
   if      (name == "-command") {
-    setCommand(value);
+    setCommand(QString::fromStdString(value));
   }
   else if (name == "-textvariable") {
-    varName_ = value;
+    setVarName(value);
 
-    if (! isInitNotify() && ! tk_->hasGlobalVar(varName_))
-      tk_->setStringGlobalVar(varName_, "");
+    if (! isInitNotify() && ! tk_->hasGlobalVar(varName()))
+      tk_->setStringGlobalVar(varName(), "");
 
-    if (tk_->hasGlobalVar(varName_))
-      setText(tk_->getStringGlobalVar(varName_));
+    if (tk_->hasGlobalVar(varName()))
+      setText(QString::fromStdString(tk_->getStringGlobalVar(varName())));
 
     varProc_ = new CTkAppMenuButtonVarProc(tk_, this);
 
-    tk_->traceGlobalVar(varName_, varProc_);
+    tk_->traceGlobalVar(varName(), varProc_);
   }
   else if (name == "-width") {
     // width in characters for text or screen units for image
@@ -4507,6 +4646,14 @@ execConfig(const std::string &name, const std::string &value)
       return tk_->throwError("Invalid " + name + " \"" + value + "\"");
 
     showIndicator_ = b;
+  }
+  else if (name == "-state") {
+    if (value == "readonly")
+      qbutton_->setReadOnly(true);
+    else {
+      if (! CTkAppUtil::setWidgetState(this, value))
+        return false;
+    }
   }
   else
     return CTkAppWidget::execConfig(name, value);
@@ -4536,11 +4683,11 @@ execOp(const Args &args)
 
 void
 CTkAppMenuButton::
-setText(const std::string &text)
+setText(const QString &text)
 {
   CTkAppWidget::setText(text);
 
-  qbutton_->setText(QString::fromStdString(text));
+  qbutton_->setText(text);
 }
 
 void
@@ -4589,8 +4736,17 @@ void
 CTkAppMenuButton::
 updateFromVar()
 {
-  if (varName_ != "" && tk_->hasGlobalVar(varName_))
-    setText(tk_->getStringGlobalVar(varName_));
+  if (varName() != "" && tk_->hasGlobalVar(varName()))
+    setText(QString::fromStdString(tk_->getStringGlobalVar(varName())));
+}
+
+//---
+
+CTkAppMenuButtonWidget::
+CTkAppMenuButtonWidget(CTkAppMenuButton *button) :
+ QToolButton(button->getParent() ? button->getParent()->getQWidget() : nullptr), button_(button)
+{
+  setToolButtonStyle(Qt::ToolButtonTextOnly);
 }
 
 //----------
@@ -4627,17 +4783,17 @@ CTkAppMessage::
 execConfig(const std::string &name, const std::string &value)
 {
   if      (name == "-textvariable") {
-    varName_ = value;
+    setVarName(value);
 
-    if (! isInitNotify() && ! tk_->hasGlobalVar(varName_))
-      tk_->setStringGlobalVar(varName_, "");
+    if (! isInitNotify() && ! tk_->hasGlobalVar(varName()))
+      tk_->setStringGlobalVar(varName(), "");
 
-    if (tk_->hasGlobalVar(varName_))
-      setText(tk_->getStringGlobalVar(varName_));
+    if (tk_->hasGlobalVar(varName()))
+      setText(QString::fromStdString(tk_->getStringGlobalVar(varName())));
 
     varProc_ = new CTkAppMessageVarProc(tk_, this);
 
-    tk_->traceGlobalVar(varName_, varProc_);
+    tk_->traceGlobalVar(varName(), varProc_);
   }
   else if (name == "-justify") {
     tk_->TODO(name);
@@ -4660,19 +4816,19 @@ execOp(const Args &args)
 
 void
 CTkAppMessage::
-setText(const std::string &text)
+setText(const QString &text)
 {
   CTkAppWidget::setText(text);
 
-  qedit_->setText(QString::fromStdString(text));
+  qedit_->setText(text);
 }
 
 void
 CTkAppMessage::
 updateFromVar()
 {
-  if (varName_ != "" && tk_->hasGlobalVar(varName_))
-    setText(tk_->getStringGlobalVar(varName_));
+  if (varName() != "" && tk_->hasGlobalVar(varName()))
+    setText(QString::fromStdString(tk_->getStringGlobalVar(varName())));
 }
 
 //----------
@@ -4985,7 +5141,7 @@ CTkAppRadioButton::
 ~CTkAppRadioButton()
 {
   if (varProc_)
-    tk_->untraceGlobalVar(varName_, varProc_);
+    tk_->untraceGlobalVar(varName(), varProc_);
 }
 
 void
@@ -5002,35 +5158,8 @@ execConfig(const std::string &name, const std::string &value)
 {
   long underlinePos = -1;
 
-  if      (name == "-variable") {
-    varName_ = value;
-
-    if (! isInitNotify() && ! tk_->hasGlobalVar(varName_))
-      updateToVar();
-
-    updateFromVar();
-
-    varProc_ = new CTkAppRadioButtonVarProc(tk_, this);
-
-    tk_->traceGlobalVar(varName_, varProc_);
-  }
-  else if (name == "-value") {
-    value_ = value;
-
-    updateToVar();
-  }
-  else if (name == "-command") {
-    setCommand(value);
-  }
-  else if (name == "-tristatevalue") {
-    tk_->TODO(name);
-  }
-  else if (name == "-wraplength") {
-    tk_->TODO(name);
-  }
-  else if (name == "-underline") {
-    if (! tk_->getOptionInt(name, value, underlinePos))
-      return false;
+  if      (name == "-command") {
+    setCommand(QString::fromStdString(value));
   }
   else if (name == "-indicatoron") {
     bool b;
@@ -5045,8 +5174,39 @@ execConfig(const std::string &name, const std::string &value)
       selectColor_ = c;
   }
   else if (name == "-state") {
-    if (! CTkAppUtil::setWidgetState(this, value))
+    if (value == "readonly")
+      qradio_->setReadOnly(true);
+    else {
+      if (! CTkAppUtil::setWidgetState(this, value))
+        return false;
+    }
+  }
+  else if (name == "-tristatevalue") {
+    tk_->TODO(name);
+  }
+  else if (name == "-underline") {
+    if (! tk_->getOptionInt(name, value, underlinePos))
       return false;
+  }
+  else if (name == "-value") {
+    value_ = value;
+
+    updateToVar();
+  }
+  else if (name == "-variable") {
+    setVarName(value);
+
+    if (! isInitNotify() && ! tk_->hasGlobalVar(varName()))
+      updateToVar();
+
+    updateFromVar();
+
+    varProc_ = new CTkAppRadioButtonVarProc(tk_, this);
+
+    tk_->traceGlobalVar(varName(), varProc_);
+  }
+  else if (name == "-wraplength") {
+    tk_->TODO(name);
   }
   else
     return CTkAppWidget::execConfig(name, value);
@@ -5085,11 +5245,11 @@ execOp(const Args &args)
 
 void
 CTkAppRadioButton::
-setText(const std::string &text)
+setText(const QString &text)
 {
   CTkAppWidget::setText(text);
 
-  qradio_->setText(QString::fromStdString(text));
+  qradio_->setText(text);
 }
 
 void
@@ -5146,23 +5306,23 @@ void
 CTkAppRadioButton::
 updateFromVar()
 {
-  if (varName_ != "" && tk_->hasGlobalVar(varName_))
-    setValue(tk_->getStringGlobalVar(varName_));
+  if (varName() != "" && tk_->hasGlobalVar(varName()))
+    setValue(tk_->getStringGlobalVar(varName()));
 }
 
 void
 CTkAppRadioButton::
 updateToVar()
 {
-  if (varName_ != "") {
+  if (varName() != "") {
     if (varProc_)
       varProc_->setEnabled(false);
 
     if (qradio_->isChecked()) {
       if (value_ != "")
-        tk_->setStringGlobalVar(varName_, value_);
+        tk_->setStringGlobalVar(varName(), value_);
       else
-        tk_->setBoolGlobalVar(varName_, qradio_->isChecked());
+        tk_->setBoolGlobalVar(varName(), qradio_->isChecked());
     }
 
     if (varProc_)
@@ -5261,7 +5421,7 @@ execConfig(const std::string &name, const std::string &value)
     tk_->TODO(name);
   }
   else if (name == "-command") {
-    setCommand(value);
+    setCommand(QString::fromStdString(value));
   }
   else if (name == "-digits") {
     long n;
@@ -5350,16 +5510,16 @@ execConfig(const std::string &name, const std::string &value)
     qscale_->setMaximum(to);
   }
   else if (name == "-variable") {
-    varName_ = value;
+    setVarName(value);
 
-    if (! isInitNotify() && ! tk_->hasGlobalVar(varName_))
-      tk_->setIntegerGlobalVar(varName_, 0);
+    if (! isInitNotify() && ! tk_->hasGlobalVar(varName()))
+      tk_->setIntegerGlobalVar(varName(), 0);
 
     updateFromVar();
 
     varProc_ = new CTkAppScaleVarProc(tk_, this);
 
-    tk_->traceGlobalVar(varName_, varProc_);
+    tk_->traceGlobalVar(varName(), varProc_);
   }
   else if (name == "-width") {
     int w;
@@ -5425,19 +5585,19 @@ void
 CTkAppScale::
 updateFromVar()
 {
-  if (varName_ != "" && tk_->hasGlobalVar(varName_))
-    qscale_->setValue(tk_->getIntegerGlobalVar(varName_));
+  if (varName() != "" && tk_->hasGlobalVar(varName()))
+    qscale_->setValue(tk_->getIntegerGlobalVar(varName()));
 }
 
 void
 CTkAppScale::
 updateToVar()
 {
-  if (varName_ != "" && tk_->hasGlobalVar(varName_)) {
+  if (varName() != "" && tk_->hasGlobalVar(varName())) {
     if (varProc_)
       varProc_->setEnabled(false);
 
-    tk_->setIntegerGlobalVar(varName_, qscale_->value());
+    tk_->setIntegerGlobalVar(varName(), qscale_->value());
 
     if (varProc_)
       varProc_->setEnabled(true);
@@ -5480,10 +5640,10 @@ execConfig(const std::string &name, const std::string &value)
     qscrollbar_->setOrientation(orient);
   }
   else if (name == "-command") {
-    setCommand(value);
+    setCommand(QString::fromStdString(value));
   }
   else if (name == "-troughcolor") {
-    setCommand(value);
+    tk_->TODO(name);
   }
   else
     return CTkAppWidget::execConfig(name, value);
@@ -5613,7 +5773,7 @@ execConfig(const std::string &name, const std::string &value)
     tk_->TODO(name);
   }
   else if (name == "-command") {
-    setCommand(value);
+    setCommand(QString::fromStdString(value));
   }
   else if (name == "-disabledbackground") {
     tk_->TODO(name);
@@ -5632,7 +5792,7 @@ execConfig(const std::string &name, const std::string &value)
     qspin_->setMinimum(from);
   }
   else if (name == "-invalidcommand") {
-    setInvalidCommand(value);
+    setInvalidCommand(QString::fromStdString(value));
   }
   else if (name == "-increment") {
     long step;
@@ -5653,17 +5813,17 @@ execConfig(const std::string &name, const std::string &value)
     }
   }
   else if (name == "-textvariable") {
-    varName_ = value;
+    setVarName(value);
 
-    if (! isInitNotify() && ! tk_->hasGlobalVar(varName_))
-      tk_->setStringGlobalVar(varName_, "");
+    if (! isInitNotify() && ! tk_->hasGlobalVar(varName()))
+      tk_->setStringGlobalVar(varName(), "");
 
-    if (tk_->hasGlobalVar(varName_))
-      setText(tk_->getStringGlobalVar(varName_));
+    if (tk_->hasGlobalVar(varName()))
+      setText(QString::fromStdString(tk_->getStringGlobalVar(varName())));
 
     varProc_ = new CTkAppSpinBoxVarProc(tk_, this);
 
-    tk_->traceGlobalVar(varName_, varProc_);
+    tk_->traceGlobalVar(varName(), varProc_);
   }
   else if (name == "-to") {
     long to;
@@ -5732,7 +5892,7 @@ execOp(const Args &args)
     if (! CTkAppUtil::stringToIndex(str, ind))
       return false;
     //if (ind == CTkAppUtil::END_INDEX)
-    //  ind = qedit_->text().length() - 1;
+    //  ind = qspin_->text().length() - 1;
     return true;
   };
 
@@ -5838,7 +5998,7 @@ execOp(const Args &args)
       if (! stringToIndex(args[3], endIndex))
         return false;
 
-      //qedit_->setSelection(startIndex, endIndex - startIndex);
+      //qspin_->setSelection(startIndex, endIndex - startIndex);
     }
     else if (args[1] == "to") {
       if (numArgs != 3)
@@ -5873,8 +6033,42 @@ execOp(const Args &args)
     if (numArgs > 4)
       return tk_->wrongNumArgs(getName() + "xview ?moveto|scroll index?");
 
-    tk_->TODO(args);
-    tk_->setStringResult("0.0 1.0");
+    if      (numArgs == 1) {
+      tk_->setStringResult("0.0 1.0");
+    }
+    else if (args[1] == "moveto") {
+      if (numArgs != 2)
+        return tk_->wrongNumArgs(getName() + " xview moveto fraction");
+
+      double f;
+      if (! CTkAppUtil::stringToReal(args[2], f))
+        return false;
+
+      //int len = qspin_->text().length();
+      //int pos = std::min(std::max(int(len*f), 0), len);
+
+      //qspin_->setCursorPosition(pos);
+
+      tk_->TODO(args);
+    }
+    else if (args[1] == "scroll") {
+      if (numArgs != 3)
+        return tk_->wrongNumArgs(getName() + " xview scroll number what");
+
+      tk_->TODO(args);
+    }
+    else {
+      if (numArgs != 2)
+        return tk_->wrongNumArgs(getName() + " xview index");
+
+      int ind;
+      if (! stringToIndex(args[2], ind))
+        return false;
+
+      //qspin_->setCursorPosition(ind);
+
+      tk_->TODO(args);
+    }
   }
   else
     return CTkAppWidget::execOp(args);
@@ -5884,26 +6078,26 @@ execOp(const Args &args)
 
 void
 CTkAppSpinBox::
-setText(const std::string &)
+setText(const QString &)
 {
   if (qspin_->mode() == CQSpinList::Mode::INTEGER)
-    qspin_->setValue(tk_->getIntegerGlobalVar(varName_));
+    qspin_->setValue(tk_->getIntegerGlobalVar(varName()));
   else
-    qspin_->setText(QString::fromStdString(tk_->getStringGlobalVar(varName_)));
+    qspin_->setText(QString::fromStdString(tk_->getStringGlobalVar(varName())));
 }
 
 void
 CTkAppSpinBox::
 valueChangedSlot()
 {
-  if (varName_ != "") {
+  if (varName() != "") {
     if (varProc_)
       varProc_->setEnabled(false);
 
-    if (! tk_->hasGlobalVar(varName_))
-      tk_->setStringGlobalVar(varName_, "");
+    if (! tk_->hasGlobalVar(varName()))
+      tk_->setStringGlobalVar(varName(), "");
 
-    //tk_->setStringGlobalVar(varName_, qedit_->text().toStdString());
+    //tk_->setStringGlobalVar(varName(), qedit_->text().toStdString());
 
     if (varProc_)
       varProc_->setEnabled(true);
@@ -5952,8 +6146,8 @@ void
 CTkAppSpinBox::
 updateFromVar()
 {
-  if (varName_ != "" && tk_->hasGlobalVar(varName_))
-    qspin_->setValue(tk_->getIntegerGlobalVar(varName_));
+  if (varName() != "" && tk_->hasGlobalVar(varName()))
+    qspin_->setValue(tk_->getIntegerGlobalVar(varName()));
 }
 
 //---
@@ -6016,7 +6210,7 @@ execConfig(const std::string &name, const std::string &value)
     tk_->TODO(name);
   }
   else if (name == "-command") {
-    setCommand(value);
+    setCommand(QString::fromStdString(value));
   }
   else if (name == "-endline") {
     tk_->TODO(name);
@@ -6046,7 +6240,7 @@ execConfig(const std::string &name, const std::string &value)
     tk_->TODO(name);
   }
   else if (name == "-startline") {
-    setText(value);
+    setText(QString::fromStdString(value));
   }
   else if (name == "-state") {
     if (! CTkAppUtil::setWidgetState(this, value))
@@ -7153,11 +7347,11 @@ remapInd(const TextInd &ind) const
 
 void
 CTkAppText::
-setText(const std::string &text)
+setText(const QString &text)
 {
   CTkAppWidget::setText(text);
 
-  qtext_->setText(QString::fromStdString(text));
+  qtext_->setText(text);
 }
 
 void
@@ -8042,12 +8236,18 @@ CTkAppWidget::
 CTkAppWidget(CTkApp *tk, CTkAppWidget *parent, const std::string &name) :
  tk_(tk), parent_(parent), name_(name)
 {
-  setObjectName("widget");
+  if      (parent_) {
+    setParent(parent->getQWidget());
 
-  if (parent_)
     parent_->addChild(this);
+  }
+  else if (tk->root()) {
+    setParent(tk->root()->getQWidget());
+  }
 
-  tk_->addWidget(this);
+  int n = tk_->addWidget(this);
+
+  setObjectName(QString("widget%1").arg(n));
 }
 
 CTkAppWidget::
@@ -8504,7 +8704,7 @@ execConfig(const std::string &name, const std::string &value)
     qwidget_->setFocusPolicy(b ? Qt::TabFocus : Qt::NoFocus);
   }
   else if (name == "-text") {
-    setText(value);
+    setText(QString::fromStdString(value));
   }
   else if (name == "-selectbackground") {
     QColor c;
@@ -8612,38 +8812,38 @@ show()
 
 void
 CTkAppWidget::
-setTitle(const std::string &title)
+setTitle(const QString &title)
 {
-  qwidget_->setWindowTitle(QString::fromStdString(title));
+  qwidget_->setWindowTitle(title);
 }
 
-std::string
+QString
 CTkAppWidget::
 getTitle() const
 {
-  return qwidget_->windowTitle().toStdString();
+  return qwidget_->windowTitle();
 }
 
 void
 CTkAppWidget::
-setIcon(const std::string &icon)
+setIcon(const QString &icon)
 {
-  qwidget_->setWindowIcon(QIcon(QString::fromStdString(icon)));
+  qwidget_->setWindowIcon(QIcon(icon));
 }
 
-std::string
+QString
 CTkAppWidget::
 getIcon() const
 {
-  return qwidget_->windowIcon().name().toStdString();
+  return qwidget_->windowIcon().name();
 }
 
 bool
 CTkAppWidget::
-setGeometry(const std::string &str)
+setGeometry(const QString &str)
 {
   auto throwError = [&]() {
-    return tk_->throwError("Invalid geometry '" + str + "'");
+    return tk_->throwError("Invalid geometry '" + str.toStdString() + "'");
   };
 
   auto rect = qwidget_->geometry();
@@ -8652,7 +8852,7 @@ setGeometry(const std::string &str)
   int w = rect.width(), h = rect.height();
 
   // format WxH+X+Y
-  CStrParse parse(str);
+  CStrParse parse(str.toStdString());
 
   parse.skipSpace();
 
@@ -8705,7 +8905,7 @@ setGeometry(const std::string &str)
   return true;
 }
 
-std::string
+QString
 CTkAppWidget::
 getGeometry() const
 {
@@ -8713,7 +8913,7 @@ getGeometry() const
 
   auto str = QString("%1x%2+%3+%4").arg(r.width()).arg(r.height()).arg(r.x()).arg(r.y());
 
-  return str.toStdString();
+  return str;
 }
 
 void
@@ -8931,7 +9131,7 @@ void
 CTkAppWidget::
 runCommand(const Args &args)
 {
-  auto cmd = getCommand();
+  auto cmd = getCommand().toStdString();
   if (cmd == "") return;
 
   for (const auto &arg : args)

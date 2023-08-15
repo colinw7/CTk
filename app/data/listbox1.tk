@@ -1,9 +1,16 @@
-listbox .fonts -listvariable ::fontlist
+listbox .fonts -listvariable ::fontlist -width 20 -height 20
 
-grid .fonts
+grid .fonts -sticky nsew
+
+grid rowconfigure    . 0 -weight 1
+grid columnconfigure . 0 -weight 1
 
 set ::fontlist [lsort -dictionary [font families]]
 
 bind .fonts <Double-Button-1> {
   %w configure -font [list [%W get [%W curselection]] 12]
 }
+
+bind .fonts <<ListboxSelect>> {puts [%W curselection]}
+
+.fonts delete 0 50

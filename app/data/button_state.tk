@@ -1,0 +1,9 @@
+option add *font "Sans 20"
+
+button .b1 -text "One"   -state normal -foreground black -background red
+button .b2 -text "Two"   -state active -activeforeground yellow -activebackground green
+button .b3 -text "Three" -state disabled -disabledforeground white
+
+button .b4 -text "Four" -relief flat -overrelief raised -highlightbackground orange
+
+pack .b1 .b2 .b3 .b4

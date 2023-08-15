@@ -1,0 +1,14 @@
+set mapwidth 100
+set mapheight 100
+
+set map [image create photo -width $mapwidth -height $mapheight]
+
+$map blank
+$map put \#f00 -to 0 0 $mapwidth $mapheight
+
+canvas .c -width 400 -height 400
+
+.c create image 10 10 -image $map
+.c create line 0 0 100 100 -fill green
+
+pack .c

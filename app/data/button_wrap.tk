@@ -1,0 +1,5 @@
+button .b -text "Some very long text"
+
+.b configure -wraplength 72p
+
+pack .b

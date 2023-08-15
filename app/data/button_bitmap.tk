@@ -1,0 +1,4 @@
+set image [image create photo gorilla -file gorilla.gif]
+
+button .button -text Gorilla -image $image -compound top
+grid .button

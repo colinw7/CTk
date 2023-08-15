@@ -1,0 +1,25 @@
+ttk::treeview .tv -columns {a b c} -height 10
+
+.tv heading #0 -text Key
+.tv heading 0 -text A
+.tv heading 1 -text B
+.tv heading 2 -text C
+
+set row1 [.tv insert {} 0 -id row1 -text 1 -values {1A 1B 1C}]
+set row2 [.tv insert {} 1 -id row2 -text 2 -values {2A 2B 2C}]
+set row3 [.tv insert {} 2 -id row3 -text 3 -values {3A 3B 3C}]
+puts $row1
+
+set row11 [.tv insert $row1 0 -text 1.1 -values {1.1A 1.1B 1.1C}]
+set row21 [.tv insert $row2 0 -text 2.1 -values {2.1A 2.1B 2.1C}]
+set row31 [.tv insert $row3 0 -text 3.1 -values {3.1A 3.1B 3.1C}]
+puts $row11
+
+pack .tv
+
+puts [.tv cget -columns]
+
+puts [.tv bbox $row1]
+puts [.tv bbox row1]
+
+bind .tv <<TreeviewSelect>> {puts [%W selection]}

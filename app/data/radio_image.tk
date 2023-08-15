@@ -1,0 +1,5 @@
+set image [image create photo gorilla -file gorilla.gif]
+
+radiobutton .r -image $image -text Text -compound left
+
+pack .r

@@ -11,3 +11,7 @@ pack .one .two -side left
 bind all <Control-c> {destroy %W}
 
 bind all <Enter> {focus %W}
+
+puts [bind Frame]
+puts [bind .two]
+puts [bind all]

@@ -180,7 +180,7 @@ class CTkApp : public QObject, public CTclApp {
 
   void addTopLevel(CTkAppTopLevel *toplevel);
 
-  void addWidget(CTkAppWidget *w);
+  int addWidget(CTkAppWidget *w);
 
   CTkAppWidget *lookupWidget(QWidget *w) const;
 

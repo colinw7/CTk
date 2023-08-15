@@ -1,0 +1,39 @@
+label .demo -textvariable stickyLabel -bd 2 -relief raised -text " "
+
+checkbutton .n -text "n" -relief raised \
+  -variable stickyN -onvalue n -offvalue {} \
+  -command redo_sticky
+checkbutton .s -text "s" -relief raised \
+  -variable stickyS -onvalue s -offvalue {} \
+  -command redo_sticky
+checkbutton .e -text "e" -relief raised \
+  -variable stickyE -onvalue e -offvalue {} \
+  -command redo_sticky
+checkbutton .w -text "w" -relief raised \
+  -variable stickyW -onvalue w -offvalue {} \
+  -command redo_sticky
+
+grid .demo -row 1 -column 1
+
+grid .n -row 0 -column 1 -sticky nsew
+grid .s -row 2 -column 1 -sticky nsew
+grid .e -row 1 -column 2 -sticky nsew
+grid .w -row 1 -column 0 -sticky nsew
+
+grid rowconfigure    . 1 -weight 1
+grid columnconfigure . 1 -weight 1
+
+wm geometry . 180x100
+
+proc redo_sticky { } {
+  global stickyN stickyS stickyE stickyW stickyLabel
+
+  append s2 $stickyN $stickyS $stickyE $stickyW
+
+  grid .demo -row 1 -column 1 -sticky $s2
+
+  set stickyLabel [list -sticky $s2]
+}
+
+redo_sticky
+

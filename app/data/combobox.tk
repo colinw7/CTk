@@ -1,0 +1,3 @@
+ttk::combobox .cb -values [list a b c d e a]
+
+pack .cb

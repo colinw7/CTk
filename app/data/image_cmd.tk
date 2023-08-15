@@ -1,0 +1,8 @@
+set i [image create photo]
+puts [$i configure]
+puts [$i cget -width]
+puts [$i cget -height]
+$i configure -width 100 -height 100
+puts [$i configure]
+puts [$i cget -width]
+puts [$i cget -height]

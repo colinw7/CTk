@@ -1,0 +1,5 @@
+set i [image create svg -file info.svg]
+
+button  .b -image $i
+
+pack .b

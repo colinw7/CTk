@@ -1,0 +1,2 @@
+bind . <KeyPress> {puts "The keysym is %K"}
+focus .

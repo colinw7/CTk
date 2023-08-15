@@ -1,0 +1,9 @@
+label .w1 -text "Label 1" -relief raised
+label .w2 -text "Label 2" -relief raised
+label .w3 -text "Label 3" -relief raised
+label .w4 -text "No.\n4" -relief raised
+label .w5 -text "No.\n5" -relief raised
+
+grid .w1 -   x   .w4 -sticky nsew
+grid .w5 .w2 -   ^   -sticky nsew
+grid ^   x   .w3 -   -sticky nsew

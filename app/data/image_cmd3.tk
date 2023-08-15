@@ -1,0 +1,10 @@
+set image [image create photo gorilla]
+
+$image read gorilla.gif
+
+puts [$image get 100 100]
+
+button .b1 -image $image -width 100
+button .b2 -text "Gorilla" -width 100
+
+pack .b1 .b2

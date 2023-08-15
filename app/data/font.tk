@@ -1,0 +1,26 @@
+set f1 [font create f1 -weight normal]
+set f2 [font create f2 -weight bold]
+set f3 [font create f3 -slant italic -weight bold]
+
+puts "$f1 $f2 $f3"
+
+button .b1 -text "Button 1" -font $f1
+button .b2 -text "Button 2" -font $f2
+button .b3 -text "Button 3" -font $f3
+
+pack .b1 .b2 .b3
+
+puts [font actual $f3]
+
+puts "family = [font actual $f3 -family]"
+puts "size = [font actual $f3 -size]"
+puts "weight = [font actual $f3 -weight]"
+puts "slant = [font actual $f3 -slant]"
+puts "underline = [font actual $f3 -underline]"
+puts "overstrike = [font actual $f3 -overstrike]"
+
+font delete $f1
+
+puts [font metrics TkHeadingFont]
+puts [font metrics TkHeadingFont -ascent]
+puts [font names]

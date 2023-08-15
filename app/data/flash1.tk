@@ -1,0 +1,16 @@
+proc flash {w option value1 value2 interval count} {
+  for {set i 0} {$i < $count} {incr i} {
+    $w config $option $value1
+    update idletasks
+    after $interval
+    $w config $option $value2
+    update idletasks
+    after $interval
+  }
+}
+
+button .b -text Flash
+
+pack .b
+
+flash .b -background red blue 100 5

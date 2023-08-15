@@ -87,14 +87,48 @@ static VirtualEventData virtualEventData[] = {
   { ""                   , CTkAppVirtualEventType::None            }
 };
 
+#if 0
 static Tcl_NotifierProcs s_notifierProcs;
+#endif
+
 //static Tcl_NotifierProcs s_noNotifierProcs;
 
+#if 0
 int s_waitForEventProc(const Tcl_Time *) {
   if (s_app)
     return s_app->waitForEventProc();
 
   return 0;
+}
+#endif
+
+int s_eventEventProc(Tcl_Event * /*evPtr*/, int flags) {
+  if (! (flags & TCL_WINDOW_EVENTS))
+    return 0;
+
+  QCoreApplication::processEvents();
+
+  return 1;
+}
+
+void s_eventSetupProc(ClientData /*clientData*/, int flags) {
+//auto *app = static_cast<CTkApp *>(clientData);
+  Tcl_Time block_time = {0, 0};
+  if (! (flags & TCL_WINDOW_EVENTS))
+    return;
+
+  block_time.usec = 10000;
+  Tcl_SetMaxBlockTime(&block_time);
+}
+
+void s_eventCheckProc(ClientData /*clientData*/, int flags) {
+//auto *app = static_cast<CTkApp *>(clientData);
+  if (! (flags & TCL_WINDOW_EVENTS))
+    return;
+
+  auto *event = reinterpret_cast<Tcl_Event *>(Tcl_Alloc(sizeof(Tcl_Event)));
+  event->proc = s_eventEventProc;
+  Tcl_QueueEvent(event, TCL_QUEUE_TAIL);
 }
 
 }
@@ -170,9 +204,15 @@ construct(int argc, const char **argv)
 
   //---
 
+#if 0
   s_notifierProcs.waitForEventProc = s_waitForEventProc;
 
   Tcl_SetNotifier(&s_notifierProcs);
+#endif
+
+  Tcl_CreateEventSource(s_eventSetupProc, s_eventCheckProc, this);
+
+  //---
 
   timer_ = new QTimer;
 
@@ -905,11 +945,13 @@ addTopLevel(CTkAppTopLevel *toplevel)
   toplevels_.push_back(toplevel);
 }
 
-void
+int
 CTkApp::
 addWidget(CTkAppWidget *w)
 {
   widgets_.insert(w);
+
+  return int(widgets_.size());
 }
 
 CTkAppWidget *

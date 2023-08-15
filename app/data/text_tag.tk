@@ -16,3 +16,7 @@ proc loadFile {file} {
 }
 
 loadFile Makefile
+
+.text tag add lineTag 1.0 1.end
+
+puts [.text tag ranges lineTag]

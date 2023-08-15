@@ -4010,6 +4010,7 @@ run(const Args &args)
         }
         else if (value == "ok") {
           messageBox->addButton(QMessageBox::Ok);
+          buttonsAdded = true;
         }
         else if (value == "okcancel") {
           messageBox->addButton(QMessageBox::Ok);
@@ -4735,11 +4736,11 @@ run(const Args &args)
   }
   else if (arg == "geometry") {
     if (numArgs == 3) {
-      if (! w->setGeometry(args[2]))
+      if (! w->setGeometry(QString::fromStdString(args[2])))
         return false;
     }
     else
-      setStringResult(w->getGeometry());
+      setStringResult(w->getGeometry().toStdString());
   }
   else if (arg == "grid") {
     setStringResult("80 30 10 19");
@@ -4760,9 +4761,9 @@ run(const Args &args)
   }
   else if (arg == "iconname") {
     if (numArgs == 3)
-      w->setIcon(args[2]);
+      w->setIcon(QString::fromStdString(args[2]));
     else
-      setStringResult(w->getIcon());
+      setStringResult(w->getIcon().toStdString());
   }
   else if (arg == "iconphoto") {
     tk_->TODO(args);
@@ -4876,12 +4877,12 @@ run(const Args &args)
     if (numArgs == 3) {
       const auto &title = args[2];
 
-      w->setTitle(title);
+      w->setTitle(QString::fromStdString(title));
     }
     else {
       const auto &title = w->getTitle();
 
-      setStringResult(title);
+      setStringResult(title.toStdString());
     }
   }
   else if (arg == "transient") {

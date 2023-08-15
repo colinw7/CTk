@@ -1,0 +1,6 @@
+ttk::notebook .nb
+
+.nb add [button .b1 -text "One"]
+.nb add [button .b2 -text "Two"]
+
+pack .nb

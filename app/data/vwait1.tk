@@ -1,0 +1,15 @@
+proc write_x { args } {
+  puts "write_x $args"
+}
+
+set x 0
+puts "start: $x"
+trace add variable x write write_x
+
+button .b -text "Press"
+pack .b
+.b config -command { global x; set x 1; puts "Press $x" }
+
+vwait x
+puts "end: $x"
+exit

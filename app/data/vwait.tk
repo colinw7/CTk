@@ -1,0 +1,6 @@
+set x 0
+puts "start: $x"
+after 500 {set x 1}
+vwait x
+puts "end: $x"
+exit

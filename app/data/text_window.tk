@@ -1,0 +1,9 @@
+text .t
+
+.t insert end "Embedded  Window"
+
+button .b -text "Button"
+
+.t window create 1.9 -window .b
+
+pack .t

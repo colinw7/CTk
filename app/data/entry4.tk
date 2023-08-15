@@ -1,0 +1,8 @@
+label .label -text "File nane:"
+
+entry .entry -width 20 -relief sunken -bd 2
+
+grid .label .entry -padx 1m -pady 2m
+
+.entry insert 0 "Hello World"
+.entry delete 1 3
