@@ -52,13 +52,11 @@ class CTkApp : public QObject, public CTclApp {
     QTransform transform;
   };
 
+  using Args = std::vector<QVariant>;
+
  public:
-  explicit CTkApp(Tcl_Interp *interp, bool useNamespace=false);
-  explicit CTkApp(int argc, const char **argv, bool useNamespace=false);
-
-  //---
-
-  std::string getTclStr() override;
+  explicit CTkApp(Tcl_Interp *interp, const QString &context="");
+  explicit CTkApp(int argc, const char **argv, const QString &context="");
 
   //---
 
@@ -71,9 +69,9 @@ class CTkApp : public QObject, public CTclApp {
   bool useStyle() const { return useStyle_; }
   void setUseStyle(bool b) { useStyle_ = b; }
 
-  std::string mapName(const std::string &name) const {
-    if (useNamespace_)
-      return "::tkapp::" + name;
+  QString mapName(const QString &name) const {
+    if (context_ != "")
+      return "::" + context_ + "::" + name;
     else
       return name;
   }
@@ -88,46 +86,46 @@ class CTkApp : public QObject, public CTclApp {
 
   //---
 
-  CTkAppWidget *lookupWidgetByName(const std::string &widgetName, bool quiet=false) const;
+  CTkAppWidget *lookupWidgetByName(const QString &widgetName, bool quiet=false) const;
 
   //---
 
-  bool processOption(CTkAppOption *opts, const std::vector<std::string> &args, uint &i,
+  bool processOption(CTkAppOption *opts, const Args &args, uint &i,
                      CTkAppOptionValueMap &values);
 
   //---
 
-  std::string getNewImageName() const;
+  QString getNewImageName() const;
 
-  CTkAppImageRef createImage(const std::string &type, const std::string &format,
-                             const std::string &name, int width=-1, int height=-1);
+  CTkAppImageRef createImage(const QString &type, const QString &format,
+                             const QString &name, int width=-1, int height=-1);
 
   void deleteImage(const CTkAppImageRef &image);
 
-  CTkAppImageRef getImage(const std::string &name) const;
+  CTkAppImageRef getImage(const QString &name) const;
 
-  CTkAppImageRef getBitmap(const std::string &name) const;
+  CTkAppImageRef getBitmap(const QString &name) const;
 
-  void getImageNames(std::vector<std::string> &names) const;
+  void getImageNames(std::vector<QString> &names) const;
 
   //---
 
-  std::string getNewFontName() const;
+  QString getNewFontName() const;
 
-  CTkAppFontRef createFont(const std::string &name);
+  CTkAppFontRef createFont(const QString &name);
   void deleteFont(const CTkAppFontRef &font);
 
-  CTkAppFontRef getFont(const std::string &name) const;
+  CTkAppFontRef getFont(const QString &name) const;
 
-  QFont getQFont(const std::string &name) const;
+  QFont getQFont(const QString &name) const;
 
   struct FontData {
-    std::string family     { };
-    double      size       { 12.0 };
-    std::string weight     { "normal" };
-    std::string slant      { "roman" };
-    bool        underline  { false };
-    bool        overstrike { false };
+    QString family     { };
+    double  size       { 12.0 };
+    QString weight     { "normal" };
+    QString slant      { "roman" };
+    bool    underline  { false };
+    bool    overstrike { false };
 
     double ascent    { 10 };
     double descent   { 2 };
@@ -137,46 +135,46 @@ class CTkApp : public QObject, public CTclApp {
 
   void getFontData(const QFont &qfont, FontData &data) const;
 
-  void getFontNames(std::vector<std::string> &names) const;
+  void getFontNames(std::vector<QString> &names) const;
 
   void showFontDialog(bool b);
 
   //---
 
-  void *getWidgetClassData(const std::string &name) const;
+  void *getWidgetClassData(const QString &name) const;
 
   //---
 
   bool bindAllEvent  (const CTkAppEventData &data);
-  bool bindTagEvent  (const std::string &tagName, const CTkAppEventData &data);
-  bool bindClassEvent(const std::string &tagName, const CTkAppEventData &data);
+  bool bindTagEvent  (const QString &tagName, const CTkAppEventData &data);
+  bool bindClassEvent(const QString &tagName, const CTkAppEventData &data);
 
-  void getClassBindings(const std::string &name, const CTkAppEventData &data,
-                        std::vector<std::string> &bindings);
-  void getTagBindings(const std::string &name, const CTkAppEventData &data,
-                      std::vector<std::string> &bindings);
+  void getClassBindings(const QString &name, const CTkAppEventData &data,
+                        std::vector<QString> &bindings);
+  void getTagBindings(const QString &name, const CTkAppEventData &data,
+                      std::vector<QString> &bindings);
   void getAllBindings(const CTkAppEventData &data,
-                      std::vector<std::string> &bindings);
+                      std::vector<QString> &bindings);
 
-  void getClassBindings(const std::string &name, std::vector<std::string> &bindings);
-  void getTagBindings(const std::string &name, std::vector<std::string> &bindings);
-  void getAllBindings(std::vector<std::string> &bindings);
+  void getClassBindings(const QString &name, std::vector<QString> &bindings);
+  void getTagBindings(const QString &name, std::vector<QString> &bindings);
+  void getAllBindings(std::vector<QString> &bindings);
 
   //---
 
-  bool triggerEvents(const std::string &, CTkAppWidget *, QEvent *e,
+  bool triggerEvents(const QString &, CTkAppWidget *, QEvent *e,
                      const CTkAppEventData &matchEventData);
-  bool triggerVirtualEvents(const std::string &, CTkAppWidget *,
+  bool triggerVirtualEvents(const QString &, CTkAppWidget *,
                             const CTkAppEventData &matchEventData);
 
   bool execEvent(CTkAppWidget *, QEvent *e, const CTkAppEventData &data,
-                 const std::string &command);
+                 const QString &command);
   bool execVirtualEvent(CTkAppWidget *, const CTkAppEventData &data,
-                        const std::string &command);
+                        const QString &command);
 
   //---
 
-  CTkAppTopLevel *installToplevel(const std::string &id, QFrame *frame);
+  CTkAppTopLevel *installToplevel(const QString &id, QFrame *frame);
 
   void addTopLevel(CTkAppTopLevel *toplevel);
 
@@ -195,53 +193,53 @@ class CTkApp : public QObject, public CTclApp {
   void encodeEvent(QKeyEvent *e, bool press, CTkAppEventData &data) const;
   void encodeEvent(QMouseEvent *e, CTkAppEventMode mode, int button, CTkAppEventData &data) const;
 
-  bool stringToVirtualEvent(const std::string &str, CTkAppVirtualEventData &data,
+  bool stringToVirtualEvent(const QString &str, CTkAppVirtualEventData &data,
                             bool quiet=false) const;
 
-  bool parseEvent(const std::string &str, CTkAppEventData &data);
+  bool parseEvent(const QString &str, CTkAppEventData &data);
 
   void addVirtualEventData(const CTkAppVirtualEventData &vdata, const CTkAppEventData &edata);
 
-  void virtualEventNames(std::vector<std::string> &names) const;
+  void virtualEventNames(std::vector<QString> &names) const;
   void virtualEventNames(const CTkAppVirtualEventData &vdata,
-                         std::vector<std::string> &names) const;
+                         std::vector<QString> &names) const;
 
   //---
 
-  void addOption(const std::string &pattern, const std::string &value, int priority);
+  void addOption(const QString &pattern, const QString &value, int priority);
 
-  bool matchOption(const std::string &widgetClass, const std::string &optName,
-                   const std::string &optClass, std::string &optValue) const;
+  bool matchOption(const QString &widgetClass, const QString &optName,
+                   const QString &optClass, QString &optValue) const;
 
   void clearOptions();
 
   //---
 
-  bool lookupOptionName(const std::vector<std::string> &names,
-                        const std::string &arg, std::string &opt, bool quiet=false) const;
+  bool lookupOptionName(const std::vector<QString> &names,
+                        const QString &arg, QString &opt, bool quiet=false) const;
 
-  bool lookupName(const std::string &msg, const std::vector<std::string> &names,
-                  const std::string &arg, std::string &opt, bool quiet=false) const;
+  bool lookupName(const QString &msg, const std::vector<QString> &names,
+                  const QString &arg, QString &opt, bool quiet=false) const;
 
-  bool getOptionInt (const std::string &name, const std::string &value, long &i) const;
-  bool getOptionReal(const std::string &name, const std::string &value, double &r) const;
-
-  //---
-
-  const std::string &currentCommand() const { return currentCommand_; }
-  void setCurrentCommand(const std::string &s) { currentCommand_ = s; }
+  bool getOptionInt (const QString &name, const QString &value, long &i) const;
+  bool getOptionReal(const QString &name, const QString &value, double &r) const;
 
   //---
 
-  std::string newMatrixName() const {
-    return "matrix_" + std::to_string(nameMatrices_.size() + 1);
+  const QString &currentCommand() const { return currentCommand_; }
+  void setCurrentCommand(const QString &s) { currentCommand_ = s; }
+
+  //---
+
+  QString newMatrixName() const {
+    return QString("matrix_%1").arg(nameMatrices_.size() + 1);
   }
 
-  void setNamedMatrix(const std::string &name, const MatrixData &d) {
+  void setNamedMatrix(const QString &name, const MatrixData &d) {
     nameMatrices_[name] = d;
   }
 
-  bool getNamedMatrix(const std::string &name, MatrixData &d) {
+  bool getNamedMatrix(const QString &name, MatrixData &d) {
     auto pm = nameMatrices_.find(name);
     if (pm == nameMatrices_.end()) return false;
     d = (*pm).second;
@@ -252,34 +250,34 @@ class CTkApp : public QObject, public CTclApp {
 
   //---
 
-  bool wrongNumArgs(const std::string &msg) const;
+  bool wrongNumArgs(const QString &msg) const;
 
-  bool throwError(const std::string &msg) const;
+  bool throwError(const QString &msg) const;
 
-  void debugCmd(const std::string &cmd, const std::vector<std::string> &args) const;
+  void debugCmd(const QString &cmd, const Args &args) const;
 
-  bool TODO(const std::string &msg="") const;
-  bool TODO(const std::vector<std::string> &args) const;
-  bool TODO(const std::string &arg, const std::vector<std::string> &args) const;
+  bool TODO(const QString &msg="") const;
+  bool TODO(const Args &args) const;
+  bool TODO(const QString &arg, const Args &args) const;
 
  protected:
   void construct(int argc, const char **argv);
 
   void addCommands() override;
 
-  void addWidgetClass(const std::string &name);
+  void addWidgetClass(const QString &name);
 
  private Q_SLOTS:
   void timerSlot();
 
  private:
-  using WidgetClasses    = std::set<std::string>;
-  using ImageMap         = std::map<std::string, CTkAppImageRef>;
-  using FontMap          = std::map<std::string, CTkAppFontRef>;
+  using WidgetClasses    = std::set<QString>;
+  using ImageMap         = std::map<QString, CTkAppImageRef>;
+  using FontMap          = std::map<QString, CTkAppFontRef>;
   using TopLevelArray    = std::vector<CTkAppTopLevel *>;
   using EventDatas       = std::vector<CTkAppEventData>;
-  using ClassEventDatas  = std::map<std::string, EventDatas>;
-  using TagEventDatas    = std::map<std::string, EventDatas>;
+  using ClassEventDatas  = std::map<QString, EventDatas>;
+  using TagEventDatas    = std::map<QString, EventDatas>;
   using WidgetSet        = std::set<CTkAppWidget *>;
   using WidgetP          = QPointer<CTkAppWidget>;
   using WidgetArray      = std::vector<WidgetP>;
@@ -288,13 +286,13 @@ class CTkApp : public QObject, public CTclApp {
   //--
 
   struct OptionData {
-    std::string pattern;
-    std::string value;
-    int         priority { -1 };
+    QString pattern;
+    QString value;
+    int     priority { -1 };
 
     OptionData() = default;
 
-    OptionData(const std::string &pattern1, const std::string &value1, int priority1) :
+    OptionData(const QString &pattern1, const QString &value1, int priority1) :
      pattern(pattern1), value(value1), priority(priority1) {
     }
   };
@@ -303,11 +301,11 @@ class CTkApp : public QObject, public CTclApp {
 
   //--
 
-  using NamedMatrices = std::map<std::string, MatrixData>;
+  using NamedMatrices = std::map<QString, MatrixData>;
 
   //--
 
-  bool useNamespace_ = false;
+  QString context_;
 
   WidgetClasses widgetClasses_;
   NamedMatrices nameMatrices_;
@@ -331,7 +329,7 @@ class CTkApp : public QObject, public CTclApp {
 
   OptionDatas options_;
 
-  std::string currentCommand_;
+  QString currentCommand_;
 
   VirtualEventData virtualEventData_;
 };

@@ -2,7 +2,7 @@
 #include <CTkApp.h>
 
 CTkAppFont::
-CTkAppFont(CTkApp *tk, const std::string &name) :
+CTkAppFont(CTkApp *tk, const QString &name) :
  tk_(tk), name_(name)
 {
 }
@@ -19,18 +19,18 @@ getQFont() const
   return qfont_;
 }
 
-std::string
+QString
 CTkAppFont::
 family() const
 {
-  return qfont_.family().toStdString();
+  return qfont_.family();
 }
 
 void
 CTkAppFont::
-setFamily(const std::string &name)
+setFamily(const QString &name)
 {
-  qfont_.setFamily(QString::fromStdString(name));
+  qfont_.setFamily(name);
 }
 
 void

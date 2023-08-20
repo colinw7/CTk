@@ -1,17 +1,17 @@
 #include <CTkAppUtil.h>
 
+#include <CQStrParse.h>
 #include <CScreenUnits.h>
-#include <CStrMap.h>
-#include <CStrParse.h>
-#include <CRGBName.h>
+
+#include <set>
 
 namespace CTkAppUtil {
 
 bool
-stringToInt(const std::string &str, long &i)
+stringToInt(const QString &str, long &i)
 {
   try {
-    i = std::stol(str);
+    i = std::stol(str.toStdString());
   }
     catch (...) {
     return false;
@@ -21,10 +21,10 @@ stringToInt(const std::string &str, long &i)
 }
 
 bool
-stringToReal(const std::string &str, double &r)
+stringToReal(const QString &str, double &r)
 {
   try {
-    r = std::stod(str);
+    r = std::stod(str.toStdString());
   }
     catch (...) {
     return false;
@@ -34,11 +34,13 @@ stringToReal(const std::string &str, double &r)
 }
 
 bool
-stringToBool(const std::string &str, bool &b)
+stringToBool(const QString &str, bool &b)
 {
-  if      (str == "1" || str == "yes" || str == "true" || str == "y")
+  auto lstr = str.toLower();
+
+  if      (lstr == "1" || lstr == "yes" || lstr == "true" || lstr == "y")
     b = true;
-  else if (str == "0" || str == "no" || str == "false" || str == "n")
+  else if (lstr == "0" || lstr == "no" || lstr == "false" || lstr == "n")
     b = false;
   else
     return false;
@@ -47,33 +49,28 @@ stringToBool(const std::string &str, bool &b)
 }
 
 bool
-stringToQColor(const std::string &str, QColor &c)
+stringToQColor(const QString &str, QColor &c)
 {
-  double r = 0.0, g = 0.0, b = 0.0, a = 0.0;
-
-  if (str != "")
-    CRGBName::lookup(str, &r, &g, &b, &a);
-
-  c = QColor(255*r, 255*g, 255*b, 255*a);
+  c = QColor(str);
 
   return true;
 }
 
 bool
-stringToQFont(const std::string &str, QFont &f)
+stringToQFont(const QString &str, QFont &f)
 {
-  CStrParse parse(str);
+  CQStrParse parse(str);
 
   parse.skipSpace();
 
-  std::string family;
+  QString family;
 
   if (! parse.readNonSpace(family))
     return false;
 
   //std::cerr << family << " ";
 
-  f.setFamily(QString::fromStdString(family));
+  f.setFamily(family);
 
   //---
 
@@ -101,10 +98,10 @@ stringToQFont(const std::string &str, QFont &f)
 
   parse.skipSpace();
 
-  std::vector<std::string> styles;
+  std::vector<QString> styles;
 
   while (! parse.eof()) {
-    std::string style;
+    QString style;
 
     if (! parse.readNonSpace(style))
       return false;
@@ -121,7 +118,7 @@ stringToQFont(const std::string &str, QFont &f)
     else if (style == "italic")
       f.setItalic(true);
     else
-      std::cerr << "Unhandled style '" << style << "'\n";
+      std::cerr << "Unhandled style '" << style.toStdString() << "'\n";
   }
 
   //---
@@ -132,9 +129,9 @@ stringToQFont(const std::string &str, QFont &f)
 }
 
 bool
-stringToDistance(const std::string &str, double &r)
+stringToDistance(const QString &str, double &r)
 {
-  CStrParse parse(str);
+  CQStrParse parse(str);
 
   parse.skipSpace();
 
@@ -173,7 +170,7 @@ stringToDistance(const std::string &str, double &r)
 }
 
 bool
-stringToDistanceI(const std::string &str, int &i)
+stringToDistanceI(const QString &str, int &i)
 {
   double r;
   if (! stringToDistance(str, r))
@@ -183,14 +180,79 @@ stringToDistanceI(const std::string &str, int &i)
 }
 
 bool
-stringToOrient(const std::string &str, Qt::Orientation &orient)
+stringToOrient(const QString &str, Qt::Orientation &orient)
 {
-  static CStrMap<Qt::Orientation, int> orientMap(
-    "horizontal", Qt::Horizontal,
-    "vertical"  , Qt::Vertical  ,
-    0);
+  static auto names = std::vector<QString>({ "horizontal", "vertical" });
 
-  return orientMap.map(str, orient);
+  QString match;
+  if (! uniqueMatch(names, str, match))
+    return false;
+
+  orient = Qt::Horizontal;
+
+  if (match == "horizontal") orient = Qt::Horizontal;
+  if (match == "vertical"  ) orient = Qt::Vertical;
+
+  return true;
+}
+
+bool
+stringToAlign(const QString &value, Qt::Alignment &align)
+{
+  align = Qt::AlignCenter;
+
+  if      (value == "n"     ) align = Qt::AlignTop;
+  else if (value == "ne"    ) align = Qt::AlignTop    | Qt::AlignRight;
+  else if (value == "e"     ) align =                   Qt::AlignRight;
+  else if (value == "se"    ) align = Qt::AlignBottom | Qt::AlignRight;
+  else if (value == "s"     ) align = Qt::AlignBottom;
+  else if (value == "sw"    ) align = Qt::AlignBottom | Qt::AlignLeft;
+  else if (value == "w"     ) align =                   Qt::AlignLeft;
+  else if (value == "nw"    ) align = Qt::AlignTop    | Qt::AlignLeft;
+  else if (value == "center") align = Qt::AlignCenter;
+  else if (value == "c"     ) align = Qt::AlignCenter;
+  else if (value == "middle") align = Qt::AlignCenter;
+  else { std::cerr << "Invalid align string '" << value.toStdString() << "'\n"; return false; }
+
+  return true;
+}
+
+QString
+alignToString(Qt::Alignment &align)
+{
+  if      (align ==  Qt::AlignTop                     ) return "n";
+  else if (align == (Qt::AlignTop    | Qt::AlignRight)) return "ne";
+  else if (align ==                    Qt::AlignRight ) return "e";
+  else if (align == (Qt::AlignBottom | Qt::AlignRight)) return "se";
+  else if (align ==  Qt::AlignBottom                  ) return "s";
+  else if (align == (Qt::AlignBottom | Qt::AlignLeft )) return "sw";
+  else if (align ==                    Qt::AlignLeft  ) return "w";
+  else if (align == (Qt::AlignTop    | Qt::AlignLeft )) return "nw";
+  else if (align ==  Qt::AlignCenter                  ) return "center";
+  return "nw";
+}
+
+bool
+uniqueMatch(const std::vector<QString> &values, const QString &str, QString &match)
+{
+  std::set<QString> partialValues;
+
+  for (const auto &value : values) {
+    if (value == str) {
+      match = value;
+      return true;
+    }
+
+    if (value.indexOf(str) == 0)
+      partialValues.insert(value);
+  }
+
+  if (partialValues.size() != 1)
+    return false;
+
+  match = *partialValues.begin();
+
+  return true;
 }
 
 }

@@ -2,65 +2,108 @@
 #define CTkAppPackLayout_H
 
 #include <CTkAppLayout.h>
+#include <CTkAppLayoutWidget.h>
 
 class CTkAppWidget;
 
 class QPainter;
 
+//---
+
+class CTkAppPackLayoutInfo {
+ public:
+  enum class Side { LEFT, RIGHT, BOTTOM, TOP, NONE };
+  enum class Fill { X, Y, NONE, BOTH };
+
+ public:
+  explicit CTkAppPackLayoutInfo() { }
+
+  explicit CTkAppPackLayoutInfo(Side side, Fill fill, bool expand,
+                                int padx, int pady, int ipadx, int ipady) :
+   side_(side), fill_(fill), expand_(expand),
+   padx_(padx), pady_(pady), ipadx_(ipadx), ipady_(ipady) {
+  }
+
+  const Side &side() const { return side_; }
+  void setSide(const Side &v) { side_ = v; }
+
+  const Fill &fill() const { return fill_; }
+  void setFill(const Fill &v) { fill_ = v; }
+
+  bool isExpand() const { return expand_; }
+  void setExpand(bool b) { expand_ = b; }
+
+  int padX() const { return padx_; }
+  void setPadX(int i) { padx_ = i; }
+
+  int padY() const { return pady_; }
+  void setPadY(int i) { pady_ = i; }
+
+  int ipadX() const { return ipadx_; }
+  void setIPadX(int i) { ipadx_ = i; }
+
+  int ipadY() const { return ipady_; }
+  void setIPadY(int i) { ipady_ = i; }
+
+  const char *getSideStr() const {
+    switch (side_) {
+      case Side::LEFT  : return "left";
+      case Side::RIGHT : return "right";
+      case Side::BOTTOM: return "bottom";
+      case Side::TOP   : return "top";
+      default          : return "none";
+    }
+  }
+
+  const char *getFillStr() const {
+    switch (fill_) {
+      case Fill::X   : return "x";
+      case Fill::Y   : return "y";
+      case Fill::BOTH: return "both";
+      default        : return "none";
+    }
+  }
+
+ private:
+  Side side_   { Side::TOP };
+  Fill fill_   { Fill::NONE };
+  bool expand_ { false };
+  int  padx_   { 0 };
+  int  pady_   { 0 };
+  int  ipadx_  { 0 };
+  int  ipady_  { 0 };
+};
+
+//---
+
+class CTkAppPackLayoutWidget : public CTkAppLayoutWidget {
+ public:
+  using Info = CTkAppPackLayoutInfo;
+
+  explicit CTkAppPackLayoutWidget(TkWidget *widget, const Info &info) :
+   CTkAppLayoutWidget(widget), info_(info) {
+  }
+
+  explicit CTkAppPackLayoutWidget(QLayout *layout, const Info &info) :
+   CTkAppLayoutWidget(layout), info_(info) {
+  }
+
+  const Info &info() const { return info_; }
+  Info &info() { return info_; }
+
+ private:
+  Info info_;
+};
+
+//---
+
 class CTkAppPackLayout : public CTkAppLayout {
   Q_OBJECT
 
+  Q_PROPERTY(bool propagate READ isPropagate WRITE setPropagate)
+
  public:
-  enum Side { SIDE_LEFT, SIDE_RIGHT, SIDE_BOTTOM, SIDE_TOP, SIDE_NONE };
-  enum Fill { FILL_X, FILL_Y, FILL_NONE, FILL_BOTH };
-
-  struct Info {
-    Side side   { SIDE_TOP };
-    Fill fill   { FILL_NONE };
-    bool expand { false };
-    int  padx   { 0 };
-    int  pady   { 0 };
-    int  ipadx  { 0 };
-    int  ipady  { 0 };
-
-    explicit Info() { }
-
-    explicit Info(Side side, Fill fill, bool expand, int padx, int pady, int ipadx, int ipady) :
-     side(side), fill(fill), expand(expand), padx(padx), pady(pady), ipadx(ipadx), ipady(ipady) {
-    }
-
-    const char *getSideStr() const {
-      switch (side) {
-        case SIDE_LEFT  : return "left";
-        case SIDE_RIGHT : return "right";
-        case SIDE_BOTTOM: return "bottom";
-        case SIDE_TOP   : return "top";
-        default         : return "none";
-      }
-    }
-
-    const char *getFillStr() const {
-      switch (fill) {
-        case FILL_X   : return "x";
-        case FILL_Y   : return "y";
-        case FILL_BOTH: return "both";
-        default       : return "none";
-      }
-    }
-  };
-
- private:
-  struct ItemWrapper {
-    ItemWrapper() = default;
-
-    ItemWrapper(QLayoutItem *i, const Info &f) {
-      item = i;
-      info = f;
-    }
-
-    QLayoutItem *item { nullptr };
-    Info         info;
-  };
+  using Info = CTkAppPackLayoutInfo;
 
  public:
   explicit CTkAppPackLayout(QWidget *parent, int margin=0, int spacing=0);
@@ -68,7 +111,7 @@ class CTkAppPackLayout : public CTkAppLayout {
 
  ~CTkAppPackLayout();
 
-  std::string name() const override { return "pack"; }
+  QString name() const override { return "pack"; }
 
   bool isPropagate() const { return propagate_; }
   void setPropagate(bool b) { propagate_ = b; }
@@ -80,11 +123,15 @@ class CTkAppPackLayout : public CTkAppLayout {
 
   void removeWidget(CTkAppWidget *widget);
 
+  std::vector<CTkAppLayoutWidget *> getLayoutWidgets() const override;
+
   std::vector<CTkAppWidget *> getWidgets() const;
 
-  ItemWrapper *getItem(CTkAppWidget *widget) const;
+  QLayoutItem *getItem(CTkAppWidget *widget) const;
 
   bool getChildInfo(CTkAppWidget *widget, Info &info);
+
+  //---
 
   Qt::Orientations expandingDirections() const override;
 
@@ -98,21 +145,23 @@ class CTkAppPackLayout : public CTkAppLayout {
 
   void setGeometry(const QRect &rect) override;
 
+  QSize widgetSizeHint(CTkAppPackLayoutWidget *widget) const;
+
   QSize sizeHint() const override;
 
   QLayoutItem *takeAt(int index) override;
 
-  void add(QLayoutItem *item, const Info &info);
+  void add(QLayoutItem *item);
+
+  void invalidate() override;
 
  private:
   void setItemGeometry(QLayoutItem *item, const QRect &r);
 
  private:
-  enum SizeType { MinimumSize, SizeHint };
-
   QSize calculateSize(SizeType sizeType) const;
 
-  QList<ItemWrapper *> list_;
+  QList<QLayoutItem *> list_;
   bool                 propagate_ { true };
 };
 

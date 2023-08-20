@@ -1,6 +1,8 @@
 #ifndef CTCL_APP_H
 #define CTCL_APP_H
 
+#include <QString>
+
 #include <string>
 #include <vector>
 #include <set>
@@ -67,7 +69,7 @@ class CTclApp {
 
   void setIntegerResult(int value);
   void setRealResult   (double value);
-  void setStringResult (const std::string &value);
+  void setStringResult (const QString &value);
   void setBoolResult   (bool b);
 
   void setIntegerArrayResult(int *values, int num_values);
@@ -75,53 +77,52 @@ class CTclApp {
   void setIntegerArrayResult(std::initializer_list<int> l);
   void setRealArrayResult   (double *values, int num_values);
   void setRealArrayResult   (const std::vector<double> &values);
-  void setStringArrayResult (char **values, int num_values);
-  void setStringArrayResult (const std::vector<std::string> &strs);
+  void setStringArrayResult (const std::vector<QString> &strs);
 
   void setObjResult(Tcl_Obj *obj);
 
   //---
 
-  bool getStringResult(std::string &res) const;
+  bool getStringResult(QString &res) const;
 
   //---
 
-  void setIntegerGlobalVar(const std::string &var, int value);
-  void setRealGlobalVar   (const std::string &var, double value);
-  void setStringGlobalVar (const std::string &var, const std::string &value);
-  void setBoolGlobalVar   (const std::string &var, bool value);
+  void setIntegerGlobalVar(const QString &var, int value);
+  void setRealGlobalVar   (const QString &var, double value);
+  void setStringGlobalVar (const QString &var, const QString &value);
+  void setBoolGlobalVar   (const QString &var, bool value);
 
-  void setStringArrayGlobalVar (const std::string &var, const std::vector<std::string> &strs);
-  void setIntegerArrayGlobalVar(const std::string &var, const std::vector<int> &strs);
+  void setStringArrayGlobalVar (const QString &var, const std::vector<QString> &strs);
+  void setIntegerArrayGlobalVar(const QString &var, const std::vector<int> &strs);
 
-  void setStringVar(const std::string &var, const std::string &value);
+  void setStringVar(const QString &var, const QString &value);
 
-  void setStringArrayVar (const std::string &var, const std::vector<std::string> &strs);
-  void setIntegerArrayVar(const std::string &var, const std::vector<int> &strs);
-
-  //---
-
-  bool hasGlobalVar(const std::string &var) const;
-
-  int         getIntegerGlobalVar(const std::string &var) const;
-  double      getRealGlobalVar   (const std::string &var) const;
-  std::string getStringGlobalVar (const std::string &var) const;
-  bool        getBoolGlobalVar   (const std::string &var) const;
-
-  bool getStringArrayGlobalVar(const std::string &var, std::vector<std::string> &strs) const;
+  void setStringArrayVar (const QString &var, const std::vector<QString> &strs);
+  void setIntegerArrayVar(const QString &var, const std::vector<int> &strs);
 
   //---
 
-  bool splitList(const std::string &str, std::vector<std::string> &strs) const;
+  bool hasGlobalVar(const QString &var) const;
 
-  std::string mergeList(const std::vector<std::string> &strs) const;
+  int     getIntegerGlobalVar(const QString &var) const;
+  double  getRealGlobalVar   (const QString &var) const;
+  QString getStringGlobalVar (const QString &var) const;
+  bool    getBoolGlobalVar   (const QString &var) const;
+
+  bool getStringArrayGlobalVar(const QString &var, std::vector<QString> &strs) const;
 
   //---
 
-  void traceGlobalVar  (const std::string &name);
-  void traceGlobalVar  (const std::string &name, CTclTraceProc *proc);
-  void untraceGlobalVar(const std::string &name);
-  void untraceGlobalVar(const std::string &name, CTclTraceProc *proc);
+  bool splitList(const QString &str, std::vector<QString> &strs) const;
+
+  QString mergeList(const std::vector<QString> &strs) const;
+
+  //---
+
+  void traceGlobalVar  (const QString &name);
+  void traceGlobalVar  (const QString &name, CTclTraceProc *proc);
+  void untraceGlobalVar(const QString &name);
+  void untraceGlobalVar(const QString &name, CTclTraceProc *proc);
 
   void handleTrace(const char *name, int flags);
 
@@ -138,11 +139,9 @@ class CTclApp {
 
   //---
 
-  bool evalFile(const std::string &filename) const;
+  bool evalFile(const QString &filename) const;
 
-  bool eval(const char *format, ...) const;
-
-  bool eval(const std::string &str) const;
+  bool eval(const QString &str) const;
 
  protected:
   explicit CTclApp(Tcl_Interp *interp);
@@ -150,7 +149,7 @@ class CTclApp {
 
   virtual ~CTclApp() { }
 
-  void setAppName(const std::string &appName);
+  void setAppName(const QString &appName);
 
   bool tclInit();
 
@@ -162,25 +161,23 @@ class CTclApp {
 
   virtual void startup() { }
 
-  virtual std::string getTclStr() = 0;
-
  private:
   void initCommands();
   void initInteractive();
 
-  std::string errorInfo_(int rc) const;
+  QString errorInfo_(int rc) const;
 
  private:
-  using TraceNames     = std::set<std::string>;
+  using TraceNames     = std::set<QString>;
   using TraceProcs     = std::set<CTclTraceProc *>;
-  using NameTraceProcs = std::map<std::string, TraceProcs>;
+  using NameTraceProcs = std::map<QString, TraceProcs>;
 
   static CTclApp *app_;
 
   int          argc_        { 0 };
   const char** argv_        { nullptr };
   Tcl_Interp*  interp_      { nullptr };
-  std::string  appName_;
+  QString      appName_;
   bool         interactive_ { true };
 
   bool resultSet_ { false };

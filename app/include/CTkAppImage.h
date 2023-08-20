@@ -9,16 +9,16 @@ class CTkApp;
 
 class CTkAppImage {
  public:
-  explicit CTkAppImage(CTkApp *tk, const std::string &name, int width=-1, int height=-1);
+  explicit CTkAppImage(CTkApp *tk, const QString &name, int width=-1, int height=-1);
 
  ~CTkAppImage();
 
-  const std::string &name() const { return name_; }
+  const QString &name() const { return name_; }
 
-  const std::string &filename() const { return filename_; }
+  const QString &filename() const { return filename_; }
 
-  const std::string &type() const { return type_; }
-  void setType(const std::string &s) { type_ = s; }
+  const QString &type() const { return type_; }
+  void setType(const QString &s) { type_ = s; }
 
   bool isColor() const { return (type_ == "photo"); }
 
@@ -32,9 +32,9 @@ class CTkAppImage {
   int height() const;
   void setHeight(int h);
 
-  bool loadFile(const std::string &filename);
-  bool loadSVG (const std::string &filename);
-  bool loadData(const std::string &data);
+  bool loadFile(const QString &filename);
+  bool loadSVG (const QString &filename);
+  bool loadData(const QString &data);
 
   void clear();
 
@@ -44,13 +44,13 @@ class CTkAppImage {
   bool setPixels(int x1, int y1, int x2, int y2, const QColor &c);
 
  private:
-  CTkApp*     tk_ { nullptr };
-  std::string name_;
-  std::string type_;
-  QImage      qimage_;
-  std::string filename_;
-  int         width_ { 0 };
-  int         height_ { 0 };
+  CTkApp* tk_ { nullptr };
+  QString name_;
+  QString type_;
+  QImage  qimage_;
+  QString filename_;
+  int     width_ { 0 };
+  int     height_ { 0 };
 };
 
 #endif

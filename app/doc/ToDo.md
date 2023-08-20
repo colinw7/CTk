@@ -1,7 +1,9 @@
 + user longest match lookup everywhere
 
-+ grid -in
++ grid -in ****
+
 + grid -minsize
+
 + checkbutton -justify
 
 + more ttk widgets
@@ -18,5 +20,3 @@ state readonly ? (entry/text ?)
 listbox see 0
 
 list selected to variable ? test
-
-Tcl_CreateEventSource

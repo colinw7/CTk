@@ -40,9 +40,15 @@ class CTkAppLayoutWidget : public QLayoutItem {
 
   void show();
 
+  QMargins contentsMargins() const;
+
   QSize sizeHint() const override;
 
+  QSize minimumSizeHint() const;
+
   QWidget *widget() override;
+
+  QString name() const;
 
  private:
   QWidget *getQWidget() const;

@@ -7,12 +7,12 @@ CTkWidget(CTkApp *app, const QString &id) :
 {
   setObjectName("tkWidget");
 
-  app_->installToplevel(id.toStdString(), this);
+  app_->installToplevel(id, this);
 }
 
 void
 CTkWidget::
 loadFile(const QString &filename)
 {
-  app_->evalFile(filename.toStdString());
+  app_->evalFile(filename);
 }

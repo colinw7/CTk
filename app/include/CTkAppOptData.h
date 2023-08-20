@@ -21,16 +21,15 @@ class CTkAppOptData {
   }
 
   Tcl_Obj *getOpts() const;
-  Tcl_Obj *getOpt(const std::string &name) const;
+  Tcl_Obj *getOpt(const QString &name) const;
 
-  void getNames(std::vector<std::string> &names) const;
+  void getNames(std::vector<QString> &names) const;
 
-  bool getOptValue(const std::string &name, std::string &value) const;
+  bool getOptValue(const QString &name, QString &value) const;
 
-  bool getDefValue(const std::string &optName, const std::string &optClass,
-                   std::string &value) const;
+  bool getDefValue(const QString &optName, const QString &optClass, QString &value) const;
 
-  bool setOptValue(const std::string &name, const std::string &value, const CTkAppOpt **opt);
+  bool setOptValue(const QString &name, const QString &value, const CTkAppOpt **opt);
 
  private:
   CTkApp*              tk_   { nullptr };

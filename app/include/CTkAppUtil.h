@@ -8,17 +8,22 @@
 
 namespace CTkAppUtil {
 
-bool stringToInt(const std::string &str, long &i);
-bool stringToReal(const std::string &str, double &r);
-bool stringToBool(const std::string &str, bool &b);
+bool stringToInt(const QString &str, long &i);
+bool stringToReal(const QString &str, double &r);
+bool stringToBool(const QString &str, bool &b);
 
-bool stringToQColor(const std::string &str, QColor &c);
-bool stringToQFont(const std::string &str, QFont &f);
+bool stringToQColor(const QString &str, QColor &c);
+bool stringToQFont(const QString &str, QFont &f);
 
-bool stringToDistance(const std::string &str, double &r);
-bool stringToDistanceI(const std::string &str, int &i);
+bool stringToDistance(const QString &str, double &r);
+bool stringToDistanceI(const QString &str, int &i);
 
-bool stringToOrient(const std::string &str, Qt::Orientation &orient);
+bool stringToOrient(const QString &str, Qt::Orientation &orient);
+
+bool stringToAlign(const QString &value, Qt::Alignment &align);
+QString alignToString(Qt::Alignment &align);
+
+bool uniqueMatch(const std::vector<QString> &values, const QString &str, QString &match);
 
 }
 

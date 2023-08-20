@@ -3,15 +3,32 @@
 
 #include <QLayout>
 
+class CTkAppLayoutWidget;
+
 class CTkAppLayout : public QLayout {
   Q_OBJECT
 
  public:
-  CTkAppLayout(QWidget *w) :
-   QLayout(w) {
+  enum class Type {
+    NONE,
+    PACK,
+    GRID,
+    PLACE
+  };
+
+ public:
+  CTkAppLayout(QWidget *w, const Type &type) :
+   QLayout(w), type_(type) {
   }
 
-  virtual std::string name() const = 0;
+  virtual QString name() const = 0;
+
+  virtual std::vector<CTkAppLayoutWidget *> getLayoutWidgets() const = 0;
+
+ protected:
+  enum SizeType { MinimumSize, SizeHint };
+
+  Type type_ { Type::NONE };
 };
 
 #endif

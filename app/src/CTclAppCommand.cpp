@@ -1,32 +1,30 @@
 #include <CTclAppCommand.h>
 #include <CTclApp.h>
 
-#include <CStrUtil.h>
-
 #include <tcl.h>
 
 CTclAppCommand::
-CTclAppCommand(CTclApp *app, const std::string &name) :
+CTclAppCommand(CTclApp *app, const QString &name) :
  app_(app), name_(name)
 {
-  Tcl_CreateCommand(app_->getInterp(), name_.c_str(),
-                    static_cast<Tcl_CmdProc *>(&CTclAppCommand::commandProc),
-                    static_cast<ClientData>(this), nullptr);
+  Tcl_CreateObjCommand(app_->getInterp(), name_.toLatin1().constData(),
+                       static_cast<Tcl_ObjCmdProc *>(&CTclAppCommand::commandProc),
+                       static_cast<ClientData>(this), nullptr);
 }
 
 CTclAppCommand::
 ~CTclAppCommand()
 {
-  Tcl_DeleteCommand(app_->getInterp(), name_.c_str());
+  Tcl_DeleteCommand(app_->getInterp(), name_.toLatin1().constData());
 }
 
 int
 CTclAppCommand::
-commandProc(ClientData clientData, Tcl_Interp *, int argc, const char **argv)
+commandProc(ClientData clientData, Tcl_Interp *, int objc, Tcl_Obj * const *objv)
 {
   auto *command = static_cast<CTclAppCommand *>(clientData);
 
-  if (! command->proc(argc, argv))
+  if (! command->proc(objc, objv))
     return TCL_ERROR;
 
   return TCL_OK;
@@ -38,106 +36,68 @@ void
 CTclAppCommand::
 setIntegerResult(int value)
 {
-  setStringResult(CStrUtil::toString(value));
+  app_->setIntegerResult(value);
 }
 
 void
 CTclAppCommand::
 setRealResult(double value)
 {
-  setStringResult(CStrUtil::toString(value));
+  app_->setRealResult(value);
 }
 
 void
 CTclAppCommand::
-setStringResult(const std::string &value)
+setStringResult(const QString &value)
 {
-  auto *sobj = Tcl_NewStringObj(value.c_str(), int(value.size()));
-
-  setObjResult(sobj);
+  app_->setStringResult(value);
 }
 
 void
 CTclAppCommand::
 setBoolResult(bool b)
 {
-  setStringResult(b ? "1" : "0");
+  app_->setBoolResult(b);
 }
 
 void
 CTclAppCommand::
 setIntegerArrayResult(int *values, int num_values)
 {
-  std::vector<std::string> strs;
-
-  for (int i = 0; i < num_values; ++i)
-    strs.push_back(CStrUtil::toString(values[i]));
-
-  setStringArrayResult(strs);
+  app_->setIntegerArrayResult(values, num_values);
 }
 
 void
 CTclAppCommand::
 setIntegerArrayResult(const std::vector<int> &values)
 {
-  std::vector<std::string> strs;
-
-  int num_values = values.size();
-
-  for (int i = 0; i < num_values; ++i)
-    strs.push_back(CStrUtil::toString(values[i]));
-
-  setStringArrayResult(strs);
+  app_->setIntegerArrayResult(values);
 }
 
 void
 CTclAppCommand::
 setRealArrayResult(double *values, int num_values)
 {
-  std::vector<std::string> strs;
-
-  for (int i = 0; i < num_values; ++i)
-    strs.push_back(CStrUtil::toString(values[i]));
-
-  setStringArrayResult(strs);
+  app_->setRealArrayResult(values, num_values);
 }
 
 void
 CTclAppCommand::
 setRealArrayResult(const std::vector<double> &values)
 {
-  std::vector<std::string> strs;
-
-  int num_values = values.size();
-
-  for (int i = 0; i < num_values; ++i)
-    strs.push_back(CStrUtil::toString(values[i]));
-
-  setStringArrayResult(strs);
+  app_->setRealArrayResult(values);
 }
 
 void
 CTclAppCommand::
-setStringArrayResult(char **values, int num_values)
-{
-  std::vector<std::string> strs;
-
-  for (int i = 0; i < num_values; ++i)
-    strs.push_back(values[i]);
-
-  setStringArrayResult(strs);
-}
-
-void
-CTclAppCommand::
-setStringArrayResult(const std::vector<std::string> &values)
+setStringArrayResult(const std::vector<QString> &values)
 {
   auto *obj = Tcl_NewListObj(0, nullptr);
 
   int num_values = values.size();
 
   for (int i = 0; i < num_values; ++i) {
-    auto *sobj = Tcl_NewStringObj(values[i].c_str(), int(values[i].size()));
+    auto *sobj = Tcl_NewStringObj(values[i].toLatin1().constData(), int(values[i].length()));
 
     Tcl_ListObjAppendElement(app_->getInterp(), obj, sobj);
   }
@@ -156,28 +116,28 @@ setObjResult(Tcl_Obj *obj)
 
 void
 CTclAppCommand::
-setIntegerVar(const std::string &name, int value)
+setIntegerVar(const QString &name, int value)
 {
   app_->setIntegerGlobalVar(name, value);
 }
 
 void
 CTclAppCommand::
-setRealVar(const std::string &name, double value)
+setRealVar(const QString &name, double value)
 {
   app_->setRealGlobalVar(name, value);
 }
 
 void
 CTclAppCommand::
-setStringVar(const std::string &name, const std::string &value)
+setStringVar(const QString &name, const QString &value)
 {
   app_->setStringGlobalVar(name, value);
 }
 
 void
 CTclAppCommand::
-setBoolVar(const std::string &name, bool b)
+setBoolVar(const QString &name, bool b)
 {
   app_->setBoolGlobalVar(name, b);
 }
@@ -186,35 +146,50 @@ setBoolVar(const std::string &name, bool b)
 
 int
 CTclAppCommand::
-getIntegerVar(const std::string &name) const
+getIntegerVar(const QString &name) const
 {
   return app_->getIntegerGlobalVar(name);
 }
 
 double
 CTclAppCommand::
-getRealVar(const std::string &name) const
+getRealVar(const QString &name) const
 {
   return app_->getRealGlobalVar(name);
 }
 
-std::string
+QString
 CTclAppCommand::
-getStringVar(const std::string &name) const
+getStringVar(const QString &name) const
 {
   return app_->getStringGlobalVar(name);
 }
 
 bool
 CTclAppCommand::
-getBoolVar(const std::string &name) const
+getBoolVar(const QString &name) const
 {
   return app_->getBoolGlobalVar(name);
 }
 
 bool
 CTclAppCommand::
-getStringArrayVar(const std::string &name, std::vector<std::string> &strs) const
+getStringArrayVar(const QString &name, std::vector<QString> &strs) const
 {
   return app_->getStringArrayGlobalVar(name, strs);
 }
+
+//---
+
+#if 0
+QString
+CTclAppCommand::
+stringFromObj(const Tcl_Obj *obj)
+{
+  int len = 0;
+
+  char *str = Tcl_GetStringFromObj(const_cast<Tcl_Obj *>(obj), &len);
+
+  return QString(str, size_t(len));
+}
+#endif

@@ -12,7 +12,7 @@
 #include <cassert>
 
 CTkAppImage::
-CTkAppImage(CTkApp *tk, const std::string &name, int width, int height) :
+CTkAppImage(CTkApp *tk, const QString &name, int width, int height) :
  tk_(tk), name_(name), width_(width), height_(height)
 {
   if (width_ > 0 && height_ > 0)
@@ -26,14 +26,14 @@ CTkAppImage::
 
 bool
 CTkAppImage::
-loadFile(const std::string &filename)
+loadFile(const QString &filename)
 {
   filename_ = filename;
   width_    = 0;
   height_   = 0;
 
 #ifdef CTK_CIMAGE
-  CImageFileSrc src(filename);
+  CImageFileSrc src(filename.toStdString());
 
   auto image = CImageMgrInst->lookupImage(src);
 
@@ -45,7 +45,7 @@ loadFile(const std::string &filename)
 
   qimage_ = cqimage->getQImage();
 #else
-  qimage_ = QImage(QString::fromStdString(filename_));
+  qimage_ = QImage(filename_);
 #endif
 
   if (qimage_.isNull())
@@ -59,9 +59,9 @@ loadFile(const std::string &filename)
 
 bool
 CTkAppImage::
-loadSVG(const std::string &filename)
+loadSVG(const QString &filename)
 {
-  QSvgRenderer renderer(QString::fromStdString(filename));
+  QSvgRenderer renderer(filename);
 
   if (! renderer.isValid())
     return tk_->throwError("Failed to read SVG image file '" + filename + "'");
@@ -80,13 +80,13 @@ loadSVG(const std::string &filename)
 
 bool
 CTkAppImage::
-loadData(const std::string &data)
+loadData(const QString &data)
 {
   width_  = 0;
   height_ = 0;
 
 #ifdef CTK_CIMAGE
-  CImageDataSrc src(data);
+  CImageDataSrc src(data.toStdString());
 
   auto image = CImageMgrInst->lookupImage(src);
 

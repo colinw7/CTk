@@ -1,14 +1,12 @@
 #include <CTkAppPackLayout.h>
-#include <CTkAppLayoutWidget.h>
 #include <CTkAppWidget.h>
-#include <CTkApp.h>
 
 #include <QWidget>
 #include <QPainter>
 
 CTkAppPackLayout::
 CTkAppPackLayout(QWidget *parent, int margin, int spacing) :
- CTkAppLayout(parent)
+ CTkAppLayout(parent, Type::PACK)
 {
   setObjectName("pack");
 
@@ -18,7 +16,7 @@ CTkAppPackLayout(QWidget *parent, int margin, int spacing) :
 
 CTkAppPackLayout::
 CTkAppPackLayout(int spacing) :
- CTkAppLayout(nullptr)
+ CTkAppLayout(nullptr, Type::PACK)
 {
   setObjectName("pack");
 
@@ -38,7 +36,7 @@ void
 CTkAppPackLayout::
 addItem(QLayoutItem *item)
 {
-  add(item, Info(SIDE_TOP, FILL_NONE, false, 0, 0, 0, 0));
+  add(item);
 }
 
 void
@@ -55,9 +53,9 @@ addWidgets(const std::vector<CTkAppWidget *> &widgets, const Info &info)
   auto *layout = new CTkAppPackLayout;
 
   for (auto *widget : widgets)
-    layout->add(new CTkAppLayoutWidget(widget), info);
+    layout->add(new CTkAppPackLayoutWidget(widget, info));
 
-  add(new CTkAppLayoutWidget(layout), info);
+  add(new CTkAppPackLayoutWidget(layout, info));
 }
 
 void
@@ -69,7 +67,7 @@ addWidget(CTkAppWidget *widget, const Info &info)
   if (widget->parentWidget() != parent)
     widget->setParentWidget(parent);
 
-  add(new CTkAppLayoutWidget(widget), info);
+  add(new CTkAppPackLayoutWidget(widget, info));
 }
 
 void
@@ -79,9 +77,9 @@ removeWidget(CTkAppWidget *widget)
   int ind = -1;
 
   for (int i = 0; i < list_.size(); ++i) {
-    auto *wrapper = list_.at(i);
+    auto *item = list_.at(i);
 
-    auto *w = dynamic_cast<CTkAppLayoutWidget *>(wrapper->item);
+    auto *w = dynamic_cast<CTkAppPackLayoutWidget *>(item);
     if (! w) continue;
 
     auto *widget1 = w->getTkWidget();
@@ -101,6 +99,26 @@ removeWidget(CTkAppWidget *widget)
 
     delete item;
   }
+
+  invalidate();
+}
+
+std::vector<CTkAppLayoutWidget *>
+CTkAppPackLayout::
+getLayoutWidgets() const
+{
+  std::vector<CTkAppLayoutWidget *> widgets;
+
+  for (int i = 0; i < list_.size(); ++i) {
+    auto *item = list_.at(i);
+
+    auto *w = dynamic_cast<CTkAppLayoutWidget *>(item);
+    if (! w) continue;
+
+    widgets.push_back(w);
+  }
+
+  return widgets;
 }
 
 std::vector<CTkAppWidget *>
@@ -110,9 +128,9 @@ getWidgets() const
   std::vector<CTkAppWidget *> widgets;
 
   for (int i = 0; i < list_.size(); ++i) {
-    auto *wrapper = list_.at(i);
+    auto *item = list_.at(i);
 
-    auto *w = dynamic_cast<CTkAppLayoutWidget *>(wrapper->item);
+    auto *w = dynamic_cast<CTkAppPackLayoutWidget *>(item);
     if (! w) continue;
 
     auto *widget1 = w->getTkWidget();
@@ -127,14 +145,14 @@ getWidgets() const
   return widgets;
 }
 
-CTkAppPackLayout::ItemWrapper *
+QLayoutItem *
 CTkAppPackLayout::
 getItem(CTkAppWidget *widget) const
 {
   for (int i = 0; i < list_.size(); ++i) {
-    auto *wrapper = list_.at(i);
+    auto *item = list_.at(i);
 
-    auto *w = dynamic_cast<CTkAppLayoutWidget *>(wrapper->item);
+    auto *w = dynamic_cast<CTkAppPackLayoutWidget *>(item);
     if (! w) continue;
 
     auto *widget1 = w->getTkWidget();
@@ -142,7 +160,7 @@ getItem(CTkAppWidget *widget) const
 
     if (widget1) {
       if (widget == widget1)
-        return wrapper;
+        return item;
     }
     else if (layout1) {
       auto *item1 = layout1->getItem(widget);
@@ -159,11 +177,11 @@ bool
 CTkAppPackLayout::
 getChildInfo(CTkAppWidget *widget, Info &info)
 {
-  auto *wrapper = getItem(widget);
+  auto *item = getItem(widget);
+  if (! item) return false;
 
-  if (! wrapper) return false;
-
-  info = wrapper->info;
+  auto *w = dynamic_cast<CTkAppPackLayoutWidget *>(item);
+  info = w->info();
 
   return true;
 }
@@ -194,12 +212,9 @@ QLayoutItem *
 CTkAppPackLayout::
 itemAt(int index) const
 {
-  auto *wrapper = list_.value(index);
+  auto *item = list_.value(index);
 
-  if (wrapper)
-    return wrapper->item;
-
-  return nullptr;
+  return item;
 }
 
 QSize
@@ -218,15 +233,17 @@ setGeometry(const QRect &rect)
   auto placeRect = rect;
 
   for (int i = 0; i < list_.size(); ++i) {
-    auto *wrapper = list_.at(i);
+    auto *item = list_.at(i);
 
-    auto *item = dynamic_cast<CTkAppLayoutWidget *>(wrapper->item);
-    assert(item);
+    auto *widget = dynamic_cast<CTkAppPackLayoutWidget *>(item);
+    assert(widget);
 
-    const Info &info = wrapper->info;
+    const Info &info = widget->info();
 
-    int iw = item->sizeHint().width ();
-    int ih = item->sizeHint().height();
+    auto itemSize = widgetSizeHint(widget);
+
+    int iw = itemSize.width ();
+    int ih = itemSize.height();
 
     int rw = placeRect.width ();
     int rh = placeRect.height();
@@ -236,65 +253,80 @@ setGeometry(const QRect &rect)
     int x2 = x1 + rw;
     int y2 = y1 + rh;
 
-    int w = iw + 2*info.ipadx;
-    int h = ih + 2*info.ipady;
+    int w = iw + 2*info.ipadX();
+    int h = ih + 2*info.ipadY();
 
-    if      (info.side == SIDE_LEFT) {
-      if (info.fill == FILL_Y || info.fill == FILL_BOTH)
+    if      (info.side() == Info::Side::LEFT) {
+      if (info.fill() == Info::Fill::Y || info.fill() == Info::Fill::BOTH)
         h = rh;
 
-      int dy = (rh - h - 2*info.ipady)/2;
+      int dy = (rh - h - 2*info.padY())/2;
 
-      auto r = QRect(x1 + info.padx, y1 + info.pady + dy, w + 2*info.padx, h + 2*info.pady);
+      auto r = QRect(x1 + info.padX(), y1 + info.padY() + dy, w, h);
 
-      item->setGeometry(r);
+      widget->setGeometry(r);
 
-      placeRect.setLeft(placeRect.left() + r.width());
+      placeRect.setLeft(placeRect.left() + r.width() + info.padX());
     }
-    else if (info.side == SIDE_RIGHT) {
-      if (info.fill == FILL_Y || info.fill == FILL_BOTH)
+    else if (info.side() == Info::Side::RIGHT) {
+      if (info.fill() == Info::Fill::Y || info.fill() == Info::Fill::BOTH)
         h = rh;
 
-      int dy = (rh - h - 2*info.ipady)/2;
+      int dy = (rh - h - 2*info.padY())/2;
 
-      auto r = QRect(x2 - w - info.padx, y1 + info.pady + dy, w + 2*info.padx, h + 2*info.pady);
+      auto r = QRect(x2 - w - info.padX(), y1 + info.padY() + dy, w, h);
 
-      item->setGeometry(r);
+      widget->setGeometry(r);
 
-      placeRect.setRight(placeRect.right() - r.width());
+      placeRect.setRight(placeRect.right() - r.width() - info.padX());
     }
-    else if (info.side == SIDE_TOP) {
-      if (info.fill == FILL_X || info.fill == FILL_BOTH)
+    else if (info.side() == Info::Side::TOP) {
+      if (info.fill() == Info::Fill::X || info.fill() == Info::Fill::BOTH)
         w = rw;
 
-      int dx = (rw - w - 2*info.ipadx)/2;
+      int dx = (rw - w - 2*info.padX())/2;
 
-      auto r = QRect(x1 + info.padx + dx, y1 + info.pady, w + 2*info.ipadx, h + 2*info.ipady);
+      auto r = QRect(x1 + info.padX() + dx, y1 + info.padY(), w, h);
 
-      item->setGeometry(r);
+      widget->setGeometry(r);
 
-      placeRect.setTop(placeRect.top() + r.height());
+      placeRect.setTop(placeRect.top() + r.height() + info.padY());
     }
-    else if (info.side == SIDE_BOTTOM) {
-      if (info.fill == FILL_X || info.fill == FILL_BOTH)
+    else if (info.side() == Info::Side::BOTTOM) {
+      if (info.fill() == Info::Fill::X || info.fill() == Info::Fill::BOTH)
         w = rw;
 
-      int dx = (rw - w - 2*info.ipadx)/2;
+      int dx = (rw - w - 2*info.padX())/2;
 
-      auto r = QRect(x1 + info.padx + dx, y2 - h - info.padx, w + 2*info.ipadx, h + 2*info.ipady);
+      auto r = QRect(x1 + info.padX() + dx, y2 - h - info.padX(), w, h);
 
-      item->setGeometry(r);
+      widget->setGeometry(r);
 
-      placeRect.setBottom(placeRect.bottom() - r.height());
+      placeRect.setBottom(placeRect.bottom() - r.height() - info.padY());
     }
     else {
-      auto r = QRect(x1 + info.padx, y1 + info.pady, w + 2*info.ipadx, h + 2*info.ipady);
+      auto r = QRect(x1 + info.padX(), y1 + info.padY(),
+                     w + 2*info.ipadX(), h + 2*info.ipadY());
 
-      item->setGeometry(r);
+      widget->setGeometry(r);
     }
 
-    item->show();
+    widget->show();
   }
+}
+
+QSize
+CTkAppPackLayout::
+widgetSizeHint(CTkAppPackLayoutWidget *widget) const
+{
+  auto s = widget->sizeHint();
+
+  auto m = widget->contentsMargins();
+
+  s.setWidth (s.width () + m.left() + m.right ());
+  s.setHeight(s.height() + m.top () + m.bottom());
+
+  return s;
 }
 
 QSize
@@ -309,9 +341,11 @@ CTkAppPackLayout::
 takeAt(int index)
 {
   if (index >= 0 && index < list_.size()) {
-    auto *layoutStruct = list_.takeAt(index);
+    auto *item = list_.takeAt(index);
 
-    return layoutStruct->item;
+    invalidate();
+
+    return item;
   }
 
   return nullptr;
@@ -319,9 +353,13 @@ takeAt(int index)
 
 void
 CTkAppPackLayout::
-add(QLayoutItem *item, const Info &info)
+add(QLayoutItem *item)
 {
-  list_.append(new ItemWrapper(item, info));
+  //Info info(Info::Side::TOP, Info::Fill::NONE, false, 0, 0, 0, 0);
+
+  list_.append(item);
+
+  invalidate();
 }
 
 QSize
@@ -339,36 +377,39 @@ calculateSize(SizeType sizeType) const
   int maxHeight = 0;
 
   for (int i = 0; i < list_.size(); ++i) {
-    auto *wrapper = list_.at(i);
+    auto *item = list_.at(i);
 
-    const Info &info = wrapper->info;
+    auto *widget = dynamic_cast<CTkAppPackLayoutWidget *>(item);
+    assert(widget);
+
+    const Info &info = widget->info();
 
     QSize itemSize;
 
     if (sizeType == MinimumSize)
-      itemSize = wrapper->item->minimumSize();
+      itemSize = widget->minimumSize();
     else // if (sizeType == SizeHint)
-      itemSize = wrapper->item->sizeHint();
+      itemSize = widgetSizeHint(widget);
 
-    itemSize += QSize(2*info.padx , 2*info.pady );
-    itemSize += QSize(2*info.ipadx, 2*info.ipady);
+    itemSize += QSize(2*info.padX() , 2*info.padY() );
+    itemSize += QSize(2*info.ipadX(), 2*info.ipadY());
 
-    if      (info.side == SIDE_TOP) {
+    if      (info.side() == Info::Side::TOP) {
       topHeight += itemSize.height();
 
       maxWidth = std::max(maxWidth, leftWidth + rightWidth + itemSize.width());
     }
-    else if (info.side == SIDE_LEFT) {
+    else if (info.side() == Info::Side::LEFT) {
       leftWidth += itemSize.width();
 
       maxHeight = std::max(maxHeight, bottomHeight + topHeight + itemSize.height());
     }
-    else if (info.side == SIDE_BOTTOM) {
+    else if (info.side() == Info::Side::BOTTOM) {
       bottomHeight += itemSize.height();
 
       maxWidth = std::max(maxWidth, leftWidth + rightWidth + itemSize.width());
     }
-    else if (info.side == SIDE_RIGHT) {
+    else if (info.side() == Info::Side::RIGHT) {
       rightWidth += itemSize.width();
 
       maxHeight = std::max(maxHeight, bottomHeight + topHeight + itemSize.height());
@@ -411,3 +452,10 @@ draw(QPainter *p) const
   }
 }
 #endif
+
+void
+CTkAppPackLayout::
+invalidate()
+{
+  CTkAppLayout::invalidate();
+}

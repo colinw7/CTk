@@ -22,8 +22,8 @@ QT_BEGIN_MOC_NAMESPACE
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
 struct qt_meta_stringdata_CTkAppWidget_t {
-    QByteArrayData data[11];
-    char stringdata0[99];
+    QByteArrayData data[13];
+    char stringdata0[129];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -42,12 +42,15 @@ QT_MOC_LITERAL(6, 56, 4), // "icon"
 QT_MOC_LITERAL(7, 61, 8), // "geometry"
 QT_MOC_LITERAL(8, 70, 6), // "anchor"
 QT_MOC_LITERAL(9, 77, 13), // "Qt::Alignment"
-QT_MOC_LITERAL(10, 91, 7) // "command"
+QT_MOC_LITERAL(10, 91, 7), // "command"
+QT_MOC_LITERAL(11, 99, 14), // "xScrollCommand"
+QT_MOC_LITERAL(12, 114, 14) // "yScrollCommand"
 
     },
     "CTkAppWidget\0highlightThickness\0text\0"
     "width\0height\0title\0icon\0geometry\0"
-    "anchor\0Qt::Alignment\0command"
+    "anchor\0Qt::Alignment\0command\0"
+    "xScrollCommand\0yScrollCommand"
 };
 #undef QT_MOC_LITERAL
 
@@ -58,7 +61,7 @@ static const uint qt_meta_data_CTkAppWidget[] = {
        0,       // classname
        0,    0, // classinfo
        0,    0, // methods
-       9,   14, // properties
+      11,   14, // properties
        0,    0, // enums/sets
        0,    0, // constructors
        0,       // flags
@@ -74,6 +77,8 @@ static const uint qt_meta_data_CTkAppWidget[] = {
        7, QMetaType::QString, 0x00095103,
        8, 0x80000000 | 9, 0x0009510b,
       10, QMetaType::QString, 0x00095103,
+      11, QMetaType::QString, 0x00095103,
+      12, QMetaType::QString, 0x00095103,
 
        0        // eod
 };
@@ -96,6 +101,8 @@ void CTkAppWidget::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id
         case 6: *reinterpret_cast< QString*>(_v) = _t->getGeometry(); break;
         case 7: *reinterpret_cast< Qt::Alignment*>(_v) = _t->anchor(); break;
         case 8: *reinterpret_cast< QString*>(_v) = _t->getCommand(); break;
+        case 9: *reinterpret_cast< QString*>(_v) = _t->getXScrollCommand(); break;
+        case 10: *reinterpret_cast< QString*>(_v) = _t->getYScrollCommand(); break;
         default: break;
         }
     } else if (_c == QMetaObject::WriteProperty) {
@@ -112,6 +119,8 @@ void CTkAppWidget::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id
         case 6: _t->setGeometry(*reinterpret_cast< QString*>(_v)); break;
         case 7: _t->setAnchor(*reinterpret_cast< Qt::Alignment*>(_v)); break;
         case 8: _t->setCommand(*reinterpret_cast< QString*>(_v)); break;
+        case 9: _t->setXScrollCommand(*reinterpret_cast< QString*>(_v)); break;
+        case 10: _t->setYScrollCommand(*reinterpret_cast< QString*>(_v)); break;
         default: break;
         }
     } else if (_c == QMetaObject::ResetProperty) {
@@ -156,17 +165,17 @@ int CTkAppWidget::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_c == QMetaObject::ReadProperty || _c == QMetaObject::WriteProperty
             || _c == QMetaObject::ResetProperty || _c == QMetaObject::RegisterPropertyMetaType) {
         qt_static_metacall(this, _c, _id, _a);
-        _id -= 9;
+        _id -= 11;
     } else if (_c == QMetaObject::QueryPropertyDesignable) {
-        _id -= 9;
+        _id -= 11;
     } else if (_c == QMetaObject::QueryPropertyScriptable) {
-        _id -= 9;
+        _id -= 11;
     } else if (_c == QMetaObject::QueryPropertyStored) {
-        _id -= 9;
+        _id -= 11;
     } else if (_c == QMetaObject::QueryPropertyEditable) {
-        _id -= 9;
+        _id -= 11;
     } else if (_c == QMetaObject::QueryPropertyUser) {
-        _id -= 9;
+        _id -= 11;
     }
 #endif // QT_NO_PROPERTIES
     return _id;
@@ -2361,6 +2370,76 @@ void *CTkAppNoteBook::qt_metacast(const char *_clname)
 int CTkAppNoteBook::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
 {
     _id = CTkAppWidget::qt_metacall(_c, _id, _a);
+    return _id;
+}
+struct qt_meta_stringdata_CTkAppNoteBookWidget_t {
+    QByteArrayData data[1];
+    char stringdata0[21];
+};
+#define QT_MOC_LITERAL(idx, ofs, len) \
+    Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
+    qptrdiff(offsetof(qt_meta_stringdata_CTkAppNoteBookWidget_t, stringdata0) + ofs \
+        - idx * sizeof(QByteArrayData)) \
+    )
+static const qt_meta_stringdata_CTkAppNoteBookWidget_t qt_meta_stringdata_CTkAppNoteBookWidget = {
+    {
+QT_MOC_LITERAL(0, 0, 20) // "CTkAppNoteBookWidget"
+
+    },
+    "CTkAppNoteBookWidget"
+};
+#undef QT_MOC_LITERAL
+
+static const uint qt_meta_data_CTkAppNoteBookWidget[] = {
+
+ // content:
+       8,       // revision
+       0,       // classname
+       0,    0, // classinfo
+       0,    0, // methods
+       0,    0, // properties
+       0,    0, // enums/sets
+       0,    0, // constructors
+       0,       // flags
+       0,       // signalCount
+
+       0        // eod
+};
+
+void CTkAppNoteBookWidget::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
+{
+    (void)_o;
+    (void)_id;
+    (void)_c;
+    (void)_a;
+}
+
+QT_INIT_METAOBJECT const QMetaObject CTkAppNoteBookWidget::staticMetaObject = { {
+    QMetaObject::SuperData::link<QTabWidget::staticMetaObject>(),
+    qt_meta_stringdata_CTkAppNoteBookWidget.data,
+    qt_meta_data_CTkAppNoteBookWidget,
+    qt_static_metacall,
+    nullptr,
+    nullptr
+} };
+
+
+const QMetaObject *CTkAppNoteBookWidget::metaObject() const
+{
+    return QObject::d_ptr->metaObject ? QObject::d_ptr->dynamicMetaObject() : &staticMetaObject;
+}
+
+void *CTkAppNoteBookWidget::qt_metacast(const char *_clname)
+{
+    if (!_clname) return nullptr;
+    if (!strcmp(_clname, qt_meta_stringdata_CTkAppNoteBookWidget.stringdata0))
+        return static_cast<void*>(this);
+    return QTabWidget::qt_metacast(_clname);
+}
+
+int CTkAppNoteBookWidget::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
+{
+    _id = QTabWidget::qt_metacall(_c, _id, _a);
     return _id;
 }
 struct qt_meta_stringdata_CTkAppPanedWindow_t {

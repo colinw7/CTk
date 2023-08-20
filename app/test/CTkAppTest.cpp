@@ -7,7 +7,7 @@
 
 static std::string opts = "\
 -debug:f \
--namespace:f \
+-namespace:s \
 ";
 
 class ReadLine : public CReadLine {
@@ -43,10 +43,10 @@ class ReadLine : public CReadLine {
 //        line += line1;
 //    }
 
-      if (app_->eval(line1)) {
-        std::string res;
+      if (app_->eval(QString::fromStdString(line1))) {
+        QString res;
         if (app_->getStringResult(res))
-          std::cerr << res << "\n";
+          std::cerr << res.toStdString() << "\n";
       }
 
       addHistory(line1);
@@ -78,12 +78,12 @@ main(int argc, char **argv)
   if (cargs.getBooleanArg("-debug"))
     debug = true;
 
-  bool useNamespace = false;
+  QString context;
 
-  if (cargs.getBooleanArg("-namespace"))
-    useNamespace = true;
+  if (cargs.isStringArg("-namespace"))
+    context = QString::fromStdString(cargs.getStringArg("-namespace"));
 
-  std::vector<std::string> filenames;
+  std::vector<QString>     filenames;
   std::vector<std::string> args;
   bool                     processing = true;
 
@@ -101,7 +101,7 @@ main(int argc, char **argv)
     }
     else {
       if (filenames.empty()) {
-        filenames.push_back(arg);
+        filenames.push_back(QString::fromStdString(arg));
 
         processing = false;
       }
@@ -122,7 +122,7 @@ main(int argc, char **argv)
 
   argv1[i] = nullptr;
 
-  tk = new CTkApp(argc1, const_cast<const char **>(argv1), useNamespace);
+  tk = new CTkApp(argc1, const_cast<const char **>(argv1), context);
 
   for (const auto &filename : filenames)
     tk->evalFile(filename);

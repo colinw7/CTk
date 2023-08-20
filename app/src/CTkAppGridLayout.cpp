@@ -1,5 +1,4 @@
 #include <CTkAppGridLayout.h>
-#include <CTkAppLayoutWidget.h>
 #include <CTkAppWidget.h>
 
 #include <QApplication>
@@ -10,7 +9,7 @@
 
 CTkAppGridLayout::
 CTkAppGridLayout(QWidget *parent, int margin, int spacing) :
- CTkAppLayout(parent)
+ CTkAppLayout(parent, Type::GRID)
 {
   setObjectName("grid");
 
@@ -20,7 +19,7 @@ CTkAppGridLayout(QWidget *parent, int margin, int spacing) :
 
 CTkAppGridLayout::
 CTkAppGridLayout(int spacing) :
- CTkAppLayout(nullptr)
+ CTkAppLayout(nullptr, Type::GRID)
 {
   setObjectName("grid");
 
@@ -40,13 +39,15 @@ void
 CTkAppGridLayout::
 addItem(QLayoutItem *item)
 {
-  add(item, Info());
+  add(item);
 }
 
 void
 CTkAppGridLayout::
 addWidgets(const std::vector<WidgetData> &widgets, const Info &info)
 {
+  auto *parent = parentWidget();
+
   Info info1 = info;
 
   if (info1.isRowValid()) row_ = info1.getRow();
@@ -62,13 +63,18 @@ addWidgets(const std::vector<WidgetData> &widgets, const Info &info)
     const auto &widgetData = widgets[i];
 
     if      (widgetData.type == WidgetType::WIDGET) {
-      auto *wrapper = getItem(widgetData.widget);
+      auto *item = getItem(widgetData.widget);
 
-      if (! wrapper) {
+      auto *widget = dynamic_cast<CTkAppGridLayoutWidget *>(item);
+      if (! widget) continue;
+
+      if (! item) {
         info1.setRow(row_);
         info1.setCol(col_);
 
-        add(new CTkAppLayoutWidget(widgetData.widget), info1);
+        widgetData.widget->setParentWidget(parent);
+
+        add(new CTkAppGridLayoutWidget(widgetData.widget, info1));
 
         col_ += info1.getColSpan();
 
@@ -77,7 +83,7 @@ addWidgets(const std::vector<WidgetData> &widgets, const Info &info)
         ++num_added;
       }
       else
-        wrapper->info.update(info1);
+        widget->info().update(info1);
     }
     else if (widgetData.type == WidgetType::EMPTY) {
       ++col_;
@@ -86,11 +92,14 @@ addWidgets(const std::vector<WidgetData> &widgets, const Info &info)
     }
     else if (widgetData.type == WidgetType::COL_SPAN) {
       for (int i = col_ - 1; i >= 0; --i) {
-        auto *wrapper = gridItem(row_, i);
-        if (wrapper) {
-          wrapper->info.setColSpan(wrapper->info.getColSpan() + 1);
-          break;
-        }
+        auto *item = gridItem(row_, i);
+
+        auto *widget = dynamic_cast<CTkAppGridLayoutWidget *>(item);
+        if (! widget) continue;
+
+        widget->info().setColSpan(widget->info().getColSpan() + 1);
+
+        break;
       }
 
       ++col_;
@@ -99,11 +108,14 @@ addWidgets(const std::vector<WidgetData> &widgets, const Info &info)
     }
     else if (widgetData.type == WidgetType::ROW_SPAN) {
       for (int i = row_ - 1; i >= 0; --i) {
-        auto *wrapper = gridItem(i, col_);
-        if (wrapper) {
-          wrapper->info.setRowSpan(wrapper->info.getRowSpan() + 1);
-          break;
-        }
+        auto *item = gridItem(i, col_);
+
+        auto *widget = dynamic_cast<CTkAppGridLayoutWidget *>(item);
+        if (! widget) continue;
+
+        widget->info().setRowSpan(widget->info().getRowSpan() + 1);
+
+        break;
       }
 
       ++num_added;
@@ -123,13 +135,22 @@ void
 CTkAppGridLayout::
 addWidget(const WidgetData &widgetData, const Info &info)
 {
-  if (widgetData.type == WidgetType::WIDGET) {
-    auto *wrapper = getItem(widgetData.widget);
+  auto *parent = parentWidget();
 
-    if (! wrapper)
-      add(new CTkAppLayoutWidget(widgetData.widget), info);
-    else
-      wrapper->info.update(info);
+  if (widgetData.type == WidgetType::WIDGET) {
+    auto *item = getItem(widgetData.widget);
+
+    if (! item) {
+      widgetData.widget->setParentWidget(parent);
+
+      add(new CTkAppGridLayoutWidget(widgetData.widget, info));
+    }
+    else {
+      auto *widget = dynamic_cast<CTkAppGridLayoutWidget *>(item);
+      if (! widget) return;
+
+      widget->info().update(info);
+    }
   }
 }
 
@@ -138,16 +159,17 @@ CTkAppGridLayout::
 removeWidget(CTkAppWidget *widget)
 {
   for (int i = 0; i < list_.size(); ++i) {
-    auto *wrapper = list_.at(i);
+    auto *item = list_.at(i);
 
-    auto *lw = dynamic_cast<CTkAppLayoutWidget *>(wrapper->item);
+    auto *w = dynamic_cast<CTkAppGridLayoutWidget *>(item);
+    if (! w) continue;
 
-    if (lw->widget() == widget->qwidget()) {
+    if (w->widget() == widget->getQWidget()) {
       auto *l = takeAt(i);
 
       delete l;
 
-      widget->qwidget()->hide();
+      widget->getQWidget()->hide();
 
       return true;
     }
@@ -156,20 +178,62 @@ removeWidget(CTkAppWidget *widget)
   return false;
 }
 
-CTkAppGridLayout::ItemWrapper *
+std::vector<CTkAppLayoutWidget *>
+CTkAppGridLayout::
+getLayoutWidgets() const
+{
+  std::vector<CTkAppLayoutWidget *> widgets;
+
+  for (int i = 0; i < list_.size(); ++i) {
+    auto *item = list_.at(i);
+
+    auto *w = dynamic_cast<CTkAppGridLayoutWidget *>(item);
+    if (! w) continue;
+
+    widgets.push_back(w);
+  }
+
+  return widgets;
+}
+
+std::vector<CTkAppWidget *>
+CTkAppGridLayout::
+getWidgets() const
+{
+  std::vector<CTkAppWidget *> widgets;
+
+  for (int i = 0; i < list_.size(); ++i) {
+    auto *item = list_.at(i);
+
+    auto *w = dynamic_cast<CTkAppGridLayoutWidget *>(item);
+    if (! w) continue;
+
+    auto *widget1 = w->getTkWidget();
+    auto *layout1 = dynamic_cast<CTkAppGridLayout *>(w->getLayout());
+
+    if      (widget1)
+      widgets.push_back(widget1);
+    else if (layout1)
+      layout1->getWidgets();
+  }
+
+  return widgets;
+}
+
+QLayoutItem *
 CTkAppGridLayout::
 getItem(CTkAppWidget *widget) const
 {
   for (int i = 0; i < list_.size(); ++i) {
-    auto *wrapper = list_.at(i);
+    auto *item = list_.at(i);
 
-    auto *w = dynamic_cast<CTkAppLayoutWidget *>(wrapper->item);
+    auto *w = dynamic_cast<CTkAppGridLayoutWidget *>(item);
     if (! w) continue;
 
     auto *widget1 = w->getTkWidget();
 
     if (widget == widget1)
-      return wrapper;
+      return item;
   }
 
   return nullptr;
@@ -179,10 +243,12 @@ bool
 CTkAppGridLayout::
 getChildInfo(CTkAppWidget *widget, Info &info)
 {
-  auto *wrapper = getItem(widget);
-  if (! wrapper) return false;
+  auto *item = getItem(widget);
 
-  info = wrapper->info;
+  auto *w = dynamic_cast<CTkAppGridLayoutWidget *>(item);
+  if (! w) return false;
+
+  info = w->info();
 
   return true;
 }
@@ -191,10 +257,12 @@ bool
 CTkAppGridLayout::
 setChildWeight(CTkAppWidget *widget, int weight)
 {
-  auto *wrapper = getItem(widget);
-  if (! wrapper) return false;
+  auto *item = getItem(widget);
 
-  wrapper->weight = weight;
+  auto *w = dynamic_cast<CTkAppGridLayoutWidget *>(item);
+  if (! w) return false;
+
+  w->info().setWeight(weight);
 
   return true;
 }
@@ -219,12 +287,12 @@ getColumnWeight(int col) const
 
 void
 CTkAppGridLayout::
-setColumnUniform(int col, const std::string &name)
+setColumnUniform(int col, const QString &name)
 {
   colUniform_[col] = name;
 }
 
-std::string
+QString
 CTkAppGridLayout::
 getColumnUniform(int col) const
 {
@@ -285,12 +353,12 @@ getRowWeight(int row) const
 
 void
 CTkAppGridLayout::
-setRowUniform(int row, const std::string &name)
+setRowUniform(int row, const QString &name)
 {
   rowUniform_[row] = name;
 }
 
-std::string
+QString
 CTkAppGridLayout::
 getRowUniform(int row) const
 {
@@ -359,24 +427,27 @@ QLayoutItem *
 CTkAppGridLayout::
 itemAt(int index) const
 {
-  auto *wrapper = list_.value(index);
-  if (! wrapper) return nullptr;
+  auto *item = list_.value(index);
+  if (! item) return nullptr;
 
-  return wrapper->item;
+  return item;
 }
 
-CTkAppGridLayout::ItemWrapper *
+QLayoutItem *
 CTkAppGridLayout::
 gridItem(int row, int col) const
 {
   for (int i = 0; i < list_.size(); ++i) {
-    auto *wrapper = list_.at(i);
+    auto *item = list_.at(i);
 
-    int row1 = wrapper->info.getRow();
-    int col1 = wrapper->info.getCol();
+    auto *w = dynamic_cast<CTkAppGridLayoutWidget *>(item);
+    if (! w) continue;
+
+    int row1 = w->info().getRow();
+    int col1 = w->info().getCol();
 
     if (row == row1 && col == col1)
-      return wrapper;
+      return item;
   }
 
   return nullptr;
@@ -533,28 +604,28 @@ setGeometry(const QRect &rect)
     bool changed = false;
 
     for (int i = 0; i < list_.size(); ++i) {
-      auto *wrapper = list_.at(i);
+      auto *item = list_.at(i);
 
-      auto *item = dynamic_cast<CTkAppLayoutWidget *>(wrapper->item);
-      assert(item);
+      auto *widget = dynamic_cast<CTkAppGridLayoutWidget *>(item);
+      assert(widget);
 
-      int rowSpan = wrapper->info.getRowSpan();
-      int colSpan = wrapper->info.getColSpan();
+      int rowSpan = widget->info().getRowSpan();
+      int colSpan = widget->info().getColSpan();
 
-      int row1 = wrapper->info.getRow();
-      int row2 = row1 + rowSpan;
-      int col1 = wrapper->info.getCol();
-      int col2 = col1 + colSpan;
+      int row1 = widget->info().getRow();
+      int row2 = (row1 >= 0 ? row1 + rowSpan : -1);
+      int col1 = widget->info().getCol();
+      int col2 = (col1 >= 0 ? col1 + colSpan : -1);
 
-      uint sides = wrapper->info.getStickySides();
+      uint sides = widget->info().getStickySides();
 
-      int padx = wrapper->info.getPadX();
-      int pady = wrapper->info.getPadY();
+      int padx = widget->info().getPadX();
+      int pady = widget->info().getPadY();
 
-      int ipadx = wrapper->info.getIPadX();
-      int ipady = wrapper->info.getIPadY();
+      int ipadx = widget->info().getIPadX();
+      int ipady = widget->info().getIPadY();
 
-      auto itemSize = item->sizeHint();
+      auto itemSize = widget->sizeHint();
 
       itemSize = itemSize.expandedTo(QApplication::globalStrut());
 
@@ -574,24 +645,28 @@ setGeometry(const QRect &rect)
 
       int dx = 0, dy = 0;
 
-      if      ((sides & STICKY_W) && (sides & STICKY_E)) dx = 0;
-      else if ((sides & STICKY_W)                      ) dx = 0;
-      else if ((sides & STICKY_E)                      ) dx = colWidth1  - iw - 2*padx;
-      else                                               dx = (colWidth1 - iw - 2*padx)/2;
+      if      ((sides & uint(Info::StickySide::W)) &&
+               (sides & uint(Info::StickySide::E))) dx = 0;
+      else if ((sides & uint(Info::StickySide::W))) dx = 0;
+      else if ((sides & uint(Info::StickySide::E))) dx = colWidth1  - iw - 2*padx;
+      else dx = (colWidth1 - iw - 2*padx)/2;
 
-      if      ((sides & STICKY_N) && (sides & STICKY_S)) dy = 0;
-      else if ((sides & STICKY_N)                      ) dy = 0;
-      else if ((sides & STICKY_S)                      ) dy = colHeight1  - ih - 2*pady;
-      else                                               dy = (colHeight1 - ih - 2*pady)/2;
+      if      ((sides & uint(Info::StickySide::N)) &&
+               (sides & uint(Info::StickySide::S))) dy = 0;
+      else if ((sides & uint(Info::StickySide::N))) dy = 0;
+      else if ((sides & uint(Info::StickySide::S))) dy = colHeight1  - ih - 2*pady;
+      else dy = (colHeight1 - ih - 2*pady)/2;
 
-      int w = ((sides & STICKY_W) && (sides & STICKY_E) ? colWidth1  - 2*padx: iw);
-      int h = ((sides & STICKY_N) && (sides & STICKY_S) ? colHeight1 - 2*pady: ih);
+      int w = ((sides & uint(Info::StickySide::W)) &&
+               (sides & uint(Info::StickySide::E)) ? colWidth1  - 2*padx: iw);
+      int h = ((sides & uint(Info::StickySide::N)) &&
+               (sides & uint(Info::StickySide::S)) ? colHeight1 - 2*pady: ih);
 
       QRect r(x1 + dx + padx, y1 + dy + pady, w, h);
 
-      item->setGeometry(r);
+      widget->setGeometry(r);
 
-      item->show();
+      widget->show();
     }
 
     return changed;
@@ -612,9 +687,11 @@ CTkAppGridLayout::
 takeAt(int index)
 {
   if (index >= 0 && index < list_.size()) {
-    ItemWrapper *layoutStruct = list_.takeAt(index);
+    auto *item = list_.takeAt(index);
 
-    return layoutStruct->item;
+    invalidate();
+
+    return item;
   }
 
   return nullptr;
@@ -622,9 +699,11 @@ takeAt(int index)
 
 void
 CTkAppGridLayout::
-add(QLayoutItem *item, const Info &info)
+add(QLayoutItem *item)
 {
-  list_.append(new ItemWrapper(item, info));
+  list_.append(item);
+
+  invalidate();
 }
 
 QSize
@@ -648,13 +727,16 @@ calculateDims(uint &num_rows, uint &num_cols) const
   num_cols = 0;
 
   for (int i = 0; i < list_.size(); ++i) {
-    auto *wrapper = list_.at(i);
+    auto *item = list_.at(i);
 
-    int row = wrapper->info.getRow();
-    int col = wrapper->info.getCol();
+    auto *widget = dynamic_cast<CTkAppGridLayoutWidget *>(item);
+    if (! widget) continue;
 
-    int rowSpan = wrapper->info.getRowSpan();
-    int colSpan = wrapper->info.getColSpan();
+    int row = widget->info().getRow();
+    int col = widget->info().getCol();
+
+    int rowSpan = widget->info().getRowSpan();
+    int colSpan = widget->info().getColSpan();
 
     num_rows = std::max(num_rows, uint(row + rowSpan));
     num_cols = std::max(num_cols, uint(col + colSpan));
@@ -692,75 +774,78 @@ calcPrefSizes(SizeType sizeType, std::vector<int> &prefColWidths,
   //---
 
   for (int i = 0; i < list_.size(); ++i) {
-    auto *wrapper = list_.at(i);
+    auto *item = list_.at(i);
 
-    auto *item = dynamic_cast<CTkAppLayoutWidget *>(wrapper->item);
-    assert(item);
+    auto *widget = dynamic_cast<CTkAppGridLayoutWidget *>(item);
+    assert(widget);
 
-    int rowSpan = wrapper->info.getRowSpan();
-    int colSpan = wrapper->info.getColSpan();
+    int rowSpan = widget->info().getRowSpan();
+    int colSpan = widget->info().getColSpan();
 
     if (rowSpan != 1 || colSpan != 1)
       continue;
 
-    int row = wrapper->info.getRow();
-    int col = wrapper->info.getCol();
+    int row = widget->info().getRow();
+    int col = widget->info().getCol();
 
     QSize itemSize;
 
     if (sizeType == MinimumSize)
-      itemSize = item->minimumSize();
+      itemSize = widget->minimumSize();
     else // (sizeType == SizeHint)
-      itemSize = item->sizeHint();
+      itemSize = widget->sizeHint();
 
     itemSize = itemSize.expandedTo(QApplication::globalStrut());
 
-    int padx = wrapper->info.getPadX();
-    int pady = wrapper->info.getPadY();
+    int padx = widget->info().getPadX();
+    int pady = widget->info().getPadY();
 
-    int ipadx = wrapper->info.getIPadX();
-    int ipady = wrapper->info.getIPadY();
+    int ipadx = widget->info().getIPadX();
+    int ipady = widget->info().getIPadY();
 
     int iw = itemSize.width () + 2*ipadx + 2*padx;
     int ih = itemSize.height() + 2*ipady + 2*pady;
 
-    prefColWidths [col] = std::max(prefColWidths [col], iw);
-    prefRowHeights[row] = std::max(prefRowHeights[row], ih);
+    if (col >= 0 && col < int(prefColWidths.size()))
+      prefColWidths[col] = std::max(prefColWidths [col], iw);
+
+    if (row >= 0 && row < int(prefRowHeights.size()))
+      prefRowHeights[row] = std::max(prefRowHeights[row], ih);
   }
 
   //---
 
   for (int i = 0; i < list_.size(); ++i) {
-    auto *wrapper = list_.at(i);
+    auto *item = list_.at(i);
 
-    auto *item = dynamic_cast<CTkAppLayoutWidget *>(wrapper->item);
-    assert(item);
+    auto *widget = dynamic_cast<CTkAppGridLayoutWidget *>(item);
+    assert(widget);
 
-    int rowSpan = wrapper->info.getRowSpan();
-    int colSpan = wrapper->info.getColSpan();
+    int rowSpan = widget->info().getRowSpan();
+    int colSpan = widget->info().getColSpan();
 
     if (rowSpan == 1 && colSpan == 1)
       continue;
 
-    int row1 = wrapper->info.getRow();
-    int row2 = row1 + rowSpan;
-    int col1 = wrapper->info.getCol();
-    int col2 = col1 + colSpan;
+    int row1 = widget->info().getRow();
+    int row2 = (row1 >= 0 ? row1 + rowSpan : 0);
+    int col1 = widget->info().getCol();
+    int col2 = (col1 >= 0 ? col1 + colSpan : 0);
 
     QSize itemSize;
 
     if (sizeType == MinimumSize)
-      itemSize = item->minimumSize();
+      itemSize = widget->minimumSize();
     else // (sizeType == SizeHint)
-      itemSize = item->sizeHint();
+      itemSize = widget->sizeHint();
 
     itemSize = itemSize.expandedTo(QApplication::globalStrut());
 
-    int padx = wrapper->info.getPadX();
-    int pady = wrapper->info.getPadY();
+    int padx = widget->info().getPadX();
+    int pady = widget->info().getPadY();
 
-    int ipadx = wrapper->info.getIPadX();
-    int ipady = wrapper->info.getIPadY();
+    int ipadx = widget->info().getIPadX();
+    int ipady = widget->info().getIPadY();
 
     int iw = itemSize.width () + 2*ipadx + 2*padx;
     int ih = itemSize.height() + 2*ipady + 2*pady;
@@ -866,12 +951,12 @@ CTkAppGridLayout::
 draw(QPainter *p) const
 {
   for (int i = 0; i < list_.size(); ++i) {
-    auto *wrapper = list_.at(i);
+    auto *item = list_.at(i);
 
-    auto *item = dynamic_cast<CTkAppLayoutWidget *>(wrapper->item);
-    assert(item);
+    auto *widget = dynamic_cast<CTkAppGridLayoutWidget *>(item);
+    assert(widget);
 
-    auto r = item->geometry();
+    auto r = widget->geometry();
 
     p->setPen(Qt::red);
 

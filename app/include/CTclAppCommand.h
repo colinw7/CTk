@@ -3,6 +3,8 @@
 
 class CTclApp;
 
+#include <QString>
+
 #include <vector>
 #include <string>
 
@@ -13,50 +15,50 @@ struct Tcl_Obj;
 
 class CTclAppCommand {
  protected:
-  explicit CTclAppCommand(CTclApp *app, const std::string &name);
+  explicit CTclAppCommand(CTclApp *app, const QString &name);
 
   virtual ~CTclAppCommand();
 
-  const std::string &getName() const { return name_; }
+  const QString &getName() const { return name_; }
 
-  virtual bool proc(int argc, const char **argv) = 0;
+  virtual bool proc(int objc, Tcl_Obj* const *objv) = 0;
 
   //---
 
   void setIntegerResult(int value);
   void setRealResult   (double value);
-  void setStringResult (const std::string &value);
+  void setStringResult (const QString &value);
   void setBoolResult   (bool b);
 
   void setIntegerArrayResult(int *values, int num_values);
   void setIntegerArrayResult(const std::vector<int> &values);
   void setRealArrayResult   (double *values, int num_values);
   void setRealArrayResult   (const std::vector<double> &values);
-  void setStringArrayResult (char **values, int num_values);
-  void setStringArrayResult (const std::vector<std::string> &strs);
+  void setStringArrayResult (const std::vector<QString> &strs);
 
   void setObjResult(Tcl_Obj *obj);
 
   //---
 
-  void setIntegerVar(const std::string &var, int value);
-  void setRealVar   (const std::string &var, double value);
-  void setStringVar (const std::string &var, const std::string &value);
-  void setBoolVar   (const std::string &var, bool value);
+  void setIntegerVar(const QString &var, int value);
+  void setRealVar   (const QString &var, double value);
+  void setStringVar (const QString &var, const QString &value);
+  void setBoolVar   (const QString &var, bool value);
 
-  int         getIntegerVar(const std::string &var) const;
-  double      getRealVar   (const std::string &var) const;
-  std::string getStringVar (const std::string &var) const;
-  bool        getBoolVar   (const std::string &var) const;
+  int     getIntegerVar(const QString &var) const;
+  double  getRealVar   (const QString &var) const;
+  QString getStringVar (const QString &var) const;
+  bool    getBoolVar   (const QString &var) const;
 
-  bool getStringArrayVar(const std::string &var, std::vector<std::string> &strs) const;
+  bool getStringArrayVar(const QString &var, std::vector<QString> &strs) const;
 
  private:
-  static int commandProc(ClientData clientData, Tcl_Interp *interp, int argc, const char **argv);
+  static int commandProc(ClientData clientData, Tcl_Interp *interp,
+                         int objc, Tcl_Obj* const *objv);
 
  protected:
-  CTclApp*    app_ { nullptr };
-  std::string name_;
+  CTclApp* app_ { nullptr };
+  QString  name_;
 };
 
 #endif

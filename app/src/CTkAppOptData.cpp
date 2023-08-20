@@ -36,7 +36,9 @@ getOpts() const
       auto p = values_.find(opt.name);
 
       if (p != values_.end()) {
-        auto *sobj5 = Tcl_NewStringObj((*p).second.s.c_str(), int((*p).second.s.size()));
+        auto s = (*p).second.getString();
+
+        auto *sobj5 = Tcl_NewStringObj(s.toLatin1().constData(), -1);
 
         Tcl_ListObjAppendElement(tk_->getInterp(), list1, sobj5);
       }
@@ -55,13 +57,16 @@ getOpts() const
 
 Tcl_Obj *
 CTkAppOptData::
-getOpt(const std::string &name) const
+getOpt(const QString &name) const
 {
   auto *list = Tcl_NewListObj(0, nullptr);
 
   for (uint i = 0; opts_[i].name != nullptr; ++i) {
     const auto &opt = opts_[i];
-    if (opt.name != name) continue;
+
+    auto optName = QString(opt.name);
+
+    if (optName != name) continue;
 
     auto *sobj1 = Tcl_NewStringObj(opt.name , strlen(opt.name ));
     auto *sobj2 = Tcl_NewStringObj(opt.dname, strlen(opt.dname));
@@ -76,10 +81,12 @@ getOpt(const std::string &name) const
       Tcl_ListObjAppendElement(tk_->getInterp(), list, sobj3);
       Tcl_ListObjAppendElement(tk_->getInterp(), list, sobj4);
 
-      auto p = values_.find(opt.name);
+      auto p = values_.find(optName);
 
       if (p != values_.end()) {
-        auto *sobj5 = Tcl_NewStringObj((*p).second.s.c_str(), int((*p).second.s.size()));
+        auto s = (*p).second.getString();
+
+        auto *sobj5 = Tcl_NewStringObj(s.toLatin1().constData(), -1);
 
         Tcl_ListObjAppendElement(tk_->getInterp(), list, sobj5);
       }
@@ -98,33 +105,40 @@ getOpt(const std::string &name) const
 
 void
 CTkAppOptData::
-getNames(std::vector<std::string> &names) const
+getNames(std::vector<QString> &names) const
 {
   for (uint i = 0; opts_[i].name != nullptr; ++i) {
     const auto &opt = opts_[i];
 
-    names.push_back(opt.name);
+    auto optName = QString(opt.name);
+
+    names.push_back(optName);
   }
 }
 
 bool
 CTkAppOptData::
-getOptValue(const std::string &name, std::string &value) const
+getOptValue(const QString &name, QString &value) const
 {
   for (uint i = 0; opts_[i].name != nullptr; ++i) {
     const auto &opt = opts_[i];
 
-    if (opt.name != name) continue;
+    auto optName = QString(opt.name);
+
+    if (optName != name) continue;
 
     if (opt.cname == nullptr)
       return getOptValue(opt.dname, value);
 
     auto p = values_.find(name);
 
-    if (p != values_.end())
-      value = (*p).second.s;
+    if (p != values_.end()) {
+      auto s = (*p).second.getString();
+
+      value = s;
+    }
     else
-      value = opt.def;
+      value = QString(opt.def);
 
     return true;
   }
@@ -134,13 +148,13 @@ getOptValue(const std::string &name, std::string &value) const
 
 bool
 CTkAppOptData::
-getDefValue(const std::string &optName, const std::string &optClass, std::string &value) const
+getDefValue(const QString &optName, const QString &optClass, QString &value) const
 {
   for (uint i = 0; opts_[i].name != nullptr; ++i) {
     const auto &opt = opts_[i];
 
-    if (opt.dname == optName) {
-      value = opt.def;
+    if (opt.dname == optName.toStdString()) {
+      value = QString(opt.def);
       return true;
     }
   }
@@ -148,8 +162,8 @@ getDefValue(const std::string &optName, const std::string &optClass, std::string
   for (uint i = 0; opts_[i].name != nullptr; ++i) {
     const auto &opt = opts_[i];
 
-    if (opt.cname && opt.cname == optClass) {
-      value = opt.def;
+    if (opt.cname && opt.cname == optClass.toStdString()) {
+      value = QString(opt.def);
       return true;
     }
   }
@@ -159,7 +173,7 @@ getDefValue(const std::string &optName, const std::string &optClass, std::string
 
 bool
 CTkAppOptData::
-setOptValue(const std::string &name, const std::string &value, const CTkAppOpt **opt)
+setOptValue(const QString &name, const QString &value, const CTkAppOpt **opt)
 {
   // exact match
   for (uint i = 0; opts_[i].name != nullptr; ++i) {
@@ -172,7 +186,7 @@ setOptValue(const std::string &name, const std::string &value, const CTkAppOpt *
 
     *opt = &opt1;
 
-    values_[name].s = value;
+    values_[name].setString(value);
 
     return true;
   }
@@ -183,8 +197,7 @@ setOptValue(const std::string &name, const std::string &value, const CTkAppOpt *
   for (uint i = 0; opts_[i].name != nullptr; ++i) {
     const auto &opt1 = opts_[i];
 
-    auto pos = std::string(opt1.name).find(name);
-
+    auto pos = QString(opt1.name).indexOf(name);
     if (pos != 0) continue;
 
     if (opt)
@@ -196,7 +209,7 @@ setOptValue(const std::string &name, const std::string &value, const CTkAppOpt *
   if (! *opt)
     return false;
 
-  values_[name].s = value;
+  values_[name].setString(value);
 
   return true;
 }

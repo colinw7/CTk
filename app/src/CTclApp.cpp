@@ -1,6 +1,5 @@
 #include <CTclApp.h>
-
-#include <CStrUtil.h>
+#include <CTkAppUtil.h>
 
 #ifdef CTCL_APP_READLINE
 #include <CReadLine.h>
@@ -36,7 +35,7 @@ CTclApp(int argc, const char **argv) :
 
 void
 CTclApp::
-setAppName(const std::string &appName)
+setAppName(const QString &appName)
 {
   appName_ = appName;
 }
@@ -131,21 +130,21 @@ void
 CTclApp::
 setIntegerResult(int value)
 {
-  setStringResult(CStrUtil::toString(value));
+  setStringResult(QString::number(value));
 }
 
 void
 CTclApp::
 setRealResult(double value)
 {
-  setStringResult(CStrUtil::toString(value));
+  setStringResult(QString::number(value));
 }
 
 void
 CTclApp::
-setStringResult(const std::string &value)
+setStringResult(const QString &value)
 {
-  auto *sobj = Tcl_NewStringObj(value.c_str(), int(value.size()));
+  auto *sobj = Tcl_NewStringObj(value.toLatin1().constData(), int(value.length()));
 
   setObjResult(sobj);
 }
@@ -161,10 +160,10 @@ void
 CTclApp::
 setIntegerArrayResult(int *values, int num_values)
 {
-  std::vector<std::string> strs;
+  std::vector<QString> strs;
 
   for (int i = 0; i < num_values; ++i)
-    strs.push_back(CStrUtil::toString(values[i]));
+    strs.push_back(QString::number(values[i]));
 
   setStringArrayResult(strs);
 }
@@ -173,12 +172,12 @@ void
 CTclApp::
 setIntegerArrayResult(const std::vector<int> &values)
 {
-  std::vector<std::string> strs;
+  std::vector<QString> strs;
 
   auto num_values = values.size();
 
   for (uint i = 0; i < num_values; ++i)
-    strs.push_back(CStrUtil::toString(values[i]));
+    strs.push_back(QString::number(values[i]));
 
   setStringArrayResult(strs);
 }
@@ -199,10 +198,10 @@ void
 CTclApp::
 setRealArrayResult(double *values, int num_values)
 {
-  std::vector<std::string> strs;
+  std::vector<QString> strs;
 
   for (int i = 0; i < num_values; ++i)
-    strs.push_back(CStrUtil::toString(values[i]));
+    strs.push_back(QString::number(values[i]));
 
   setStringArrayResult(strs);
 }
@@ -211,38 +210,26 @@ void
 CTclApp::
 setRealArrayResult(const std::vector<double> &values)
 {
-  std::vector<std::string> strs;
+  std::vector<QString> strs;
 
   int num_values = values.size();
 
   for (int i = 0; i < num_values; ++i)
-    strs.push_back(CStrUtil::toString(values[i]));
+    strs.push_back(QString::number(values[i]));
 
   setStringArrayResult(strs);
 }
 
 void
 CTclApp::
-setStringArrayResult(char **values, int num_values)
-{
-  std::vector<std::string> strs;
-
-  for (int i = 0; i < num_values; ++i)
-    strs.push_back(values[i]);
-
-  setStringArrayResult(strs);
-}
-
-void
-CTclApp::
-setStringArrayResult(const std::vector<std::string> &values)
+setStringArrayResult(const std::vector<QString> &values)
 {
   auto *obj = Tcl_NewListObj(0, nullptr);
 
   int num_values = values.size();
 
   for (int i = 0; i < num_values; ++i) {
-    auto *sobj = Tcl_NewStringObj(values[i].c_str(), int(values[i].size()));
+    auto *sobj = Tcl_NewStringObj(values[i].toLatin1().constData(), int(values[i].length()));
 
     Tcl_ListObjAppendElement(app_->getInterp(), obj, sobj);
   }
@@ -267,12 +254,12 @@ setObjResult(Tcl_Obj *obj)
 
 bool
 CTclApp::
-getStringResult(std::string &res) const
+getStringResult(QString &res) const
 {
   auto *resPtr = Tcl_GetObjResult(app_->getInterp());
   Tcl_IncrRefCount(resPtr);
   int length;
-  res = std::string(Tcl_GetStringFromObj(resPtr, &length));
+  res = QString(Tcl_GetStringFromObj(resPtr, &length));
   Tcl_DecrRefCount(resPtr);
   return (length > 0);
 }
@@ -281,77 +268,78 @@ getStringResult(std::string &res) const
 
 void
 CTclApp::
-setIntegerGlobalVar(const std::string &var, int value)
+setIntegerGlobalVar(const QString &var, int value)
 {
-  setStringGlobalVar(var, CStrUtil::toString(value));
+  setStringGlobalVar(var, QString::number(value));
 }
 
 void
 CTclApp::
-setRealGlobalVar(const std::string &var, double value)
+setRealGlobalVar(const QString &var, double value)
 {
-  setStringGlobalVar(var, CStrUtil::toString(value));
+  setStringGlobalVar(var, QString::number(value));
 }
 
 void
 CTclApp::
-setStringGlobalVar(const std::string &var, const std::string &value)
+setStringGlobalVar(const QString &var, const QString &value)
 {
-  Tcl_SetVar(app_->interp_, var.c_str(), value.c_str(), TCL_GLOBAL_ONLY);
+  Tcl_SetVar(app_->interp_, var.toLatin1().constData(),
+             value.toLatin1().constData(), TCL_GLOBAL_ONLY);
 }
 
 void
 CTclApp::
-setStringVar(const std::string &var, const std::string &value)
+setStringVar(const QString &var, const QString &value)
 {
-  Tcl_SetVar(app_->interp_, var.c_str(), value.c_str(), 0);
+  Tcl_SetVar(app_->interp_, var.toLatin1().constData(), value.toLatin1().constData(), 0);
 }
 
 void
 CTclApp::
-setBoolGlobalVar(const std::string &name, bool b)
+setBoolGlobalVar(const QString &name, bool b)
 {
-  setStringGlobalVar(name, b ? "1" : "0");
+  setStringGlobalVar(name, QString(b ? "1" : "0"));
 }
 
 void
 CTclApp::
-setStringArrayGlobalVar(const std::string &var, const std::vector<std::string> &strs)
+setStringArrayGlobalVar(const QString &var, const std::vector<QString> &strs)
 {
   setStringGlobalVar(var, mergeList(strs));
 }
 
 void
 CTclApp::
-setStringArrayVar(const std::string &var, const std::vector<std::string> &strs)
+setStringArrayVar(const QString &var, const std::vector<QString> &strs)
 {
   setStringVar(var, mergeList(strs));
 }
 
 void
 CTclApp::
-setIntegerArrayGlobalVar(const std::string &var, const std::vector<int> &values)
+setIntegerArrayGlobalVar(const QString &var, const std::vector<int> &values)
 {
-  std::vector<std::string> strs;
+  std::vector<QString> strs;
 
   auto num_values = values.size();
 
   for (uint i = 0; i < num_values; ++i)
-    strs.push_back(CStrUtil::toString(values[i]));
+    strs.push_back(QString::number(values[i]));
 
   setStringArrayGlobalVar(var, strs);
 }
 
 void
 CTclApp::
-setIntegerArrayVar(const std::string &var, const std::vector<int> &values)
+setIntegerArrayVar(const QString &var, const std::vector<int> &values)
 {
-  std::vector<std::string> strs;
+  std::vector<QString> strs;
 
   auto num_values = values.size();
 
   for (uint i = 0; i < num_values; ++i)
-    strs.push_back(CStrUtil::toString(values[i]));
+    strs.push_back(QString::number(values[i]));
 
   setStringArrayVar(var, strs);
 }
@@ -360,32 +348,42 @@ setIntegerArrayVar(const std::string &var, const std::vector<int> &values)
 
 bool
 CTclApp::
-hasGlobalVar(const std::string &var) const
+hasGlobalVar(const QString &var) const
 {
-  const char *value = Tcl_GetVar(app_->interp_, var.c_str(), TCL_GLOBAL_ONLY);
+  const char *value = Tcl_GetVar(app_->interp_, var.toLatin1().constData(), TCL_GLOBAL_ONLY);
 
   return value;
 }
 
 int
 CTclApp::
-getIntegerGlobalVar(const std::string &var) const
+getIntegerGlobalVar(const QString &var) const
 {
-  return CStrUtil::toInteger(getStringGlobalVar(var));
+  auto str = getStringGlobalVar(var);
+
+  long i = 0;
+  (void) CTkAppUtil::stringToInt(str, i);
+
+  return i;
 }
 
 double
 CTclApp::
-getRealGlobalVar(const std::string &var) const
+getRealGlobalVar(const QString &var) const
 {
-  return CStrUtil::toReal(getStringGlobalVar(var));
+  auto str = getStringGlobalVar(var);
+
+  double r = 0.0;
+  (void) CTkAppUtil::stringToReal(str, r);
+
+  return r;
 }
 
-std::string
+QString
 CTclApp::
-getStringGlobalVar(const std::string &var) const
+getStringGlobalVar(const QString &var) const
 {
-  const char *value = Tcl_GetVar(app_->interp_, var.c_str(), TCL_GLOBAL_ONLY);
+  const char *value = Tcl_GetVar(app_->interp_, var.toLatin1().constData(), TCL_GLOBAL_ONLY);
   if (! value) return "";
 
   return value;
@@ -393,21 +391,21 @@ getStringGlobalVar(const std::string &var) const
 
 bool
 CTclApp::
-getBoolGlobalVar(const std::string &var) const
+getBoolGlobalVar(const QString &var) const
 {
-  bool b;
+  auto str = getStringGlobalVar(var).toLower();
 
-  if (! CStrUtil::toBool(getStringGlobalVar(var), &b))
-    b = false;
+  bool b = false;
+  (void) CTkAppUtil::stringToBool(str, b);
 
   return b;
 }
 
 bool
 CTclApp::
-getStringArrayGlobalVar(const std::string &var, std::vector<std::string> &strs) const
+getStringArrayGlobalVar(const QString &var, std::vector<QString> &strs) const
 {
-  const char *value = Tcl_GetVar(app_->interp_, var.c_str(), TCL_GLOBAL_ONLY);
+  const char *value = Tcl_GetVar(app_->interp_, var.toLatin1().constData(), TCL_GLOBAL_ONLY);
   if (! value) return false;
 
   int    argc;
@@ -416,12 +414,12 @@ getStringArrayGlobalVar(const std::string &var, std::vector<std::string> &strs) 
   int rc = Tcl_SplitList(app_->interp_, value, &argc, const_cast<const char ***>(&argv));
 
   if (rc != TCL_OK) {
-    std::cerr << errorInfo_(rc) << "\n";
+    std::cerr << errorInfo_(rc).toStdString() << "\n";
     return false;
   }
 
   for (int i = 0; i < argc; ++i)
-    strs.push_back(std::string(argv[i]));
+    strs.push_back(QString(argv[i]));
 
   Tcl_Free(reinterpret_cast<char *>(argv));
 
@@ -432,41 +430,41 @@ getStringArrayGlobalVar(const std::string &var, std::vector<std::string> &strs) 
 
 bool
 CTclApp::
-splitList(const std::string &str, std::vector<std::string> &strs) const
+splitList(const QString &str, std::vector<QString> &strs) const
 {
   int    argc;
   char **argv;
 
-  int rc = Tcl_SplitList(app_->interp_, str.c_str(), &argc, const_cast<const char ***>(&argv));
+  auto cstr = str.toStdString();
+
+  int rc = Tcl_SplitList(app_->interp_, cstr.c_str(), &argc, const_cast<const char ***>(&argv));
   if (rc != TCL_OK) return false;
 
   for (int i = 0; i < argc; ++i)
-    strs.push_back(std::string(argv[i]));
+    strs.push_back(QString(argv[i]));
 
   Tcl_Free(reinterpret_cast<char *>(argv));
 
   return true;
 }
 
-std::string
+QString
 CTclApp::
-mergeList(const std::vector<std::string> &strs) const
+mergeList(const std::vector<QString> &strs) const
 {
-  auto argc = strs.size();
-
-  if (argc == 0)
-    return "";
+  auto argc = size_t(strs.size());
+  if (argc == 0) return QString();
 
   std::vector<char *> argv;
 
   argv.resize(argc);
 
   for (size_t i = 0; i < argc; ++i)
-    argv[i] = strdup(strs[i].c_str());
+    argv[i] = strdup(strs[int(i)].toLatin1().constData());
 
   char *res = Tcl_Merge(int(argc), &argv[0]);
 
-  std::string str(res);
+  QString str(res);
 
   for (size_t i = 0; i < argc; ++i)
     free(argv[i]);
@@ -480,14 +478,14 @@ mergeList(const std::vector<std::string> &strs) const
 
 void
 CTclApp::
-traceGlobalVar(const std::string &name, CTclTraceProc *proc)
+traceGlobalVar(const QString &name, CTclTraceProc *proc)
 {
   auto name1 = name;
 
-  auto pos = name1.find('(');
+  auto pos = name1.indexOf('(');
 
-  if (pos != std::string::npos)
-    name1 = name1.substr(0, pos);
+  if (pos >= 0)
+    name1 = name1.mid(0, pos);
 
   //---
 
@@ -497,7 +495,7 @@ traceGlobalVar(const std::string &name, CTclTraceProc *proc)
     auto pp = (*pn).second.find(proc);
 
     if (pp != (*pn).second.end()) {
-      std::cerr << "Multiple traces on same var '" << name1 << "'\n";
+      std::cerr << "Multiple traces on same var '" << name1.toStdString() << "'\n";
       return;
     }
   }
@@ -508,29 +506,30 @@ traceGlobalVar(const std::string &name, CTclTraceProc *proc)
 
   int flags = TCL_TRACE_READS | TCL_TRACE_WRITES | TCL_TRACE_UNSETS | TCL_GLOBAL_ONLY;
 
-  auto data = Tcl_VarTraceInfo(interp_, name1.c_str(), flags, &traceProc, nullptr);
+  auto data = Tcl_VarTraceInfo(interp_, name1.toLatin1().constData(), flags, &traceProc, nullptr);
 
   if (! data)
-    Tcl_TraceVar(interp_, name1.c_str(), flags, &traceProc, static_cast<ClientData>(this));
+    Tcl_TraceVar(interp_, name1.toLatin1().constData(), flags,
+                 &traceProc, static_cast<ClientData>(this));
 }
 
 void
 CTclApp::
-traceGlobalVar(const std::string &name)
+traceGlobalVar(const QString &name)
 {
   auto name1 = name;
 
-  auto pos = name1.find('(');
+  auto pos = name1.indexOf('(');
 
-  if (pos != std::string::npos)
-    name1 = name1.substr(0, pos);
+  if (pos >= 0)
+    name1 = name1.mid(0, pos);
 
   //---
 
   auto pn = traces_.find(name1);
 
   if (pn != traces_.end()) {
-    std::cerr << "Multiple traces on same var '" << name1 << "'\n";
+    std::cerr << "Multiple traces on same var '" << name1.toStdString() << "'\n";
     return;
   }
 
@@ -540,36 +539,38 @@ traceGlobalVar(const std::string &name)
 
   int flags = TCL_TRACE_READS | TCL_TRACE_WRITES | TCL_TRACE_UNSETS | TCL_GLOBAL_ONLY;
 
-  auto data = Tcl_VarTraceInfo(interp_, name1.c_str(), flags, &genTraceProc, nullptr);
+  auto data = Tcl_VarTraceInfo(interp_, name1.toLatin1().constData(), flags,
+                               &genTraceProc, nullptr);
 
   if (! data)
-    Tcl_TraceVar(interp_, name1.c_str(), flags, &genTraceProc, static_cast<ClientData>(this));
+    Tcl_TraceVar(interp_, name1.toLatin1().constData(), flags,
+                 &genTraceProc, static_cast<ClientData>(this));
 }
 
 void
 CTclApp::
-untraceGlobalVar(const std::string &name, CTclTraceProc *proc)
+untraceGlobalVar(const QString &name, CTclTraceProc *proc)
 {
   auto name1 = name;
 
-  auto pos = name1.find('(');
+  auto pos = name1.indexOf('(');
 
-  if (pos != std::string::npos)
-    name1 = name1.substr(0, pos);
+  if (pos >= 0)
+    name1 = name1.mid(0, pos);
 
   //---
 
   auto pn = traceProcs_.find(name1);
 
   if (pn == traceProcs_.end()) {
-    std::cerr << "No trace on var '" << name1 << "'\n";
+    std::cerr << "No trace on var '" << name1.toStdString() << "'\n";
     return;
   }
 
   auto pp = (*pn).second.find(proc);
 
   if (pp == (*pn).second.end()) {
-    std::cerr << "No trace on var '" << name1 << "'\n";
+    std::cerr << "No trace on var '" << name1.toStdString() << "'\n";
     return;
   }
 
@@ -580,27 +581,28 @@ untraceGlobalVar(const std::string &name, CTclTraceProc *proc)
   if ((*pn).second.empty()) {
     int flags = TCL_TRACE_READS | TCL_TRACE_WRITES | TCL_TRACE_UNSETS | TCL_GLOBAL_ONLY;
 
-    Tcl_UntraceVar(interp_, name1.c_str(), flags, &traceProc, static_cast<ClientData>(this));
+    Tcl_UntraceVar(interp_, name1.toLatin1().constData(), flags,
+                   &traceProc, static_cast<ClientData>(this));
   }
 }
 
 void
 CTclApp::
-untraceGlobalVar(const std::string &name)
+untraceGlobalVar(const QString &name)
 {
   auto name1 = name;
 
-  auto pos = name1.find('(');
+  auto pos = name1.indexOf('(');
 
-  if (pos != std::string::npos)
-    name1 = name1.substr(0, pos);
+  if (pos >= 0)
+    name1 = name1.mid(0, pos);
 
   //---
 
   auto pn = traceProcs_.find(name1);
 
   if (pn == traceProcs_.end()) {
-    std::cerr << "No trace on var '" << name1 << "'\n";
+    std::cerr << "No trace on var '" << name1.toStdString() << "'\n";
     return;
   }
 
@@ -610,7 +612,8 @@ untraceGlobalVar(const std::string &name)
 
   int flags = TCL_TRACE_READS | TCL_TRACE_WRITES | TCL_TRACE_UNSETS | TCL_GLOBAL_ONLY;
 
-  Tcl_UntraceVar(interp_, name1.c_str(), flags, &genTraceProc, static_cast<ClientData>(this));
+  Tcl_UntraceVar(interp_, name1.toLatin1().constData(), flags,
+                 &genTraceProc, static_cast<ClientData>(this));
 }
 
 void
@@ -701,65 +704,48 @@ handleUnset(const char *name)
 
 bool
 CTclApp::
-evalFile(const std::string &filename) const
+evalFile(const QString &filename) const
 {
 #if 0
-  std::string cmd = "source \"" + filename + "\"";
+  auto cmd = "source \"" + filename + "\"";
 
   return eval(cmd);
 #endif
 
-  auto rc = Tcl_EvalFile(interp_, filename.c_str());
+  auto rc = Tcl_EvalFile(interp_, filename.toLatin1().constData());
 
   if (rc != TCL_OK)
-    std::cerr << errorInfo_(rc) << "\n";
+    std::cerr << errorInfo_(rc).toStdString() << "\n";
 
   return (rc == TCL_OK);
 }
 
 bool
 CTclApp::
-eval(const std::string &str) const
+eval(const QString &str) const
 {
-  auto rc = Tcl_Eval(interp_, str.c_str());
+  auto rc = Tcl_Eval(interp_, str.toLatin1().constData());
 
   if (rc != TCL_OK)
-    std::cerr << errorInfo_(rc) << "\n";
+    std::cerr << errorInfo_(rc).toStdString() << "\n";
 
   return (rc == TCL_OK);
-}
-
-bool
-CTclApp::
-eval(const char *format, ...) const
-{
-  va_list vargs;
-
-  va_start(vargs, format);
-
-  std::string str;
-
-  CStrUtil::vsprintf(str, format, &vargs);
-
-  auto rc = eval(str);
-
-  va_end(vargs);
-
-  return rc;
 }
 
 //---
 
-std::string
+QString
 CTclApp::
 errorInfo_(int rc) const
 {
-  auto stringFromObj = [](Tcl_Obj *obj) {
+  auto getStringFromObj = [](Tcl_Obj *obj) {
     int len = 0;
 
     char *str = Tcl_GetStringFromObj(obj, &len);
 
-    return std::string(str, size_t(len));
+    std::string cstr(str, size_t(len));
+
+    return QString::fromStdString(cstr);
   };
 
   auto *options = Tcl_GetReturnOptions(interp_, rc);
@@ -772,14 +758,14 @@ errorInfo_(int rc) const
   Tcl_DictObjGet(nullptr, options, key1, &errorMsg);
   Tcl_DecrRefCount(key1);
 
-  auto msg = stringFromObj(errorMsg);
+  auto msg = getStringFromObj(errorMsg);
 
   Tcl_Obj *stackTrace;
   Tcl_IncrRefCount(key2);
   Tcl_DictObjGet(nullptr, options, key2, &stackTrace);
   Tcl_DecrRefCount(key2);
 
-  auto trace = stringFromObj(stackTrace);
+  auto trace = getStringFromObj(stackTrace);
 
   Tcl_DecrRefCount(options);
 

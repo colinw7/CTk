@@ -1,7 +1,7 @@
 #ifndef CTkAppEventData_H
 #define CTkAppEventData_H
 
-#include <string>
+#include <QString>
 
 enum class CTkAppEventType {
   None,
@@ -96,7 +96,7 @@ struct CTkAppVirtualEventData {
 };
 
 struct CTkAppEventData {
-  std::string            pattern;
+  QString                pattern;
   CTkAppEventType        type        { CTkAppEventType::None };
   CTkAppVirtualEventType vtype       { CTkAppVirtualEventType::None };
   CTkAppEventMode        mode        { CTkAppEventMode::None };
@@ -104,10 +104,10 @@ struct CTkAppEventData {
   int                    button      { 0 };
   int                    clicks      { 1 };
   bool                   anyKey      { false };
-  std::string            key;
+  QString                key;
   bool                   anyModifier { false };
   uint                   modifiers   { 0 };
-  std::string            command;
+  QString                command;
 
   friend bool operator==(const CTkAppEventData &lhs, const CTkAppEventData &rhs) {
     if (lhs.type != rhs.type) return false;

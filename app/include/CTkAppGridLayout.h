@@ -2,126 +2,156 @@
 #define CTkAppGridLayout_H
 
 #include <CTkAppLayout.h>
-
-#include <COptVal.h>
+#include <CTkAppLayoutWidget.h>
+#include <optional>
 
 class CTkAppWidget;
 
 class QPainter;
 
+//---
+
+class CTkAppGridLayoutInfo {
+ public:
+  enum class StickySide {
+    NONE = 0,
+    ALL  = ~0,
+    N    = (1<<0),
+    S    = (1<<1),
+    E    = (1<<2),
+    W    = (1<<3)
+  };
+
+ public:
+  explicit CTkAppGridLayoutInfo() { }
+
+  //---
+
+  bool isRowValid() const { return bool(row_); }
+  int  getRow    () const { return row_.value_or(-1); }
+  void setRow    (int row) { row_ = row; }
+
+  bool isColValid() const { return bool(col_); }
+  int  getCol    () const { return col_.value_or(-1); }
+  void setCol    (int col) { col_ = col; }
+
+  int  getRowSpan() const { return rowSpan_.value_or(1); }
+  void setRowSpan(int rowSpan) { rowSpan_ = rowSpan; }
+
+  int  getColSpan() const { return colSpan_.value_or(1); }
+  void setColSpan(int colSpan) { colSpan_ = colSpan; }
+
+  QString getSticky() const { return sticky_.value_or(""); }
+  void setSticky(const QString &sticky) { sticky_ = sticky; }
+
+  uint getStickySides() const {
+    if (sticky_)
+      sticky_sides_ = decodeStickySides();
+    else
+      sticky_sides_ = uint(StickySide::NONE);
+
+    return sticky_sides_;
+  }
+
+  bool isPadXValid() const { return bool(padx_); }
+  int  getPadX    () const { return padx_.value_or(0); }
+  void setPadX    (int padx) { padx_ = padx; }
+
+  bool isPadYValid() const { return bool(pady_); }
+  int  getPadY    () const { return pady_.value_or(0); }
+  void setPadY    (int pady) { pady_ = pady; }
+
+  bool isIPadXValid() const { return bool(ipadx_); }
+  int  getIPadX    () const { return ipadx_.value_or(0); }
+  void setIPadX    (int ipadx) { ipadx_ = ipadx; }
+
+  bool isIPadYValid() const { return bool(ipady_); }
+  int  getIPadY    () const { return ipady_.value_or(0); }
+  void setIPadY    (int ipady) { ipady_ = ipady; }
+
+  bool isInValid() const { return bool(in_); }
+  QString getIn() const { return in_.value_or(""); }
+  void setIn(const QString &s) { in_ = s; }
+
+  int isWeightValue() const { return bool(weight_); }
+  int weight() const { return weight_.value_or(0); }
+  void setWeight(int i) { weight_ = i; }
+
+  void update(const CTkAppGridLayoutInfo &info) {
+    if (info.row_    ) row_     = info.row_    ;
+    if (info.col_    ) col_     = info.col_    ;
+    if (info.rowSpan_) rowSpan_ = info.rowSpan_;
+    if (info.colSpan_) colSpan_ = info.colSpan_;
+    if (info.sticky_ ) sticky_  = info.sticky_ ;
+    if (info.padx_   ) padx_    = info.padx_   ;
+    if (info.pady_   ) pady_    = info.pady_   ;
+    if (info.ipadx_  ) ipadx_   = info.ipadx_  ;
+    if (info.ipady_  ) ipady_   = info.ipady_  ;
+    if (info.in_     ) in_      = info.in_     ;
+    if (info.weight_ ) weight_  = info.weight_ ;
+  }
+
+ private:
+  uint decodeStickySides() const {
+    uint sides = 0;
+
+    auto sticky = sticky_.value_or("");
+
+    auto len = sticky.size();
+
+    for (int i = 0; i < len; ++i) {
+      switch (sticky[i].toLatin1()) {
+        case 'n': case 'N': sides |= uint(StickySide::N); break;
+        case 's': case 'S': sides |= uint(StickySide::S); break;
+        case 'e': case 'E': sides |= uint(StickySide::E); break;
+        case 'w': case 'W': sides |= uint(StickySide::W); break;
+        default: break;
+      }
+    }
+
+    return sides;
+  }
+
+ private:
+  std::optional<int>     row_, col_;
+  std::optional<int>     rowSpan_, colSpan_;
+  std::optional<QString> sticky_;
+  std::optional<int>     padx_, pady_;
+  std::optional<int>     ipadx_, ipady_;
+  std::optional<QString> in_;
+  std::optional<int>     weight_;
+
+  mutable uint sticky_sides_;
+};
+
+//---
+
+class CTkAppGridLayoutWidget : public CTkAppLayoutWidget {
+ public:
+  using Info = CTkAppGridLayoutInfo;
+
+  explicit CTkAppGridLayoutWidget(TkWidget *widget, const Info &info) :
+   CTkAppLayoutWidget(widget), info_(info) {
+  }
+
+  explicit CTkAppGridLayoutWidget(QLayout *layout, const Info &info) :
+   CTkAppLayoutWidget(layout), info_(info) {
+  }
+
+  const Info &info() const { return info_; }
+  Info &info() { return info_; }
+
+ private:
+  Info info_;
+};
+
+//---
+
 class CTkAppGridLayout : public CTkAppLayout {
   Q_OBJECT
 
  public:
-  enum StickySide {
-    STICKY_NONE = 0,
-    STICKY_ALL  = ~0,
-    STICKY_N    = (1<<0),
-    STICKY_S    = (1<<1),
-    STICKY_E    = (1<<2),
-    STICKY_W    = (1<<3)
-  };
-
-  class Info {
-   public:
-    explicit Info() { }
-
-    bool isRowValid() const { return row_.isValid(); }
-    int  getRow    () const { return row_.getValue(-1); }
-    void setRow    (int row) { row_.setValue(row); }
-
-    bool isColValid() const { return col_.isValid(); }
-    int  getCol    () const { return col_.getValue(-1); }
-    void setCol    (int col) { col_.setValue(col); }
-
-    int  getRowSpan() const { return rowSpan_.getValue(1); }
-    void setRowSpan(int rowSpan) { rowSpan_.setValue(rowSpan); }
-
-    int  getColSpan() const { return colSpan_.getValue(1); }
-    void setColSpan(int colSpan) { colSpan_.setValue(colSpan); }
-
-    void setSticky(const std::string &sticky) { sticky_.setValue(sticky); }
-
-    uint getStickySides() const {
-      if (sticky_.isValid())
-        sticky_sides_ = decodeStickySides();
-      else
-        sticky_sides_ = STICKY_NONE;
-
-      return sticky_sides_;
-    }
-
-    bool isPadXValid() const { return padx_.isValid(); }
-    int  getPadX    () const { return padx_.getValue(0); }
-    void setPadX    (int padx) { padx_.setValue(padx); }
-
-    bool isPadYValid() const { return pady_.isValid(); }
-    int  getPadY    () const { return pady_.getValue(0); }
-    void setPadY    (int pady) { pady_.setValue(pady); }
-
-    bool isIPadXValid() const { return ipadx_.isValid(); }
-    int  getIPadX    () const { return ipadx_.getValue(0); }
-    void setIPadX    (int ipadx) { ipadx_.setValue(ipadx); }
-
-    bool isIadYValid() const { return ipady_.isValid(); }
-    int  getIPadY   () const { return ipady_.getValue(0); }
-    void setIPadY   (int ipady) { ipady_.setValue(ipady); }
-
-    void update(const Info &info) {
-      if (info.row_    .isValid()) row_     = info.row_    ;
-      if (info.col_    .isValid()) col_     = info.col_    ;
-      if (info.rowSpan_.isValid()) rowSpan_ = info.rowSpan_;
-      if (info.colSpan_.isValid()) colSpan_ = info.colSpan_;
-      if (info.sticky_ .isValid()) sticky_  = info.sticky_ ;
-      if (info.padx_   .isValid()) padx_    = info.padx_   ;
-      if (info.pady_   .isValid()) pady_    = info.pady_   ;
-      if (info.ipadx_  .isValid()) ipadx_   = info.ipadx_  ;
-      if (info.ipady_  .isValid()) ipady_   = info.ipady_  ;
-    }
-
-   private:
-    uint decodeStickySides() const {
-      uint sides = 0;
-
-      std::string sticky = sticky_.getValue("");
-
-      auto len = sticky.size();
-
-      for (size_t i = 0; i < len; ++i) {
-        switch (sticky[i]) {
-          case 'n': case 'N': sides |= STICKY_N; break;
-          case 's': case 'S': sides |= STICKY_S; break;
-          case 'e': case 'E': sides |= STICKY_E; break;
-          case 'w': case 'W': sides |= STICKY_W; break;
-          default:                               break;
-        }
-      }
-
-      return sides;
-    }
-
-   private:
-    COptValT<int>         row_, col_;
-    COptValT<int>         rowSpan_, colSpan_;
-    COptValT<std::string> sticky_;
-    COptValT<int>         padx_, pady_;
-    COptValT<int>         ipadx_, ipady_;
-
-    mutable uint sticky_sides_;
-  };
-
- private:
-  struct ItemWrapper {
-    ItemWrapper(QLayoutItem *i, const Info &inf) {
-      item   = i;
-      info   = inf;
-      weight = 0;
-    }
-
-    QLayoutItem *item;
-    Info         info;
-    int          weight;
-  };
+  using Info = CTkAppGridLayoutInfo;
 
  public:
   enum class WidgetType {
@@ -155,7 +185,7 @@ class CTkAppGridLayout : public CTkAppLayout {
 
  ~CTkAppGridLayout();
 
-  std::string name() const override { return "grid"; }
+  QString name() const override { return "grid"; }
 
   void addItem(QLayoutItem *item) override;
 
@@ -164,7 +194,11 @@ class CTkAppGridLayout : public CTkAppLayout {
 
   bool removeWidget(CTkAppWidget *widget);
 
-  ItemWrapper *getItem(CTkAppWidget *widget) const;
+  std::vector<CTkAppWidget *> getWidgets() const;
+
+  std::vector<CTkAppLayoutWidget *> getLayoutWidgets() const override;
+
+  QLayoutItem *getItem(CTkAppWidget *widget) const;
 
   bool getChildInfo(CTkAppWidget *widget, Info &info);
 
@@ -175,8 +209,8 @@ class CTkAppGridLayout : public CTkAppLayout {
   void setColumnWeight(int col, int weight);
   int getColumnWeight(int col) const;
 
-  void setColumnUniform(int col, const std::string &name);
-  std::string getColumnUniform(int col) const;
+  void setColumnUniform(int col, const QString &name);
+  QString getColumnUniform(int col) const;
 
   void setColumnMinSize(int col, double size);
   double getColumnMinSize(int col) const;
@@ -189,8 +223,8 @@ class CTkAppGridLayout : public CTkAppLayout {
   void setRowWeight(int row, int weight);
   int  getRowWeight(int row) const;
 
-  void setRowUniform(int col, const std::string &name);
-  std::string getRowUniform(int col) const;
+  void setRowUniform(int col, const QString &name);
+  QString getRowUniform(int col) const;
 
   void setRowMinSize(int col, double size);
   double getRowMinSize(int col) const;
@@ -216,13 +250,11 @@ class CTkAppGridLayout : public CTkAppLayout {
 
   QLayoutItem *takeAt(int index) override;
 
-  void add(QLayoutItem *item, const Info &info);
+  void add(QLayoutItem *item);
 
   void draw(QPainter *p) const;
 
  private:
-  enum SizeType { MinimumSize, SizeHint };
-
   QSize calculateSize(SizeType sizeType) const;
 
   void calculateDims(uint &num_rows, uint &num_cols) const;
@@ -230,16 +262,16 @@ class CTkAppGridLayout : public CTkAppLayout {
   void calcPrefSizes(SizeType sizeType, std::vector<int> &prefColWidths,
                      std::vector<int> &prefRowHeights, int &prefWidth, int &prefHeight) const;
 
-  ItemWrapper *gridItem(int row, int col) const;
+  QLayoutItem *gridItem(int row, int col) const;
 
  private:
   using RowColWeights = std::map<int, int>;
-  using RowColUniform = std::map<int, std::string>;
+  using RowColUniform = std::map<int, QString>;
   using RowColMinSize = std::map<int, double>;
   using RowColPad     = std::map<int, int>;
   using RowWeights    = std::map<int, int>;
 
-  QList<ItemWrapper *> list_;
+  QList<QLayoutItem *> list_;
   int                  row_ { 0 };
   int                  col_ { 0 };
   int                  rowSpan_ { 1 };

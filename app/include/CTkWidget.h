@@ -8,8 +8,12 @@ class CTkApp;
 class CTkWidget : public QFrame {
   Q_OBJECT
 
+  Q_PROPERTY(QString id READ id)
+
  public:
   CTkWidget(CTkApp *app, const QString &id);
+
+  const QString &id() const { return id_; }
 
   void loadFile(const QString &filename);
 

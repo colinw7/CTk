@@ -1,5 +1,4 @@
 #include <CTkAppLayoutWidget.h>
-#include <CTkApp.h>
 #include <CTkAppWidget.h>
 
 #include <QApplication>
@@ -59,7 +58,7 @@ CTkAppLayoutWidget::
 minimumSize() const
 {
   if (widget_)
-    return widget_->getQWidget()->minimumSizeHint();
+    return widget_->getQWidget()->minimumSize();
   else
     return layout_->minimumSize();
 }
@@ -82,6 +81,16 @@ show()
     widget_->show();
 }
 
+QMargins
+CTkAppLayoutWidget::
+contentsMargins() const
+{
+  if (widget_)
+    return widget_->contentsMargins();
+  else
+    return layout_->contentsMargins();
+}
+
 QSize
 CTkAppLayoutWidget::
 sizeHint() const
@@ -90,6 +99,22 @@ sizeHint() const
 
   if (widget_)
     s = widget_->sizeHint();
+  else
+    s = layout_->sizeHint();
+
+  s = s.expandedTo(QApplication::globalStrut());
+
+  return s;
+}
+
+QSize
+CTkAppLayoutWidget::
+minimumSizeHint() const
+{
+  QSize s;
+
+  if (widget_)
+    s = widget_->minimumSizeHint();
   else
     s = layout_->sizeHint();
 
@@ -116,4 +141,14 @@ getQWidget() const
     return widget_->getQWidget();
   else
     return layout_->widget();
+}
+
+QString
+CTkAppLayoutWidget::
+name() const
+{
+  if (widget_)
+    return widget_->getName();
+  else
+    return "layout";
 }

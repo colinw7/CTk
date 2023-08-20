@@ -9,16 +9,16 @@ class CTkApp;
 
 class CTkAppFont {
  public:
-  explicit CTkAppFont(CTkApp *tk, const std::string &name);
+  explicit CTkAppFont(CTkApp *tk, const QString &name);
 
  ~CTkAppFont();
 
-  const std::string &name() const { return name_; }
+  const QString &name() const { return name_; }
 
   QFont getQFont() const;
 
-  std::string family() const;
-  void setFamily(const std::string &name);
+  QString family() const;
+  void setFamily(const QString &name);
 
   void setPointSize(double size);
   void setPixelSize(double size);
@@ -30,9 +30,9 @@ class CTkAppFont {
   void setOverstrike(bool b);
 
  private:
-  CTkApp*     tk_ { nullptr };
-  std::string name_;
-  QFont       qfont_;
+  CTkApp* tk_ { nullptr };
+  QString name_;
+  QFont   qfont_;
 };
 
 #endif
