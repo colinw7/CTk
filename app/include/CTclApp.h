@@ -2,6 +2,7 @@
 #define CTCL_APP_H
 
 #include <QString>
+#include <QVariant>
 
 #include <string>
 #include <vector>
@@ -71,6 +72,7 @@ class CTclApp {
   void setRealResult   (double value);
   void setStringResult (const QString &value);
   void setBoolResult   (bool b);
+  void setResult       (const QVariant &var);
 
   void setIntegerArrayResult(int *values, int num_values);
   void setIntegerArrayResult(const std::vector<int> &values);
@@ -78,8 +80,6 @@ class CTclApp {
   void setRealArrayResult   (double *values, int num_values);
   void setRealArrayResult   (const std::vector<double> &values);
   void setStringArrayResult (const std::vector<QString> &strs);
-
-  void setObjResult(Tcl_Obj *obj);
 
   //---
 

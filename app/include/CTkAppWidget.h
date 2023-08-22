@@ -2250,14 +2250,18 @@ class CTkAppRadioButtonWidget : public QRadioButton {
   bool isReadOnly() const { return readOnly_; }
   void setReadOnly(bool b) { readOnly_ = b; }
 
+  int userWidth() const { return userWidth_; }
+  void setUserWidth(int i) { userWidth_ = i; }
+
   void paintEvent(QPaintEvent *) override;
 
   QSize sizeHint() const override;
 
  private:
-  CTkAppRadioButton *radio_    { nullptr };
+  CTkAppRadioButton *radio_     { nullptr };
   QImage             image_;
-  bool               readOnly_ { false };
+  bool               readOnly_  { false };
+  int                userWidth_ { -1 };
 };
 
 //---

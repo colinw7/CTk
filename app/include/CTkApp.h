@@ -9,6 +9,7 @@
 
 #include <QPointer>
 #include <QTransform>
+#include <QFont>
 
 #include <memory>
 #include <vector>
@@ -63,6 +64,9 @@ class CTkApp : public QObject, public CTclApp {
   CTkAppRoot *root() const { return root_; }
 
   void setRootFrame(QFrame *frame);
+
+  QFont appFont() const { return appFont_; }
+  void setAppFont(const QFont &f) { appFont_ = f; }
 
   //---
 
@@ -325,6 +329,7 @@ class CTkApp : public QObject, public CTclApp {
   ImageMap         images_;
   mutable ImageMap bitmaps_;
 
+  QFont   appFont_;
   FontMap fonts_;
 
   OptionDatas options_;

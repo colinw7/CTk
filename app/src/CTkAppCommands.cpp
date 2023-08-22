@@ -1913,8 +1913,6 @@ run(const Args &args)
     layout->addWidgets(widgetDatas, info);
 
     layout->invalidate();
-
-    parent->show();
   }
 
   return true;
@@ -3020,8 +3018,6 @@ run(const Args &args)
     layout->addWidgets(children, info);
 
     layout->invalidate();
-
-    parent->show();
   }
 
   return true;
@@ -3354,8 +3350,6 @@ run(const Args &args)
     layout->addWidgets(children, info);
 
     layout->invalidate();
-
-    parent->show();
   }
 
   return true;
@@ -5218,17 +5212,17 @@ run(const Args &args)
   if      (arg == "configure") {
     // get all options
     if      (numArgs == 1) {
-      auto *obj = opts_.getOpts();
+      auto var = opts_.getOpts();
 
-      setObjResult(obj);
+      tk_->setResult(var);
     }
     // get single option
     else if (numArgs == 2) {
       auto name = args[1].toString();
 
-      auto *obj = opts_.getOpt(name);
+      auto var = opts_.getOpt(name);
 
-      setObjResult(obj);
+      tk_->setResult(var);
     }
     // set option
     else {
@@ -5296,17 +5290,17 @@ run(const Args &args)
   if      (arg == "configure" || arg == "config") {
     // get all options
     if      (numArgs == 1) {
-      auto *obj = opts_.getOpts();
+      auto var = opts_.getOpts();
 
-      setObjResult(obj);
+      tk_->setResult(var);
     }
     // get single option
     else if (numArgs == 2) {
       auto name = args[1].toString();
 
-      auto *obj = opts_.getOpt(name);
+      auto var = opts_.getOpt(name);
 
-      setObjResult(obj);
+      tk_->setResult(var);
     }
     // set option
     else {

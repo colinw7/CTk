@@ -38,7 +38,47 @@ inline bool splitList(const QString &str, QStringList &strs) {
   return true;
 }
 
+inline int splitList(const QString &str, std::vector<QString> &strs) {
+  int    argc;
+  char **argv;
+
+  auto cstr = str.toStdString();
+
+  int rc = Tcl_SplitList(nullptr, cstr.c_str(), &argc, const_cast<const char ***>(&argv));
+  if (rc != TCL_OK) return rc;
+
+  for (int i = 0; i < argc; ++i)
+    strs.push_back(QString(argv[i]));
+
+  Tcl_Free(reinterpret_cast<char *>(argv));
+
+  return TCL_OK;
+}
+
 inline QString mergeList(const QStringList &strs) {
+  auto argc = size_t(strs.size());
+  if (argc == 0) return QString();
+
+  std::vector<char *> argv;
+
+  argv.resize(argc);
+
+  for (size_t i = 0; i < argc; ++i)
+    argv[i] = strdup(strs[int(i)].toLatin1().constData());
+
+  char *res = Tcl_Merge(int(argc), &argv[0]);
+
+  QString str(res);
+
+  for (size_t i = 0; i < argc; ++i)
+    free(argv[i]);
+
+  Tcl_Free(res);
+
+  return str;
+}
+
+inline QString mergeList(const std::vector<QString> &strs) {
   auto argc = size_t(strs.size());
   if (argc == 0) return QString();
 
@@ -348,7 +388,7 @@ inline QString variantListToString(const QVariantList &vars) {
 
 //---
 
-inline void createVar(Tcl_Interp *interp, const QString &name, const QVariant &var) {
+inline void createGlobalVar(Tcl_Interp *interp, const QString &name, const QVariant &var) {
   if (var.isValid()) {
     auto *nameObj  = variantToObj(interp, name); Tcl_IncrRefCount(nameObj);
     auto *valueObj = variantToObj(interp, var );
@@ -359,13 +399,38 @@ inline void createVar(Tcl_Interp *interp, const QString &name, const QVariant &v
   }
 }
 
+inline void createLocalVar(Tcl_Interp *interp, const QString &name, const QVariant &var) {
+  if (var.isValid()) {
+    auto *nameObj  = variantToObj(interp, name); Tcl_IncrRefCount(nameObj);
+    auto *valueObj = variantToObj(interp, var );
+
+    Tcl_ObjSetVar2(interp, nameObj, nullptr, valueObj, 0);
+
+    Tcl_DecrRefCount(nameObj);
+  }
+}
+
+inline void createVar(Tcl_Interp *interp, const QString &name, const QVariant &var) {
+  return createGlobalVar(interp, name, var);
+}
+
 inline void deleteVar(Tcl_Interp *interp, const QString &name) {
   Tcl_UnsetVar(interp, name.toLatin1().constData(), TCL_GLOBAL_ONLY);
 }
 
 //---
 
-inline QVariant getVar(Tcl_Interp *interp, const QString &name) {
+inline bool hasGlobalVar(Tcl_Interp *interp, const QString &name) {
+  auto *nameObj = variantToObj(interp, name); Tcl_IncrRefCount(nameObj);
+
+  auto *obj = Tcl_ObjGetVar2(interp, nameObj, nullptr, TCL_GLOBAL_ONLY);
+
+  Tcl_DecrRefCount(nameObj);
+
+  return (obj ? true : false);
+}
+
+inline QVariant getGlobalVar(Tcl_Interp *interp, const QString &name) {
   auto *nameObj = variantToObj(interp, name); Tcl_IncrRefCount(nameObj);
 
   auto *obj = Tcl_ObjGetVar2(interp, nameObj, nullptr, TCL_GLOBAL_ONLY);
@@ -376,6 +441,33 @@ inline QVariant getVar(Tcl_Interp *interp, const QString &name) {
     return QVariant();
 
   return variantFromObj(interp, obj);
+}
+
+inline bool hasLocalVar(Tcl_Interp *interp, const QString &name) {
+  auto *nameObj = variantToObj(interp, name); Tcl_IncrRefCount(nameObj);
+
+  auto *obj = Tcl_ObjGetVar2(interp, nameObj, nullptr, TCL_GLOBAL_ONLY);
+
+  Tcl_DecrRefCount(nameObj);
+
+  return (obj ? true : false);
+}
+
+inline QVariant getLocalVar(Tcl_Interp *interp, const QString &name) {
+  auto *nameObj = variantToObj(interp, name); Tcl_IncrRefCount(nameObj);
+
+  auto *obj = Tcl_ObjGetVar2(interp, nameObj, nullptr, 0);
+
+  Tcl_DecrRefCount(nameObj);
+
+  if (! obj)
+    return QVariant();
+
+  return variantFromObj(interp, obj);
+}
+
+inline QVariant getVar(Tcl_Interp *interp, const QString &name) {
+  return getGlobalVar(interp, name);
 }
 
 //---

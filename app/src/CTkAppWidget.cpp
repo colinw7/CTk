@@ -526,7 +526,9 @@ QSize
 CTkAppRootWidget::
 sizeHint() const
 {
-  auto s = QFrame::sizeHint();
+  auto *layout = qobject_cast<CTkAppLayout *>(this->layout());
+
+  auto s = (layout ? layout->sizeHint() : QFrame::sizeHint());
 
   if (s.width() <= 0 || s.height() <= 0)
     s = QSize(200, 200);
@@ -5239,6 +5241,14 @@ execConfig(const QString &name, const QString &value)
 
     tk_->traceGlobalVar(varName(), varProc_);
   }
+  else if (name == "-width") {
+    // width of image (pixels) or text (chars)
+    int w;
+    if (! CTkAppUtil::stringToDistanceI(value, w))
+      return tk_->throwError("Invalid width \"" + value + "\"");
+
+    qradio_->setUserWidth(w);
+  }
   else if (name == "-wraplength") {
     tk_->TODO(name);
   }
@@ -5403,8 +5413,15 @@ sizeHint() const
 
     return QSize(s.width() + iw + 2, std::max(s.height(), ih));
   }
-  else
+  else {
+    if (userWidth() > 0) {
+      QFontMetrics fm(font());
+
+      s.setWidth(userWidth()*fm.horizontalAdvance("0"));
+    }
+
     return s;
+  }
 }
 
 //----------
@@ -6201,10 +6218,11 @@ sizeHint() const
 {
   auto s = CQSpinList::sizeHint();
 
-  QFontMetrics fm(font());
+  if (width_ > 0) {
+    QFontMetrics fm(font());
 
-  if (width_ > 0)
     s.setWidth(width_*fm.horizontalAdvance("0"));
+  }
 
   return s;
 }
@@ -8382,6 +8400,8 @@ setQWidget(QWidget *w)
   qwidget_->installEventFilter(eventFilter_);
 
   qwidget_->setFocusPolicy(Qt::ClickFocus);
+
+  qwidget_->setFont(tk_->appFont());
 }
 
 QWidget *

@@ -160,6 +160,8 @@ construct(int argc, const char **argv)
 {
   s_app = this;
 
+  appFont_ = qApp->font();
+
   root_ = new CTkAppRoot(this);
 
   tclInit();

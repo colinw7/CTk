@@ -43,6 +43,9 @@ void
 CTkAppPackLayout::
 addWidgets(const std::vector<CTkAppWidget *> &widgets, const Info &info)
 {
+  if (widgets.size() == 1)
+    return addWidget(widgets[0], info);
+
   auto *parent = parentWidget();
 
   for (auto *widget : widgets) {
@@ -53,7 +56,7 @@ addWidgets(const std::vector<CTkAppWidget *> &widgets, const Info &info)
   auto *layout = new CTkAppPackLayout;
 
   for (auto *widget : widgets)
-    layout->add(new CTkAppPackLayoutWidget(widget, info));
+    layout->add(new CTkAppPackLayoutWidget(widget, Info()));
 
   add(new CTkAppPackLayoutWidget(layout, info));
 }
@@ -355,8 +358,6 @@ void
 CTkAppPackLayout::
 add(QLayoutItem *item)
 {
-  //Info info(Info::Side::TOP, Info::Fill::NONE, false, 0, 0, 0, 0);
-
   list_.append(item);
 
   invalidate();

@@ -421,6 +421,8 @@ compiler_clean: compiler_moc_predefs_clean
 		../../../CMath/include/CMathUtil.h \
 		../../../COS/include/COSNaN.h \
 		../../../CQUtil/include/CQApp.h \
+		../../../CQUtil/include/CQStyle.h \
+		../../../CQUtil/include/CQStyleMgr.h \
 		../../../CArgs/include/CArgs.h \
 		../../../CReadLine/include/CReadLine.h \
 		../../../CReadLine/include/CHistory.h

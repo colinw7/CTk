@@ -1,3 +1,7 @@
++ use QString instead of std::string
++ CStrParse to CQStrParse
++ QTransform to replace CMatrix2D
+
 + user longest match lookup everywhere
 
 + grid -in ****

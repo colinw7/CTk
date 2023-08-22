@@ -92,24 +92,7 @@ void
 CTclAppCommand::
 setStringArrayResult(const std::vector<QString> &values)
 {
-  auto *obj = Tcl_NewListObj(0, nullptr);
-
-  int num_values = values.size();
-
-  for (int i = 0; i < num_values; ++i) {
-    auto *sobj = Tcl_NewStringObj(values[i].toLatin1().constData(), int(values[i].length()));
-
-    Tcl_ListObjAppendElement(app_->getInterp(), obj, sobj);
-  }
-
-  setObjResult(obj);
-}
-
-void
-CTclAppCommand::
-setObjResult(Tcl_Obj *obj)
-{
-  app_->setObjResult(obj);
+  app_->setStringArrayResult(values);
 }
 
 //---

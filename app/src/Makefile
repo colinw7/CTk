@@ -849,6 +849,8 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 
 ../obj/CTclApp.o: CTclApp.cpp ../include/CTclApp.h \
 		../include/CTkAppUtil.h \
+		CQTclUtil.h \
+		CTclUtil.h \
 		../../../CReadLine/include/CReadLine.h \
 		../../../CReadLine/include/CHistory.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTclApp.o CTclApp.cpp

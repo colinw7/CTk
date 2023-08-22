@@ -1,6 +1,7 @@
 #include <CTkApp.h>
 
 #include <CQApp.h>
+#include <CQStyle.h>
 
 #include <CArgs.h>
 #include <CReadLine.h>
@@ -123,6 +124,8 @@ main(int argc, char **argv)
   argv1[i] = nullptr;
 
   tk = new CTkApp(argc1, const_cast<const char **>(argv1), context);
+
+  tk->setAppFont(CQStyleMgrInst->font());
 
   for (const auto &filename : filenames)
     tk->evalFile(filename);

@@ -20,8 +20,8 @@ class CTkAppOptData {
    opts_ = opts;
   }
 
-  Tcl_Obj *getOpts() const;
-  Tcl_Obj *getOpt(const QString &name) const;
+  QVariant getOpts() const;
+  QVariant getOpt(const QString &name) const;
 
   void getNames(std::vector<QString> &names) const;
 

@@ -1,6 +1,6 @@
-button .b1 -text Hello -command { puts "Hello" }
-button .b2 -text World -command { puts "World" }
+button .b1 -text Hello -command { puts "Hello" } -padx 2 -pady 2
+button .b2 -text World -command { puts "World" } -padx 2 -pady 2
 
-pack .b1 .b2
+pack .b1 .b2 -padx 4 -pady 4
 
 wm title . {Hello World}

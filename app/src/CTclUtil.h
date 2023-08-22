@@ -176,14 +176,14 @@ inline std::string errorInfo(Tcl_Interp *interp, int rc) {
 
   Tcl_Obj *errorMsg;
   Tcl_IncrRefCount(key1);
-  Tcl_DictObjGet(NULL, options, key1, &errorMsg);
+  Tcl_DictObjGet(nullptr, options, key1, &errorMsg);
   Tcl_DecrRefCount(key1);
 
   auto msg = stringFromObj(errorMsg);
 
   Tcl_Obj *stackTrace;
   Tcl_IncrRefCount(key2);
-  Tcl_DictObjGet(NULL, options, key2, &stackTrace);
+  Tcl_DictObjGet(nullptr, options, key2, &stackTrace);
   Tcl_DecrRefCount(key2);
 
   auto trace = stringFromObj(stackTrace);

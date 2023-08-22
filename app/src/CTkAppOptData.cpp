@@ -9,98 +9,73 @@ CTkAppOptData(CTkApp *tk) :
 {
 }
 
-Tcl_Obj *
+QVariant
 CTkAppOptData::
 getOpts() const
 {
-  auto *list = Tcl_NewListObj(0, nullptr);
+  QVariantList vars;
 
   for (uint i = 0; opts_[i].name != nullptr; ++i) {
     const auto &opt = opts_[i];
 
-    auto *list1 = Tcl_NewListObj(0, nullptr);
+    QVariantList vars1;
 
-    auto *sobj1 = Tcl_NewStringObj(opt.name , strlen(opt.name ));
-    auto *sobj2 = Tcl_NewStringObj(opt.dname, strlen(opt.dname));
-
-    Tcl_ListObjAppendElement(tk_->getInterp(), list1, sobj1);
-    Tcl_ListObjAppendElement(tk_->getInterp(), list1, sobj2);
+    vars1.push_back(opt.name);
+    vars1.push_back(opt.dname);
 
     if (opt.cname != nullptr) {
-      auto *sobj3 = Tcl_NewStringObj(opt.cname, strlen(opt.cname));
-      auto *sobj4 = Tcl_NewStringObj(opt.def  , strlen(opt.def  ));
-
-      Tcl_ListObjAppendElement(tk_->getInterp(), list1, sobj3);
-      Tcl_ListObjAppendElement(tk_->getInterp(), list1, sobj4);
+      vars1.push_back(opt.cname);
+      vars1.push_back(opt.def);
 
       auto p = values_.find(opt.name);
 
       if (p != values_.end()) {
         auto s = (*p).second.getString();
 
-        auto *sobj5 = Tcl_NewStringObj(s.toLatin1().constData(), -1);
-
-        Tcl_ListObjAppendElement(tk_->getInterp(), list1, sobj5);
+        vars1.push_back(s);
       }
-      else {
-        auto *sobj5 = Tcl_NewStringObj(opt.def, strlen(opt.def));
-
-        Tcl_ListObjAppendElement(tk_->getInterp(), list1, sobj5);
-      }
+      else
+        vars1.push_back(opt.def);
     }
 
-    Tcl_ListObjAppendElement(tk_->getInterp(), list, list1);
+    vars.push_back(vars1);
   }
 
-  return list;
+  return vars;
 }
 
-Tcl_Obj *
+QVariant
 CTkAppOptData::
 getOpt(const QString &name) const
 {
-  auto *list = Tcl_NewListObj(0, nullptr);
+  QVariantList vars;
 
   for (uint i = 0; opts_[i].name != nullptr; ++i) {
     const auto &opt = opts_[i];
 
     auto optName = QString(opt.name);
-
     if (optName != name) continue;
 
-    auto *sobj1 = Tcl_NewStringObj(opt.name , strlen(opt.name ));
-    auto *sobj2 = Tcl_NewStringObj(opt.dname, strlen(opt.dname));
-
-    Tcl_ListObjAppendElement(tk_->getInterp(), list, sobj1);
-    Tcl_ListObjAppendElement(tk_->getInterp(), list, sobj2);
+    vars.push_back(opt.name);
+    vars.push_back(opt.dname);
 
     if (opt.cname != nullptr) {
-      auto *sobj3 = Tcl_NewStringObj(opt.cname, strlen(opt.cname));
-      auto *sobj4 = Tcl_NewStringObj(opt.def  , strlen(opt.def  ));
-
-      Tcl_ListObjAppendElement(tk_->getInterp(), list, sobj3);
-      Tcl_ListObjAppendElement(tk_->getInterp(), list, sobj4);
+      vars.push_back(opt.cname);
+      vars.push_back(opt.def);
 
       auto p = values_.find(optName);
 
       if (p != values_.end()) {
         auto s = (*p).second.getString();
 
-        auto *sobj5 = Tcl_NewStringObj(s.toLatin1().constData(), -1);
-
-        Tcl_ListObjAppendElement(tk_->getInterp(), list, sobj5);
+        vars.push_back(s);
       }
-      else {
-        auto *sobj5 = Tcl_NewStringObj(opt.def, strlen(opt.def));
-
-        Tcl_ListObjAppendElement(tk_->getInterp(), list, sobj5);
-      }
+      else
+        vars.push_back(opt.def);
     }
-
-    break;
   }
 
-  return list;
+  return vars;
 }
 
 void

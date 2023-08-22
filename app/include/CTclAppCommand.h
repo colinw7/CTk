@@ -36,8 +36,6 @@ class CTclAppCommand {
   void setRealArrayResult   (const std::vector<double> &values);
   void setStringArrayResult (const std::vector<QString> &strs);
 
-  void setObjResult(Tcl_Obj *obj);
-
   //---
 
   void setIntegerVar(const QString &var, int value);
