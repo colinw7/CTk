@@ -8,7 +8,7 @@
 #include <set>
 
 CTkAppGridLayout::
-CTkAppGridLayout(QWidget *parent, int margin, int spacing) :
+CTkAppGridLayout(CTkAppWidget *parent, int margin, int spacing) :
  CTkAppLayout(parent, Type::GRID)
 {
   setObjectName("grid");
@@ -19,7 +19,7 @@ CTkAppGridLayout(QWidget *parent, int margin, int spacing) :
 
 CTkAppGridLayout::
 CTkAppGridLayout(int spacing) :
- CTkAppLayout(nullptr, Type::GRID)
+ CTkAppLayout(Type::GRID)
 {
   setObjectName("grid");
 
@@ -65,16 +65,13 @@ addWidgets(const std::vector<WidgetData> &widgets, const Info &info)
     if      (widgetData.type == WidgetType::WIDGET) {
       auto *item = getItem(widgetData.widget);
 
-      auto *widget = dynamic_cast<CTkAppGridLayoutWidget *>(item);
-      if (! widget) continue;
-
       if (! item) {
         info1.setRow(row_);
         info1.setCol(col_);
 
         widgetData.widget->setParentWidget(parent);
 
-        add(new CTkAppGridLayoutWidget(widgetData.widget, info1));
+        add(new CTkAppGridLayoutWidget(this, widgetData.widget, info1));
 
         col_ += info1.getColSpan();
 
@@ -82,8 +79,12 @@ addWidgets(const std::vector<WidgetData> &widgets, const Info &info)
 
         ++num_added;
       }
-      else
+      else {
+        auto *widget = dynamic_cast<CTkAppGridLayoutWidget *>(item);
+        if (! widget) continue;
+
         widget->info().update(info1);
+      }
     }
     else if (widgetData.type == WidgetType::EMPTY) {
       ++col_;
@@ -143,7 +144,7 @@ addWidget(const WidgetData &widgetData, const Info &info)
     if (! item) {
       widgetData.widget->setParentWidget(parent);
 
-      add(new CTkAppGridLayoutWidget(widgetData.widget, info));
+      add(new CTkAppGridLayoutWidget(this, widgetData.widget, info));
     }
     else {
       auto *widget = dynamic_cast<CTkAppGridLayoutWidget *>(item);
@@ -180,7 +181,7 @@ removeWidget(CTkAppWidget *widget)
 
 std::vector<CTkAppLayoutWidget *>
 CTkAppGridLayout::
-getLayoutWidgets() const
+getLayoutWidgets(bool flat) const
 {
   std::vector<CTkAppLayoutWidget *> widgets;
 
@@ -190,7 +191,20 @@ getLayoutWidgets() const
     auto *w = dynamic_cast<CTkAppGridLayoutWidget *>(item);
     if (! w) continue;
 
-    widgets.push_back(w);
+    if (flat && w->getLayout()) {
+      auto n = w->getLayout()->count();
+
+      for (int j = 0; j < n; ++j) {
+        auto *item1 = w->getLayout()->itemAt(j);
+
+        auto *w1 = dynamic_cast<CTkAppLayoutWidget *>(item1);
+        if (! w1) continue;
+
+        widgets.push_back(w1);
+      }
+    }
+    else
+      widgets.push_back(w);
   }
 
   return widgets;
@@ -962,4 +976,18 @@ draw(QPainter *p) const
 
     p->drawRect(r);
   }
+}
+
+//---
+
+CTkAppGridLayoutWidget::
+CTkAppGridLayoutWidget(CTkAppGridLayout *grid, TkWidget *widget, const Info &info) :
+ CTkAppLayoutWidget(grid, widget), grid_(grid), info_(info)
+{
+}
+
+CTkAppGridLayoutWidget::
+CTkAppGridLayoutWidget(CTkAppGridLayout *grid, QLayout *layout, const Info &info) :
+ CTkAppLayoutWidget(grid, layout), grid_(grid), info_(info)
+{
 }

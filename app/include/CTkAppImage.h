@@ -4,6 +4,7 @@
 #include <QImage>
 
 #include <string>
+#include <set>
 
 class CTkApp;
 
@@ -34,7 +35,8 @@ class CTkAppImage {
 
   bool loadFile(const QString &filename);
   bool loadSVG (const QString &filename);
-  bool loadData(const QString &data);
+  bool loadXBM (const QString &name, const std::string &data);
+  bool loadData(const QString &name, const QString &format, const std::string &data);
 
   void clear();
 
@@ -43,14 +45,22 @@ class CTkAppImage {
 
   bool setPixels(int x1, int y1, int x2, int y2, const QColor &c);
 
+  uint numRefs() const { return uint(refNames_.size()); }
+
+  void addRef(const QString &ref);
+  void removeRef(const QString &ref);
+
  private:
-  CTkApp* tk_ { nullptr };
-  QString name_;
-  QString type_;
-  QImage  qimage_;
-  QString filename_;
-  int     width_ { 0 };
-  int     height_ { 0 };
+  using RefNames = std::set<QString>;
+
+  CTkApp*  tk_ { nullptr };
+  QString  name_;
+  QString  type_;
+  QImage   qimage_;
+  QString  filename_;
+  int      width_ { 0 };
+  int      height_ { 0 };
+  RefNames refNames_;
 };
 
 #endif

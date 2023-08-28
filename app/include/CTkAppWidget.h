@@ -20,6 +20,7 @@
 #include <QPen>
 #include <QPushButton>
 #include <QRadioButton>
+#include <QScrollBar>
 #include <QToolButton>
 #include <QTreeWidget>
 #include <QWidgetAction>
@@ -44,7 +45,6 @@ class QBoxLayout;
 class QFrame;
 class QGroupBox;
 class QMenuBar;
-class QScrollBar;
 class QSplitter;
 class QTabWidget;
 class QTextCursor;
@@ -57,6 +57,9 @@ class CTkAppWidgetEventFilter;
 
 class CTkAppWidget : public QObject {
   Q_OBJECT
+
+  Q_PROPERTY(QString name     READ getName)
+  Q_PROPERTY(QString fullName READ getFullName)
 
   Q_PROPERTY(double        highlightThickness READ highlightThickness WRITE setHighlightThickness)
   Q_PROPERTY(QString       text               READ getText            WRITE setText)
@@ -82,7 +85,8 @@ class CTkAppWidget : public QObject {
   };
 
  public:
-  using Args = std::vector<QVariant>;
+  using Args     = std::vector<QVariant>;
+  using Children = std::vector<CTkAppWidget *>;
 
  public:
   explicit CTkAppWidget(CTkApp *tk, CTkAppWidget *parent=nullptr, const QString &name="");
@@ -127,7 +131,7 @@ class CTkAppWidget : public QObject {
   virtual void setText(const QString &s) { text_ = s; }
 
   const CTkAppImageRef &getImage() const { return image_; }
-  virtual void setImage(const CTkAppImageRef &i) { image_ = i; }
+  virtual void setImage(const CTkAppImageRef &i);
 
   //---
 
@@ -154,7 +158,7 @@ class CTkAppWidget : public QObject {
   void addChild   (CTkAppWidget *w);
   void removeChild(CTkAppWidget *w);
 
-  void getChildren(std::vector<CTkAppWidget *> &children) const;
+  void getChildren(Children &children) const;
 
   CTkAppWidget *getChild(const QString &name) const;
 
@@ -498,6 +502,8 @@ class CTkAppCanvas : public CTkAppWidget {
 
   const char *getClassName() const override { return "Canvas"; }
 
+  Shape *insideShape() const { return insideShape_; }
+
   bool execConfig(const QString &name, const QString &value) override;
 
   bool execOp(const Args &args) override;
@@ -587,7 +593,7 @@ using CTkAppPoints = std::vector<CTkAppPoint>;
 class CTkAppCanvasShape {
  public:
   using ShapeType = CTkAppCanvasShapeType;
-  using Tags      = std::vector<QString>;
+  using Tags      = std::set<QString>;
   using Points    = CTkAppPoints;
 
  public:
@@ -607,11 +613,34 @@ class CTkAppCanvasShape {
   const Tags &tags() const { return tags_; }
   void setTags(const Tags &v) { tags_ = v; }
 
+  //---
+
   const QPen &pen() const { return pen_; }
   void setPen(const QPen &p) { pen_ = p; }
 
+  const QPen &activePen() const { return activePen_; }
+  void setActivePen(const QPen &p) { activePen_ = p; }
+
+  const QPen &disabledPen() const { return disabledPen_; }
+  void setDisabledPen(const QPen &p) { disabledPen_ = p; }
+
+  //---
+
   const QBrush &brush() const { return brush_; }
   void setBrush(const QBrush &b) { brush_ = b; }
+
+  const QBrush &activeBrush() const { return activeBrush_; }
+  void setActiveBrush(const QBrush &b) { activeBrush_ = b; }
+
+  const QBrush &disabledBrush() const { return disabledBrush_; }
+  void setDisabledBrush(const QBrush &b) { disabledBrush_ = b; }
+
+  //---
+
+  const Qt::FillRule &fillRule() const { return fillRule_; }
+  void setFillRule(const Qt::FillRule &v) { fillRule_ = v; }
+
+  //---
 
   const QFont &font() const { return font_; }
   void setFont(const QFont &f) { font_ = f; }
@@ -624,6 +653,12 @@ class CTkAppCanvasShape {
 
   const Qt::Alignment &anchor() const { return anchor_; }
   void setAnchor(const Qt::Alignment &v) { anchor_ = v; }
+
+  bool isEnabled() const { return enabled_; }
+  void setEnabled(bool b) { enabled_ = b; }
+
+  bool isVisible() const { return visible_; }
+  void setVisible(bool b) { visible_ = b; }
 
   virtual QRectF rect() const = 0;
 
@@ -641,15 +676,30 @@ class CTkAppCanvasShape {
   const QTransform &transform() const { return transform_; }
   void setTransform(const QTransform &v) { transform_ = v; }
 
+  const QRectF &drawRect() const { return drawRect_; }
+  void setDrawRect(const QRectF &r) { drawRect_ = r; }
+
+  QPainterPath calcStrokePath(const QPainterPath &path, const QPen &pen) const;
+
  protected:
   ShapeType     type_  { ShapeType::NONE };
   int           id_    { 0 };
   Tags          tags_;
   QPen          pen_;
+  QPen          activePen_;
+  QPen          disabledPen_;
   QBrush        brush_;
+  QBrush        activeBrush_;
+  QBrush        disabledBrush_;
   QFont         font_;
   Qt::Alignment anchor_ { Qt::AlignCenter };
   QTransform    transform_;
+  Qt::FillRule  fillRule_ { Qt::OddEvenFill };
+
+  bool enabled_ { true };
+  bool visible_ { true };
+
+  mutable QRectF drawRect_;
 };
 
 class CTkAppCanvasWidget : public QWidget {
@@ -679,6 +729,7 @@ class CTkAppCanvasWidget : public QWidget {
    public:
     explicit Rectangle(double x1, double y1, double x2, double y2) :
      Shape(ShapeType::RECTANGLE), x1_(x1), y1_(y1), x2_(x2), y2_(y2) {
+      updatePaths();
     }
 
     double x1() const { return x1_; }
@@ -700,15 +751,36 @@ class CTkAppCanvasWidget : public QWidget {
     void moveBy(double dx, double dy) override {
       x1_ += dx; y1_ += dy;
       x2_ += dx; y2_ += dy;
+
+      updatePaths();
     }
 
-    QRectF rect() const override { return QRectF(x1_, y1_, x2_ - x1_, y2_ - y1_); }
+    void updatePaths() {
+      auto rect = calcRect();
+
+      path_ = QPainterPath();
+      path_.addRect(rect);
+
+      strokePath_ = calcStrokePath(path_, pen());
+
+      setDrawRect(path_.boundingRect().united(strokePath_.boundingRect()));
+    }
+
+    QRectF calcRect() const { return QRectF(x1_, y1_, x2_ - x1_, y2_ - y1_); }
+
+    QRectF rect() const override { return drawRect(); }
+
+    const QPainterPath &path() const { return path_; }
+
+    const QPainterPath &strokePath() const { return strokePath_; }
 
    protected:
-    double x1_ { 0.0 };
-    double y1_ { 0.0 };
-    double x2_ { 1.0 };
-    double y2_ { 1.0 };
+    double       x1_ { 0.0 };
+    double       y1_ { 0.0 };
+    double       x2_ { 1.0 };
+    double       y2_ { 1.0 };
+    QPainterPath path_;
+    QPainterPath strokePath_;
   };
 
   class Oval : public Shape {
@@ -1186,12 +1258,10 @@ class CTkAppCanvasWidget : public QWidget {
     const CTkAppImageRef &getImage() const { return image_; }
     void setImage(const CTkAppImageRef &i) { image_ = i; }
 
-    QRectF rect() const override {
-      return drawRect_;
-    }
+    QRectF rect() const override { return drawRect(); }
 
     bool inside(double x, double y) const override {
-      return drawRect_.contains(QPointF(x, y));
+      return drawRect().contains(QPointF(x, y));
     }
 
     double distance(double x, double y) override {
@@ -1202,12 +1272,9 @@ class CTkAppCanvasWidget : public QWidget {
       p_.moveBy(dx, dy);
     }
 
-    void setDrawRect(const QRectF &r) { drawRect_ = r; }
-
    protected:
     Point          p_;
     CTkAppImageRef image_;
-    mutable QRectF drawRect_;
   };
 
   class Bitmap : public Shape {
@@ -1221,9 +1288,7 @@ class CTkAppCanvasWidget : public QWidget {
     const CTkAppImageRef &getImage() const { return image_; }
     void setImage(const CTkAppImageRef &i) { image_ = i; }
 
-    QRectF rect() const override {
-      return drawRect_;
-    }
+    QRectF rect() const override { return drawRect(); }
 
     bool inside(double /*x*/, double /*y*/) const override { return false; }
 
@@ -1235,16 +1300,19 @@ class CTkAppCanvasWidget : public QWidget {
       p_.moveBy(dx, dy);
     }
 
-    void setDrawRect(const QRectF &r) { drawRect_ = r; }
-
    protected:
     Point          p_;
     CTkAppImageRef image_;
-    mutable QRectF drawRect_;
   };
 
  public:
   CTkAppCanvasWidget(CTkAppCanvas *canvas);
+
+  //---
+
+  const Shapes &getShapes() const { return shapes_; }
+
+  //---
 
   Rectangle *addRectangle(double x1, double y1, double x2, double y2) {
     auto *rectangleShape = new Rectangle(x1, y1, x2, y2);
@@ -1314,6 +1382,29 @@ class CTkAppCanvasWidget : public QWidget {
     auto *bitmapShape = new Bitmap(pos, image);
 
     return static_cast<Bitmap *>(addShape(bitmapShape));
+  }
+
+  QRectF getShapeBBox(const QString &name) const {
+    QRectF bbox;
+
+    Shapes shapes;
+
+    if (! getShapes(name, shapes))
+      return bbox;
+
+    bool bboxSet = false;
+
+    for (auto *shape : shapes) {
+      if (! bboxSet) {
+        bbox    = shape->rect();
+        bboxSet = true;
+      }
+      else {
+        bbox = bbox.united(shape->rect());
+      }
+    }
+
+    return bbox;
   }
 
   void deleteAllShapes() {
@@ -1528,6 +1619,9 @@ class CTkAppCanvasWidget : public QWidget {
 
   Shape *insideShape(double x, double y) {
     for (auto *shape : shapes_) {
+      if (! shape->isEnabled())
+        continue;
+
       if (shape->inside(x, y))
         return shape;
     }
@@ -1584,6 +1678,10 @@ class CTkAppCanvasWidget : public QWidget {
   }
 
   void paintEvent(QPaintEvent *) override;
+
+  QBrush calcBrush(Shape *s) const;
+
+  QPen calcPen(Shape *s) const;
 
   QSize sizeHint() const override;
 
@@ -2304,6 +2402,22 @@ class CTkAppScale : public CTkAppWidget {
 
 //---
 
+class CTkAppScrollBar;
+
+class CTkAppScrollBarWidget : public QScrollBar {
+  Q_OBJECT
+
+ public:
+  explicit CTkAppScrollBarWidget(CTkAppScrollBar *scrollbar);
+
+  const QColor &troughColor() const { return troughColor_; }
+  void setTroughColor(const QColor &c) { troughColor_ = c; }
+
+ private:
+  CTkAppScrollBar* scrollbar_ { nullptr };
+  QColor           troughColor_;
+};
+
 class CTkAppScrollBar : public CTkAppWidget {
   Q_OBJECT
 
@@ -2323,7 +2437,7 @@ class CTkAppScrollBar : public CTkAppWidget {
   void scrollSlot(int);
 
  private:
-  QScrollBar* qscrollbar_ { nullptr };
+  CTkAppScrollBarWidget* qscrollbar_ { nullptr };
 };
 
 //---
@@ -2554,11 +2668,19 @@ class CTkAppTopLevel : public CTkAppWidget {
  public:
   explicit CTkAppTopLevel(CTkApp *tk, CTkAppWidget *parent=nullptr, const QString &name="");
 
+ ~CTkAppTopLevel();
+
   void setFrame(QFrame *qframe);
 
   const char *getClassName() const override { return "TopLevel"; }
 
   bool isTopLevel() const override { return true; }
+
+  bool isNeedsShow() const { return needsShow_; }
+  void setNeedsShow(bool b) { needsShow_ = b; }
+
+  const QString &iconWindow() const { return iconWindow_; }
+  void setIconWindow(const QString &s) { iconWindow_ = s; }
 
   bool execConfig(const QString &name, const QString &value) override;
 
@@ -2566,6 +2688,8 @@ class CTkAppTopLevel : public CTkAppWidget {
 
  private:
   QFrame* qframe_ { nullptr };
+  bool    needsShow_ { false };
+  QString iconWindow_;
 };
 
 //---

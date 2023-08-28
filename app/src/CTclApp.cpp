@@ -420,6 +420,43 @@ mergeList(const std::vector<QString> &strs) const
 
 void
 CTclApp::
+traceVar(const QString &name, CTclTraceProc *proc)
+{
+  auto name1 = name;
+
+  auto pos = name1.indexOf('(');
+
+  if (pos >= 0)
+    name1 = name1.mid(0, pos);
+
+  //---
+
+  auto pn = traceProcs_.find(name1);
+
+  if (pn != traceProcs_.end()) {
+    auto pp = (*pn).second.find(proc);
+
+    if (pp != (*pn).second.end()) {
+      std::cerr << "Multiple traces on same var '" << name1.toStdString() << "'\n";
+      return;
+    }
+  }
+
+  traceProcs_[name1].insert(proc);
+
+  //---
+
+  int flags = TCL_TRACE_READS | TCL_TRACE_WRITES | TCL_TRACE_UNSETS;
+
+  auto data = Tcl_VarTraceInfo(interp_, name1.toLatin1().constData(), flags, &traceProc, nullptr);
+
+  if (! data)
+    Tcl_TraceVar(interp_, name1.toLatin1().constData(), flags,
+                 &traceProc, static_cast<ClientData>(this));
+}
+
+void
+CTclApp::
 traceGlobalVar(const QString &name, CTclTraceProc *proc)
 {
   auto name1 = name;
@@ -487,6 +524,45 @@ traceGlobalVar(const QString &name)
   if (! data)
     Tcl_TraceVar(interp_, name1.toLatin1().constData(), flags,
                  &genTraceProc, static_cast<ClientData>(this));
+}
+
+void
+CTclApp::
+untraceVar(const QString &name, CTclTraceProc *proc)
+{
+  auto name1 = name;
+
+  auto pos = name1.indexOf('(');
+
+  if (pos >= 0)
+    name1 = name1.mid(0, pos);
+
+  //---
+
+  auto pn = traceProcs_.find(name1);
+
+  if (pn == traceProcs_.end()) {
+    std::cerr << "No trace on var '" << name1.toStdString() << "'\n";
+    return;
+  }
+
+  auto pp = (*pn).second.find(proc);
+
+  if (pp == (*pn).second.end()) {
+    std::cerr << "No trace on var '" << name1.toStdString() << "'\n";
+    return;
+  }
+
+  (*pn).second.erase(pp);
+
+  //---
+
+  if ((*pn).second.empty()) {
+    int flags = TCL_TRACE_READS | TCL_TRACE_WRITES | TCL_TRACE_UNSETS;
+
+    Tcl_UntraceVar(interp_, name1.toLatin1().constData(), flags,
+                   &traceProc, static_cast<ClientData>(this));
+  }
 }
 
 void

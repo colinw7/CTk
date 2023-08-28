@@ -21,7 +21,6 @@
 #include <QMenuBar>
 #include <QMouseEvent>
 #include <QPainter>
-#include <QScrollBar>
 #include <QSplitter>
 #include <QTextBlock>
 
@@ -568,11 +567,11 @@ execConfig(const QString &name, const QString &value)
   }
   else if (name == "-default") {
     if      (value == "normal")
-      tk_->TODO(name);
+      qbutton_->setEnabled(true);
     else if (value == "active")
-      tk_->TODO(name);
+      qbutton_->setDown(true);
     else if (value == "disabled")
-      tk_->TODO(value);
+      qbutton_->setEnabled(false);
     else
       return false;
   }
@@ -824,6 +823,58 @@ execOp(const Args &args)
   if (numArgs == 0)
     return tk_->wrongNumArgs(getName() + " option ?arg ...?");
 
+  auto stringToDashes = [&](const QString &str, QVector<qreal> &dashes) {
+    std::vector<QString> strs;
+    if (! tk_->splitList(str, strs))
+      return false;
+
+    for (const auto &s : strs) {
+      double r;
+      if (CTkAppUtil::stringToReal(s, r)) {
+        dashes.push_back(r);
+      }
+      else {
+        CQStrParse parse(s);
+        while (! parse.eof()) {
+          if      (parse.isChar('.')) { dashes.push_back(2); dashes.push_back(4); }
+          else if (parse.isChar('-')) { dashes.push_back(6); dashes.push_back(4); }
+          else if (parse.isChar(',')) { dashes.push_back(4); dashes.push_back(4); }
+          else if (parse.isChar(' ')) {
+            if (! dashes.empty()) dashes.pop_back();
+            dashes.push_back(8);
+          }
+          else
+            return false;
+
+          parse.skipChar();
+        }
+      }
+    }
+
+    return true;
+  };
+
+  auto dashToString = [&](const QVector<qreal> &dashes) {
+    std::vector<QString> strs;
+    for (const auto &r : dashes)
+      strs.push_back(QString::number(r));
+    return tk_->mergeList(strs);
+  };
+
+  auto stringToFill = [&](const QString &str, QBrush &fill) {
+    QGradient *g;
+    if (getGradient(str, g))
+      fill = QBrush(*g);
+    else {
+      QColor c;
+      if (CTkAppUtil::stringToQColor(str, c)) {
+        fill.setStyle(Qt::SolidPattern);
+        fill.setColor(c);
+      }
+    }
+    return true;
+  };
+
   auto setShapeOpt = [&](CTkAppCanvasWidget::Shape *shape, const QString &name,
                          const QString &value) {
     if      (name == "-anchor") {
@@ -832,34 +883,55 @@ execOp(const Args &args)
         shape->setAnchor(align);
     }
     else if (name == "-dash") {
-      tk_->TODO(name, args);
+      QVector<qreal> dashes;
+      if (! stringToDashes(value, dashes))
+        return tk_->throwError("Invalid dash \"" + value + "\"");
+
+      auto p = shape->pen();
+      p.setDashPattern(dashes);
+      shape->setPen(p);
     }
     else if (name == "-activedash") {
-      tk_->TODO(name, args);
+      QVector<qreal> dashes;
+      if (! stringToDashes(value, dashes))
+        return tk_->throwError("Invalid dash \"" + value + "\"");
+
+      auto p = shape->activePen();
+      p.setDashPattern(dashes);
+      shape->setActivePen(p);
     }
-    else if (name == "-disabledash") {
-      tk_->TODO(name, args);
+    else if (name == "-disableddash") {
+      QVector<qreal> dashes;
+      if (! stringToDashes(value, dashes))
+        return tk_->throwError("Invalid dash \"" + value + "\"");
+
+      auto p = shape->disabledPen();
+      p.setDashPattern(dashes);
+      shape->setDisabledPen(p);
     }
     else if (name == "-dashoffset") {
-      tk_->TODO(name, args);
+      double l;
+      if (! CTkAppUtil::stringToDistance(value, l))
+        return tk_->throwError("Invalid dashoffset \"" + value + "\"");
+
+      auto p = shape->pen();
+      p.setDashOffset(l);
+      shape->setPen(p);
     }
     else if (name == "-fill") {
       auto b = shape->brush();
-
-      QGradient *g;
-      if (getGradient(value, g))
-        b = QBrush(*g);
-      else {
-        QColor c;
-        if (CTkAppUtil::stringToQColor(value, c)) {
-          b.setStyle(Qt::SolidPattern);
-          b.setColor(c);
-        }
-      }
+      if (! stringToFill(value, b))
+        return false;
       shape->setBrush(b);
     }
-    else if (name == "-fillrule") {
-      tk_->TODO(name, args);
+    else if (name == "-fillrule") { // tkpath
+      Qt::FillRule fillRule = Qt::OddEvenFill;
+      if      (value == "evenodd")
+        fillRule = Qt::OddEvenFill;
+      else if (value == "nonzero")
+        fillRule = Qt::WindingFill;
+
+      shape->setFillRule(fillRule);
     }
     else if (name == "-fillopacity") {
       double a;
@@ -871,29 +943,46 @@ execOp(const Args &args)
       c.setAlphaF(a);
       b.setStyle(Qt::SolidPattern);
       b.setColor(c);
+      shape->setBrush(b);
     }
     else if (name == "-activefill") {
-      tk_->TODO(name, args);
+      auto b = shape->activeBrush();
+      if (! stringToFill(value, b))
+        return false;
+      shape->setActiveBrush(b);
     }
     else if (name == "-disabledfill") {
-      tk_->TODO(name, args);
+      auto b = shape->disabledBrush();
+      if (! stringToFill(value, b))
+        return false;
+      shape->setDisabledBrush(b);
     }
-    else if (name == "-filloverstroke") {
+    else if (name == "-filloverstroke") { // tkpath
       tk_->TODO(name, args);
     }
     else if (name == "-outline" ||  name == "-stroke") {
       QColor c;
-      if (CTkAppUtil::stringToQColor(value, c)) {
-        auto p = shape->pen();
-        p.setColor(c);
-        shape->setPen(p);
-      }
+      if (! CTkAppUtil::stringToQColor(value, c))
+        return false;
+      auto p = shape->pen();
+      p.setColor(c);
+      shape->setPen(p);
     }
     else if (name == "-activeoutline") {
-      tk_->TODO(name, args);
+      QColor c;
+      if (! CTkAppUtil::stringToQColor(value, c))
+        return false;
+      auto p = shape->activePen();
+      p.setColor(c);
+      shape->setActivePen(p);
     }
     else if (name == "-disabledoutline") {
-      tk_->TODO(name, args);
+      QColor c;
+      if (! CTkAppUtil::stringToQColor(value, c))
+        return false;
+      auto p = shape->disabledPen();
+      p.setColor(c);
+      shape->setDisabledPen(p);
     }
     else if (name == "-offset") {
       tk_->TODO(name, args);
@@ -920,7 +1009,15 @@ execOp(const Args &args)
       tk_->TODO(name, args);
     }
     else if (name == "-state") {
-      tk_->TODO(name, args);
+      if      (value == "normal") {
+        shape->setEnabled(true); shape->setVisible(true);
+      }
+      else if (value == "disabled")
+        shape->setEnabled(false);
+      else if (value == "hidden")
+        shape->setVisible(false);
+      else
+        return tk_->throwError("Invalid state \"" + value + "\"");
     }
     else if (name == "-fontfamily") {
       shape->setFontFamily(value);
@@ -933,9 +1030,13 @@ execOp(const Args &args)
       shape->setFontSize(s);
     }
     else if (name == "-tags" || name == "-tag") {
-      std::vector<QString> tags;
-      if (! tk_->splitList(value, tags))
+      std::vector<QString> strs;
+      if (! tk_->splitList(value, strs))
         return tk_->throwError("Invalid tags \"" + value + "\"");
+
+      std::set<QString> tags;
+      for (const auto &s : strs)
+        tags.insert(s);
 
       shape->setTags(tags);
     }
@@ -965,13 +1066,32 @@ execOp(const Args &args)
       shape->setPen(p);
     }
     else if (name == "-strokeopacity") {
-      tk_->TODO(name, args);
+      double a;
+      if (! CTkAppUtil::stringToReal(value, a))
+        return false;
+
+      auto p = shape->pen();
+      auto c = p.color();
+      c.setAlphaF(a);
+      p.setColor(c);
     }
     else if (name == "-activewidth") {
-      tk_->TODO(name, args);
+      double width;
+      if (! CTkAppUtil::stringToDistance(value, width))
+        return tk_->throwError("Invalid width \"" + value + "\"");
+
+      auto p = shape->activePen();
+      p.setWidthF(width);
+      shape->setActivePen(p);
     }
     else if (name == "-disabledwidth") {
-      tk_->TODO(name, args);
+      double width;
+      if (! CTkAppUtil::stringToDistance(value, width))
+        return tk_->throwError("Invalid width \"" + value + "\"");
+
+      auto p = shape->disabledPen();
+      p.setWidthF(width);
+      shape->setDisabledPen(p);
     }
 #ifdef CTK_APP_TKPATH
     else if (name == "-matrix") {
@@ -995,17 +1115,100 @@ execOp(const Args &args)
 
   auto getShapeOpt = [&](CTkAppCanvasWidget::Shape *shape, const QString &name,
                          QString &value) {
-    if      (name == "-fill") {
+    if      (name == "-anchor") {
+      tk_->TODO(name, args);
+    }
+    else if (name == "-dash") {
+      auto p = shape->pen();
+      value = dashToString(p.dashPattern());
+    }
+    else if (name == "-activedash") {
+      auto p = shape->activePen();
+      value = dashToString(p.dashPattern());
+    }
+    else if (name == "-disableddash") {
+      auto p = shape->disabledPen();
+      value = dashToString(p.dashPattern());
+    }
+    else if (name == "-dashoffset") {
+      auto p = shape->disabledPen();
+      value = QString::number(p.dashOffset());
+    }
+    else if (name == "-fill") {
       auto b = shape->brush();
       value = b.color().name();
+    }
+    else if (name == "-fillrule") { // tkpath
+      auto fillRule = shape->fillRule();
+      if      (fillRule == Qt::OddEvenFill)
+        value = "evenodd";
+      else if (fillRule == Qt::WindingFill)
+        value = "nonzero";
+    }
+    else if (name == "-fillopacity") {
+      auto b = shape->brush();
+      value = QString::number(b.color().alphaF());
+    }
+    else if (name == "-activefill") {
+      auto b = shape->activeBrush();
+      value = b.color().name();
+    }
+    else if (name == "-disabledfill") {
+      auto b = shape->disabledBrush();
+      value = b.color().name();
+    }
+    else if (name == "-filloverstroke") { // tkpath
+      tk_->TODO(name, args);
     }
     else if (name == "-outline" ||  name == "-stroke") {
       auto p = shape->pen();
       value = p.color().name();
     }
-    else if (name == "-width") {
-      auto p = shape->pen();
-      value = QString::number(p.widthF());
+    else if (name == "-activeoutline") {
+      auto p = shape->activePen();
+      value = p.color().name();
+    }
+    else if (name == "-disabledoutline") {
+      auto p = shape->disabledPen();
+      value = p.color().name();
+    }
+    else if (name == "-offset") {
+      tk_->TODO(name, args);
+    }
+    else if (name == "-outlinestipple") {
+      tk_->TODO(name, args);
+    }
+    else if (name == "-activeoutlinestipple") {
+      tk_->TODO(name, args);
+    }
+    else if (name == "-disabledoutlinestipple") {
+      tk_->TODO(name, args);
+    }
+    else if (name == "-outlineoffset") {
+      tk_->TODO(name, args);
+    }
+    else if (name == "-stipple") {
+      tk_->TODO(name, args);
+    }
+    else if (name == "-activestipple") {
+      tk_->TODO(name, args);
+    }
+    else if (name == "-disabledstipple") {
+      tk_->TODO(name, args);
+    }
+    else if (name == "-state") {
+      if      (! shape->isVisible())
+        value = "hidden";
+      else if (! shape->isEnabled())
+        value = "disabled";
+      else
+        value = "normal";
+    }
+    else if (name == "-fontfamily") {
+      tk_->TODO(name, args);
+    }
+    else if (name == "-fontsize") {
+      tk_->TODO(name, args);
     }
     else if (name == "-tags" || name == "-tag") {
       std::vector<QString> strs;
@@ -1013,10 +1216,33 @@ execOp(const Args &args)
         strs.push_back(tag);
       value = tk_->mergeList(strs);
     }
+    else if (name == "-width" || name == "-strokewidth") {
+      auto p = shape->pen();
+      value = QString::number(p.widthF());
+    }
+    else if (name == "-strokelinecap") {
+      tk_->TODO(name, args);
+    }
+    else if (name == "-strokeopacity") {
+      tk_->TODO(name, args);
+    }
+    else if (name == "-activewidth") {
+      auto p = shape->activePen();
+      value = QString::number(p.widthF());
+    }
+    else if (name == "-disabledwidth") {
+      auto p = shape->disabledPen();
+      value = QString::number(p.widthF());
+    }
+#ifdef CTK_APP_TKPATH
+    else if (name == "-matrix") {
+      tk_->TODO(name, args);
+    }
+#endif
     else if (name == "-parent") {
       tk_->TODO(name, args);
     }
-    else if (name == "-style") {
+    else if (name == "-style") { // tkpath
       tk_->TODO(name, args);
     }
     else
@@ -1030,42 +1256,72 @@ execOp(const Args &args)
   auto arg = args[0].toString();
 
   if      (arg == "addtag") {
-    if (numArgs < 2)
+    if (numArgs < 3)
       return tk_->wrongNumArgs(getName() + " addtag tag searchCommand ?arg ...?");
 
-//  auto tag = args[1].toString();
+    auto tag = args[1].toString();
     auto cmd = args[2].toString();
 
     if      (cmd == "above") {
+      if (numArgs != 4)
+        return tk_->wrongNumArgs(getName() + " addtag tag above tagOrId");
+
       tk_->TODO(cmd, args);
     }
     else if (cmd == "all") {
-      tk_->TODO(cmd, args);
+      if (numArgs != 3)
+        return tk_->wrongNumArgs(getName() + " addtag tag all");
+
+      for (auto *s : qcanvas_->getShapes()) {
+        auto tags = s->tags();
+        tags.insert(tag);
+        s->setTags(tags);
+      }
     }
     else if (cmd == "below") {
+      if (numArgs != 4)
+        return tk_->wrongNumArgs(getName() + " addtag tag below tagOrId");
+
       tk_->TODO(cmd, args);
     }
     else if (cmd == "closest") {
+      if (numArgs < 4)
+        return tk_->wrongNumArgs(getName() + " addtag a closest x y ?halo? ?start?");
+
       tk_->TODO(cmd, args);
     }
     else if (cmd == "enclosed") {
+      if (numArgs != 7)
+        return tk_->wrongNumArgs(getName() + " addtag a enclosed x1 y1 x2 y2");
+
       tk_->TODO(cmd, args);
     }
     else if (cmd == "overlapping") {
+      if (numArgs != 7)
+        return tk_->wrongNumArgs(getName() + " addtag a overlapping x1 y1 x2 y2");
+
       tk_->TODO(cmd, args);
     }
     else if (cmd == "withtag") {
+      if (numArgs != 4)
+        return tk_->wrongNumArgs(getName() + " addtag tag withtag tagOrId");
+
       tk_->TODO(cmd, args);
     }
     else
-      return tk_->throwError("bad search command \"" + cmd + "\": must be "
+      return tk_->throwError("bad addtag command \"" + cmd + "\": must be "
                "above, all, below, closest, enclosed, overlapping, or withtag");
   }
   else if (arg == "bbox") {
     if (numArgs < 2)
       return tk_->wrongNumArgs(getName() + " bbox tagOrId ?tagOrId ...?");
 
-    tk_->TODO(arg, args);
+    auto id = args[1].toString();
+
+    auto bbox = qcanvas_->getShapeBBox(id);
+
+    tk_->setIntegerArrayResult({{ int(bbox.left()), int(bbox.top()),
+                                  int(bbox.right()), int(bbox.bottom()) }});
   }
   else if (arg == "bind") {
     if (numArgs < 2 || numArgs > 4)
@@ -2349,6 +2605,8 @@ triggerMouseMoveEvents(QEvent *e, int button, bool pressed)
 
         insideShape_ = newInsideShape;
       }
+
+      qcanvas_->update();
     }
   }
   else {
@@ -2424,21 +2682,6 @@ void
 CTkAppCanvasWidget::
 drawShape(QPainter *p, Shape *s)
 {
-  auto calcStrokePath = [&](const QPainterPath &path) {
-    QPainterPathStroker stroker;
-
-    auto pen = p->pen();
-
-    stroker.setCapStyle   (pen.capStyle());
-    stroker.setDashOffset (pen.dashOffset());
-    stroker.setDashPattern(pen.dashPattern());
-    stroker.setJoinStyle  (pen.joinStyle());
-    stroker.setMiterLimit (pen.miterLimit());
-    stroker.setWidth      (pen.widthF());
-
-    return stroker.createStroke(path);
-  };
-
   p->setPen  (s->pen());
   p->setBrush(s->brush());
 
@@ -2447,8 +2690,15 @@ drawShape(QPainter *p, Shape *s)
 
   switch (s->type()) {
     case CTkAppCanvasShapeType::RECTANGLE: {
+      auto brush = calcBrush(s);
+      auto pen   = calcPen(s);
+
       auto *r = static_cast<Rectangle *>(s);
-      p->drawRect(r->rect());
+
+      p->fillPath(r->path(), brush);
+
+      p->strokePath(r->strokePath(), pen);
+
       break;
     }
     case CTkAppCanvasShapeType::OVAL: {
@@ -2459,7 +2709,7 @@ drawShape(QPainter *p, Shape *s)
     case CTkAppCanvasShapeType::LINE: {
       auto *l = static_cast<Line *>(s);
 
-      auto qpaintPath = calcStrokePath(l->qpath());
+      auto qpaintPath = l->calcStrokePath(l->qpath(), l->pen());
       l->setQStrokePath(qpaintPath);
 
       p->drawPath(l->qpath());
@@ -2470,7 +2720,7 @@ drawShape(QPainter *p, Shape *s)
     case CTkAppCanvasShapeType::PATH: {
       auto *path = static_cast<Path *>(s);
 
-      auto qpaintPath = calcStrokePath(path->qpath());
+      auto qpaintPath = path->calcStrokePath(path->qpath(), path->pen());
       path->setQStrokePath(qpaintPath);
 
       p->drawPath(path->qpath());
@@ -2576,6 +2826,32 @@ drawShape(QPainter *p, Shape *s)
   p->restore();
 }
 
+QBrush
+CTkAppCanvasWidget::
+calcBrush(Shape *s) const
+{
+  if (! s->isEnabled())
+    return s->disabledBrush();
+
+  if (s == canvas_->insideShape())
+    return s->activeBrush();
+
+  return s->brush();
+}
+
+QPen
+CTkAppCanvasWidget::
+calcPen(Shape *s) const
+{
+  if (! s->isEnabled())
+    return s->disabledPen();
+
+  if (s == canvas_->insideShape())
+    return s->activePen();
+
+  return s->pen();
+}
+
 QSize
 CTkAppCanvasWidget::
 sizeHint() const
@@ -2584,6 +2860,24 @@ sizeHint() const
   int h = std::max(int(canvas_->height()), 1);
 
   return QSize(w, h);
+}
+
+//---
+
+QPainterPath
+CTkAppCanvasShape::
+calcStrokePath(const QPainterPath &path, const QPen &pen) const
+{
+  QPainterPathStroker stroker;
+
+  stroker.setCapStyle   (pen.capStyle());
+  stroker.setDashOffset (pen.dashOffset());
+  stroker.setDashPattern(pen.dashPattern());
+  stroker.setJoinStyle  (pen.joinStyle());
+  stroker.setMiterLimit (pen.miterLimit());
+  stroker.setWidth      (pen.widthF());
+
+  return stroker.createStroke(path);
 }
 
 //----------
@@ -2968,11 +3262,23 @@ execOp(const Args &args)
 
   //--
 
-  auto stringToIndex = [&](const QString &str, int &ind) {
-    long l;
-    if (! CTkAppUtil::stringToInt(str, l))
-      return tk_->throwError("Incorrect index \"" + str + "\"");
+  auto stringToIndex = [&](const QString &str, int &ind, bool rangeCheck=true) {
+    long l = -1;
+
+    if (str == "end")
+      l = qcombo_->count() - 1;
+    else {
+      if (! CTkAppUtil::stringToInt(str, l))
+        return tk_->throwError("bad entry index \"" + str + "\"");
+    }
+
+    if (l < 0 || l >= qcombo_->count()) {
+      if (rangeCheck)
+        return tk_->throwError("Index " + QString::number(l) + "out of range");
+    }
+
     ind = l;
+
     return true;
   };
 
@@ -2981,6 +3287,10 @@ execOp(const Args &args)
   if      (arg == "bbox") {
     if (numArgs != 2)
       return tk_->wrongNumArgs(getName() + " bbox index");
+
+    int i;
+    if (! stringToIndex(args[1].toString(), i))
+      return false;
 
     tk_->TODO(args);
   }
@@ -3005,22 +3315,30 @@ execOp(const Args &args)
       return tk_->wrongNumArgs(getName() + " delete firstIndex ?lastIndex?");
 
     int firstIndex;
-    if (! stringToIndex(args[1].toString(), firstIndex))
+    if (! stringToIndex(args[1].toString(), firstIndex, /*rangeCheck*/false))
       return false;
 
-    int lastIndex = -1;
+    int lastIndex = firstIndex;
     if (numArgs == 3) {
-      if (! stringToIndex(args[2].toString(), lastIndex))
+      if (! stringToIndex(args[2].toString(), lastIndex, /*rangeCheck*/false))
         return false;
     }
 
-    tk_->TODO(args); // delete items
+    std::set<int> inds;
+
+    for (int i = firstIndex; i <= lastIndex; ++i) {
+      if (i >= 0 && i < qcombo_->count())
+        inds.insert(-i);
+    }
+
+    for (const auto &i : inds)
+      qcombo_->removeItem(-i);
   }
   else if (arg == "get") {
     if (numArgs != 1)
       return tk_->wrongNumArgs(getName() + " get");
 
-    tk_->TODO(args);
+    tk_->setStringResult(qcombo_->currentText());
   }
   else if (arg == "icursor") {
     if (numArgs != 2)
@@ -3060,7 +3378,54 @@ execOp(const Args &args)
     if (numArgs < 2)
       return tk_->wrongNumArgs(getName() + " selection option ?arg ...?");
 
-    tk_->TODO(args);
+    if      (args[1] == "adjust") {
+      tk_->TODO(arg + " " + args[1].toString());
+    }
+    else if (args[1] == "clear") {
+      if (numArgs != 2)
+        return tk_->wrongNumArgs(getName() + " selection clear");
+
+      qcombo_->lineEdit()->deselect();
+    }
+    else if (args[1] == "from") {
+      if (numArgs != 3)
+        return tk_->wrongNumArgs(getName() + " selection from index");
+
+      int ind;
+      if (! stringToIndex(args[2].toString(), ind))
+        return false;
+
+      qcombo_->lineEdit()->setCursorPosition(ind);
+    }
+    else if (args[1] == "present") {
+      tk_->TODO(arg + " " + args[1].toString());
+    }
+    else if (args[1] == "range") {
+      if (numArgs != 4)
+        return tk_->wrongNumArgs(getName() + " selection clear");
+
+      int startIndex, endIndex;
+      if (! stringToIndex(args[2].toString(), startIndex))
+        return false;
+      if (! stringToIndex(args[3].toString(), endIndex))
+        return false;
+
+      qcombo_->lineEdit()->setSelection(startIndex, endIndex - startIndex);
+    }
+    else if (args[1] == "to") {
+      if (numArgs != 3)
+        return tk_->wrongNumArgs(getName() + " selection to index");
+
+      int endIndex;
+      if (! stringToIndex(args[2].toString(), endIndex))
+        return false;
+
+      int startIndex = qcombo_->lineEdit()->cursorPosition();
+
+      qcombo_->lineEdit()->setSelection(startIndex, endIndex - startIndex);
+    }
+    else
+      return false;
   }
   else if (arg == "state") {
     if (numArgs > 2)
@@ -3072,7 +3437,7 @@ execOp(const Args &args)
     if (numArgs != 2)
       return tk_->wrongNumArgs(getName() + " set value");
 
-    tk_->TODO(args);
+    qcombo_->setEditText(args[1].toString());
   }
   else if (arg == "validate") {
     if (numArgs != 1)
@@ -3092,12 +3457,10 @@ execOp(const Args &args)
       if (! CTkAppUtil::stringToReal(args[2].toString(), f))
         return false;
 
-//    int len = qcombo_->text().length();
-//    int pos = std::min(std::max(int(len*f), 0), len);
+      int len = qcombo_->currentText().length();
+      int pos = std::min(std::max(int(len*f), 0), len);
 
-//    qcombo_->setCursorPosition(pos);
-
-      tk_->TODO(args);
+      qcombo_->lineEdit()->setCursorPosition(pos);
     }
     else if (args[1] == "scroll") {
       if (numArgs != 3)
@@ -3113,9 +3476,7 @@ execOp(const Args &args)
       if (! stringToIndex(args[2].toString(), ind))
         return false;
 
-//    qcombo_->setCursorPosition(ind);
-
-      tk_->TODO(args);
+      qcombo_->lineEdit()->setCursorPosition(ind);
     }
   }
   else
@@ -3857,15 +4218,17 @@ execOp(const Args &args)
 
   //---
 
-  auto stringToIndex = [&](const QString &str, int &ind) {
+  auto stringToIndex = [&](const QString &str, int &ind, bool rangeCheck=true) {
     ind = -1;
 
     if (str == "active") return false;
     if (str == "anchor") return false;
 
     if (str == "end") {
-      if (qlist_->count() == 0)
-        return false;
+      if (rangeCheck) {
+        if (qlist_->count() == 0)
+          return false;
+      }
 
       ind = qlist_->count() - 1;
 
@@ -3880,8 +4243,10 @@ execOp(const Args &args)
     if (! CTkAppUtil::stringToInt(str, i))
       return false;
 
-    if (i < 0 || i >= qlist_->count())
-      return false;
+    if (rangeCheck) {
+      if (i < 0 || i >= qlist_->count())
+        return false;
+    }
 
     ind = int(i);
 
@@ -3911,7 +4276,7 @@ execOp(const Args &args)
       return tk_->wrongNumArgs(getName() + " bbox index");
 
     auto *item = stringToItem(args[1].toString());
-    if (! item) return false;
+    if (! item) return true;
 
     auto r = qlist_->visualItemRect(item);
 
@@ -3936,18 +4301,20 @@ execOp(const Args &args)
 
     int startIndex, endIndex;
 
-    if (! stringToIndex(args[1].toString(), startIndex))
+    if (! stringToIndex(args[1].toString(), startIndex, /*rangeCheck*/false))
       return false;
 
     if (numArgs == 3) {
-      if (! stringToIndex(args[2].toString(), endIndex))
+      if (! stringToIndex(args[2].toString(), endIndex, /*rangeCheck*/false))
         return false;
     }
     else
-      endIndex = CTkAppUtil::END_INDEX;
+      endIndex = startIndex;
 
-    for (int i = endIndex; i >= startIndex; --i)
-      delete qlist_->item(i);
+    for (int i = endIndex; i >= startIndex; --i) {
+      if (i >= 0 && i < qlist_->count())
+        delete qlist_->item(i);
+    }
   }
   else if (arg == "get") {
     if (numArgs != 2 && numArgs != 3)
@@ -3955,20 +4322,22 @@ execOp(const Args &args)
 
     int startIndex, endIndex;
 
-    if (! stringToIndex(args[1].toString(), startIndex))
+    if (! stringToIndex(args[1].toString(), startIndex, /*rangeCheck*/false))
       return false;
 
     if (numArgs == 3) {
-      if (! stringToIndex(args[2].toString(), endIndex))
+      if (! stringToIndex(args[2].toString(), endIndex, /*rangeCheck*/false))
         return false;
     }
     else
-      endIndex = CTkAppUtil::END_INDEX;
+      endIndex = startIndex;
 
     std::vector<QString> strs;
 
-    for (int i = endIndex; i >= startIndex; --i)
-      strs.push_back(qlist_->item(i)->text());
+    for (int i = endIndex; i >= startIndex; --i) {
+      if (i >= 0 && i < qlist_->count())
+        strs.push_back(qlist_->item(i)->text());
+    }
 
     tk_->setStringArrayResult(strs);
   }
@@ -5661,9 +6030,7 @@ CTkAppScrollBar::
 CTkAppScrollBar(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
  CTkAppWidget(tk, parent, name)
 {
-  qscrollbar_ = new QScrollBar(parent ? parent->getQWidget() : nullptr);
-
-  qscrollbar_->setRange(0, 1000);
+  qscrollbar_ = new CTkAppScrollBarWidget(this);
 
   setQWidget(qscrollbar_);
 
@@ -5694,7 +6061,10 @@ execConfig(const QString &name, const QString &value)
     setCommand(value);
   }
   else if (name == "-troughcolor") {
-    tk_->TODO(name);
+    QColor c;
+    if (! CTkAppUtil::stringToQColor(value, c))
+      return false;
+    qscrollbar_->setTroughColor(c);
   }
   else
     return CTkAppWidget::execConfig(name, value);
@@ -5748,6 +6118,18 @@ scrollSlot(int i)
   args.push_back(QString::number(i/1000.0));
 
   runCommand(args);
+}
+
+//---
+
+CTkAppScrollBarWidget::
+CTkAppScrollBarWidget(CTkAppScrollBar *scrollbar) :
+ QScrollBar(scrollbar->getParent() ? scrollbar->getParent()->getQWidget() : nullptr),
+ scrollbar_(scrollbar)
+{
+  setObjectName("scrollbar");
+
+  setRange(0, 1000);
 }
 
 //----------
@@ -7588,6 +7970,14 @@ CTkAppTopLevel(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
   qframe_->setWindowTitle(name);
 
   setQWidget(qframe_);
+
+  tk_->addTopLevel(this);
+}
+
+CTkAppTopLevel::
+~CTkAppTopLevel()
+{
+  tk_->removeTopLevel(this);
 }
 
 void
@@ -8334,6 +8724,9 @@ CTkAppWidget::
   delete getWidgetCommand();
 
   delete eventFilter_;
+
+  if (image_)
+    image_->removeRef(getName());
 }
 
 void
@@ -8343,6 +8736,8 @@ setParentWidget(QWidget *w)
   assert(! isTopLevel());
 
   getQWidget()->setParent(w);
+
+  getQWidget()->setVisible(true);
 }
 
 CTkAppRoot *
@@ -8402,6 +8797,8 @@ setQWidget(QWidget *w)
   qwidget_->setFocusPolicy(Qt::ClickFocus);
 
   qwidget_->setFont(tk_->appFont());
+
+  qwidget_->setVisible(false);
 }
 
 QWidget *
@@ -8409,6 +8806,15 @@ CTkAppWidget::
 getQWidget() const
 {
   return qwidget_;
+}
+
+void
+CTkAppWidget::
+setImage(const CTkAppImageRef &i)
+{
+  image_ = i;
+
+  image_->addRef(getName());
 }
 
 int
@@ -8512,7 +8918,7 @@ removeChild(CTkAppWidget *w)
 
 void
 CTkAppWidget::
-getChildren(std::vector<CTkAppWidget *> &children) const
+getChildren(Children &children) const
 {
   for (const auto &pc : children_)
     children.push_back(pc.second);
@@ -8583,7 +8989,7 @@ getTkPackLayout(bool create)
   auto *l1 = qobject_cast<CTkAppPackLayout *>(l);
 
   if (! l1 && create)
-    l1 = new CTkAppPackLayout(w);
+    l1 = new CTkAppPackLayout(this);
 
   return l1;
 }
@@ -8600,7 +9006,7 @@ getTkGridLayout(bool create)
   auto *l1 = qobject_cast<CTkAppGridLayout *>(l);
 
   if (! l1 && create)
-    l1 = new CTkAppGridLayout(w);
+    l1 = new CTkAppGridLayout(this);
 
   return l1;
 }
@@ -8617,7 +9023,7 @@ getTkPlaceLayout(bool create)
   auto *l1 = qobject_cast<CTkAppPlaceLayout *>(l);
 
   if (! l1 && create)
-    l1 = new CTkAppPlaceLayout(w);
+    l1 = new CTkAppPlaceLayout(this);
 
   return l1;
 }
@@ -9306,6 +9712,14 @@ eventFilter(QObject *obj, QEvent *event)
 
     case QEvent::KeyPress: {
       w_->triggerKeyPressEvents(event);
+      break;
+    }
+
+    case QEvent::Show: {
+      break;
+    }
+
+    case QEvent::Hide: {
       break;
     }
 

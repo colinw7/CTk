@@ -5,7 +5,7 @@
 #include <QPainter>
 
 CTkAppPackLayout::
-CTkAppPackLayout(QWidget *parent, int margin, int spacing) :
+CTkAppPackLayout(CTkAppWidget *parent, int margin, int spacing) :
  CTkAppLayout(parent, Type::PACK)
 {
   setObjectName("pack");
@@ -16,7 +16,7 @@ CTkAppPackLayout(QWidget *parent, int margin, int spacing) :
 
 CTkAppPackLayout::
 CTkAppPackLayout(int spacing) :
- CTkAppLayout(nullptr, Type::PACK)
+ CTkAppLayout(Type::PACK)
 {
   setObjectName("pack");
 
@@ -55,10 +55,12 @@ addWidgets(const std::vector<CTkAppWidget *> &widgets, const Info &info)
 
   auto *layout = new CTkAppPackLayout;
 
-  for (auto *widget : widgets)
-    layout->add(new CTkAppPackLayoutWidget(widget, Info()));
+  auto *parentLayoutWidget = new CTkAppPackLayoutWidget(this, layout, info);
 
-  add(new CTkAppPackLayoutWidget(layout, info));
+  for (auto *widget : widgets)
+    layout->add(new CTkAppPackLayoutWidget(this, parentLayoutWidget, widget, info));
+
+  add(parentLayoutWidget);
 }
 
 void
@@ -70,7 +72,7 @@ addWidget(CTkAppWidget *widget, const Info &info)
   if (widget->parentWidget() != parent)
     widget->setParentWidget(parent);
 
-  add(new CTkAppPackLayoutWidget(widget, info));
+  add(new CTkAppPackLayoutWidget(this, widget, info));
 }
 
 void
@@ -108,7 +110,7 @@ removeWidget(CTkAppWidget *widget)
 
 std::vector<CTkAppLayoutWidget *>
 CTkAppPackLayout::
-getLayoutWidgets() const
+getLayoutWidgets(bool flat) const
 {
   std::vector<CTkAppLayoutWidget *> widgets;
 
@@ -118,7 +120,20 @@ getLayoutWidgets() const
     auto *w = dynamic_cast<CTkAppLayoutWidget *>(item);
     if (! w) continue;
 
-    widgets.push_back(w);
+    if (flat && w->getLayout()) {
+      auto n = w->getLayout()->count();
+
+      for (int j = 0; j < n; ++j) {
+        auto *item1 = w->getLayout()->itemAt(j);
+
+        auto *w1 = dynamic_cast<CTkAppLayoutWidget *>(item1);
+        if (! w1) continue;
+
+        widgets.push_back(w1);
+      }
+    }
+    else
+      widgets.push_back(w);
   }
 
   return widgets;
@@ -235,6 +250,10 @@ setGeometry(const QRect &rect)
 
   auto placeRect = rect;
 
+  using WidgetList = std::vector<CTkAppPackLayoutWidget *>;
+
+  WidgetList expandHWidgets, expandVWidgets;
+
   for (int i = 0; i < list_.size(); ++i) {
     auto *item = list_.at(i);
 
@@ -263,6 +282,13 @@ setGeometry(const QRect &rect)
       if (info.fill() == Info::Fill::Y || info.fill() == Info::Fill::BOTH)
         h = rh;
 
+      if (info.isExpand()) {
+        if (widget->getLayout())
+          w = rw;
+        else
+          expandHWidgets.push_back(widget);
+      }
+
       int dy = (rh - h - 2*info.padY())/2;
 
       auto r = QRect(x1 + info.padX(), y1 + info.padY() + dy, w, h);
@@ -274,6 +300,13 @@ setGeometry(const QRect &rect)
     else if (info.side() == Info::Side::RIGHT) {
       if (info.fill() == Info::Fill::Y || info.fill() == Info::Fill::BOTH)
         h = rh;
+
+      if (info.isExpand()) {
+        if (widget->getLayout())
+          w = rw;
+        else
+          expandHWidgets.push_back(widget);
+      }
 
       int dy = (rh - h - 2*info.padY())/2;
 
@@ -287,6 +320,13 @@ setGeometry(const QRect &rect)
       if (info.fill() == Info::Fill::X || info.fill() == Info::Fill::BOTH)
         w = rw;
 
+      if (info.isExpand()) {
+        if (widget->getLayout())
+          h = rh;
+        else
+          expandVWidgets.push_back(widget);
+      }
+
       int dx = (rw - w - 2*info.padX())/2;
 
       auto r = QRect(x1 + info.padX() + dx, y1 + info.padY(), w, h);
@@ -298,6 +338,13 @@ setGeometry(const QRect &rect)
     else if (info.side() == Info::Side::BOTTOM) {
       if (info.fill() == Info::Fill::X || info.fill() == Info::Fill::BOTH)
         w = rw;
+
+      if (info.isExpand()) {
+        if (widget->getLayout())
+          h = rh;
+        else
+          expandVWidgets.push_back(widget);
+      }
 
       int dx = (rw - w - 2*info.padX())/2;
 
@@ -315,6 +362,72 @@ setGeometry(const QRect &rect)
     }
 
     widget->show();
+  }
+
+  if (! expandHWidgets.empty()) {
+    using XWidgets = std::map<int, WidgetList>;
+
+    XWidgets xWidgets;
+
+    int x1 = INT_MAX, x2 = 0;
+
+    for (auto *w : expandHWidgets) {
+      auto r = w->geometry();
+
+      x1 = std::min(x1, r.left ());
+      x2 = std::max(x2, r.right());
+
+      xWidgets[x1].push_back(w);
+    }
+
+    int dx = (x1 + (rect.width() - x2))/(expandHWidgets.size() + 1);
+
+    int d = dx;
+
+    for (const auto &p1 : xWidgets) {
+      for (auto *w : p1.second) {
+        auto r = w->geometry();
+
+        auto r1 = QRect(r.left() + d, r.top(), r.width(), r.height());
+
+        w->setGeometry(r1);
+
+        d += dx;
+      }
+    }
+  }
+
+  if (! expandVWidgets.empty()) {
+    using YWidgets = std::map<int, WidgetList>;
+
+    YWidgets yWidgets;
+
+    int y1 = INT_MAX, y2 = 0;
+
+    for (auto *w : expandHWidgets) {
+      auto r = w->geometry();
+
+      y1 = std::min(y1, r.top   ());
+      y2 = std::max(y2, r.bottom());
+
+      yWidgets[y1].push_back(w);
+    }
+
+    int dy = (y1 + (rect.height() - y2))/(expandVWidgets.size() + 1);
+
+    int d = dy;
+
+    for (const auto &p1 : yWidgets) {
+      for (auto *w : p1.second) {
+        auto r = w->geometry();
+
+        auto r1 = QRect(r.left(), r.top() + dy/2, r.width(), r.height());
+
+        w->setGeometry(r1);
+
+        d += dy;
+      }
+    }
   }
 }
 
@@ -459,4 +572,39 @@ CTkAppPackLayout::
 invalidate()
 {
   CTkAppLayout::invalidate();
+}
+
+//---
+
+CTkAppPackLayoutWidget::
+CTkAppPackLayoutWidget(CTkAppPackLayout *pack, TkWidget *widget, const Info &info) :
+ CTkAppLayoutWidget(pack, widget), pack_(pack), info_(info)
+{
+}
+
+CTkAppPackLayoutWidget::
+CTkAppPackLayoutWidget(CTkAppPackLayout *pack, QLayout *layout, const Info &info) :
+ CTkAppLayoutWidget(pack, layout), pack_(pack), info_(info)
+{
+}
+
+CTkAppPackLayoutWidget::
+CTkAppPackLayoutWidget(CTkAppPackLayout *pack, CTkAppPackLayoutWidget *parent,
+                       TkWidget *widget, const Info &info) :
+ CTkAppLayoutWidget(pack, widget), pack_(pack), parent_(parent), info_(info)
+{
+}
+
+void
+CTkAppPackLayoutWidget::
+setPadX(int i)
+{
+  info_.setPadX(i); pack_->invalidate();
+}
+
+void
+CTkAppPackLayoutWidget::
+setPadY(int i)
+{
+  info_.setPadY(i); pack_->invalidate();
 }

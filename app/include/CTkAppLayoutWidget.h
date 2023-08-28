@@ -2,24 +2,24 @@
 #define CTkAppLayoutWidget_H
 
 #include <QLayout>
+#include <QObject>
 #include <QRect>
 #include <QWidgetItem>
 
 #include <vector>
 
+class CTkAppLayout;
 class CTkAppWidget;
 
-class CTkAppLayoutWidget : public QLayoutItem {
+class CTkAppLayoutWidget : public QObject, public QLayoutItem {
+  Q_OBJECT
+
  public:
   using TkWidget = CTkAppWidget;
 
-  explicit CTkAppLayoutWidget(TkWidget *widget) :
-   widget_(widget) {
-  }
+  explicit CTkAppLayoutWidget(CTkAppLayout *l, TkWidget *widget);
 
-  explicit CTkAppLayoutWidget(QLayout *layout) :
-   layout_(layout) {
-  }
+  explicit CTkAppLayoutWidget(CTkAppLayout *l, QLayout *layout);
 
   TkWidget *getTkWidget() const { return widget_; }
   QLayout  *getLayout() const { return layout_; }
@@ -51,11 +51,14 @@ class CTkAppLayoutWidget : public QLayoutItem {
   QString name() const;
 
  private:
+  void init();
+
   QWidget *getQWidget() const;
 
  private:
-  TkWidget* widget_ { nullptr };
-  QLayout*  layout_ { nullptr };
+  CTkAppLayout* l_      { nullptr };
+  TkWidget*     widget_ { nullptr };
+  QLayout*      layout_ { nullptr };
 };
 
 #endif

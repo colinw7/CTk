@@ -3,7 +3,7 @@
 #include <CTkAppWidget.h>
 
 CTkAppPlaceLayout::
-CTkAppPlaceLayout(QWidget *parent, int margin, int spacing) :
+CTkAppPlaceLayout(CTkAppWidget *parent, int margin, int spacing) :
  CTkAppLayout(parent, Type::PLACE)
 {
   setObjectName("place");
@@ -14,7 +14,7 @@ CTkAppPlaceLayout(QWidget *parent, int margin, int spacing) :
 
 CTkAppPlaceLayout::
 CTkAppPlaceLayout(int spacing) :
- CTkAppLayout(nullptr, Type::PLACE)
+ CTkAppLayout(Type::PLACE)
 {
   setObjectName("place");
 
@@ -34,7 +34,7 @@ void
 CTkAppPlaceLayout::
 addItem(QLayoutItem *item)
 {
-  add(item, Info());
+  add(item);
 }
 
 void
@@ -51,35 +51,38 @@ void
 CTkAppPlaceLayout::
 addWidget(CTkAppWidget *widget, const Info &info)
 {
-  auto *wrapper = getItem(widget);
+  auto *item = getItem(widget);
 
-  if (! wrapper) {
+  if (! item) {
     auto *parent = parentWidget();
 
     if (widget->parentWidget() != parent)
       widget->setParentWidget(parent);
 
-    add(new CTkAppLayoutWidget(widget), info);
+    add(new CTkAppPlaceLayoutWidget(this, widget, info));
   }
-  else
-    wrapper->info.update(info);
+  else {
+    auto *w = dynamic_cast<CTkAppPlaceLayoutWidget *>(item);
+    if (! w) return;
+
+    w->info().update(info);
+  }
 }
 
-CTkAppPlaceLayout::ItemWrapper *
+QLayoutItem *
 CTkAppPlaceLayout::
 getItem(CTkAppWidget *widget) const
 {
   for (int i = 0; i < list_.size(); ++i) {
-    auto *wrapper = list_.at(i);
+    auto *item = list_.at(i);
 
-    auto *w = dynamic_cast<CTkAppLayoutWidget *>(wrapper->item);
-
+    auto *w = dynamic_cast<CTkAppPlaceLayoutWidget *>(item);
     if (! w) continue;
 
-    CTkAppWidget *widget1 = w->getTkWidget();
+    auto *widget1 = w->getTkWidget();
 
     if (widget == widget1)
-      return wrapper;
+      return item;
   }
 
   return nullptr;
@@ -89,25 +92,25 @@ bool
 CTkAppPlaceLayout::
 getChildInfo(CTkAppWidget *widget, Info &info)
 {
-  ItemWrapper *wrapper = getItem(widget);
+  auto *item = getItem(widget);
+  if (! item) return false;
 
-  if (! wrapper) return false;
-
-  info = wrapper->info;
+  auto *w = dynamic_cast<CTkAppPlaceLayoutWidget *>(item);
+  info = w->info();
 
   return true;
 }
 
 std::vector<CTkAppLayoutWidget *>
 CTkAppPlaceLayout::
-getLayoutWidgets() const
+getLayoutWidgets(bool /*flat*/) const
 {
   std::vector<CTkAppLayoutWidget *> widgets;
 
   for (int i = 0; i < list_.size(); ++i) {
-    auto *wrapper = list_.at(i);
+    auto *item = list_.at(i);
 
-    auto *w = dynamic_cast<CTkAppLayoutWidget *>(wrapper->item);
+    auto *w = dynamic_cast<CTkAppPlaceLayoutWidget *>(item);
     if (! w) continue;
 
     widgets.push_back(w);
@@ -139,14 +142,12 @@ count() const
 }
 
 QLayoutItem *
-CTkAppPlaceLayout::itemAt(int index) const
+CTkAppPlaceLayout::
+itemAt(int index) const
 {
-  ItemWrapper *wrapper = list_.value(index);
+  auto *item = list_.value(index);
 
-  if (wrapper)
-    return wrapper->item;
-
-  return nullptr;
+  return item;
 }
 
 QSize
@@ -163,20 +164,20 @@ setGeometry(const QRect &rect)
   CTkAppLayout::setGeometry(rect);
 
   for (int i = 0; i < list_.size(); ++i) {
-    auto *wrapper = list_.at(i);
+    auto *item = list_.at(i);
 
-    auto *item = dynamic_cast<CTkAppLayoutWidget *>(wrapper->item);
-    assert(item);
+    auto *widget = dynamic_cast<CTkAppPlaceLayoutWidget *>(item);
+    assert(widget);
 
-    int x1 = getXPos(wrapper->info, rect);
-    int y1 = getYPos(wrapper->info, rect);
+    int x1 = getXPos(widget->info(), rect);
+    int y1 = getYPos(widget->info(), rect);
 
-    int wh = getWidth (wrapper->info, rect, item);
-    int hh = getHeight(wrapper->info, rect, item);
+    int wh = getWidth (widget->info(), rect, widget);
+    int hh = getHeight(widget->info(), rect, widget);
 
-    item->setGeometry(QRect(x1, y1, wh, hh));
+    widget->setGeometry(QRect(x1, y1, wh, hh));
 
-    item->show();
+    widget->show();
   }
 }
 
@@ -264,9 +265,9 @@ CTkAppPlaceLayout::
 takeAt(int index)
 {
   if (index >= 0 && index < list_.size()) {
-    auto *layoutStruct = list_.takeAt(index);
+    auto *item = list_.takeAt(index);
 
-    return layoutStruct->item;
+    return item;
   }
 
   return nullptr;
@@ -274,9 +275,11 @@ takeAt(int index)
 
 void
 CTkAppPlaceLayout::
-add(QLayoutItem *item, const Info &info)
+add(QLayoutItem *item)
 {
-  list_.append(new ItemWrapper(item, info));
+  list_.append(item);
+
+  invalidate();
 }
 
 QSize
@@ -289,20 +292,34 @@ calculateSize(SizeType sizeType) const
   QSize itemSize(1, 1);
 
   for (int i = 0; i < list_.size(); ++i) {
-    auto *wrapper = list_.at(i);
+    auto *item = list_.at(i);
 
-    auto *item = dynamic_cast<CTkAppLayoutWidget *>(wrapper->item);
-    assert(item);
+    auto *widget = dynamic_cast<CTkAppPlaceLayoutWidget *>(item);
+    assert(widget);
 
-    int x1 = getXPos(wrapper->info, QRect());
-    int y1 = getYPos(wrapper->info, QRect());
+    int x1 = getXPos(widget->info(), QRect());
+    int y1 = getYPos(widget->info(), QRect());
 
-    int wh = getWidth (wrapper->info, QRect(), item, sizeType);
-    int hh = getHeight(wrapper->info, QRect(), item, sizeType);
+    int wh = getWidth (widget->info(), QRect(), widget, sizeType);
+    int hh = getHeight(widget->info(), QRect(), widget, sizeType);
 
     w = std::max(x1 + wh, itemSize.width ());
     h = std::max(y1 + hh, itemSize.height());
   }
 
   return QSize(w, h);
+}
+
+//---
+
+CTkAppPlaceLayoutWidget::
+CTkAppPlaceLayoutWidget(CTkAppPlaceLayout *place, TkWidget *widget, const Info &info) :
+ CTkAppLayoutWidget(place, widget), place_(place), info_(info)
+{
+}
+
+CTkAppPlaceLayoutWidget::
+CTkAppPlaceLayoutWidget(CTkAppPlaceLayout *place, QLayout *layout, const Info &info) :
+ CTkAppLayoutWidget(place, layout), place_(place), info_(info)
+{
 }

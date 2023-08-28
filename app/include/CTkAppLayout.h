@@ -4,6 +4,7 @@
 #include <QLayout>
 
 class CTkAppLayoutWidget;
+class CTkAppWidget;
 
 class CTkAppLayout : public QLayout {
   Q_OBJECT
@@ -17,18 +18,18 @@ class CTkAppLayout : public QLayout {
   };
 
  public:
-  CTkAppLayout(QWidget *w, const Type &type) :
-   QLayout(w), type_(type) {
-  }
+  CTkAppLayout(CTkAppWidget *w, const Type &type);
+  CTkAppLayout(const Type &type);
 
   virtual QString name() const = 0;
 
-  virtual std::vector<CTkAppLayoutWidget *> getLayoutWidgets() const = 0;
+  virtual std::vector<CTkAppLayoutWidget *> getLayoutWidgets(bool flat=false) const = 0;
 
  protected:
   enum SizeType { MinimumSize, SizeHint };
 
-  Type type_ { Type::NONE };
+  CTkAppWidget* w_    { nullptr };
+  Type          type_ { Type::NONE };
 };
 
 #endif

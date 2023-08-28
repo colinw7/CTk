@@ -38,9 +38,9 @@ stringToBool(const QString &str, bool &b)
 {
   auto lstr = str.toLower();
 
-  if      (lstr == "1" || lstr == "yes" || lstr == "true" || lstr == "y")
+  if      (lstr == "1" || lstr == "yes" || lstr == "true" || lstr == "y" || lstr == "t")
     b = true;
-  else if (lstr == "0" || lstr == "no" || lstr == "false" || lstr == "n")
+  else if (lstr == "0" || lstr == "no" || lstr == "false" || lstr == "n" || lstr == "f")
     b = false;
   else
     return false;

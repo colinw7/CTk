@@ -5,6 +5,7 @@
 #include <CTkAppLayoutWidget.h>
 #include <optional>
 
+class CTkAppGridLayout;
 class CTkAppWidget;
 
 class QPainter;
@@ -22,6 +23,9 @@ class CTkAppGridLayoutInfo {
     W    = (1<<3)
   };
 
+  using OptInt    = std::optional<int>;
+  using OptString = std::optional<QString>;
+
  public:
   explicit CTkAppGridLayoutInfo() { }
 
@@ -30,16 +34,22 @@ class CTkAppGridLayoutInfo {
   bool isRowValid() const { return bool(row_); }
   int  getRow    () const { return row_.value_or(-1); }
   void setRow    (int row) { row_ = row; }
+  void unsetRow  () { row_ = OptInt(); }
 
   bool isColValid() const { return bool(col_); }
   int  getCol    () const { return col_.value_or(-1); }
   void setCol    (int col) { col_ = col; }
+  void unsetCol  () { col_ = OptInt(); }
 
-  int  getRowSpan() const { return rowSpan_.value_or(1); }
-  void setRowSpan(int rowSpan) { rowSpan_ = rowSpan; }
+  bool isRowSpanValid() const { return bool(rowSpan_); }
+  int  getRowSpan    () const { return rowSpan_.value_or(1); }
+  void setRowSpan    (int rowSpan) { rowSpan_ = rowSpan; }
+  void unsetRowSpan  () { rowSpan_ = OptInt(); }
 
-  int  getColSpan() const { return colSpan_.value_or(1); }
-  void setColSpan(int colSpan) { colSpan_ = colSpan; }
+  bool isColSpanValid() const { return bool(colSpan_); }
+  int  getColSpan    () const { return colSpan_.value_or(1); }
+  void setColSpan    (int colSpan) { colSpan_ = colSpan; }
+  void unsetColSpan  () { colSpan_ = OptInt(); }
 
   QString getSticky() const { return sticky_.value_or(""); }
   void setSticky(const QString &sticky) { sticky_ = sticky; }
@@ -113,13 +123,17 @@ class CTkAppGridLayoutInfo {
   }
 
  private:
-  std::optional<int>     row_, col_;
-  std::optional<int>     rowSpan_, colSpan_;
-  std::optional<QString> sticky_;
-  std::optional<int>     padx_, pady_;
-  std::optional<int>     ipadx_, ipady_;
-  std::optional<QString> in_;
-  std::optional<int>     weight_;
+  OptInt    row_;
+  OptInt    col_;
+  OptInt    rowSpan_;
+  OptInt    colSpan_;
+  OptString sticky_;
+  OptInt    padx_;
+  OptInt    pady_;
+  OptInt    ipadx_;
+  OptInt    ipady_;
+  OptString in_;
+  OptInt    weight_;
 
   mutable uint sticky_sides_;
 };
@@ -130,19 +144,16 @@ class CTkAppGridLayoutWidget : public CTkAppLayoutWidget {
  public:
   using Info = CTkAppGridLayoutInfo;
 
-  explicit CTkAppGridLayoutWidget(TkWidget *widget, const Info &info) :
-   CTkAppLayoutWidget(widget), info_(info) {
-  }
-
-  explicit CTkAppGridLayoutWidget(QLayout *layout, const Info &info) :
-   CTkAppLayoutWidget(layout), info_(info) {
-  }
+ public:
+  explicit CTkAppGridLayoutWidget(CTkAppGridLayout *grid, TkWidget *widget, const Info &info);
+  explicit CTkAppGridLayoutWidget(CTkAppGridLayout *grid, QLayout *layout, const Info &info);
 
   const Info &info() const { return info_; }
   Info &info() { return info_; }
 
  private:
-  Info info_;
+  CTkAppGridLayout* grid_ { nullptr };
+  Info              info_;
 };
 
 //---
@@ -180,7 +191,7 @@ class CTkAppGridLayout : public CTkAppLayout {
   using WidgetDatas = std::vector<WidgetData>;
 
  public:
-  explicit CTkAppGridLayout(QWidget *parent, int margin = 0, int spacing = -1);
+  explicit CTkAppGridLayout(CTkAppWidget *parent, int margin = 0, int spacing = -1);
   explicit CTkAppGridLayout(int spacing = -1);
 
  ~CTkAppGridLayout();
@@ -196,7 +207,7 @@ class CTkAppGridLayout : public CTkAppLayout {
 
   std::vector<CTkAppWidget *> getWidgets() const;
 
-  std::vector<CTkAppLayoutWidget *> getLayoutWidgets() const override;
+  std::vector<CTkAppLayoutWidget *> getLayoutWidgets(bool flat=false) const override;
 
   QLayoutItem *getItem(CTkAppWidget *widget) const;
 

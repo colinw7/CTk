@@ -23,6 +23,7 @@
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QScreen>
+#include <QEventLoop>
 
 //---
 
@@ -149,6 +150,30 @@ class CTkAppRootCommand :  public CTkAppCommand {
 
  private:
   CTkAppOptData opts_;
+};
+
+//---
+
+class CTkVarTraceEventLoop : public CTclTraceProc {
+ public:
+  explicit CTkVarTraceEventLoop(CTclApp *app, const QString &name) :
+   CTclTraceProc(app), name_(name) {
+    eventLoop_ = new QEventLoop;
+  }
+
+ ~CTkVarTraceEventLoop() {
+    delete eventLoop_;
+  }
+
+  void startLoop() {
+    eventLoop_->exec();
+  }
+
+  void handleWrite(const char *) override { eventLoop_->quit(); }
+
+ protected:
+  QString     name_;
+  QEventLoop* eventLoop_ { nullptr };
 };
 
 //---
@@ -1913,6 +1938,13 @@ run(const Args &args)
     layout->addWidgets(widgetDatas, info);
 
     layout->invalidate();
+
+    if (parent->isTopLevel()) {
+      auto *topWidget = qobject_cast<CTkAppTopLevel *>(parent);
+
+      if (topWidget)
+        topWidget->setNeedsShow(true);
+    }
   }
 
   return true;
@@ -1940,15 +1972,16 @@ run(const Args &args)
 
   if      (name == "create") {
     if (numArgs < 2)
-      return tk_->wrongNumArgs("image create type ?name? ?options?");
+      return tk_->wrongNumArgs("image create type ?name? ?-option value ...?");
 
     auto type = args[1].toString();
 
     if (type != "photo" && type != "bitmap" && type != "svg")
       return tk_->throwError("image type \"" + type + "\" doesn't exist");
 
-    long    width { -1 }, height { -1 };
-    QString name, data, format, filename, background, foreground;
+    long        width { -1 }, height { -1 };
+    QString     name, format, filename, background, foreground;
+    std::string data;
 
     for (uint i = 2; i < numArgs; ++i) {
       auto arg = args[i].toString();
@@ -1967,10 +2000,17 @@ run(const Args &args)
         if (i >= numArgs)
           return tk_->throwError("value for \"" + arg + "\" missing");
 
-        data = args[i].toString();
+        data = args[i].toString().toStdString();
 
-        if (type == "photo")
-          data = QString::fromStdString(CEncode64Inst->decode(data.toStdString()));
+        if (type == "photo") {
+          std::string dataStr;
+          for (const auto &c : data) {
+            if (std::isspace(c)) continue;
+            dataStr += c;
+          }
+//        std::cerr << dataStr << "\n";
+          data = CEncode64Inst->decode(dataStr); // don't use QString
+        }
       }
       else if (arg == "-format") {
         ++i;
@@ -2028,13 +2068,19 @@ run(const Args &args)
     auto image = tk_->createImage(type, format, name, width, height);
 
     if      (filename != "") {
-      if (type == "svg")
+      if (format == "svg")
         image->loadSVG(filename);
       else
         image->loadFile(filename);
     }
     else if (data != "") {
-      image->loadData(data);
+      if (type == "bitmap" && format == "")
+        format = "xbm";
+
+      if (format == "xbm")
+        image->loadXBM(name, data);
+      else
+        image->loadData(name, format, data);
     }
 
     auto *cmd = new CTkAppImageCommand(tk_, name);
@@ -2066,7 +2112,7 @@ run(const Args &args)
     auto image = tk_->getImage(args[1].toString());
     if (! image) return false;
 
-    tk_->TODO(name);
+    setBoolResult(image->numRefs() > 0 ? true : false);
   }
   else if (name == "names") {
     std::vector<QString> names;
@@ -2746,18 +2792,18 @@ run(const Args &args)
   tk_->debugCmd(name_, args);
 
   static CTkAppOption opts[] = {
-    { "-after" , CTkAppOptionType::String, nullptr },
-    { "-anchor", CTkAppOptionType::String, nullptr },
-    { "-before", CTkAppOptionType::String, nullptr },
-    { "-expand", CTkAppOptionType::String, nullptr },
-    { "-fill"  , CTkAppOptionType::String, nullptr },
-    { "-in"    , CTkAppOptionType::String, nullptr },
-    { "-ipadx" , CTkAppOptionType::Int   , nullptr },
-    { "-ipady" , CTkAppOptionType::Int   , nullptr },
-    { "-padx"  , CTkAppOptionType::Int   , nullptr },
-    { "-pady"  , CTkAppOptionType::Int   , nullptr },
-    { "-side"  , CTkAppOptionType::String, nullptr },
-    { nullptr  , CTkAppOptionType::None  , nullptr },
+    { "-after" , CTkAppOptionType::String , nullptr },
+    { "-anchor", CTkAppOptionType::String , nullptr },
+    { "-before", CTkAppOptionType::String , nullptr },
+    { "-expand", CTkAppOptionType::Boolean, nullptr },
+    { "-fill"  , CTkAppOptionType::String , nullptr },
+    { "-in"    , CTkAppOptionType::String , nullptr },
+    { "-ipadx" , CTkAppOptionType::Int    , nullptr },
+    { "-ipady" , CTkAppOptionType::Int    , nullptr },
+    { "-padx"  , CTkAppOptionType::Int    , nullptr },
+    { "-pady"  , CTkAppOptionType::Int    , nullptr },
+    { "-side"  , CTkAppOptionType::String , nullptr },
+    { nullptr  , CTkAppOptionType::None   , nullptr },
   };
 
   auto numArgs = args.size();
@@ -2774,8 +2820,11 @@ run(const Args &args)
   (void) tk_->lookupName("option", optionNames, args[0].toString(),
                          option, /*quiet*/true);
 
+  int ic = 0;
+
   if      (option == "configure") {
     configure = true;
+    ++ic;
   }
   else if (option == "forget") {
     if (numArgs < 2)
@@ -2894,7 +2943,7 @@ run(const Args &args)
 
     CTkAppOptionValueMap optValues;
 
-    for (uint i = 0; i < numArgs; ++i) {
+    for (uint i = ic; i < numArgs; ++i) {
       auto arg = args[i].toString();
 
       if (arg.size() > 0 && arg[0] == '-') {
@@ -2933,12 +2982,7 @@ run(const Args &args)
     auto p = optValues.find("-expand");
 
     if (p != optValues.end()) {
-      if      ((*p).second.getString() == "x") expand = 2;
-      else if ((*p).second.getString() == "y") expand = 3;
-      else {
-        if (! CTkAppUtil::stringToBool((*p).second.getString(), expand))
-          return tk_->throwError("Invalid -expand value");
-      }
+      expand = (*p).second.getBool();
     }
     }
 
@@ -3018,6 +3062,13 @@ run(const Args &args)
     layout->addWidgets(children, info);
 
     layout->invalidate();
+
+    if (parent->isTopLevel()) {
+      auto *topWidget = qobject_cast<CTkAppTopLevel *>(parent);
+
+      if (topWidget)
+        topWidget->setNeedsShow(true);
+    }
   }
 
   return true;
@@ -3350,6 +3401,13 @@ run(const Args &args)
     layout->addWidgets(children, info);
 
     layout->invalidate();
+
+    if (parent->isTopLevel()) {
+      auto *topWidget = qobject_cast<CTkAppTopLevel *>(parent);
+
+      if (topWidget)
+        topWidget->setNeedsShow(true);
+    }
   }
 
   return true;
@@ -4133,20 +4191,43 @@ run(const Args &args)
   if (numArgs != 2)
     return tk_->wrongNumArgs("tkwait variable|visibility|window name");
 
-  auto obj  = args[0].toString();
+  static auto optionNames = std::vector<QString>({
+    "variable", "visibility", "window" });
+
+  QString arg;
+  if (! tk_->lookupOptionName(optionNames, args[0].toString(), arg))
+    return false;
+
   auto name = args[1].toString();
 
-  if      (obj == "variable") {
-    tk_->TODO(obj);
+  if      (arg == "variable") {
+    auto *varProc = new CTkVarTraceEventLoop(tk_, name);
+
+    tk_->traceVar(name, varProc);
+
+    varProc->startLoop();
+
+    delete varProc;
   }
-  else if (obj == "visibility") {
-    tk_->TODO(obj);
-  }
-  else if (obj == "window") {
+  else if (arg == "visibility") {
     auto *w = tk_->lookupWidgetByName(name);
     if (! w) return false;
 
-    tk_->TODO(obj);
+    auto *windowLoop = new CTkWindowVisibleEventLoop(tk_, w->getQWidget());
+
+    windowLoop->startLoop();
+
+    delete windowLoop;
+  }
+  else if (arg == "window") {
+    auto *w = tk_->lookupWidgetByName(name);
+    if (! w) return false;
+
+    auto *windowLoop = new CTkWindowDestroyEventLoop(tk_, w->getQWidget());
+
+    windowLoop->startLoop();
+
+    delete windowLoop;
   }
   else
     return false;
@@ -4385,8 +4466,6 @@ run(const Args &args)
 
   cmd->processArgs(args);
 
-  tk_->addTopLevel(toplevel);
-
   setStringResult(widgetName);
 
   return true;
@@ -4504,7 +4583,7 @@ run(const Args &args)
     "screenheight", "screenwidth", "screenmmheight", "screenmmwidth", "screenvisual",
     "server", "toplevel", "viewable", "visual", "visualid", "vrootheight", "vrootwidth",
     "vrootx", "vrooty", "width", "x", "y", "atom", "atomname", "containing", "interps",
-    "pathname", "exists", "fpixels", "pixels", "rgb", "visualsavailable" });
+    "pathname", "exists", "fpixels", "pixels", "rgb", "visualsavailable", "debug" });
 
   QString arg;
   if (! tk_->lookupOptionName(optionNames, args[0].toString(), arg))
@@ -4614,7 +4693,7 @@ run(const Args &args)
     setIntegerResult(24);
   }
   else if (arg == "exists") {
-    setIntegerResult(getWindow(/*quiet*/true) ? 1 : 0);
+    setIntegerResult(getWindow(0, /*quiet*/true) ? 1 : 0);
   }
   else if (arg == "fpixels") {
     if (numArgs != 3)
@@ -4873,6 +4952,9 @@ run(const Args &args)
 
     setIntegerResult(w ? w->getQWidget()->y() : 0);
   }
+  else if (arg == "debug") {
+    tk_->showDebug();
+  }
 
   return true;
 }
@@ -4897,7 +4979,7 @@ run(const Args &args)
     "forget", "frame", "geometry", "grid", "group", "iconbitmap", "iconify", "iconmask",
     "iconname", "iconphoto", "iconposition", "iconwindow", "manage", "maxsize", "minsize",
     "overrideredirect", "positionfrom", "protocol", "resizable", "sizefrom", "stackorder",
-    "state", "title", "transient", "withdraw"});
+    "state", "title", "transient", "withdraw" });
 
   QString arg;
   if (! tk_->lookupOptionName(optionNames, args[0].toString(), arg))
@@ -5025,7 +5107,22 @@ run(const Args &args)
     tk_->TODO(args);
   }
   else if (arg == "iconwindow") {
-    tk_->TODO(args);
+    if (numArgs != 2 && numArgs != 3)
+      return tk_->wrongNumArgs("wm iconwindow window ?icon_window?");
+
+    if (numArgs == 2)
+      setStringResult("");
+    else {
+      auto *iw = tk_->lookupWidgetByName(args[2].toString());
+      if (! iw) return false;
+
+      auto *toplevel = iw->toplevel();
+      if (! toplevel) return false;
+
+      toplevel->setIconWindow(name);
+
+      toplevel->getQWidget()->hide();
+    }
   }
   else if (arg == "manage") {
     tk_->TODO(args);
@@ -5112,11 +5209,9 @@ run(const Args &args)
     else if (numArgs == 4) {
       long w, h;
       if (! CTkAppUtil::stringToInt(args[2].toString(), w))
-        return tk_->throwError("expected integer but got \"" +
-                                 args[2].toString() + "\"");
+        return tk_->throwError("expected integer but got \"" + args[2].toString() + "\"");
       if (! CTkAppUtil::stringToInt(args[3].toString(), h))
-        return tk_->throwError("expected integer but got \"" +
-                                 args[3].toString() + "\"");
+        return tk_->throwError("expected integer but got \"" + args[3].toString() + "\"");
     }
     else
       return tk_->wrongNumArgs("wm resizable window ?width height?");
@@ -5130,7 +5225,33 @@ run(const Args &args)
     tk_->TODO(args);
   }
   else if (arg == "state") {
-    tk_->TODO(args);
+    if (numArgs < 2 || numArgs > 3)
+      return tk_->wrongNumArgs("wm state window ?arg ...?");
+
+    if (numArgs == 2) {
+      if      (w->getQWidget()->isMinimized())
+        setStringResult("iconic");
+      else if (! w->getQWidget()->isVisible())
+        setStringResult("withdrawn");
+      else
+        setStringResult("normal");
+    }
+    else {
+      auto state = args[2].toString();
+
+      if      (state == "normal") {
+        w->getQWidget()->showNormal();
+      }
+      else if (state == "iconic") {
+        w->getQWidget()->showMinimized();
+      }
+      else if (state == "withdraw") {
+        w->getQWidget()->hide();
+      }
+      else
+        return tk_->throwError("bad argument \"" + state + "\": must be "
+                               "normal, iconic, or withdrawn");
+    }
   }
   else if (arg == "title") {
     if (numArgs == 3) {
@@ -5148,7 +5269,13 @@ run(const Args &args)
     if (numArgs != 3)
       return false;
 
-    (void) tk_->lookupWidgetByName(args[2].toString());
+    auto *pw = tk_->lookupWidgetByName(args[2].toString());
+    if (! pw) return false;
+
+    w->getQWidget()->setWindowFlags(
+      Qt::Tool | Qt::FramelessWindowHint | Qt::X11BypassWindowManagerHint);
+
+    //CXMachine::setWMTransientFor();
   }
   else if (arg == "withdraw") {
     w->getQWidget()->hide();
@@ -5952,4 +6079,77 @@ CTkAppCommand::
 root() const
 {
   return tk_->root();
+}
+
+//---
+
+CTkWindowDestroyEventLoop::
+CTkWindowDestroyEventLoop(CTclApp *app, QWidget *w) :
+ QObject(), app_(app), w_(w)
+{
+  eventLoop_ = new QEventLoop;
+
+  connect(w_, SIGNAL(destroyed(QObject *)), this, SLOT(destroySlot()));
+}
+
+CTkWindowDestroyEventLoop::
+~CTkWindowDestroyEventLoop()
+{
+  delete eventLoop_;
+}
+
+void
+CTkWindowDestroyEventLoop::
+startLoop()
+{
+  eventLoop_->exec();
+}
+
+void
+CTkWindowDestroyEventLoop::
+destroySlot()
+{
+  eventLoop_->quit();
+}
+
+//---
+
+CTkWindowVisibleEventLoop::
+CTkWindowVisibleEventLoop(CTclApp *app, QWidget *w) :
+ QObject(), app_(app), w_(w)
+{
+  eventLoop_ = new QEventLoop;
+
+  w_->installEventFilter(this);
+}
+
+CTkWindowVisibleEventLoop::
+~CTkWindowVisibleEventLoop()
+{
+  delete eventLoop_;
+}
+
+void
+CTkWindowVisibleEventLoop::
+startLoop()
+{
+  eventLoop_->exec();
+}
+
+bool
+CTkWindowVisibleEventLoop::
+eventFilter(QObject *obj, QEvent *event)
+{
+  switch (event->type()) {
+    case QEvent::Show:
+    case QEvent::Hide: {
+      eventLoop_->quit();
+      break;
+    }
+    default:
+      break;
+  }
+
+  // standard event processing
+  return QObject::eventFilter(obj, event);
 }

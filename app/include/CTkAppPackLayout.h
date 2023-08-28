@@ -4,6 +4,7 @@
 #include <CTkAppLayout.h>
 #include <CTkAppLayoutWidget.h>
 
+class CTkAppPackLayout;
 class CTkAppWidget;
 
 class QPainter;
@@ -24,11 +25,13 @@ class CTkAppPackLayoutInfo {
    padx_(padx), pady_(pady), ipadx_(ipadx), ipady_(ipady) {
   }
 
+  //---
+
   const Side &side() const { return side_; }
-  void setSide(const Side &v) { side_ = v; }
+  void setSide(const Side &s) { side_ = s; }
 
   const Fill &fill() const { return fill_; }
-  void setFill(const Fill &v) { fill_ = v; }
+  void setFill(const Fill &f) { fill_ = f; }
 
   bool isExpand() const { return expand_; }
   void setExpand(bool b) { expand_ = b; }
@@ -77,22 +80,34 @@ class CTkAppPackLayoutInfo {
 //---
 
 class CTkAppPackLayoutWidget : public CTkAppLayoutWidget {
+  Q_OBJECT
+
+  Q_PROPERTY(int padX READ padX WRITE setPadX)
+  Q_PROPERTY(int padY READ padY WRITE setPadY)
+
  public:
   using Info = CTkAppPackLayoutInfo;
 
-  explicit CTkAppPackLayoutWidget(TkWidget *widget, const Info &info) :
-   CTkAppLayoutWidget(widget), info_(info) {
-  }
+  explicit CTkAppPackLayoutWidget(CTkAppPackLayout *pack, TkWidget *widget, const Info &info);
+  explicit CTkAppPackLayoutWidget(CTkAppPackLayout *pack, QLayout *layout, const Info &info);
+  explicit CTkAppPackLayoutWidget(CTkAppPackLayout *pack, CTkAppPackLayoutWidget *parent,
+                                  TkWidget *widget, const Info &info);
 
-  explicit CTkAppPackLayoutWidget(QLayout *layout, const Info &info) :
-   CTkAppLayoutWidget(layout), info_(info) {
-  }
+  CTkAppPackLayoutWidget *parent() const { return parent_; }
+
+  int padX() const { return info_.padX(); }
+  void setPadX(int i);
+
+  int padY() const { return info_.padY(); }
+  void setPadY(int i);
 
   const Info &info() const { return info_; }
   Info &info() { return info_; }
 
  private:
-  Info info_;
+  CTkAppPackLayout*       pack_   { nullptr };
+  CTkAppPackLayoutWidget* parent_ { nullptr };
+  Info                    info_;
 };
 
 //---
@@ -106,7 +121,7 @@ class CTkAppPackLayout : public CTkAppLayout {
   using Info = CTkAppPackLayoutInfo;
 
  public:
-  explicit CTkAppPackLayout(QWidget *parent, int margin=0, int spacing=0);
+  explicit CTkAppPackLayout(CTkAppWidget *parent, int margin=0, int spacing=0);
   explicit CTkAppPackLayout(int spacing = -1);
 
  ~CTkAppPackLayout();
@@ -123,7 +138,7 @@ class CTkAppPackLayout : public CTkAppLayout {
 
   void removeWidget(CTkAppWidget *widget);
 
-  std::vector<CTkAppLayoutWidget *> getLayoutWidgets() const override;
+  std::vector<CTkAppLayoutWidget *> getLayoutWidgets(bool flat=false) const override;
 
   std::vector<CTkAppWidget *> getWidgets() const;
 

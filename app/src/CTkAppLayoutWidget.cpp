@@ -1,8 +1,34 @@
 #include <CTkAppLayoutWidget.h>
 #include <CTkAppWidget.h>
+#include <CTkAppLayout.h>
 
 #include <QApplication>
 #include <QWidget>
+
+CTkAppLayoutWidget::
+CTkAppLayoutWidget(CTkAppLayout *l, TkWidget *widget) :
+ QObject(l), l_(l), widget_(widget)
+{
+  init();
+}
+
+CTkAppLayoutWidget::
+CTkAppLayoutWidget(CTkAppLayout *l, QLayout *layout) :
+ QObject(l), l_(l), layout_(layout)
+{
+  init();
+}
+
+void
+CTkAppLayoutWidget::
+init()
+{
+  static int ind = 1;
+
+  auto name = QString("lw%1").arg(ind++);
+
+  setObjectName(name);
+}
 
 Qt::Orientations
 CTkAppLayoutWidget::

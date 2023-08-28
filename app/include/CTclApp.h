@@ -119,8 +119,10 @@ class CTclApp {
 
   //---
 
+  void traceVar        (const QString &name, CTclTraceProc *proc);
   void traceGlobalVar  (const QString &name);
   void traceGlobalVar  (const QString &name, CTclTraceProc *proc);
+  void untraceVar      (const QString &name, CTclTraceProc *proc);
   void untraceGlobalVar(const QString &name);
   void untraceGlobalVar(const QString &name, CTclTraceProc *proc);
 

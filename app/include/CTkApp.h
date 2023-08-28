@@ -181,10 +181,15 @@ class CTkApp : public QObject, public CTclApp {
   CTkAppTopLevel *installToplevel(const QString &id, QFrame *frame);
 
   void addTopLevel(CTkAppTopLevel *toplevel);
+  void removeTopLevel(CTkAppTopLevel *toplevel);
 
   int addWidget(CTkAppWidget *w);
 
   CTkAppWidget *lookupWidget(QWidget *w) const;
+
+  //---
+
+  uint numRemoveWidgets() const;
 
   void removeWidget(CTkAppWidget *w);
 
@@ -264,6 +269,10 @@ class CTkApp : public QObject, public CTclApp {
   bool TODO(const Args &args) const;
   bool TODO(const QString &arg, const Args &args) const;
 
+  //---
+
+  void showDebug();
+
  protected:
   void construct(int argc, const char **argv);
 
@@ -279,6 +288,7 @@ class CTkApp : public QObject, public CTclApp {
   using ImageMap         = std::map<QString, CTkAppImageRef>;
   using FontMap          = std::map<QString, CTkAppFontRef>;
   using TopLevelArray    = std::vector<CTkAppTopLevel *>;
+  using TopLevelSet      = std::set<CTkAppTopLevel *>;
   using EventDatas       = std::vector<CTkAppEventData>;
   using ClassEventDatas  = std::map<QString, EventDatas>;
   using TagEventDatas    = std::map<QString, EventDatas>;
@@ -319,7 +329,7 @@ class CTkApp : public QObject, public CTclApp {
   QTimer *timer_ { nullptr };
 
   bool            useStyle_ { false };
-  TopLevelArray   toplevels_;
+  TopLevelSet     toplevels_;
   ClassEventDatas classEvents_;
   TagEventDatas   tagEvents_;
   EventDatas      allEvents_;

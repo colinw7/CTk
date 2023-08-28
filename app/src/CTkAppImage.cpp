@@ -5,11 +5,15 @@
 #include <CImageLib.h>
 #include <CQImage.h>
 #endif
+#include <CXBMImage.h>
+#include <CGenImage.h>
 
 #include <QSvgRenderer>
 #include <QPainter>
 
 #include <cassert>
+#include <fstream>
+#include <sstream>
 
 CTkAppImage::
 CTkAppImage(CTkApp *tk, const QString &name, int width, int height) :
@@ -80,13 +84,51 @@ loadSVG(const QString &filename)
 
 bool
 CTkAppImage::
-loadData(const QString &data)
+loadXBM(const QString &name, const std::string &data)
 {
+  auto fs = std::istringstream(data);
+
+  CImageData image;
+
+  if (! CXBMImageInst->read(fs, &image))
+    return tk_->throwError("Failed to read XBM image data '" + name + "'");
+
+  width_  = image.getWidth();
+  height_ = image.getHeight();
+
+  qimage_ = QImage(width_, height_, QImage::Format_ARGB32);
+
+  for (int y = 0; y < height_; ++y) {
+    for (int x = 0; x < width_; ++x) {
+      auto ic = image.getColorIndex(x, y);
+
+      qimage_.setPixelColor(x, y, (ic == 0 ? Qt::black : Qt::white));
+    }
+  }
+
+  return true;
+}
+
+bool
+CTkAppImage::
+loadData(const QString & /*name*/, const QString & /*format*/, const std::string &data)
+{
+#if 0
+  auto filename = name + "." + format;
+
+  auto fs = std::ofstream(filename.toLatin1().constData(),
+                          std::ofstream::out | std::ofstream::trunc);
+
+  fs << data;
+#endif
+
+  //---
+
   width_  = 0;
   height_ = 0;
 
 #ifdef CTK_CIMAGE
-  CImageDataSrc src(data.toStdString());
+  CImageDataSrc src(data);
 
   auto image = CImageMgrInst->lookupImage(src);
 
@@ -100,7 +142,8 @@ loadData(const QString &data)
 #else
   assert(data.size());
 
-  return false;
+  if (! qimage_.loadFromData(reinterpret_cast<const uchar *>(data.c_str()), data.size()))
+    return tk_->throwError("Failed to read image data");
 #endif
 
   if (qimage_.isNull())
@@ -217,4 +260,18 @@ setPixels(int x1, int y1, int x2, int y2, const QColor &c)
       setPixel(x, y, c);
 
   return true;
+}
+
+void
+CTkAppImage::
+addRef(const QString &ref)
+{
+  refNames_.insert(ref);
+}
+
+void
+CTkAppImage::
+removeRef(const QString &ref)
+{
+  refNames_.erase(ref);
 }

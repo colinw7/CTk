@@ -13,7 +13,8 @@ enum class CTkAppOptionType {
   Flag,
   String,
   Int,
-  Real
+  Real,
+  Boolean
 };
 
 //---

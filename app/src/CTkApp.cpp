@@ -5,6 +5,7 @@
 #include <CTkAppCommands.h>
 #include <CTkAppEventData.h>
 #include <CTkAppUtil.h>
+#include <CTkAppDebug.h>
 
 #include <CQStrParse.h>
 
@@ -13,14 +14,20 @@
 #include <QKeyEvent>
 #include <QFontDialog>
 #include <QTimer>
+#include <QThread>
+#include <QAbstractEventDispatcher>
 
 #include <tcl.h>
+
+#define MY_EVENT_SOURCE 1
 
 //---
 
 namespace {
 
 static CTkApp *s_app;
+
+static CTkAppDebug *s_debug;
 
 struct VirtualEventData {
   QString                name;
@@ -100,11 +107,14 @@ int s_waitForEventProc(const Tcl_Time *) {
 }
 #endif
 
+#ifdef MY_EVENT_SOURCE
 int s_eventEventProc(Tcl_Event * /*evPtr*/, int flags) {
   if (! (flags & TCL_WINDOW_EVENTS))
     return 0;
 
   QCoreApplication::processEvents();
+
+  s_app->purgeWidgets();
 
   return 1;
 }
@@ -124,10 +134,15 @@ void s_eventCheckProc(ClientData /*clientData*/, int flags) {
   if (! (flags & TCL_WINDOW_EVENTS))
     return;
 
+  if (! QThread::currentThread()->eventDispatcher()->hasPendingEvents() &&
+      ! s_app->numRemoveWidgets())
+    return;
+
   auto *event = reinterpret_cast<Tcl_Event *>(Tcl_Alloc(sizeof(Tcl_Event)));
   event->proc = s_eventEventProc;
   Tcl_QueueEvent(event, TCL_QUEUE_TAIL);
 }
+#endif
 
 }
 
@@ -213,7 +228,9 @@ construct(int argc, const char **argv)
   Tcl_SetNotifier(&s_notifierProcs);
 #endif
 
+#ifdef MY_EVENT_SOURCE
   Tcl_CreateEventSource(s_eventSetupProc, s_eventCheckProc, this);
+#endif
 
   //---
 
@@ -253,6 +270,17 @@ void
 CTkApp::
 timerSlot()
 {
+  for (auto *toplevel : toplevels_) {
+    if (toplevel->isNeedsShow()) {
+      toplevel->setNeedsShow(false);
+
+      if (toplevel->iconWindow() != "")
+        continue;
+
+      toplevel->show();
+    }
+  }
+
   Tcl_DoOneEvent(TCL_ALL_EVENTS);
 }
 
@@ -319,10 +347,8 @@ show()
   if (toplevels_.empty())
     root_->show();
   else {
-    uint num = toplevels_.size();
-
-    for (uint i = 0; i < num; ++i)
-      toplevels_[i]->show();
+    for (auto *toplevel : toplevels_)
+      toplevel->show();
   }
 }
 
@@ -398,6 +424,19 @@ processOption(CTkAppOption *opts, const Args &args, uint &i, CTkAppOptionValueMa
       }
       else
         return false;
+    }
+    else if (option.type == CTkAppOptionType::Boolean) {
+      if (i < numArgs - 1) {
+        bool b;
+        if (! CTkAppUtil::stringToBool(args[++i].toString(), b))
+          return false;
+        value.setBool(b);
+      }
+      else
+        return false;
+    }
+    else {
+      assert(false);
     }
 
     return true;
@@ -934,8 +973,6 @@ installToplevel(const QString &id, QFrame *frame)
   auto *cmd = new CTkAppWidgetCommand(this, widgetName, toplevel, opts);
   assert(cmd);
 
-  addTopLevel(toplevel);
-
   return toplevel;
 }
 
@@ -943,7 +980,14 @@ void
 CTkApp::
 addTopLevel(CTkAppTopLevel *toplevel)
 {
-  toplevels_.push_back(toplevel);
+  toplevels_.insert(toplevel);
+}
+
+void
+CTkApp::
+removeTopLevel(CTkAppTopLevel *toplevel)
+{
+  toplevels_.erase(toplevel);
 }
 
 int
@@ -965,6 +1009,15 @@ lookupWidget(QWidget *w) const
   }
 
   return nullptr;
+}
+
+//---
+
+uint
+CTkApp::
+numRemoveWidgets() const
+{
+  return widgets_.size();
 }
 
 void
@@ -1756,4 +1809,14 @@ TODO(const QString &arg, const Args &args) const
   std::cerr << "\n";
 
   return false;
+}
+
+void
+CTkApp::
+showDebug()
+{
+  if (! s_debug)
+    s_debug = new CTkAppDebug(this);
+
+  s_debug->show();
 }

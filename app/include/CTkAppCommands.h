@@ -80,4 +80,50 @@ class CTkAppImageCommand : public CTkAppCommand {
   CTkApp* app_ { nullptr };
 };
 
+//---
+
+class QEventLoop;
+
+class CTkWindowDestroyEventLoop : public QObject {
+  Q_OBJECT
+
+ public:
+  explicit CTkWindowDestroyEventLoop(CTclApp *app, QWidget *w);
+
+ ~CTkWindowDestroyEventLoop();
+
+  void startLoop();
+
+ private Q_SLOTS:
+  void destroySlot();
+
+ protected:
+  CTclApp*    app_       { nullptr };
+  QWidget*    w_         { nullptr };
+  QEventLoop* eventLoop_ { nullptr };
+};
+
+//---
+
+class QEventLoop;
+
+class CTkWindowVisibleEventLoop : public QObject {
+  Q_OBJECT
+
+ public:
+  explicit CTkWindowVisibleEventLoop(CTclApp *app, QWidget *w);
+
+ ~CTkWindowVisibleEventLoop();
+
+  void startLoop();
+
+ protected:
+  bool eventFilter(QObject *obj, QEvent *event) override;
+
+ protected:
+  CTclApp*    app_       { nullptr };
+  QWidget*    w_         { nullptr };
+  QEventLoop* eventLoop_ { nullptr };
+};
+
 #endif

@@ -23,20 +23,24 @@ MOC_DIR = .moc
 SOURCES += \
 CTkApp.cpp \
 CTkAppCommands.cpp \
-CTkAppGridLayout.cpp \
 CTkAppImage.cpp \
 CTkAppFont.cpp \
-CTkAppLayoutWidget.cpp \
 CTkAppOptData.cpp \
+CTkAppWidget.cpp \
+\
+CTkAppGridLayout.cpp \
 CTkAppPackLayout.cpp \
 CTkAppPlaceLayout.cpp \
-CTkAppWidget.cpp \
+CTkAppLayout.cpp \
+CTkAppLayoutWidget.cpp \
+\
 CTkAppUtil.cpp \
 \
 CTclApp.cpp \
 CTclAppCommand.cpp \
 \
 CTkWidget.cpp \
+CTkAppDebug.cpp \
 \
 CQLabelImage.cpp \
 CQButtonImage.cpp \
@@ -45,27 +49,32 @@ CQSpinList.cpp \
 CQSlider.cpp \
 CSVGUtil.cpp \
 CQRotatedText.cpp \
+CQOptEdit.cpp \
+CXBMImage.cpp \
 
 HEADERS += \
 ../include/CTkApp.h \
 ../include/CTkAppCommands.h \
 ../include/CTkAppEventData.h \
-../include/CTkAppGridLayout.h \
 ../include/CTkAppImage.h \
 ../include/CTkAppFont.h \
-../include/CTkAppLayoutWidget.h \
 ../include/CTkAppOptData.h \
 ../include/CTkAppOptionValue.h \
+../include/CTkAppWidget.h \
+\
+../include/CTkAppGridLayout.h \
 ../include/CTkAppPackLayout.h \
 ../include/CTkAppPlaceLayout.h \
 ../include/CTkAppLayout.h \
-../include/CTkAppWidget.h \
+../include/CTkAppLayoutWidget.h \
+\
 ../include/CTkAppUtil.h \
 \
-../include/CTclAppCommand.h \
 ../include/CTclApp.h \
+../include/CTclAppCommand.h \
 \
 ../include/CTkWidget.h \
+../include/CTkAppDebug.h \
 \
 ../include/CQLabelImage.h \
 ../include/CQButtonImage.h \
@@ -74,6 +83,8 @@ HEADERS += \
 ../include/CQSlider.h \
 ../include/CSVGUtil.h \
 ../include/CQRotatedText.h \
+\
+CQOptEdit.h \
 
 OBJECTS_DIR = ../obj
 
