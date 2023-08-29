@@ -1,0 +1,9 @@
+canvas .c -width 400 -height 400
+
+.c configure -background white
+
+set l [.c create line 10 10 390 390 -width 4 -fill red]
+
+.c itemconfigure $l -dash {8 8}
+
+pack .c

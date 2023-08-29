@@ -1,0 +1,5 @@
+button .b1 -text "Button 1"
+button .b2 -text "Button 2"
+
+grid .b1 -row 0 -column 0 -rowspan 1 -columnspan 2
+grid .b2 -row 1 -column 1 -rowspan 1 -columnspan 1

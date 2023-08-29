@@ -1,0 +1,12 @@
+button .b1 -text "One"
+button .b2 -text "Two"
+button .b3 -text "Three"
+
+grid .b1 .b2 -in .b3
+
+puts [grid info .b1]
+puts [grid info .b2]
+puts [grid info .b3]
+
+grid .b3
+

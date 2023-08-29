@@ -1,0 +1,6 @@
+label .b1 -text Hello  -padx 64 -pady 64
+label .b2 -text World  -padx 64 -pady 64
+
+pack .b1 .b2 -padx 4 -pady 4
+
+wm title . {Hello World}

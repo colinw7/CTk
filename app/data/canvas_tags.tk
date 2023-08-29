@@ -1,0 +1,13 @@
+canvas .c -width 400 -height 400
+
+.c configure -background white
+
+set r1 [.c create rectangle  10  10 200 200 -outline black -fill red -tag rect1]
+set r2 [.c create rectangle  20 210 390 390 -outline black -fill green -tag rect2]
+set r3 [.c create rectangle 210  20 390 200 -outline black -fill blue -tag rect3]
+
+.c addtag a all
+
+puts [.c itemcget $r1 -tags]
+puts [.c itemcget $r2 -tags]
+puts [.c itemcget $r3 -tags]

@@ -1,0 +1,11 @@
+set names {"One" "Two" "Three" "Four"}
+
+set ind 0
+
+foreach name $names {
+  set r [radiobutton .r${ind} -text $name -value $name -variable stage -width 20]
+
+  incr ind
+
+  pack $r -anchor w -padx 4m -pady 1m -side top
+}

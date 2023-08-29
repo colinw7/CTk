@@ -3,4 +3,8 @@ canvas .c
 grid .c -sticky nsew
 
 .c create rectangle 1c 2.5c 4c 4.75c -width 2m \
-  -outline blue -fill yellow
+  -outline blue -fill yellow -tag rect
+.c create rectangle 0 20 100 120 -width 5 \
+  -outline blue -fill yellow -tag rect1
+
+puts [.c bbox rect1]

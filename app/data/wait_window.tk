@@ -1,0 +1,13 @@
+toplevel .t
+
+button .t.b -text "Press" -command {destroy .t}
+
+pack .t.b
+
+wm state .t normal
+
+puts "Before"
+
+tkwait window .t
+
+puts "After"

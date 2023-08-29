@@ -1,0 +1,33 @@
+set w(newDiffPopup) .newDiffPopup
+
+toplevel $w(newDiffPopup)
+
+set commands [frame $w(newDiffPopup).buttons]
+
+button $commands.ok -text "Ok" -width 5 -default active -command {
+    if {$g(mergefile) == ""} {
+        set g(mergefileset) 0
+    } else {
+        set g(mergefileset) 1
+    }
+    if {$g(ancfile) == ""} {
+        set g(ancfileset) 0
+    } else {
+        set g(ancfileset) 1
+    }
+    set waitvar 1
+}
+button $commands.cancel -text "Cancel" -width 5 -default normal \
+  -command {
+    if {! [winfo exists .client]} {do-exit}
+    wm withdraw $w(newDiffPopup); set waitvar 0
+}
+pack $commands.ok $commands.cancel -side left -fill none -expand y -pady 4
+
+catch {$commands.ok config -default 1}
+
+# pack this crud in...
+pack $commands -side bottom -fill x -expand n
+
+bind $w(newDiffPopup) <Return> [list $commands.ok invoke]
+bind $w(newDiffPopup) <Escape> [list $commands.cancel invoke]

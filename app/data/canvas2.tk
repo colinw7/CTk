@@ -8,10 +8,10 @@ pack .c
 for {set i 0} {$i < 10} {incr i} {
   set x [expr {$i + 1}]
 
-  .c create line ${x}c  1c ${x}c  0.6c
-  .c create line $x.25c 1c $x.25c 0.6c
-  .c create line $x.5c  1c $x.5c  0.7c
-  .c create line $x.75c 1c $x.75c 0.8c
+  set l1 [.c create line ${x}c  1c ${x}c  0.6c]
+  set l2 [.c create line $x.25c 1c $x.25c 0.6c]
+  set l3 [.c create line $x.5c  1c $x.5c  0.7c]
+  set l4 [.c create line $x.75c 1c $x.75c 0.8c]
 
-  .c create text $x.15c .75c -text $i -anchor sw
+  set t1 [.c create text $x.15c .75c -text $i -anchor sw]
 }
