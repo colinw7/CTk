@@ -293,6 +293,8 @@ class CTkAppWidget : public QObject {
 
   //---
 
+  void setResizable(bool /*x*/, bool /*y*/) { }
+
  protected:
   const QString &getCommand() const { return command_; }
   void setCommand(const QString &command) { command_ = command; }
@@ -1314,6 +1316,23 @@ class CTkAppCanvasWidget : public QWidget {
 
   //---
 
+  double closeEnough() const { return closeEnough_; }
+  void setCloseEnough(double r) { closeEnough_ = r; }
+
+  bool isConfine() const { return confine_; }
+  void setConfine(bool b) { confine_ = b; }
+
+  const QRectF &scrollRegion() const { return scrollRegion_; }
+  void setScrollRegion(const QRectF &r) { scrollRegion_ = r; }
+
+  double xScrollIncrement() const { return xScrollIncrement_; }
+  void setXScrollIncrement(double r) { xScrollIncrement_ = r; }
+
+  double yScrollIncrement() const { return yScrollIncrement_; }
+  void setYScrollIncrement(double r) { yScrollIncrement_ = r; }
+
+  //---
+
   Rectangle *addRectangle(double x1, double y1, double x2, double y2) {
     auto *rectangleShape = new Rectangle(x1, y1, x2, y2);
 
@@ -1692,7 +1711,12 @@ class CTkAppCanvasWidget : public QWidget {
 
  private:
   Shapes        shapes_;
-  CTkAppCanvas* canvas_ { nullptr };
+  double        closeEnough_      { 1.0 };
+  double        confine_          { true };
+  QRectF        scrollRegion_;
+  double        xScrollIncrement_ { 0.0 };
+  double        yScrollIncrement_ { 0.0 };
+  CTkAppCanvas* canvas_           { nullptr };
 };
 
 //---
@@ -2602,6 +2626,9 @@ class CTkAppText : public CTkAppWidget {
   bool getMark(const QString &mark, TextInd &ind) const;
   void getMarkNames(std::vector<QString> &names) const;
 
+  bool getMarkGravity(const QString &name, QString &gravity) const;
+  bool setMarkGravity(const QString &name, const QString &gravity);
+
   TextIndRange remapIndRange(const TextIndRange &ind) const;
   TextInd remapInd(const TextInd &ind) const;
 
@@ -2632,7 +2659,18 @@ class CTkAppText : public CTkAppWidget {
   void hscrollSlot(int value);
 
  private:
-  using Marks = std::map<QString, TextInd>;
+  struct MarkData {
+    TextInd textInd;
+    QString gravity { "right" };
+
+    MarkData() { }
+
+    explicit MarkData(const TextInd &ind) :
+     textInd(ind) {
+    }
+  };
+
+  using Marks = std::map<QString, MarkData>;
   using Tags  = std::map<QString, TagData>;
 
   CTkAppTextWidget* qtext_ { nullptr };

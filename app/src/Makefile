@@ -671,7 +671,9 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../include/CTkAppOptData.h \
 		../include/CTkAppUtil.h \
 		CTkAppDebug.h \
-		../../../CQUtil/include/CQStrParse.h
+		../../../CQUtil/include/CQStrParse.h \
+		../../../CUtil/include/CScreenUnits.h \
+		bitmaps/question.xbm
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTkApp.o CTkApp.cpp
 
 ../obj/CTkAppCommands.o: CTkAppCommands.cpp ../include/CTkAppCommands.h \

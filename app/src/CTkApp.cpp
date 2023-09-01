@@ -8,6 +8,7 @@
 #include <CTkAppDebug.h>
 
 #include <CQStrParse.h>
+#include <CScreenUnits.h>
 
 #include <QApplication>
 #include <QMouseEvent>
@@ -20,6 +21,12 @@
 #include <tcl.h>
 
 #define MY_EVENT_SOURCE 1
+
+namespace {
+
+#include <bitmaps/question.xbm>
+
+}
 
 //---
 
@@ -219,6 +226,13 @@ construct(int argc, const char **argv)
   createFont("TkIconFont");
   createFont("TkTextFont");
   createFont("TkDefaultFont");
+
+  //---
+
+  // standard bitmaps
+  auto questionImage = std::make_shared<CTkAppImage>(this, "question");
+  questionImage->loadXBMData(question_width, question_height, question_bits);
+  addBitmap("question", questionImage);
 
   //---
 
@@ -503,6 +517,13 @@ CTkAppImageRef
 CTkApp::
 getBitmap(const QString &name) const
 {
+  auto pm = bitmaps_.find(name);
+
+  if (pm != bitmaps_.end())
+    return (*pm).second;
+
+  //---
+
   auto name1 = name;
 
   if (name[0] == '@') {
@@ -522,18 +543,21 @@ getBitmap(const QString &name) const
       name1 = QString(env) + "/" + name + ".xbm";
   }
 
-  auto pm = bitmaps_.find(name1);
+  auto appImage = std::make_shared<CTkAppImage>(const_cast<CTkApp *>(this), name1);
 
-  if (pm == bitmaps_.end()) {
-    auto appImage = std::make_shared<CTkAppImage>(const_cast<CTkApp *>(this), name1);
+  if (! appImage->loadFile(name1))
+    return CTkAppImageRef();
 
-    if (! appImage->loadFile(name1))
-      return CTkAppImageRef();
+  const_cast<CTkApp *>(this)->addBitmap(name, appImage);
 
-    pm = bitmaps_.insert(pm, ImageMap::value_type(name1, appImage));
-  }
+  return appImage;
+}
 
-  return (*pm).second;
+void
+CTkApp::
+addBitmap(const QString &name, CTkAppImageRef &image)
+{
+  bitmaps_[name] = image;
 }
 
 void
@@ -1730,6 +1754,72 @@ toQTransform(const CMatrix2D &m) const
 
   //return QTransform(a, b, c, d, tx, ty);
   return QTransform(a, c, b, d, tx, ty);
+}
+
+//---
+
+void
+CTkApp::
+setWmAtomValue(const QString &atomName, const QString &atomValue)
+{
+  wmAtoms_[atomName] = atomValue;
+}
+
+QString
+CTkApp::
+getWmAtomValue(const QString &atomName) const
+{
+  auto p = wmAtoms_.find(atomName);
+
+  return (p != wmAtoms_.end() ? (*p).second : "");
+}
+
+CTkAppWidget *
+CTkApp::
+getWmGroup(CTkAppWidget *group) const
+{
+  auto p = wmGroups_.find(group);
+
+  return (p != wmGroups_.end() ? (*p).second : nullptr);
+}
+
+void
+CTkApp::
+setWmGroup(CTkAppWidget *group, CTkAppWidget *child)
+{
+  wmGroups_[group] = child;
+}
+
+void
+CTkApp::
+getWmGrid(int &w, int &h, int &iw, int &ih)
+{
+  w  = wmGrid_.w;
+  h  = wmGrid_.h;
+  iw = wmGrid_.iw;
+  ih = wmGrid_.ih;
+}
+
+void
+CTkApp::
+setWmGrid(int w, int h, int iw, int ih)
+{
+  wmGrid_.w  = w;
+  wmGrid_.h  = h;
+  wmGrid_.iw = iw;
+  wmGrid_.ih = ih;
+}
+
+//---
+
+double
+CTkApp::
+getScaling() const
+{
+  if (scaling_ <= 0.0)
+    return CScreenUnitsMgrInst->dpi()/72.0;
+
+  return scaling_;
 }
 
 //---

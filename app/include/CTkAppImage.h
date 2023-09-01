@@ -38,6 +38,8 @@ class CTkAppImage {
   bool loadXBM (const QString &name, const std::string &data);
   bool loadData(const QString &name, const QString &format, const std::string &data);
 
+  void loadXBMData(int w, int h, const unsigned char *bits);
+
   void clear();
 
   bool getPixel(int x, int y, QColor &c) const;

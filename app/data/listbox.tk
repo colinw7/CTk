@@ -1,3 +1,5 @@
 listbox .lb
 
 pack .lb -expand y -fill both
+
+.lb insert end "Hello"

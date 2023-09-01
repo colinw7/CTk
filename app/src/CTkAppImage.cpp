@@ -10,6 +10,7 @@
 
 #include <QSvgRenderer>
 #include <QPainter>
+#include <QBitmap>
 
 #include <cassert>
 #include <fstream>
@@ -107,6 +108,18 @@ loadXBM(const QString &name, const std::string &data)
   }
 
   return true;
+}
+
+void
+CTkAppImage::
+loadXBMData(int w, int h, const unsigned char *bits)
+{
+  width_  = w;
+  height_ = h;
+
+  auto bm = QBitmap::fromData(QSize(w, h), bits);
+
+  qimage_ = bm.toImage();
 }
 
 bool

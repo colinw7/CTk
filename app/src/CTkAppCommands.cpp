@@ -4084,10 +4084,16 @@ run(const Args &args)
     if (i < numArgs && args[i] == "-displayof")
       i += 2;
 
-    if (i >= numArgs)
-      tk_->setRealResult(CScreenUnitsMgrInst->dpi()/72.0);
-    else
-      tk_->TODO(args); // set scaling
+    if (i >= numArgs) {
+      tk_->setRealResult(tk_->getScaling());
+    }
+    else {
+      double s;
+      if (! CTkAppUtil::stringToReal(args[1].toString(), s))
+        return false;
+
+      tk_->setScaling(s);
+    }
   }
   else if (arg == "useinputmethods") {
     uint i = 1;
@@ -5078,12 +5084,40 @@ run(const Args &args)
       setStringResult(w->getGeometry());
   }
   else if (arg == "grid") {
-    setStringResult("80 30 10 19");
+    if      (numArgs == 2) {
+      int w, h, iw, ih;
+      tk_->getWmGrid(w, h, iw, ih);
 
-    tk_->TODO(args);
+      setIntegerArrayResult({w, h, iw, ih});
+    }
+    else if (numArgs == 6) {
+      long w, h, iw, ih;
+      if (! CTkAppUtil::stringToInt(args[2].toString(), w) ||
+          ! CTkAppUtil::stringToInt(args[3].toString(), h) ||
+          ! CTkAppUtil::stringToInt(args[4].toString(), iw) ||
+          ! CTkAppUtil::stringToInt(args[5].toString(), ih))
+        return false;
+
+      tk_->setWmGrid(w, h, iw, ih);
+    }
+    else
+      return tk_->wrongNumArgs("wm grid window ?baseWidth baseHeight widthInc heightInc?");
   }
   else if (arg == "group") {
-    tk_->TODO(args);
+    if (numArgs > 3)
+      return tk_->wrongNumArgs("wm group window ?pathName?");
+
+    if (numArgs > 2) {
+      auto *w1 = tk_->lookupWidgetByName(args[2].toString());
+      if (! w1) return false;
+
+      tk_->setWmGroup(w, w1);
+    }
+    else {
+      auto *w1 = tk_->getWmGroup(w);
+
+      setStringResult(w1 ? w1->getName() : "");
+    }
   }
   else if (arg == "iconbitmap") {
     tk_->TODO(args);
@@ -5197,26 +5231,31 @@ run(const Args &args)
     tk_->TODO(args);
   }
   else if (arg == "protocol") {
+    QString atomName;
+
     if (numArgs > 2)
-      tk_->TODO(args[2].toString());
+      atomName = args[2].toString();
+
+    if (numArgs > 3)
+      tk_->setWmAtomValue(atomName, args[3].toString());
     else
-      tk_->TODO(args);
+      tk_->setStringResult(tk_->getWmAtomValue(atomName));
   }
   else if (arg == "resizable") {
     if      (numArgs == 2) {
       tk_->setStringResult("1 1");
     }
     else if (numArgs == 4) {
-      long w, h;
-      if (! CTkAppUtil::stringToInt(args[2].toString(), w))
-        return tk_->throwError("expected integer but got \"" + args[2].toString() + "\"");
-      if (! CTkAppUtil::stringToInt(args[3].toString(), h))
-        return tk_->throwError("expected integer but got \"" + args[3].toString() + "\"");
+      bool wf, hf;
+      if (! CTkAppUtil::stringToBool(args[2].toString(), wf))
+        return tk_->throwError("invalid bool \"" + args[2].toString() + "\"");
+      if (! CTkAppUtil::stringToBool(args[3].toString(), hf))
+        return tk_->throwError("invalid bool \"" + args[3].toString() + "\"");
+
+      w->setResizable(wf, hf);
     }
     else
       return tk_->wrongNumArgs("wm resizable window ?width height?");
-
-    tk_->TODO(args);
   }
   else if (arg == "sizefrom") {
     tk_->TODO(args);
@@ -5742,8 +5781,6 @@ run(const Args &args)
           image->setPixel(x1, y1, c);
       }
     }
-
-    tk_->TODO(args);
   }
   else if (opt == "read") {
     if (numArgs < 2)

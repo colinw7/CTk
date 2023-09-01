@@ -778,10 +778,16 @@ CTkAppCanvas::
 execConfig(const QString &name, const QString &value)
 {
   if      (name == "-closeenough") {
-    tk_->TODO(name);
+    double r;
+    if (! CTkAppUtil::stringToReal(value, r))
+      return false;
+    qcanvas_->setCloseEnough(r);
   }
   else if (name == "-confine") {
-    tk_->TODO(name);
+    bool b;
+    if (! CTkAppUtil::stringToBool(value, b))
+      return false;
+    qcanvas_->setConfine(b);
   }
   else if (name == "-height") {
     double height;
@@ -790,7 +796,18 @@ execConfig(const QString &name, const QString &value)
     setHeight(height);
   }
   else if (name == "-scrollregion") {
-    tk_->TODO(name);
+    std::vector<QString> strs;
+    if (! tk_->splitList(value, strs) || strs.size() == 4)
+      return false;
+
+    double x1, y1, x2, y2;
+    if (! CTkAppUtil::stringToDistance(strs[0], x1) ||
+        ! CTkAppUtil::stringToDistance(strs[1], y1) ||
+        ! CTkAppUtil::stringToDistance(strs[2], x2) ||
+        ! CTkAppUtil::stringToDistance(strs[3], y2))
+      return false;
+
+    qcanvas_->setScrollRegion(QRectF(x1, y1, x2 - x1, y2 - y1));
   }
   else if (name == "-state") {
     if (! CTkAppUtil::setWidgetState(this, value))
@@ -803,10 +820,18 @@ execConfig(const QString &name, const QString &value)
     setWidth(width);
   }
   else if (name == "-xscrollincrement") {
-    tk_->TODO(name);
+    double xs;
+    if (! CTkAppUtil::stringToDistance(value, xs))
+      return false;
+
+    qcanvas_->setXScrollIncrement(xs);
   }
   else if (name == "-yscrollincrement") {
-    tk_->TODO(name);
+    double ys;
+    if (! CTkAppUtil::stringToDistance(value, ys))
+      return false;
+
+    qcanvas_->setYScrollIncrement(ys);
   }
   else
     return CTkAppWidget::execConfig(name, value);
@@ -958,7 +983,12 @@ execOp(const Args &args)
       shape->setDisabledBrush(b);
     }
     else if (name == "-filloverstroke") { // tkpath
-      tk_->TODO(name, args);
+      QColor c;
+      if (! CTkAppUtil::stringToQColor(value, c))
+        return false;
+      //auto p = shape->fillOverPen();
+      //p.setColor(c);
+      //shape->setFillOverPen(p);
     }
     else if (name == "-outline" ||  name == "-stroke") {
       QColor c;
@@ -1000,7 +1030,13 @@ execOp(const Args &args)
       tk_->TODO(name, args);
     }
     else if (name == "-stipple") {
-      tk_->TODO(name, args);
+      auto image = tk_->getBitmap(value);
+      if (! image)
+        return false;
+
+      auto b = shape->brush();
+      b.setTexture(image->getQPixmap());
+      shape->setBrush(b);
     }
     else if (name == "-activestipple") {
       tk_->TODO(name, args);
@@ -4218,14 +4254,15 @@ execOp(const Args &args)
 
   //---
 
-  auto stringToIndex = [&](const QString &str, int &ind, bool rangeCheck=true) {
+  auto stringToIndex = [&](const QString &str, int &ind, bool atEnd=false,
+                           bool rangeCheck=true) {
     ind = -1;
 
     if (str == "active") return false;
     if (str == "anchor") return false;
 
     if (str == "end") {
-      if (rangeCheck) {
+      if (rangeCheck && ! atEnd) {
         if (qlist_->count() == 0)
           return false;
       }
@@ -4301,11 +4338,11 @@ execOp(const Args &args)
 
     int startIndex, endIndex;
 
-    if (! stringToIndex(args[1].toString(), startIndex, /*rangeCheck*/false))
+    if (! stringToIndex(args[1].toString(), startIndex, /*atEnd*/false, /*rangeCheck*/false))
       return false;
 
     if (numArgs == 3) {
-      if (! stringToIndex(args[2].toString(), endIndex, /*rangeCheck*/false))
+      if (! stringToIndex(args[2].toString(), endIndex, /*atEnd*/false, /*rangeCheck*/false))
         return false;
     }
     else
@@ -4322,11 +4359,11 @@ execOp(const Args &args)
 
     int startIndex, endIndex;
 
-    if (! stringToIndex(args[1].toString(), startIndex, /*rangeCheck*/false))
+    if (! stringToIndex(args[1].toString(), startIndex, /*atEnd*/false, /*rangeCheck*/false))
       return false;
 
     if (numArgs == 3) {
-      if (! stringToIndex(args[2].toString(), endIndex, /*rangeCheck*/false))
+      if (! stringToIndex(args[2].toString(), endIndex, /*atEnd*/false, /*rangeCheck*/false))
         return false;
     }
     else
@@ -4352,7 +4389,7 @@ execOp(const Args &args)
       return tk_->wrongNumArgs(getName() + " insert index ?element ...?");
 
     int ind;
-    if (! stringToIndex(args[1].toString(), ind))
+    if (! stringToIndex(args[1].toString(), ind, /*atEnd*/true))
       return false;
 
     uint i = 2;
@@ -6683,6 +6720,10 @@ execConfig(const QString &name, const QString &value)
       return false;
   }
   else if (name == "-tabs") {
+    std::vector<QString> strs;
+    if (! tk_->splitList(value, strs))
+      return tk_->throwError("Invalid tabs \"" + value + "\"");
+
     tk_->TODO(name);
   }
   else if (name == "-tabstyle") {
@@ -6889,6 +6930,25 @@ execOp(const Args &args)
         if (! parse.readInteger(&ind.lineNum))
           return false;
       }
+      else if (parse.isChar('@')) {
+        parse.skipChar();
+
+        int x;
+        if (! parse.readInteger(&x))
+          return false;
+
+        if (! parse.isChar(','))
+          return false;
+        parse.skipChar();
+
+        int y;
+        if (! parse.readInteger(&y))
+          return false;
+        tk_->TODO("@x,y");
+        ind.lineNum = TextInd::END;
+        ind.charNum = TextInd::END;
+        return true;
+      }
       else
         return false;
 
@@ -6955,19 +7015,35 @@ execOp(const Args &args)
 
       if      (parse.isString("linestart")) {
         parse.skipLastString();
-        tk_->TODO(args);
+
+        auto cursor = qtext_->textCursor();
+        setCurrentInd(cursor, ind1);
+        cursor.movePosition(QTextCursor::StartOfBlock, QTextCursor::MoveAnchor);
+        getCurrentInd(cursor, ind1);
       }
       else if (parse.isString("lineend")) {
         parse.skipLastString();
-        tk_->TODO(args);
+
+        auto cursor = qtext_->textCursor();
+        setCurrentInd(cursor, ind1);
+        cursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::MoveAnchor);
+        getCurrentInd(cursor, ind1);
       }
       else if (parse.isString("wordstart")) {
         parse.skipLastString();
-        tk_->TODO(args);
+
+        auto cursor = qtext_->textCursor();
+        setCurrentInd(cursor, ind1);
+        cursor.movePosition(QTextCursor::StartOfWord, QTextCursor::MoveAnchor);
+        getCurrentInd(cursor, ind1);
       }
       else if (parse.isString("wordend")) {
         parse.skipLastString();
-        tk_->TODO(args);
+
+        auto cursor = qtext_->textCursor();
+        setCurrentInd(cursor, ind1);
+        cursor.movePosition(QTextCursor::EndOfWord, QTextCursor::MoveAnchor);
+        getCurrentInd(cursor, ind1);
       }
     }
 
@@ -6997,7 +7073,29 @@ execOp(const Args &args)
     auto opt = args[1].toString();
 
     if      (opt == "gravity") {
-      tk_->TODO(args);
+      if (numArgs == 3 || numArgs == 4) {
+        auto mark = args[2].toString();
+
+        if (numArgs == 2) {
+          QString gravity;
+          if (! getMarkGravity(mark, gravity))
+            return tk_->throwError("there is no mark named \"" + mark + "\"");
+
+          tk_->setStringResult(gravity);
+        }
+        else {
+          auto gravity = args[3].toString();
+
+          if (gravity == "left" || gravity == "right") {
+            if (! setMarkGravity(mark, gravity))
+              return tk_->throwError("there is no mark named \"" + mark + "\"");
+          }
+          else
+            return tk_->throwError("ad mark gravity \"" + gravity + "\": must be left or right");
+        }
+     }
+      else
+        return tk_->wrongNumArgs(getName() + " mark gravity markName ?gravity?");
     }
     else if (opt == "names") {
       std::vector<QString> names;
@@ -7673,7 +7771,7 @@ stringToTextInd(const QString &str, TextInd &ind) const
 
       parse.skipSpace();
 
-      if      (parse.isString("chars")) {
+      if      (parse.isString("chars") || parse.isString("c")) {
         parse.skipLastString();
 
         auto cursor = qtext_->textCursor();
@@ -7681,7 +7779,7 @@ stringToTextInd(const QString &str, TextInd &ind) const
         cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::MoveAnchor, n);
         getCurrentInd(cursor, ind);
       }
-      else if (parse.isString("lines")) {
+      else if (parse.isString("lines") || parse.isString("l")) {
         parse.skipLastString();
 
         auto cursor = qtext_->textCursor();
@@ -7700,19 +7798,35 @@ stringToTextInd(const QString &str, TextInd &ind) const
 
   if      (parse.isString("linestart")) {
     parse.skipLastString();
-    tk_->TODO("linestart");
+
+    auto cursor = qtext_->textCursor();
+    setCurrentInd(cursor, ind);
+    cursor.movePosition(QTextCursor::StartOfBlock, QTextCursor::MoveAnchor);
+    getCurrentInd(cursor, ind);
   }
   else if (parse.isString("lineend")) {
     parse.skipLastString();
-    tk_->TODO("lineend");
+
+    auto cursor = qtext_->textCursor();
+    setCurrentInd(cursor, ind);
+    cursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::MoveAnchor);
+    getCurrentInd(cursor, ind);
   }
   else if (parse.isString("wordstart")) {
     parse.skipLastString();
-    tk_->TODO("wordstart");
+
+    auto cursor = qtext_->textCursor();
+    setCurrentInd(cursor, ind);
+    cursor.movePosition(QTextCursor::StartOfWord, QTextCursor::MoveAnchor);
+    getCurrentInd(cursor, ind);
   }
   else if (parse.isString("wordend")) {
     parse.skipLastString();
-    tk_->TODO("wordend");
+
+    auto cursor = qtext_->textCursor();
+    setCurrentInd(cursor, ind);
+    cursor.movePosition(QTextCursor::EndOfWord, QTextCursor::MoveAnchor);
+    getCurrentInd(cursor, ind);
   }
 
   parse.skipSpace();
@@ -7727,7 +7841,7 @@ void
 CTkAppText::
 setMark(const QString &mark, const TextInd &ind)
 {
-  marks_[mark] = ind;
+  marks_[mark] = MarkData(ind);
 }
 
 bool
@@ -7737,7 +7851,7 @@ getMark(const QString &mark, TextInd &ind) const
   auto pm = marks_.find(mark);
   if (pm == marks_.end()) return false;
 
-  ind = (*pm).second;
+  ind = (*pm).second.textInd;
 
   return true;
 }
@@ -7748,6 +7862,30 @@ getMarkNames(std::vector<QString> &names) const
 {
   for (const auto &pm : marks_)
     names.push_back(pm.first);
+}
+
+bool
+CTkAppText::
+getMarkGravity(const QString &name, QString &gravity) const
+{
+  auto pm = marks_.find(name);
+  if (pm == marks_.end()) return false;
+
+  gravity = (*pm).second.gravity;
+
+  return true;
+}
+
+bool
+CTkAppText::
+setMarkGravity(const QString &name, const QString &gravity)
+{
+  auto pm = marks_.find(name);
+  if (pm == marks_.end()) return false;
+
+  (*pm).second.gravity = gravity;
+
+  return true;
 }
 
 CTkAppText::TextIndRange

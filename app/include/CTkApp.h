@@ -109,6 +109,7 @@ class CTkApp : public QObject, public CTclApp {
   CTkAppImageRef getImage(const QString &name) const;
 
   CTkAppImageRef getBitmap(const QString &name) const;
+  void addBitmap(const QString &name, CTkAppImageRef &image);
 
   void getImageNames(std::vector<QString> &names) const;
 
@@ -259,6 +260,22 @@ class CTkApp : public QObject, public CTclApp {
 
   //---
 
+  void setWmAtomValue(const QString &atomName, const QString &atomValue);
+  QString getWmAtomValue(const QString &atomName) const;
+
+  CTkAppWidget *getWmGroup(CTkAppWidget *group) const;
+  void setWmGroup(CTkAppWidget *group, CTkAppWidget *child);
+
+  void getWmGrid(int &w, int &h, int &iw, int &ih);
+  void setWmGrid(int w, int h, int iw, int ih);
+
+  //---
+
+  double getScaling() const;
+  void setScaling(double r) { scaling_ = r; }
+
+  //---
+
   bool wrongNumArgs(const QString &msg) const;
 
   bool throwError(const QString &msg) const;
@@ -317,6 +334,9 @@ class CTkApp : public QObject, public CTclApp {
 
   using NamedMatrices = std::map<QString, MatrixData>;
 
+  using WmAtoms  = std::map<QString, QString>;
+  using WmGroups = std::map<CTkAppWidget *, CTkAppWidget *>;
+
   //--
 
   QString context_;
@@ -347,6 +367,20 @@ class CTkApp : public QObject, public CTclApp {
   QString currentCommand_;
 
   VirtualEventData virtualEventData_;
+
+  WmAtoms  wmAtoms_;
+  WmGroups wmGroups_;
+
+  struct WmGrid {
+    int w  { -1 };
+    int h  { -1 };
+    int iw { -1 };
+    int ih { -1 };
+  };
+
+  WmGrid wmGrid_;
+
+  double scaling_ { -1.0 };
 };
 
 #endif
