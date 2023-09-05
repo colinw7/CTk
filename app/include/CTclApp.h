@@ -139,11 +139,15 @@ class CTclApp {
   virtual void handleUnset(const char *name);
 #endif
 
+  int createAlias(const QString &newName, const QString &oldName);
+
   //---
 
   bool evalFile(const QString &filename) const;
 
   bool eval(const QString &str) const;
+
+  QString lastErrorInfo() const;
 
  protected:
   explicit CTclApp(Tcl_Interp *interp);
@@ -186,6 +190,9 @@ class CTclApp {
 
   TraceNames     traces_;
   NameTraceProcs traceProcs_;
+
+  mutable int     lastError_ { 0 };
+  mutable QString lastErrorMsg_;
 };
 
 #endif

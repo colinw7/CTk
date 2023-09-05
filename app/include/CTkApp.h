@@ -55,6 +55,8 @@ class CTkApp : public QObject, public CTclApp {
 
   using Args = std::vector<QVariant>;
 
+  using WidgetSet = std::set<CTkAppWidget *>;
+
  public:
   explicit CTkApp(Tcl_Interp *interp, const QString &context="");
   explicit CTkApp(int argc, const char **argv, const QString &context="");
@@ -64,6 +66,11 @@ class CTkApp : public QObject, public CTclApp {
   CTkAppRoot *root() const { return root_; }
 
   void setRootFrame(QFrame *frame);
+
+  //---
+
+  const QString &getAppName() const { return appName_; }
+  void setAppName(const QString &s) { appName_ = s; }
 
   QFont appFont() const { return appFont_; }
   void setAppFont(const QFont &f) { appFont_ = f; }
@@ -108,10 +115,12 @@ class CTkApp : public QObject, public CTclApp {
 
   CTkAppImageRef getImage(const QString &name) const;
 
+  void getImageNames(std::vector<QString> &names) const;
+
   CTkAppImageRef getBitmap(const QString &name) const;
   void addBitmap(const QString &name, CTkAppImageRef &image);
 
-  void getImageNames(std::vector<QString> &names) const;
+  void getBitmapNames(std::vector<QString> &names) const;
 
   //---
 
@@ -188,6 +197,8 @@ class CTkApp : public QObject, public CTclApp {
 
   CTkAppWidget *lookupWidget(QWidget *w) const;
 
+  const WidgetSet &widgets() const { return widgets_; }
+
   //---
 
   uint numRemoveWidgets() const;
@@ -209,6 +220,9 @@ class CTkApp : public QObject, public CTclApp {
   bool parseEvent(const QString &str, CTkAppEventData &data);
 
   void addVirtualEventData(const CTkAppVirtualEventData &vdata, const CTkAppEventData &edata);
+
+  void deleteAllVirtualEventData(const CTkAppVirtualEventData &vdata);
+  void deleteVirtualEventData(const CTkAppVirtualEventData &vdata, const CTkAppEventData &edata);
 
   void virtualEventNames(std::vector<QString> &names) const;
   void virtualEventNames(const CTkAppVirtualEventData &vdata,
@@ -260,9 +274,6 @@ class CTkApp : public QObject, public CTclApp {
 
   //---
 
-  void setWmAtomValue(const QString &atomName, const QString &atomValue);
-  QString getWmAtomValue(const QString &atomName) const;
-
   CTkAppWidget *getWmGroup(CTkAppWidget *group) const;
   void setWmGroup(CTkAppWidget *group, CTkAppWidget *child);
 
@@ -309,7 +320,6 @@ class CTkApp : public QObject, public CTclApp {
   using EventDatas       = std::vector<CTkAppEventData>;
   using ClassEventDatas  = std::map<QString, EventDatas>;
   using TagEventDatas    = std::map<QString, EventDatas>;
-  using WidgetSet        = std::set<CTkAppWidget *>;
   using WidgetP          = QPointer<CTkAppWidget>;
   using WidgetArray      = std::vector<WidgetP>;
   using VirtualEventData = std::map<CTkAppVirtualEventData, EventDatas>;
@@ -334,7 +344,6 @@ class CTkApp : public QObject, public CTclApp {
 
   using NamedMatrices = std::map<QString, MatrixData>;
 
-  using WmAtoms  = std::map<QString, QString>;
   using WmGroups = std::map<CTkAppWidget *, CTkAppWidget *>;
 
   //--
@@ -359,6 +368,7 @@ class CTkApp : public QObject, public CTclApp {
   ImageMap         images_;
   mutable ImageMap bitmaps_;
 
+  QString appName_;
   QFont   appFont_;
   FontMap fonts_;
 
@@ -368,7 +378,6 @@ class CTkApp : public QObject, public CTclApp {
 
   VirtualEventData virtualEventData_;
 
-  WmAtoms  wmAtoms_;
   WmGroups wmGroups_;
 
   struct WmGrid {

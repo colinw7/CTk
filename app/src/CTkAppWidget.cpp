@@ -657,9 +657,9 @@ setText(const QString &text)
 
 void
 CTkAppButton::
-setImage(const CTkAppImageRef &image)
+setImageRef(const CTkAppImageRef &image)
 {
-  CTkAppWidget::setImage(image);
+  CTkAppWidget::setImageRef(image);
 
   qbutton_->setImage(image->getQImage());
 }
@@ -684,7 +684,7 @@ appearanceChanged()
 {
   bool autoRaise = false;
 
-  if (relief_ == Relief::FLAT && overRaised_)
+  if (relief() == Relief::FLAT && overRaised_)
     autoRaise = true;
 
   qbutton_->setAutoRaise(autoRaise);
@@ -950,12 +950,9 @@ execOp(const Args &args)
       shape->setBrush(b);
     }
     else if (name == "-fillrule") { // tkpath
-      Qt::FillRule fillRule = Qt::OddEvenFill;
-      if      (value == "evenodd")
-        fillRule = Qt::OddEvenFill;
-      else if (value == "nonzero")
-        fillRule = Qt::WindingFill;
-
+      Qt::FillRule fillRule;
+      if (! CTkAppUtil::stringToFillRule(value, fillRule))
+        return false;
       shape->setFillRule(fillRule);
     }
     else if (name == "-fillopacity") {
@@ -963,12 +960,7 @@ execOp(const Args &args)
       if (! CTkAppUtil::stringToReal(value, a))
         return false;
 
-      auto b = shape->brush();
-      auto c = b.color();
-      c.setAlphaF(a);
-      b.setStyle(Qt::SolidPattern);
-      b.setColor(c);
-      shape->setBrush(b);
+      shape->setFillAlpha(a);
     }
     else if (name == "-activefill") {
       auto b = shape->activeBrush();
@@ -986,17 +978,15 @@ execOp(const Args &args)
       QColor c;
       if (! CTkAppUtil::stringToQColor(value, c))
         return false;
-      //auto p = shape->fillOverPen();
-      //p.setColor(c);
-      //shape->setFillOverPen(p);
+      auto p = shape->fillOverPen();
+      p.setColor(c);
+      shape->setFillOverPen(p);
     }
     else if (name == "-outline" ||  name == "-stroke") {
       QColor c;
       if (! CTkAppUtil::stringToQColor(value, c))
         return false;
-      auto p = shape->pen();
-      p.setColor(c);
-      shape->setPen(p);
+      shape->setStrokeColor(c);
     }
     else if (name == "-activeoutline") {
       QColor c;
@@ -1015,34 +1005,60 @@ execOp(const Args &args)
       shape->setDisabledPen(p);
     }
     else if (name == "-offset") {
-      tk_->TODO(name, args);
+      CTkAppCanvasShape::OffsetData offsetData;
+      if (! shape->stringToOffsetData(value, offsetData))
+        return false;
+
+      shape->setStippleOffset(offsetData);
     }
     else if (name == "-outlinestipple") {
-      tk_->TODO(name, args);
+      shape->setOutlineStipple(value);
     }
     else if (name == "-activeoutlinestipple") {
-      tk_->TODO(name, args);
-    }
-    else if (name == "-disabledoutlinestipple") {
-      tk_->TODO(name, args);
-    }
-    else if (name == "-outlineoffset") {
-      tk_->TODO(name, args);
-    }
-    else if (name == "-stipple") {
       auto image = tk_->getBitmap(value);
       if (! image)
         return false;
 
-      auto b = shape->brush();
+      auto b = shape->activeOutlineBrush();
       b.setTexture(image->getQPixmap());
-      shape->setBrush(b);
+      shape->setActiveOutlineBrush(b);
+    }
+    else if (name == "-disabledoutlinestipple") {
+      auto image = tk_->getBitmap(value);
+      if (! image)
+        return false;
+
+      auto b = shape->disabledOutlineBrush();
+      b.setTexture(image->getQPixmap());
+      shape->setDisabledOutlineBrush(b);
+    }
+    else if (name == "-outlineoffset") {
+      CTkAppCanvasShape::OffsetData offsetData;
+      if (! shape->stringToOffsetData(value, offsetData))
+        return false;
+
+      shape->setStippleOutlineOffset(offsetData);
+    }
+    else if (name == "-stipple") {
+      shape->setStipple(value);
     }
     else if (name == "-activestipple") {
-      tk_->TODO(name, args);
+      auto image = tk_->getBitmap(value);
+      if (! image)
+        return false;
+
+      auto b = shape->activeBrush();
+      b.setTexture(image->getQPixmap());
+      shape->setActiveBrush(b);
     }
     else if (name == "-disabledstipple") {
-      tk_->TODO(name, args);
+      auto image = tk_->getBitmap(value);
+      if (! image)
+        return false;
+
+      auto b = shape->disabledBrush();
+      b.setTexture(image->getQPixmap());
+      shape->setDisabledBrush(b);
     }
     else if (name == "-state") {
       if      (value == "normal") {
@@ -1066,50 +1082,29 @@ execOp(const Args &args)
       shape->setFontSize(s);
     }
     else if (name == "-tags" || name == "-tag") {
-      std::vector<QString> strs;
-      if (! tk_->splitList(value, strs))
+      if (! shape->setTagsStr(value))
         return tk_->throwError("Invalid tags \"" + value + "\"");
-
-      std::set<QString> tags;
-      for (const auto &s : strs)
-        tags.insert(s);
-
-      shape->setTags(tags);
     }
     else if (name == "-width" || name == "-strokewidth") {
       double width;
       if (! CTkAppUtil::stringToDistance(value, width))
         return tk_->throwError("Invalid width \"" + value + "\"");
 
-      auto p = shape->pen();
-      p.setWidthF(width);
-      shape->setPen(p);
+      shape->setStrokeWidth(width);
     }
     else if (name == "-strokelinecap") {
-      Qt::PenCapStyle capStyle = Qt::FlatCap;
-
-      if      (value == "round")
-        capStyle = Qt::RoundCap;
-      else if (value == "square")
-        capStyle = Qt::SquareCap;
-      else if (value == "flat")
-        capStyle = Qt::FlatCap;
-      else
+      Qt::PenCapStyle capStyle;
+      if (! CTkAppUtil::stringToCapStyle(value, capStyle))
         return false;
 
-      auto p = shape->pen();
-      p.setCapStyle(capStyle);
-      shape->setPen(p);
+      shape->setStrokeCap(capStyle);
     }
     else if (name == "-strokeopacity") {
       double a;
       if (! CTkAppUtil::stringToReal(value, a))
         return false;
 
-      auto p = shape->pen();
-      auto c = p.color();
-      c.setAlphaF(a);
-      p.setColor(c);
+      shape->setStrokeAlpha(a);
     }
     else if (name == "-activewidth") {
       double width;
@@ -1152,7 +1147,7 @@ execOp(const Args &args)
   auto getShapeOpt = [&](CTkAppCanvasWidget::Shape *shape, const QString &name,
                          QString &value) {
     if      (name == "-anchor") {
-      tk_->TODO(name, args);
+      auto value = CTkAppUtil::alignToString(shape->anchor());
     }
     else if (name == "-dash") {
       auto p = shape->pen();
@@ -1172,18 +1167,14 @@ execOp(const Args &args)
     }
     else if (name == "-fill") {
       auto b = shape->brush();
-      value = b.color().name();
+      value = shape->fillColor().name();
     }
     else if (name == "-fillrule") { // tkpath
       auto fillRule = shape->fillRule();
-      if      (fillRule == Qt::OddEvenFill)
-        value = "evenodd";
-      else if (fillRule == Qt::WindingFill)
-        value = "nonzero";
+      value = CTkAppUtil::fillRuleToString(fillRule);
     }
     else if (name == "-fillopacity") {
-      auto b = shape->brush();
-      value = QString::number(b.color().alphaF());
+      value = QString::number(shape->fillAlpha());
     }
     else if (name == "-activefill") {
       auto b = shape->activeBrush();
@@ -1194,11 +1185,11 @@ execOp(const Args &args)
       value = b.color().name();
     }
     else if (name == "-filloverstroke") { // tkpath
-      tk_->TODO(name, args);
+      auto p = shape->fillOverPen();
+      value = p.color().name();
     }
     else if (name == "-outline" ||  name == "-stroke") {
-      auto p = shape->pen();
-      value = p.color().name();
+      value = shape->strokeColor().name();
     }
     else if (name == "-activeoutline") {
       auto p = shape->activePen();
@@ -1209,10 +1200,10 @@ execOp(const Args &args)
       value = p.color().name();
     }
     else if (name == "-offset") {
-      tk_->TODO(name, args);
+      value = shape->offsetDataToString(shape->stippleOffset());
     }
     else if (name == "-outlinestipple") {
-      tk_->TODO(name, args);
+      value = shape->outlineStipple();
     }
     else if (name == "-activeoutlinestipple") {
       tk_->TODO(name, args);
@@ -1221,10 +1212,10 @@ execOp(const Args &args)
       tk_->TODO(name, args);
     }
     else if (name == "-outlineoffset") {
-      tk_->TODO(name, args);
+      value = shape->offsetDataToString(shape->stippleOutlineOffset());
     }
     else if (name == "-stipple") {
-      tk_->TODO(name, args);
+      value = shape->stipple();
     }
     else if (name == "-activestipple") {
       tk_->TODO(name, args);
@@ -1241,34 +1232,31 @@ execOp(const Args &args)
         value = "normal";
     }
     else if (name == "-fontfamily") {
-      tk_->TODO(name, args);
+      value = shape->fontFamily();
     }
     else if (name == "-fontsize") {
-      tk_->TODO(name, args);
+      value = QString::number(shape->fontSize());
     }
     else if (name == "-tags" || name == "-tag") {
-      std::vector<QString> strs;
-      for (auto &tag : shape->tags())
-        strs.push_back(tag);
-      value = tk_->mergeList(strs);
+      value = shape->tagsStr();
     }
     else if (name == "-width" || name == "-strokewidth") {
       auto p = shape->pen();
       value = QString::number(p.widthF());
     }
     else if (name == "-strokelinecap") {
-      tk_->TODO(name, args);
+      auto capStyle = shape->strokeCap();
+      value = CTkAppUtil::capStyleToString(capStyle);
     }
     else if (name == "-strokeopacity") {
-      tk_->TODO(name, args);
+      value = QString::number(shape->strokeAlpha());
     }
     else if (name == "-activewidth") {
       auto p = shape->activePen();
       value = QString::number(p.widthF());
     }
     else if (name == "-disabledwidth") {
-      auto p = shape->disabledPen();
-      value = QString::number(p.widthF());
+      value = QString::number(shape->strokeWidth());
     }
 #ifdef CTK_APP_TKPATH
     else if (name == "-matrix") {
@@ -1485,7 +1473,7 @@ execOp(const Args &args)
       long start  = 0;
       long extent = 360;
 
-      auto arcType = CTkAppCanvasWidget::ArcType::ARC;
+      auto arcType = CTkAppCanvasArcShape::ArcType::ARC;
 
       for ( ; i < numArgs; i += 2) {
         auto argi = args[i].toString();
@@ -1508,11 +1496,11 @@ execOp(const Args &args)
           else if (name == "-style") {
             // pieslice, chord, arc
             if      (value == "pieslice")
-              arcType = CTkAppCanvasWidget::ArcType::PIE;
+              arcType = CTkAppCanvasArcShape::ArcType::PIE;
             else if (value == "chord")
-              arcType = CTkAppCanvasWidget::ArcType::CHORD;
+              arcType = CTkAppCanvasArcShape::ArcType::CHORD;
             else if (value == "arc")
-              arcType = CTkAppCanvasWidget::ArcType::ARC;
+              arcType = CTkAppCanvasArcShape::ArcType::ARC;
             else
               tk_->TODO(value, args);
           }
@@ -1554,33 +1542,52 @@ execOp(const Args &args)
             continue;
 
           if      (name == "-background") {
-            tk_->TODO(name, args);
+            QColor c;
+            if (! CTkAppUtil::stringToQColor(value, c))
+              return false;
+            bitmap->setBackground(c);
           }
           else if (name == "-activebackground") {
-            tk_->TODO(name, args);
+            QColor c;
+            if (! CTkAppUtil::stringToQColor(value, c))
+              return false;
+            bitmap->setActiveBackground(c);
           }
           else if (name == "-activeforeground") {
-            tk_->TODO(name, args);
+            QColor c;
+            if (! CTkAppUtil::stringToQColor(value, c))
+              return false;
+            bitmap->setActiveForeground(c);
           }
           else if (name == "-disabledbackground") {
-            tk_->TODO(name, args);
+            QColor c;
+            if (! CTkAppUtil::stringToQColor(value, c))
+              return false;
+            bitmap->setDisabledBackground(c);
           }
           else if (name == "-disabledforeground") {
-            tk_->TODO(name, args);
+            QColor c;
+            if (! CTkAppUtil::stringToQColor(value, c))
+              return false;
+            bitmap->setDisabledForeground(c);
           }
           else if (name == "-bitmap") {
             auto image = tk_->getBitmap(value);
-
             bitmap->setImage(image);
           }
           else if (name == "-activebitmap") {
-            tk_->TODO(name, args);
+            auto image = tk_->getBitmap(value);
+            bitmap->setActiveImage(image);
           }
           else if (name == "-disabledbitmap") {
-            tk_->TODO(name, args);
+            auto image = tk_->getBitmap(value);
+            bitmap->setDisabledImage(image);
           }
           else if (name == "-foreground") {
-            tk_->TODO(name, args);
+            QColor c;
+            if (! CTkAppUtil::stringToQColor(value, c))
+              return false;
+            bitmap->setForeground(c);
           }
           else
             return false;
@@ -1684,13 +1691,13 @@ execOp(const Args &args)
             auto arrowType = line->arrowType();
 
             if      (value == "first")
-              arrowType = CTkAppCanvasWidget::ArrowType::FIRST;
+              arrowType = CTkAppCanvasLineShape::ArrowType::FIRST;
             else if (value == "last")
-              arrowType = CTkAppCanvasWidget::ArrowType::LAST;
+              arrowType = CTkAppCanvasLineShape::ArrowType::LAST;
             else if (value == "both")
-              arrowType = CTkAppCanvasWidget::ArrowType::BOTH;
+              arrowType = CTkAppCanvasLineShape::ArrowType::BOTH;
             else if (value == "none")
-              arrowType = CTkAppCanvasWidget::ArrowType::NONE;
+              arrowType = CTkAppCanvasLineShape::ArrowType::NONE;
             else
               tk_->TODO(name, args);
 
@@ -2218,7 +2225,6 @@ execOp(const Args &args)
                 return tk_->throwError("Invalid -stops \"" + value + "\"");
 
               QColor c;
-
               if (CTkAppUtil::stringToQColor(strs1[1], c))
                 stops[r] = c;
             }
@@ -2704,6 +2710,113 @@ CTkAppCanvasWidget(CTkAppCanvas *canvas) :
   setMouseTracking(true);
 }
 
+//---
+
+CTkAppCanvasRectangleShape *
+CTkAppCanvasWidget::
+addRectangle(double x1, double y1, double x2, double y2)
+{
+  auto *rectangleShape = new Rectangle(this, x1, y1, x2, y2);
+
+  return static_cast<Rectangle *>(addShape(rectangleShape));
+}
+
+CTkAppCanvasOvalShape *
+CTkAppCanvasWidget::
+addOval(double x1, double y1, double x2, double y2)
+{
+  auto *ovalShape = new Oval(this, x1, y1, x2, y2);
+
+  return static_cast<Oval *>(addShape(ovalShape));
+}
+
+CTkAppCanvasLineShape *
+CTkAppCanvasWidget::
+addLine(const Points &points)
+{
+  auto *lineShape = new Line(this, points);
+
+  return static_cast<Line *>(addShape(lineShape));
+}
+
+#ifdef CTK_APP_TKPATH
+CTkAppCanvasPathShape *
+CTkAppCanvasWidget::
+addPath(const QString &pathStr, const QPainterPath &qpath)
+{
+  auto *pathShape = new Path(this, pathStr, qpath);
+
+  return static_cast<Path *>(addShape(pathShape));
+}
+#endif
+
+CTkAppCanvasPolygonShape *
+CTkAppCanvasWidget::
+addPolygon(const Points &points)
+{
+  auto *polygonShape = new Polygon(this, points);
+
+  return static_cast<Polygon *>(addShape(polygonShape));
+}
+
+CTkAppCanvasArcShape *
+CTkAppCanvasWidget::
+addArc(const Points &points)
+{
+  auto *arcShape = new Arc(this, points);
+
+  return static_cast<Arc *>(addShape(arcShape));
+}
+
+#ifdef CTK_APP_TKPATH
+CTkAppCanvasCircleShape *
+CTkAppCanvasWidget::
+addCircle(double xc, double yc)
+{
+  auto *circleShape = new Circle(this, xc, yc);
+
+  return static_cast<Circle *>(addShape(circleShape));
+}
+
+CTkAppCanvasEllipseShape *
+CTkAppCanvasWidget::
+addEllipse(double xc, double yc)
+{
+  auto *ellipseShape = new Ellipse(this, xc, yc);
+
+  return static_cast<Ellipse *>(addShape(ellipseShape));
+}
+#endif
+
+CTkAppCanvasTextShape *
+CTkAppCanvasWidget::
+addText(const Point &pos, const QString &text)
+{
+  auto *textShape = new Text(this, pos, text);
+
+  return static_cast<Text *>(addShape(textShape));
+}
+
+CTkAppCanvasImageShape *
+CTkAppCanvasWidget::
+addImage(const Point &pos, const CTkAppImageRef &image)
+{
+  auto *imageShape = new Image(this, pos, image);
+
+  return static_cast<Image *>(addShape(imageShape));
+}
+
+CTkAppCanvasBitmapShape *
+CTkAppCanvasWidget::
+addBitmap(const Point &pos, const CTkAppImageRef &image)
+{
+  auto *bitmapShape = new Bitmap(this, pos, image);
+
+  return static_cast<Bitmap *>(addShape(bitmapShape));
+}
+
+//---
+
 void
 CTkAppCanvasWidget::
 paintEvent(QPaintEvent *)
@@ -2738,8 +2851,15 @@ drawShape(QPainter *p, Shape *s)
       break;
     }
     case CTkAppCanvasShapeType::OVAL: {
+      auto brush = calcBrush(s);
+      auto pen   = calcPen(s);
+
       auto *o = static_cast<Oval *>(s);
-      p->drawEllipse(o->rect());
+
+      p->fillPath(o->path(), brush);
+
+      p->strokePath(o->strokePath(), pen);
+
       break;
     }
     case CTkAppCanvasShapeType::LINE: {
@@ -2892,13 +3012,90 @@ QSize
 CTkAppCanvasWidget::
 sizeHint() const
 {
-  int w = std::max(int(canvas_->width ()), 1);
-  int h = std::max(int(canvas_->height()), 1);
+  int w = std::max(int(canvas_->getWidth ()), 1);
+  int h = std::max(int(canvas_->getHeight()), 1);
 
   return QSize(w, h);
 }
 
 //---
+
+CTkAppCanvasShape::
+CTkAppCanvasShape(CTkAppCanvasWidget *canvas, ShapeType type) :
+ QObject(canvas), canvas_(canvas), type_(type)
+{
+  static int lastId = 0;
+
+  id_ = ++lastId;
+}
+
+QString
+CTkAppCanvasShape::
+tagsStr() const
+{
+  std::vector<QString> strs;
+  for (const auto &tag : tags_)
+    strs.push_back(tag);
+
+  auto *tk = canvas_->canvas()->app();
+
+  return tk->mergeList(strs);
+}
+
+bool
+CTkAppCanvasShape::
+setTagsStr(const QString &str)
+{
+  auto *tk = canvas_->canvas()->app();
+
+  std::vector<QString> strs;
+  if (! tk->splitList(str, strs))
+    return false;
+
+  std::set<QString> tags;
+  for (const auto &s : strs)
+    tags.insert(s);
+
+  setTags(tags);
+
+  return true;
+}
+
+bool
+CTkAppCanvasShape::
+setStipple(const QString &str)
+{
+  auto *tk = canvas_->canvas()->app();
+
+  auto image = tk->getBitmap(str);
+  if (! image) return false;
+
+  auto b = brush();
+  b.setTexture(image->getQPixmap());
+  setBrush(b);
+
+  stipple_ = str;
+
+  return true;
+}
+
+bool
+CTkAppCanvasShape::
+setOutlineStipple(const QString &str)
+{
+  auto *tk = canvas_->canvas()->app();
+
+  auto image = tk->getBitmap(str);
+  if (! image) return false;
+
+  auto b = outlineBrush();
+  b.setTexture(image->getQPixmap());
+  setOutlineBrush(b);
+
+  outlineStipple_ = str;
+
+  return true;
+}
 
 QPainterPath
 CTkAppCanvasShape::
@@ -2914,6 +3111,53 @@ calcStrokePath(const QPainterPath &path, const QPen &pen) const
   stroker.setWidth      (pen.widthF());
 
   return stroker.createStroke(path);
+}
+
+bool
+CTkAppCanvasShape::
+stringToOffsetData(const QString &str, OffsetData &offsetData)
+{
+  offsetData = OffsetData();
+
+  if (CTkAppUtil::stringToAlign(str, offsetData.align, /*quiet*/true)) {
+    offsetData.isAlign = true;
+    return true;
+  }
+
+  CQStrParse parse(str);
+
+  if (parse.isChar('#')) {
+    offsetData.toplevel = true;
+    parse.skipChar();
+  }
+
+  if (! parse.readInteger(&offsetData.x))
+    return false;
+
+  if (! parse.isChar(','))
+    return false;
+
+  if (! parse.readInteger(&offsetData.y))
+    return false;
+
+  return true;
+}
+
+QString
+CTkAppCanvasShape::
+offsetDataToString(const OffsetData &offsetData)
+{
+  if (offsetData.isAlign)
+    return CTkAppUtil::alignToString(offsetData.align);
+
+  QString str;
+
+  if (offsetData.toplevel)
+    str += "#";
+
+  str + QString::number(offsetData.x) + "," + QString::number(offsetData.y);
+
+  return str;
 }
 
 //----------
@@ -2957,8 +3201,6 @@ bool
 CTkAppCheckButton::
 execConfig(const QString &name, const QString &value)
 {
-  long underlinePos = -1;
-
   if      (name == "-command") {
     setCommand(value);
   }
@@ -2973,14 +3215,16 @@ execConfig(const QString &name, const QString &value)
   }
 #endif
   else if (name == "-justify") {
-    tk_->TODO(name);
+    auto align = CTkAppUtil::stringToJustify(value);
+
+    setJustify(align);
   }
   else if (name == "-indicatoron") {
     bool b;
     if (! CTkAppUtil::stringToBool(value, b))
       return tk_->throwError("Invalid " + name + " \"" + value + "\"");
 
-    showIndicator_ = b;
+    setShowIndicator(b);
   }
   else if (name == "-offrelief") {
     tk_->TODO(name);
@@ -2999,10 +3243,7 @@ execConfig(const QString &name, const QString &value)
     updateToVar();
   }
   else if (name == "-overrelief") {
-    if (value == "raised")
-      setOverRaised(true);
-    else
-      setOverRaised(false);
+    setOverRaised(value == "raised");
 
     appearanceChanged();
   }
@@ -3055,8 +3296,11 @@ execConfig(const QString &name, const QString &value)
     tk_->TODO(name);
   }
   else if (name == "-underline") {
-    if (! tk_->getOptionInt(name, value, underlinePos))
+    long pos;
+    if (! tk_->getOptionInt(name, value, pos))
       return false;
+
+    setUnderlinePos(pos);
   }
   else if (name == "-wraplength") {
     tk_->TODO(name);
@@ -3644,10 +3888,9 @@ execConfig(const QString &name, const QString &value)
   else if (name == "-textvariable") {
     setVarName(value);
 
-    if (! isInitNotify() && ! tk_->hasGlobalVar(varName()))
+    if (! tk_->hasGlobalVar(varName()))
       tk_->setStringGlobalVar(varName(), QString());
-
-    if (tk_->hasGlobalVar(varName()))
+    else
       setText(tk_->getStringGlobalVar(varName()));
 
     varProc_ = new CTkAppEntryVarProc(tk_, this);
@@ -4083,9 +4326,9 @@ setText(const QString &text)
 
 void
 CTkAppLabel::
-setImage(const CTkAppImageRef &image)
+setImageRef(const CTkAppImageRef &image)
 {
-  CTkAppWidget::setImage(image);
+  CTkAppWidget::setImageRef(image);
 
   auto qimage = image->getQImage();
 
@@ -5124,9 +5367,9 @@ setText(const QString &text)
 
 void
 CTkAppMenuButton::
-setImage(const CTkAppImageRef &image)
+setImageRef(const CTkAppImageRef &image)
 {
-  CTkAppWidget::setImage(image);
+  CTkAppWidget::setImageRef(image);
 
   auto pixmap = image->getQPixmap();
 
@@ -5568,6 +5811,8 @@ class CTkAppRadioButtonVarProc : public CTclTraceProc {
 
 //---
 
+CTkAppRadioButton::RadioGroups CTkAppRadioButton::s_radioGroups;
+
 CTkAppRadioButton::
 CTkAppRadioButton(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
  CTkAppWidget(tk, parent, name)
@@ -5584,6 +5829,9 @@ CTkAppRadioButton::
 {
   if (varProc_)
     tk_->untraceGlobalVar(varName(), varProc_);
+
+  if (varName_ != "")
+    removeRadioGroup(this, varName());
 }
 
 void
@@ -5598,8 +5846,6 @@ bool
 CTkAppRadioButton::
 execConfig(const QString &name, const QString &value)
 {
-  long underlinePos = -1;
-
   if      (name == "-command") {
     setCommand(value);
   }
@@ -5608,12 +5854,14 @@ execConfig(const QString &name, const QString &value)
     if (! CTkAppUtil::stringToBool(value, b))
       return tk_->throwError("Invalid " + name + " \"" + value + "\"");
 
-    showIndicator_ = b;
+    setShowIndicator(b);
   }
   else if (name == "-selectcolor") {
     QColor c;
-    if (CTkAppUtil::stringToQColor(value, c))
-      selectColor_ = c;
+    if (! CTkAppUtil::stringToQColor(value, c))
+      return false;
+
+    setSelectColor(c);
   }
   else if (name == "-state") {
     if (value == "readonly")
@@ -5627,33 +5875,31 @@ execConfig(const QString &name, const QString &value)
     tk_->TODO(name);
   }
   else if (name == "-underline") {
-    if (! tk_->getOptionInt(name, value, underlinePos))
+    long pos = -1;
+    if (! tk_->getOptionInt(name, value, pos))
       return false;
   }
   else if (name == "-value") {
-    value_ = value;
-
-    updateToVar();
+    setValue(value);
   }
   else if (name == "-variable") {
     setVarName(value);
-
-    if (! isInitNotify() && ! tk_->hasGlobalVar(varName()))
-      updateToVar();
-
-    updateFromVar();
-
-    varProc_ = new CTkAppRadioButtonVarProc(tk_, this);
-
-    tk_->traceGlobalVar(varName(), varProc_);
   }
   else if (name == "-width") {
     // width of image (pixels) or text (chars)
-    int w;
-    if (! CTkAppUtil::stringToDistanceI(value, w))
+    double w;
+    if (! CTkAppUtil::stringToDistance(value, w))
       return tk_->throwError("Invalid width \"" + value + "\"");
 
-    qradio_->setUserWidth(w);
+    setUserWidth(w);
+  }
+  else if (name == "-height") {
+    // height of image (pixels) or text (chars)
+    double h;
+    if (! CTkAppUtil::stringToDistance(value, h))
+      return tk_->throwError("Invalid width \"" + value + "\"");
+
+    setUserHeight(h);
   }
   else if (name == "-wraplength") {
     tk_->TODO(name);
@@ -5704,9 +5950,9 @@ setText(const QString &text)
 
 void
 CTkAppRadioButton::
-setImage(const CTkAppImageRef &image)
+setImageRef(const CTkAppImageRef &image)
 {
-  CTkAppWidget::setImage(image);
+  CTkAppWidget::setImageRef(image);
 
   auto qimage = image->getQImage();
 
@@ -5717,17 +5963,73 @@ void
 CTkAppRadioButton::
 setValue(const QString &value)
 {
-  bool checked = qradio_->isChecked();
+  value_ = value;
 
-  if (value_ != "")
-    checked = (value == value_);
-  else {
-    bool b;
-    if (CTkAppUtil::stringToBool(value, b))
-      checked = b;
+  updateToVar();
+}
+
+void
+CTkAppRadioButton::
+setVarName(const QString &varName)
+{
+  if (varName_ != "")
+    removeRadioGroup(this, varName_);
+
+  varName_ = varName;
+
+  if (varName_ != "")
+    addRadioGroup(this, varName_);
+
+  //---
+
+  updateToVar();
+
+  delete varProc_;
+
+  if (varName_ != "") {
+    varProc_ = new CTkAppRadioButtonVarProc(tk_, this);
+
+    tk_->traceGlobalVar(varName_, varProc_);
   }
+  else
+    varProc_ = nullptr;
+}
 
-  setChecked(checked);
+void
+CTkAppRadioButton::
+addRadioGroup(CTkAppRadioButton *radio, const QString &varName)
+{
+  auto pg = s_radioGroups.find(varName);
+
+  if (pg == s_radioGroups.end())
+    pg = s_radioGroups.insert(pg, RadioGroups::value_type(varName, RadioGroupData()));
+
+  auto &radioGroupData = (*pg).second;
+
+  if (! radioGroupData.group)
+    radioGroupData.group = new QButtonGroup;
+
+  radioGroupData.buttons.insert(radio);
+
+  radioGroupData.group->addButton(radio->qradio());
+}
+
+void
+CTkAppRadioButton::
+removeRadioGroup(CTkAppRadioButton *radio, const QString &varName)
+{
+  auto pg = s_radioGroups.find(varName);
+  if (pg == s_radioGroups.end()) return;
+
+  auto &radioGroupData = (*pg).second;
+
+  radioGroupData.buttons.erase(radio);
+
+  if (radioGroupData.buttons.empty()) {
+    delete radioGroupData.group;
+
+    s_radioGroups.erase(varName);
+  }
 }
 
 void
@@ -5745,19 +6047,38 @@ setChecked(bool b)
 
 void
 CTkAppRadioButton::
-toggleSlot(bool)
+toggleSlot(bool checked)
 {
-  updateToVar();
+  if (checked) {
+    updateToVar();
 
-  runCommand();
+    runCommand();
+  }
 }
 
 void
 CTkAppRadioButton::
 updateFromVar()
 {
-  if (varName() != "" && tk_->hasGlobalVar(varName()))
-    setValue(tk_->getStringGlobalVar(varName()));
+  if (varName() != "") {
+    QString value;
+
+    if (tk_->hasGlobalVar(varName()))
+      value = tk_->getStringGlobalVar(varName());
+
+    bool checked = qradio_->isChecked();
+
+    if (value_ != "") {
+      checked = (value == value_);
+    }
+    else {
+      bool b;
+      if (CTkAppUtil::stringToBool(value, b))
+        checked = b;
+    }
+
+    setChecked(checked);
+  }
 }
 
 void
@@ -5768,12 +6089,16 @@ updateToVar()
     if (varProc_)
       varProc_->setEnabled(false);
 
-    if (qradio_->isChecked()) {
+    if (! tk_->hasGlobalVar(varName())) {
       if (value_ != "")
         tk_->setStringGlobalVar(varName(), value_);
       else
         tk_->setBoolGlobalVar(varName(), qradio_->isChecked());
     }
+    else if (value_ != "")
+      tk_->setStringGlobalVar(varName(), value_);
+    else
+      tk_->setBoolGlobalVar(varName(), qradio_->isChecked());
 
     if (varProc_)
       varProc_->setEnabled(true);
@@ -5820,11 +6145,13 @@ sizeHint() const
     return QSize(s.width() + iw + 2, std::max(s.height(), ih));
   }
   else {
-    if (userWidth() > 0) {
-      QFontMetrics fm(font());
+    QFontMetrics fm(font());
 
-      s.setWidth(userWidth()*fm.horizontalAdvance("0"));
-    }
+    if (radio_->userWidth() > 0)
+      s.setWidth(radio_->userWidth()*fm.horizontalAdvance("0"));
+
+    if (radio_->userHeight() > 0)
+      s.setHeight(radio_->userHeight()*fm.height());
 
     return s;
   }
@@ -6923,8 +7250,15 @@ execOp(const Args &args)
     auto parseInd = [&](TextInd &ind) {
       if      (parse.isString("end")) {
         parse.skipLastString();
+
         ind.lineNum = TextInd::END;
         ind.charNum = TextInd::END;
+      }
+      else if (parse.isString("insert")) {
+        parse.skipLastString();
+
+        auto cursor = qtext_->textCursor();
+        getCurrentInd(cursor, ind);
       }
       else if (parse.isDigit()) {
         if (! parse.readInteger(&ind.lineNum))
@@ -6989,7 +7323,7 @@ execOp(const Args &args)
 
         parse.skipSpace();
 
-        if      (parse.isString("chars")) {
+        if      (parse.isString("chars") || parse.isString("c")) {
           parse.skipLastString();
 
           auto cursor = qtext_->textCursor();
@@ -6997,7 +7331,7 @@ execOp(const Args &args)
           cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::MoveAnchor, n);
           getCurrentInd(cursor, ind1);
         }
-        else if (parse.isString("lines")) {
+        else if (parse.isString("lines") || parse.isString("l")) {
           parse.skipLastString();
 
           auto cursor = qtext_->textCursor();
@@ -7159,7 +7493,6 @@ execOp(const Args &args)
                " search ?switches? pattern index ?stopIndex?");
 
     bool    forwards     = true;
-    bool    exact        = false;
     bool    regexp       = false;
     bool    nolinestop   = false;
     bool    nocase       = false;
@@ -7172,34 +7505,40 @@ execOp(const Args &args)
     uint i = 1;
 
     for ( ; i < numArgs; ++i) {
-      if      (args[i] == "-forwards")
+      auto arg = args[i].toString();
+
+      if      (arg == "-forwards" || arg == "-forward")
         forwards = true;
-      else if (args[i] == "-backwards")
+      else if (arg == "-backwards")
         forwards = false;
-      else if (args[i] == "-exact")
-        exact = true;
-      else if (args[i] == "-regexp")
+      else if (arg == "-exact")
+        regexp = false;
+      else if (arg == "-regexp")
         regexp = true;
-      else if (args[i] == "-nolinestop")
+      else if (arg == "-nolinestop")
         nolinestop = true;
-      else if (args[i] == "-nocase")
+      else if (arg == "-nocase")
         nocase = true;
-      else if (args[i] == "-count") {
+      else if (arg == "-count") {
         ++i;
 
         if (i < numArgs)
           countVar = args[i].toString();
       }
-      else if (args[i] == "-all")
+      else if (arg == "-all")
         all = true;
-      else if (args[i] == "-overlap")
+      else if (arg == "-overlap")
         overlap = true;
-      else if (args[i] == "-strictlimits")
+      else if (arg == "-strictlimits")
         strictlimits = true;
-      else if (args[i] == "-elide")
+      else if (arg == "-elide")
         elide = true;
-      else
+      else if (arg == "--") {
+        ++i;
         break;
+      }
+      else
+        return false;
     }
 
     QString pattern;
@@ -7229,10 +7568,10 @@ execOp(const Args &args)
       ++i;
     }
 
+#if 0
     std::cerr << "search";
     if (! forwards) std::cerr << " -backwards";
-    if (exact) std::cerr << " -exact";
-    if (regexp) std::cerr << " -regexp";
+    std::cerr << (regexp ? " -regexp" : " -exact");
     if (nolinestop) std::cerr << " -nolinestop";
     if (nocase) std::cerr << " -nocase";
     if (countVar != "") std::cerr << " -count " << countVar.toStdString();
@@ -7244,6 +7583,12 @@ execOp(const Args &args)
     std::cerr << " " << startInd;
     std::cerr << " " << endInd;
     std::cerr << "\n";
+#endif
+
+    if (nolinestop  ) tk_->TODO("-nolinestop");
+    if (overlap     ) tk_->TODO("-overlap");
+    if (strictlimits) tk_->TODO("-strictlimits");
+    if (elide       ) tk_->TODO("-elide");
 
     setCurrentInd(startInd);
 
@@ -7252,6 +7597,14 @@ execOp(const Args &args)
 
     while (true) {
       bool rc;
+
+      QTextDocument::FindFlags findFlags;
+
+      if (! forwards)
+        findFlags |= QTextDocument::FindBackward;
+
+      if (nocase)
+        findFlags |= QTextDocument::FindCaseSensitively;
 
       if (regexp)
         rc = qtext_->find(QRegExp(pattern));
@@ -7288,6 +7641,16 @@ execOp(const Args &args)
   else if (arg == "see") {
     if (numArgs != 2)
       return tk_->wrongNumArgs(getName() + " see index");
+
+    TextInd ind;
+    if (! stringToTextInd(args[1].toString(), ind))
+      return false;
+
+    TextInd currentInd;
+    getCurrentInd(currentInd);
+    setCurrentInd(ind);
+    qtext_->ensureCursorVisible();
+    setCurrentInd(currentInd);
 
     tk_->TODO(args);
   }
@@ -7757,6 +8120,8 @@ stringToTextInd(const QString &str, TextInd &ind) const
     ind = TextInd(lineNum, charNum);
   }
 
+  parse.skipSpace();
+
   if (parse.isChar('+') || parse.isChar('-')) {
     auto sign = (parse.isChar('+') ? 1 : -1);
 
@@ -8127,6 +8492,27 @@ setFrame(QFrame *qframe)
   qframe_ = qframe;
 
   setQWidget(qframe_);
+}
+
+void
+CTkAppTopLevel::
+show()
+{
+  if (iconWindow() != "")
+    return;
+
+  setNeedsShow(false);
+
+  CTkAppWidget::show();
+}
+
+void
+CTkAppTopLevel::
+hide()
+{
+  setNeedsShow(false);
+
+  CTkAppWidget::hide();
 }
 
 bool
@@ -8847,6 +9233,11 @@ CTkAppWidget(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
 CTkAppWidget::
 ~CTkAppWidget()
 {
+  if (deleteWindowCmd_ != "")
+    tk_->eval(deleteWindowCmd_);
+
+  //---
+
   deleted_ = true;
 
   if (parent_)
@@ -8863,8 +9254,8 @@ CTkAppWidget::
 
   delete eventFilter_;
 
-  if (image_)
-    image_->removeRef(getName());
+  if (imageRef_)
+    imageRef_->removeRef(getName());
 }
 
 void
@@ -8946,16 +9337,133 @@ getQWidget() const
   return qwidget_;
 }
 
+//---
+
 void
 CTkAppWidget::
-setImage(const CTkAppImageRef &i)
+setBackground(const QColor &c)
 {
-  image_ = i;
+  background_ = c;
 
-  image_->addRef(getName());
+  auto pal = qwidget_->palette();
+  pal.setColor(QPalette::Normal, getQWidget()->backgroundRole(), background_);
+  pal.setColor(QPalette::Inactive, getQWidget()->backgroundRole(), background_);
+  qwidget_->setPalette(pal);
+
+  qwidget_->update();
 }
 
-int
+void
+CTkAppWidget::
+setForeground(const QColor &c)
+{
+  foreground_ = c;
+
+  auto pal = qwidget_->palette();
+  pal.setColor(QPalette::Normal, getQWidget()->foregroundRole(), foreground_);
+  pal.setColor(QPalette::Inactive, getQWidget()->backgroundRole(), foreground_);
+  qwidget_->setPalette(pal);
+
+  qwidget_->update();
+}
+
+void
+CTkAppWidget::
+setActiveBackground(const QColor &c)
+{
+  activeBackground_ = c;
+
+  auto pal = qwidget_->palette();
+  pal.setColor(QPalette::Active, getQWidget()->backgroundRole(), activeBackground_);
+  qwidget_->setPalette(pal);
+
+  qwidget_->update();
+}
+
+void
+CTkAppWidget::
+setActiveForeground(const QColor &c)
+{
+  activeForeground_ = c;
+
+  auto pal = qwidget_->palette();
+  pal.setColor(QPalette::Active, getQWidget()->foregroundRole(), activeForeground_);
+  qwidget_->setPalette(pal);
+
+  qwidget_->update();
+}
+
+void
+CTkAppWidget::
+setDisabledBackground(const QColor &c)
+{
+  disabledBackground_ = c;
+
+  auto pal = qwidget_->palette();
+  pal.setColor(QPalette::Disabled, getQWidget()->backgroundRole(), disabledBackground_);
+  qwidget_->setPalette(pal);
+
+  qwidget_->update();
+}
+
+void
+CTkAppWidget::
+setDisabledForeground(const QColor &c)
+{
+  disabledForeground_ = c;
+
+  auto pal = qwidget_->palette();
+  pal.setColor(QPalette::Disabled, getQWidget()->foregroundRole(), disabledForeground_);
+  qwidget_->setPalette(pal);
+
+  qwidget_->update();
+}
+
+void
+CTkAppWidget::
+setHighlightBackground(const QColor &c)
+{
+  highlightBackground_ = c;
+
+  auto pal = qwidget_->palette();
+  pal.setColor(QPalette::Active, getQWidget()->backgroundRole(), c);
+  qwidget_->setPalette(pal);
+
+  qwidget_->update();
+}
+
+void
+CTkAppWidget::
+setHighlightForeground(const QColor &c)
+{
+  highlightForeground_ = c;
+
+  auto pal = qwidget_->palette();
+  pal.setColor(QPalette::Active, getQWidget()->foregroundRole(), c);
+  qwidget_->setPalette(pal);
+
+  qwidget_->update();
+}
+
+void
+CTkAppWidget::
+setInsertBackground(const QColor &c)
+{
+  insertBackground_ = c;
+}
+
+//---
+
+void
+CTkAppWidget::
+setImageRef(const CTkAppImageRef &i)
+{
+  imageRef_ = i;
+
+  imageRef_->addRef(getName());
+}
+
+double
 CTkAppWidget::
 getWidth() const
 {
@@ -8971,7 +9479,7 @@ getWidth() const
   return w;
 }
 
-int
+double
 CTkAppWidget::
 getHeight() const
 {
@@ -8989,7 +9497,7 @@ getHeight() const
 
 void
 CTkAppWidget::
-setWidth(int w)
+setWidth(double w)
 {
   //assert(w >= 0 && w <= 2048);
 
@@ -8998,7 +9506,7 @@ setWidth(int w)
 
 void
 CTkAppWidget::
-setHeight(int h)
+setHeight(double h)
 {
   //assert(h >= 0 && h <= 2048);
 
@@ -9172,41 +9680,32 @@ execConfig(const QString &name, const QString &value)
 {
   if      (name == "-activebackground") {
     QColor c;
-    if (CTkAppUtil::stringToQColor(value, c)) {
-      auto pal = qwidget_->palette();
-      pal.setColor(QPalette::Active, getQWidget()->backgroundRole(), c);
-      qwidget_->setPalette(pal);
-    }
+    if (! CTkAppUtil::stringToQColor(value, c))
+      return false;
+    setActiveBackground(c);
   }
   else if (name == "-activeforeground") {
     QColor c;
-    if (CTkAppUtil::stringToQColor(value, c)) {
-      auto pal = qwidget_->palette();
-      pal.setColor(QPalette::Active, getQWidget()->foregroundRole(), c);
-      qwidget_->setPalette(pal);
-    }
+    if (! CTkAppUtil::stringToQColor(value, c))
+      return false;
+    setActiveForeground(c);
   }
   else if (name == "-anchor") {
-    setWidgetAnchor(value);
+    setAnchorStr(value);
   }
   else if (name == "-background" || name == "-bg") {
     QColor c;
-    if (CTkAppUtil::stringToQColor(value, c))
-      setBackground(c);
-
-    qwidget_->update();
+    if (! CTkAppUtil::stringToQColor(value, c))
+      return false;
+    setBackground(c);
   }
   else if (name == "-bitmap") {
-    auto image = tk_->getBitmap(value);
-
-    if (! image)
+    if (! setBitmap(value))
       return tk_->throwError("Failed to load bitmap '" + value + "'");
-
-    setImage(image);
   }
   else if (name == "-borderwidth" || name == "-bd") {
-    long w;
-    if (! tk_->getOptionInt(name, value, w))
+    double w;
+    if (! CTkAppUtil::stringToDistance(value, w))
       return false;
     setBorderWidth(w);
   }
@@ -9214,51 +9713,40 @@ execConfig(const QString &name, const QString &value)
     CTkAppCompoundType compoundType;
     if (! CTkAppUtil::stringToCompound(value, compoundType))
       return false;
-    compoundType_ = compoundType;
+    setCompoundType(compoundType);
   }
   else if (name == "-cursor") {
-    //auto c = CTkAppUtil::stringToCursor(value);
-    //qwidget_->setCursor(c);
-    cursor_ = value;
+    setCursor(value);
   }
   else if (name == "-disabledbackground") {
     QColor c;
-    if (CTkAppUtil::stringToQColor(value, c)) {
-      auto pal = qwidget_->palette();
-      pal.setColor(QPalette::Disabled, getQWidget()->backgroundRole(), c);
-      qwidget_->setPalette(pal);
-    }
+    if (! CTkAppUtil::stringToQColor(value, c))
+      return false;
+    setDisabledBackground(c);
   }
   else if (name == "-disabledforeground") {
     QColor c;
-    if (CTkAppUtil::stringToQColor(value, c)) {
-      auto pal = qwidget_->palette();
-      pal.setColor(QPalette::Disabled, getQWidget()->foregroundRole(), c);
-      qwidget_->setPalette(pal);
-    }
+    if (! CTkAppUtil::stringToQColor(value, c))
+      return false;
+    setDisabledBackground(c);
   }
   else if (name == "-foreground" || name == "-fg") {
     QColor c;
-    if (CTkAppUtil::stringToQColor(value, c))
-      setForeground(c);
-
-    qwidget_->update();
+    if (! CTkAppUtil::stringToQColor(value, c))
+      return false;
+    setForeground(c);
   }
   else if (name == "-highlightbackground") {
     QColor c;
-    if (CTkAppUtil::stringToQColor(value, c)) {
-      auto pal = qwidget_->palette();
-      pal.setColor(QPalette::Active, getQWidget()->backgroundRole(), c);
-      qwidget_->setPalette(pal);
-    }
+    if (! CTkAppUtil::stringToQColor(value, c))
+      return false;
+    setHighlightBackground(c);
   }
   else if (name == "-highlightcolor") {
     QColor c;
-    if (CTkAppUtil::stringToQColor(value, c)) {
-      auto pal = qwidget_->palette();
-      pal.setColor(QPalette::Active, getQWidget()->foregroundRole(), c);
-      qwidget_->setPalette(pal);
-    }
+    if (! CTkAppUtil::stringToQColor(value, c))
+      return false;
+    setHighlightForeground(c);
   }
   else if (name == "-highlightthickness") {
     double thickness;
@@ -9267,18 +9755,20 @@ execConfig(const QString &name, const QString &value)
     setHighlightThickness(thickness);
   }
   else if (name == "-image") {
-    auto image = tk_->getImage(value);
-
-    if (! image)
+    if (! setImage(value))
       return tk_->throwError("Failed to get image '" + value + "'");
-
-    setImage(image);
   }
   else if (name == "-insertbackground") {
-    tk_->TODO(name);
+    QColor c;
+    if (! CTkAppUtil::stringToQColor(value, c))
+      return false;
+    setInsertBackground(c);
   }
   else if (name == "-insertborderwidth") {
-    tk_->TODO(name);
+    double w;
+    if (! CTkAppUtil::stringToDistance(value, w))
+      return false;
+    setInsertBorderWidth(w);
   }
   else if (name == "-insertofftime") {
     tk_->TODO(name);
@@ -9287,29 +9777,26 @@ execConfig(const QString &name, const QString &value)
     tk_->TODO(name);
   }
   else if (name == "-insertwidth") {
-    tk_->TODO(name);
+    double w;
+    if (! CTkAppUtil::stringToDistance(value, w))
+      return false;
+    setInsertWidth(w);
   }
   else if (name == "-padx") {
     long padx;
     if (! tk_->getOptionInt(name, value, padx))
       return false;
-
     setPadX(padx);
   }
   else if (name == "-pady") {
     long pady;
     if (! tk_->getOptionInt(name, value, pady))
       return false;
-
     setPadY(pady);
   }
   else if (name == "-relief") {
-    if (! CTkAppUtil::stringToRelief(value, relief_))
+    if (! setReliefStr(value))
       return false;
-
-    CTkAppUtil::setFrameRelief(qwidget_, relief_);
-
-    appearanceChanged();
   }
   else if (name == "-repeatdelay") {
     tk_->TODO(name);
@@ -9332,8 +9819,8 @@ execConfig(const QString &name, const QString &value)
       selectBackground_ = c;
   }
   else if (name == "-selectborderwidth") {
-    int w;
-    if (! CTkAppUtil::stringToDistanceI(value, w))
+    double w;
+    if (! CTkAppUtil::stringToDistance(value, w))
       return tk_->throwError("Invalid width \"" + value + "\"");
     setSelectBorderWidth(w);
   }
@@ -9404,30 +9891,18 @@ execOp(const Args &args)
 
 void
 CTkAppWidget::
-setBackground(const QColor &c)
-{
-  auto pal = qwidget_->palette();
-  pal.setColor(QPalette::Normal, getQWidget()->backgroundRole(), c);
-  pal.setColor(QPalette::Inactive, getQWidget()->backgroundRole(), c);
-  qwidget_->setPalette(pal);
-}
-
-void
-CTkAppWidget::
-setForeground(const QColor &c)
-{
-  auto pal = qwidget_->palette();
-  pal.setColor(QPalette::Normal, getQWidget()->foregroundRole(), c);
-  pal.setColor(QPalette::Inactive, getQWidget()->backgroundRole(), c);
-  qwidget_->setPalette(pal);
-}
-
-void
-CTkAppWidget::
 show()
 {
   if (qwidget_ && ! qwidget_->isVisible())
     qwidget_->setVisible(true);
+}
+
+void
+CTkAppWidget::
+hide()
+{
+  if (qwidget_ && qwidget_->isVisible())
+    qwidget_->setVisible(false);
 }
 
 void
@@ -9475,6 +9950,10 @@ setGeometry(const QString &str)
   CQStrParse parse(str);
 
   parse.skipSpace();
+
+  // optional '='
+  if (parse.isChar('='))
+    parse.skipChar();
 
   // <width>x<height>
   if (! parse.isChar('-') && ! parse.isChar('+')) {
@@ -9558,30 +10037,109 @@ setPadY(int pady)
   qwidget_->setContentsMargins(m);
 }
 
-void
+bool
 CTkAppWidget::
-setWidgetAnchor(const QString &value)
+setAnchorStr(const QString &value)
 {
   Qt::Alignment align;
-  if (CTkAppUtil::stringToAlign(value, align))
-    setAnchor(align);
+  if (! CTkAppUtil::stringToAlign(value, align))
+    return false;
+
+  anchorStr_ = value;
+  setAnchor(align);
+  return true;
 }
+
+bool
+CTkAppWidget::
+setBitmap(const QString &s)
+{
+  auto image = tk_->getBitmap(s);
+  if (! image) return false;
+
+  bitmap_ = s;
+
+  setImageRef(image);
+
+  return true;
+}
+
+bool
+CTkAppWidget::
+setImage(const QString &s)
+{
+  auto image = tk_->getImage(s);
+  if (! image) return false;
+
+  image_ = s;
+
+  setImageRef(image);
+
+  return true;
+}
+
+void
+CTkAppWidget::
+setCursor(const QString &s)
+{
+  cursor_ = s;
+
+  //auto c = CTkAppUtil::stringToCursor(s);
+  //qwidget_->setCursor(c);
+}
+
+//---
 
 // set borderwidth
 void
 CTkAppWidget::
-setBorderWidth(int width)
+setBorderWidth(double w)
 {
+  borderWidth_ = w;
+
   auto *frame = qobject_cast<QFrame *>(qwidget_);
 
   if (frame)
-    frame->setLineWidth(width);
+    frame->setLineWidth(w);
 }
 
 void
 CTkAppWidget::
-setSelectBorderWidth(int)
+setSelectBorderWidth(double w)
 {
+  selectBorderWidth_ = w;
+}
+
+void
+CTkAppWidget::
+setInsertBorderWidth(double w)
+{
+  insertBorderWidth_ = w;
+}
+
+void
+CTkAppWidget::
+setInsertWidth(double w)
+{
+  insertWidth_ = w;
+}
+
+bool
+CTkAppWidget::
+setReliefStr(const QString &s)
+{
+  Relief relief { Relief::NONE };
+  if (! CTkAppUtil::stringToRelief(s, relief_))
+    return false;
+
+  relief_    = relief;
+  reliefStr_ = s;
+
+  CTkAppUtil::setFrameRelief(qwidget_, relief_);
+
+  appearanceChanged();
+
+  return true;
 }
 
 //---
@@ -9784,6 +10342,25 @@ getOptionValue(const QString &optName, const QString &optClass, QString &optValu
     " " << optClass.toStdString() << " = " << optValue.toStdString() << "\n";
 
   return true;
+}
+
+void
+CTkAppWidget::
+setWmAtomValue(const QString &atomName, const QString &atomValue)
+{
+  if (atomName == "WM_DELETE_WINDOW")
+    deleteWindowCmd_ = atomValue;
+
+  wmAtoms_[atomName] = atomValue;
+}
+
+QString
+CTkAppWidget::
+getWmAtomValue(const QString &atomName) const
+{
+  auto p = wmAtoms_.find(atomName);
+
+  return (p != wmAtoms_.end() ? (*p).second : "");
 }
 
 //----------

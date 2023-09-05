@@ -17,11 +17,18 @@ class CTkAppImage {
   const QString &name() const { return name_; }
 
   const QString &filename() const { return filename_; }
+  void setFilename(const QString &filename) { filename_ = filename; }
 
   const QString &type() const { return type_; }
   void setType(const QString &s) { type_ = s; }
 
+  const QString &format() const { return format_; }
+  void setFormat(const QString &s) { format_ = s; }
+
   bool isColor() const { return (type_ == "photo"); }
+
+  double gamma() const { return gamma_; }
+  void setGamma(double r) { gamma_ = r; }
 
   QImage getQImage() const;
 
@@ -55,13 +62,15 @@ class CTkAppImage {
  private:
   using RefNames = std::set<QString>;
 
-  CTkApp*  tk_ { nullptr };
+  CTkApp*  tk_     { nullptr };
   QString  name_;
   QString  type_;
   QImage   qimage_;
   QString  filename_;
-  int      width_ { 0 };
+  QString  format_;
+  int      width_  { 0 };
   int      height_ { 0 };
+  double   gamma_  { 1.0 };
   RefNames refNames_;
 };
 

@@ -12,10 +12,12 @@ class CTkAppGridLayout;
 class CTkAppPlaceLayout;
 class CTkAppLayoutWidget;
 
+class CQPropertyViewTree;
 class CQIntegerSpin;
 class CQRealSpin;
 class CQOptEdit;
 
+class QTabWidget;
 class QListWidget;
 class QCheckBox;
 class QComboBox;
@@ -35,6 +37,12 @@ class CTkAppDebug : public QFrame {
 
   void createLayoutWidgets();
   void updateLayoutWidgets();
+
+  void updateImages();
+
+  void updateProperties();
+
+  QString widgetPropPath(CTkAppWidget *w) const;
 
  private Q_SLOTS:
   void parentSlot();
@@ -58,11 +66,16 @@ class CTkAppDebug : public QFrame {
 
   CTkAppLayoutWidget* layoutWidget_ { nullptr };
 
+  QTabWidget *tab_ { nullptr };
+
   QListWidget* childList_ { nullptr };
 
   QVBoxLayout* dataLayout_  { nullptr };
   QLabel*      typeLabel_   { nullptr };
   QLabel*      layoutLabel_ { nullptr };
+
+  QListWidget* imageList_  { nullptr };
+  QListWidget* bitmapList_ { nullptr };
 
   //---
 
@@ -114,6 +127,8 @@ class CTkAppDebug : public QFrame {
   };
 
   LayoutWidgets layoutWidgets_;
+
+  CQPropertyViewTree *propertyView_ { nullptr };
 
   bool updating_ { false };
 };

@@ -197,7 +197,7 @@ stringToOrient(const QString &str, Qt::Orientation &orient)
 }
 
 bool
-stringToAlign(const QString &value, Qt::Alignment &align)
+stringToAlign(const QString &value, Qt::Alignment &align, bool quiet)
 {
   align = Qt::AlignCenter;
 
@@ -212,13 +212,17 @@ stringToAlign(const QString &value, Qt::Alignment &align)
   else if (value == "center") align = Qt::AlignCenter;
   else if (value == "c"     ) align = Qt::AlignCenter;
   else if (value == "middle") align = Qt::AlignCenter;
-  else { std::cerr << "Invalid align string '" << value.toStdString() << "'\n"; return false; }
+  else {
+    if (! quiet)
+      std::cerr << "Invalid align string '" << value.toStdString() << "'\n";
+    return false;
+  }
 
   return true;
 }
 
 QString
-alignToString(Qt::Alignment &align)
+alignToString(const Qt::Alignment &align)
 {
   if      (align ==  Qt::AlignTop                     ) return "n";
   else if (align == (Qt::AlignTop    | Qt::AlignRight)) return "ne";
@@ -230,6 +234,49 @@ alignToString(Qt::Alignment &align)
   else if (align == (Qt::AlignTop    | Qt::AlignLeft )) return "nw";
   else if (align ==  Qt::AlignCenter                  ) return "center";
   return "nw";
+}
+
+bool
+stringToCapStyle(const QString &value, Qt::PenCapStyle &capStyle)
+{
+  capStyle = Qt::FlatCap;
+
+  if      (value == "round" ) capStyle = Qt::RoundCap;
+  else if (value == "square") capStyle = Qt::SquareCap;
+  else if (value == "flat"  ) capStyle = Qt::FlatCap;
+  else return false;
+
+  return true;
+}
+
+QString
+capStyleToString(const Qt::PenCapStyle &capStyle)
+{
+  if      (capStyle == Qt::RoundCap ) return "round";
+  else if (capStyle == Qt::SquareCap) return "square";
+  else if (capStyle == Qt::FlatCap  ) return "flat";
+
+  return "none";
+}
+
+bool
+stringToFillRule(const QString &value, Qt::FillRule &fillRule)
+{
+  fillRule = Qt::OddEvenFill;
+
+  if      (value == "evenodd") fillRule = Qt::OddEvenFill;
+  else if (value == "nonzero") fillRule = Qt::WindingFill;
+  else return false;
+
+  return true;
+}
+
+QString fillRuleToString(const Qt::FillRule &fillRule)
+{
+  if      (fillRule == Qt::OddEvenFill) return "evenodd";
+  else if (fillRule == Qt::WindingFill) return "nonzero";
+
+  return "none";
 }
 
 bool

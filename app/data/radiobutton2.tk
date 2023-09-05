@@ -1,0 +1,10 @@
+label .directionLabel -text "Search Direction:" -anchor e
+
+radiobutton .directionForward -indicatoron true -text "Down" \
+  -value "-forward" -variable findDirection
+radiobutton .directionBackward -text "Up" -value "-backward" \
+  -indicatoron true -variable findDirection
+
+pack .directionLabel .directionForward .directionBackward
+
+set findDirection "-forward"

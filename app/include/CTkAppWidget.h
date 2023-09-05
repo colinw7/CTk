@@ -58,20 +58,48 @@ class CTkAppWidgetEventFilter;
 class CTkAppWidget : public QObject {
   Q_OBJECT
 
+  Q_PROPERTY(QString type     READ getType)
   Q_PROPERTY(QString name     READ getName)
   Q_PROPERTY(QString fullName READ getFullName)
 
-  Q_PROPERTY(double        highlightThickness READ highlightThickness WRITE setHighlightThickness)
-  Q_PROPERTY(QString       text               READ getText            WRITE setText)
-  Q_PROPERTY(int           width              READ getWidth           WRITE setWidth)
-  Q_PROPERTY(int           height             READ getHeight          WRITE setHeight)
-  Q_PROPERTY(QString       title              READ getTitle           WRITE setTitle)
-  Q_PROPERTY(QString       icon               READ getIcon            WRITE setIcon)
-  Q_PROPERTY(QString       geometry           READ getGeometry        WRITE setGeometry)
-  Q_PROPERTY(Qt::Alignment anchor             READ anchor             WRITE setAnchor)
-  Q_PROPERTY(QString       command            READ getCommand         WRITE setCommand)
-  Q_PROPERTY(QString       xScrollCommand     READ getXScrollCommand  WRITE setXScrollCommand)
-  Q_PROPERTY(QString       yScrollCommand     READ getYScrollCommand  WRITE setYScrollCommand)
+  Q_PROPERTY(QColor background READ background WRITE setBackground)
+  Q_PROPERTY(QColor foreground READ foreground WRITE setForeground)
+
+  Q_PROPERTY(QColor activeBackground READ activeBackground WRITE setActiveBackground)
+  Q_PROPERTY(QColor activeForeground READ activeForeground WRITE setActiveForeground)
+
+  Q_PROPERTY(QColor disabledBackground READ disabledBackground WRITE setDisabledBackground)
+  Q_PROPERTY(QColor disabledForeground READ disabledForeground WRITE setDisabledForeground)
+
+  Q_PROPERTY(QColor highlightBackground READ highlightBackground WRITE setHighlightBackground)
+  Q_PROPERTY(QColor highlightForeground READ highlightForeground WRITE setHighlightForeground)
+
+  Q_PROPERTY(QColor insertBackground READ insertBackground WRITE setInsertBackground)
+
+  Q_PROPERTY(QString relief READ reliefStr WRITE setReliefStr)
+
+  Q_PROPERTY(QString       anchorStr READ anchorStr WRITE setAnchorStr)
+  Q_PROPERTY(Qt::Alignment anchor    READ anchor    WRITE setAnchor)
+
+  Q_PROPERTY(double borderWidth       READ borderWidth       WRITE setBorderWidth)
+  Q_PROPERTY(double selectBorderWidth READ selectBorderWidth WRITE setSelectBorderWidth)
+  Q_PROPERTY(double insertBorderWidth READ insertBorderWidth WRITE setInsertBorderWidth)
+  Q_PROPERTY(double insertWidth       READ insertWidth       WRITE setInsertWidth)
+
+  Q_PROPERTY(QString bitmap READ bitmap WRITE setBitmap)
+
+  Q_PROPERTY(double highlightThickness READ highlightThickness WRITE setHighlightThickness)
+
+  Q_PROPERTY(QString text     READ getText     WRITE setText)
+  Q_PROPERTY(double  width    READ getWidth    WRITE setWidth)
+  Q_PROPERTY(double  height   READ getHeight   WRITE setHeight)
+  Q_PROPERTY(QString title    READ getTitle    WRITE setTitle)
+  Q_PROPERTY(QString icon     READ getIcon     WRITE setIcon)
+  Q_PROPERTY(QString geometry READ getGeometry WRITE setGeometry)
+
+  Q_PROPERTY(QString command        READ getCommand        WRITE setCommand)
+  Q_PROPERTY(QString xScrollCommand READ getXScrollCommand WRITE setXScrollCommand)
+  Q_PROPERTY(QString yScrollCommand READ getYScrollCommand WRITE setYScrollCommand)
 
  public:
   enum class Relief {
@@ -95,6 +123,8 @@ class CTkAppWidget : public QObject {
 
   //---
 
+  CTkApp *app() const { return tk_; }
+
   CTkAppWidget *getParent() const { return parent_; }
 
   QWidget *parentWidget() const { return parent_->getQWidget(); }
@@ -110,6 +140,10 @@ class CTkAppWidget : public QObject {
 
   virtual const char *getClassName() const = 0;
 
+  //---
+
+  QString getType() const { return QString(getClassName()); }
+
   const QString &getName() const { return name_; }
 
   QString getFullName() const;
@@ -124,22 +158,67 @@ class CTkAppWidget : public QObject {
 
   //---
 
+  const QColor &background() const { return background_; }
+  void setBackground(const QColor &c);
+
+  const QColor &foreground() const { return foreground_; }
+  void setForeground(const QColor &c);
+
+  const QColor &activeBackground() const { return activeBackground_; }
+  void setActiveBackground(const QColor &c);
+
+  const QColor &activeForeground() const { return activeForeground_; }
+  void setActiveForeground(const QColor &c);
+
+  const QColor &disabledBackground() const { return disabledBackground_; }
+  void setDisabledBackground(const QColor &c);
+
+  const QColor &disabledForeground() const { return disabledForeground_; }
+  void setDisabledForeground(const QColor &c);
+
+  const QColor &highlightBackground() const { return highlightBackground_; }
+  void setHighlightBackground(const QColor &c);
+
+  const QColor &highlightForeground() const { return highlightForeground_; }
+  void setHighlightForeground(const QColor &c);
+
+  const QColor &insertBackground() const { return insertBackground_; }
+  void setInsertBackground(const QColor &c);
+
+  //---
+
   double highlightThickness() const { return highlightThickness_; }
   void setHighlightThickness(double r) { highlightThickness_ = r; }
+
+  //---
 
   const QString &getText() const { return text_; }
   virtual void setText(const QString &s) { text_ = s; }
 
-  const CTkAppImageRef &getImage() const { return image_; }
-  virtual void setImage(const CTkAppImageRef &i);
+  //---
+
+  const QString &bitmap() const { return bitmap_; }
+  bool setBitmap(const QString &s);
+
+  const QString &image() const { return image_; }
+  bool setImage(const QString &s);
+
+  const CTkAppImageRef &getImageRef() const { return imageRef_; }
+  virtual void setImageRef(const CTkAppImageRef &i);
+
+  const QString &cursor() const { return cursor_; }
+  void setCursor(const QString &s);
+
+  const CTkAppCompoundType &compoundType() const { return compoundType_; }
+  void setCompoundType(const CTkAppCompoundType &v) { compoundType_ = v; }
 
   //---
 
-  int getWidth() const;
-  void setWidth(int w);
+  virtual double getWidth() const;
+  virtual void setWidth(double w);
 
-  int getHeight() const;
-  void setHeight(int h);
+  virtual double getHeight() const;
+  virtual void setHeight(double h);
 
   //---
 
@@ -216,11 +295,7 @@ class CTkAppWidget : public QObject {
   virtual bool execOp(const Args &);
 
   virtual void show();
-
-  //---
-
-  void setBackground(const QColor &c);
-  void setForeground(const QColor &c);
+  virtual void hide();
 
   //---
 
@@ -244,8 +319,22 @@ class CTkAppWidget : public QObject {
   //--
 
   void setWidgetAnchor(const QString &value);
-  void setBorderWidth(int width);
-  void setSelectBorderWidth(int width);
+
+  //---
+
+  double borderWidth() const { return borderWidth_; }
+  void setBorderWidth(double width);
+
+  double selectBorderWidth() const { return selectBorderWidth_; }
+  void setSelectBorderWidth(double width);
+
+  double insertBorderWidth() const { return insertBorderWidth_; }
+  void setInsertBorderWidth(double width);
+
+  double insertWidth() const { return insertWidth_; }
+  void setInsertWidth(double width);
+
+  //---
 
   const QString &getOptionClass() const { return optionClass_; }
   void setOptionClass(const QString &s) { optionClass_ = s; }
@@ -255,8 +344,16 @@ class CTkAppWidget : public QObject {
   const Relief &relief() const { return relief_; }
   void setRelief(const Relief &v) { relief_ = v; }
 
+  const QString &reliefStr() const { return reliefStr_; }
+  bool setReliefStr(const QString &s);
+
+  //---
+
   const Qt::Alignment &anchor() const { return anchor_; }
   void setAnchor(const Qt::Alignment &v) { anchor_ = v; }
+
+  const QString &anchorStr() const { return anchorStr_; }
+  bool setAnchorStr(const QString &s);
 
   //---
 
@@ -295,6 +392,11 @@ class CTkAppWidget : public QObject {
 
   void setResizable(bool /*x*/, bool /*y*/) { }
 
+  //---
+
+  void setWmAtomValue(const QString &atomName, const QString &atomValue);
+  QString getWmAtomValue(const QString &atomName) const;
+
  protected:
   const QString &getCommand() const { return command_; }
   void setCommand(const QString &command) { command_ = command; }
@@ -304,6 +406,7 @@ class CTkAppWidget : public QObject {
  protected:
   using WidgetMap  = std::map<QString, CTkAppWidget *>;
   using EventDatas = std::vector<CTkAppEventData>;
+  using WmAtoms    = std::map<QString, QString>;
 
   CTkApp*       tk_     { nullptr };
   CTkAppWidget* parent_ { nullptr };
@@ -321,9 +424,16 @@ class CTkAppWidget : public QObject {
   QString xScrollCommand_;
   QString yScrollCommand_;
 
-  Relief relief_ { Relief::NONE };
+  Relief  relief_     { Relief::NONE };
+  QString reliefStr_ { };
 
   Qt::Alignment anchor_ { Qt::AlignCenter };
+  QString       anchorStr_;
+
+  double borderWidth_       { 0.0 };
+  double selectBorderWidth_ { 0.0 };
+  double insertBorderWidth_ { 0.0 };
+  double insertWidth_       { 0.0 };
 
   int padx_ { 0 };
   int pady_ { 0 };
@@ -339,10 +449,23 @@ class CTkAppWidget : public QObject {
 
   QString optionClass_;
 
+  QColor background_;
+  QColor foreground_;
+  QColor activeBackground_;
+  QColor activeForeground_;
+  QColor disabledBackground_;
+  QColor disabledForeground_;
+  QColor highlightBackground_;
+  QColor highlightForeground_;
+  QColor insertBackground_;
+
   double highlightThickness_ { -1 };
 
-  QString        text_;
-  CTkAppImageRef image_;
+  QString text_;
+
+  QString        bitmap_;
+  QString        image_;
+  CTkAppImageRef imageRef_;
 
   std::vector<QString> bindtags_;
 
@@ -358,6 +481,9 @@ class CTkAppWidget : public QObject {
   CTkAppCompoundType compoundType_ { CTkAppCompoundType::NONE };
 
   CTkAppWidgetEventFilter *eventFilter_ { nullptr };
+
+  WmAtoms wmAtoms_;
+  QString deleteWindowCmd_;
 };
 
 //---
@@ -447,7 +573,8 @@ class CTkAppButton : public CTkAppWidget {
   void setOverRaised(bool b) { overRaised_ = b; }
 
   void setText(const QString &s) override;
-  void setImage(const CTkAppImageRef &i) override;
+
+  void setImageRef(const CTkAppImageRef &i) override;
 
   void flash();
 
@@ -504,20 +631,26 @@ class CTkAppCanvas : public CTkAppWidget {
 
   const char *getClassName() const override { return "Canvas"; }
 
+  CTkAppCanvasWidget *canvasWidget() const { return qcanvas_; }
+
   Shape *insideShape() const { return insideShape_; }
 
   bool execConfig(const QString &name, const QString &value) override;
 
   bool execOp(const Args &args) override;
 
+  //---
+
+  double getWidth() const override { return width_; }
+  void setWidth(double r) override { width_ = r; }
+
+  double getHeight() const override { return height_; }
+  void setHeight(double r) override { height_ = r; }
+
+  //---
+
   bool triggerMousePressEvents(QEvent *e, int button) override;
   bool triggerMouseMoveEvents (QEvent *e, int button, bool pressed) override;
-
-  double width() const { return width_; }
-  void setWidth(double r) { width_ = r; }
-
-  double height() const { return height_; }
-  void setHeight(double r) { height_ = r; }
 
   void processShapeEvents(Shape *shape, QEvent *w, const CTkAppEventData &matchEventData);
 
@@ -592,30 +725,85 @@ struct CTkAppPoint {
 
 using CTkAppPoints = std::vector<CTkAppPoint>;
 
-class CTkAppCanvasShape {
+class CTkAppCanvasShape : public QObject {
+  Q_OBJECT
+
+  Q_PROPERTY(int id READ id)
+
+  Q_PROPERTY(bool enabled READ isEnabled WRITE setEnabled)
+  Q_PROPERTY(bool visible READ isVisible WRITE setVisible)
+
+  Q_PROPERTY(QColor          strokeColor READ strokeColor WRITE setStrokeColor)
+  Q_PROPERTY(double          strokeAlpha READ strokeAlpha WRITE setStrokeAlpha)
+  Q_PROPERTY(double          strokeWidth READ strokeWidth WRITE setStrokeWidth)
+  Q_PROPERTY(Qt::PenCapStyle strokeCap   READ strokeCap   WRITE setStrokeCap)
+
+  Q_PROPERTY(QColor fillColor READ fillColor WRITE setFillColor)
+  Q_PROPERTY(double fillAlpha READ fillAlpha WRITE setFillAlpha)
+
  public:
   using ShapeType = CTkAppCanvasShapeType;
   using Tags      = std::set<QString>;
+  using Point     = CTkAppPoint;
   using Points    = CTkAppPoints;
 
- public:
-  explicit CTkAppCanvasShape(ShapeType type) :
-   type_(type) {
-    static int lastId = 0;
+  struct OffsetData {
+    Qt::Alignment align    { };
+    bool          isAlign  { false };
+    bool          toplevel { false };
+    int           x        { 0 };
+    int           y        { 0 };
+  };
 
-    id_ = ++lastId;
-  }
+ public:
+  explicit CTkAppCanvasShape(CTkAppCanvasWidget *canvas, ShapeType type);
 
   virtual ~CTkAppCanvasShape() = default;
+
+  //---
 
   ShapeType type() const { return type_; }
 
   int id() const { return id_; }
 
+  //---
+
+  bool isEnabled() const { return enabled_; }
+  void setEnabled(bool b) { enabled_ = b; }
+
+  bool isVisible() const { return visible_; }
+  void setVisible(bool b) { visible_ = b; }
+
+  //---
+
   const Tags &tags() const { return tags_; }
   void setTags(const Tags &v) { tags_ = v; }
 
+  QString tagsStr() const;
+  bool setTagsStr(const QString &s);
+
   //---
+
+  QColor strokeColor() const { return pen_.color(); }
+  void setStrokeColor(const QColor &c) { pen_.setColor(c); }
+
+  double strokeAlpha() const { return pen_.color().alphaF(); }
+  void setStrokeAlpha(double a) { auto c = pen_.color(); c.setAlphaF(a); pen_.setColor(c); }
+
+  double strokeWidth() const { return pen_.widthF(); }
+  void setStrokeWidth(double w) { pen_.setWidthF(w); }
+
+  Qt::PenCapStyle strokeCap() const { return pen_.capStyle(); }
+  void setStrokeCap(Qt::PenCapStyle cap) { pen_.setCapStyle(cap); }
+
+  QColor fillColor() const { return brush_.color(); }
+  void setFillColor(const QColor &c) { brush_.setColor(c); }
+
+  double fillAlpha() const { return brush_.color().alphaF(); }
+  void setFillAlpha(double a) { auto c = brush_.color(); c.setAlphaF(a);
+                                brush_.setStyle(Qt::SolidPattern); brush_.setColor(c); }
+
+  //--
 
   const QPen &pen() const { return pen_; }
   void setPen(const QPen &p) { pen_ = p; }
@@ -626,16 +814,36 @@ class CTkAppCanvasShape {
   const QPen &disabledPen() const { return disabledPen_; }
   void setDisabledPen(const QPen &p) { disabledPen_ = p; }
 
+  const QPen &fillOverPen() const { return fillOverPen_; }
+  void setFillOverPen(const QPen &p) { fillOverPen_ = p; }
+
   //---
 
   const QBrush &brush() const { return brush_; }
   void setBrush(const QBrush &b) { brush_ = b; }
+
+  QString stipple() const { return stipple_; }
+  bool setStipple(const QString &str);
 
   const QBrush &activeBrush() const { return activeBrush_; }
   void setActiveBrush(const QBrush &b) { activeBrush_ = b; }
 
   const QBrush &disabledBrush() const { return disabledBrush_; }
   void setDisabledBrush(const QBrush &b) { disabledBrush_ = b; }
+
+  //---
+
+  const QBrush &outlineBrush() const { return outlineBrush_; }
+  void setOutlineBrush(const QBrush &b) { outlineBrush_ = b; }
+
+  QString outlineStipple() const { return outlineStipple_; }
+  bool setOutlineStipple(const QString &str);
+
+  const QBrush &activeOutlineBrush() const { return activeOutlineBrush_; }
+  void setActiveOutlineBrush(const QBrush &b) { activeOutlineBrush_ = b; }
+
+  const QBrush &disabledOutlineBrush() const { return disabledOutlineBrush_; }
+  void setDisabledOutlineBrush(const QBrush &b) { disabledOutlineBrush_ = b; }
 
   //---
 
@@ -656,11 +864,7 @@ class CTkAppCanvasShape {
   const Qt::Alignment &anchor() const { return anchor_; }
   void setAnchor(const Qt::Alignment &v) { anchor_ = v; }
 
-  bool isEnabled() const { return enabled_; }
-  void setEnabled(bool b) { enabled_ = b; }
-
-  bool isVisible() const { return visible_; }
-  void setVisible(bool b) { visible_ = b; }
+  //---
 
   virtual QRectF rect() const = 0;
 
@@ -683,20 +887,47 @@ class CTkAppCanvasShape {
 
   QPainterPath calcStrokePath(const QPainterPath &path, const QPen &pen) const;
 
+  const OffsetData &stippleOffset() const { return  offsetData_; }
+  void setStippleOffset(const OffsetData &offsetData) { offsetData_ = offsetData; }
+
+  const OffsetData &stippleOutlineOffset() { return outlineOffsetData_; }
+  void setStippleOutlineOffset(const OffsetData &offsetData) { outlineOffsetData_ = offsetData; }
+
+  static bool stringToOffsetData(const QString &str, OffsetData &offsetData);
+  static QString offsetDataToString(const OffsetData &offsetData);
+
  protected:
-  ShapeType     type_  { ShapeType::NONE };
-  int           id_    { 0 };
-  Tags          tags_;
-  QPen          pen_;
-  QPen          activePen_;
-  QPen          disabledPen_;
-  QBrush        brush_;
-  QBrush        activeBrush_;
-  QBrush        disabledBrush_;
-  QFont         font_;
+  CTkAppCanvasWidget* canvas_ { nullptr };
+
+  ShapeType type_ { ShapeType::NONE };
+  int       id_   { 0 };
+
+  Tags tags_;
+
+  QPen pen_;
+  QPen activePen_;
+  QPen disabledPen_;
+  QPen fillOverPen_;
+
+  QBrush  brush_;
+  QString stipple_;
+  QBrush  activeBrush_;
+  QBrush  disabledBrush_;
+
+  QBrush  outlineBrush_;
+  QString outlineStipple_;
+  QBrush  activeOutlineBrush_;
+  QBrush  disabledOutlineBrush_;
+
+  QFont font_;
+
   Qt::Alignment anchor_ { Qt::AlignCenter };
   QTransform    transform_;
-  Qt::FillRule  fillRule_ { Qt::OddEvenFill };
+
+  Qt::FillRule fillRule_ { Qt::OddEvenFill };
+
+  OffsetData offsetData_;
+  OffsetData outlineOffsetData_;
 
   bool enabled_ { true };
   bool visible_ { true };
@@ -704,22 +935,148 @@ class CTkAppCanvasShape {
   mutable QRectF drawRect_;
 };
 
-class CTkAppCanvasWidget : public QWidget {
+class CTkAppCanvasRectangleShape : public CTkAppCanvasShape {
+  Q_OBJECT
+
+  Q_PROPERTY(double x1 READ x1 WRITE setX1)
+  Q_PROPERTY(double y1 READ y1 WRITE setY1)
+  Q_PROPERTY(double x2 READ x2 WRITE setX2)
+  Q_PROPERTY(double y2 READ y2 WRITE setY2)
+
+ public:
+  explicit CTkAppCanvasRectangleShape(CTkAppCanvasWidget *canvas, double x1, double y1,
+                                      double x2, double y2) :
+   CTkAppCanvasShape(canvas, ShapeType::RECTANGLE), x1_(x1), y1_(y1), x2_(x2), y2_(y2) {
+    updatePaths();
+  }
+
+  //---
+
+  double x1() const { return x1_; } void setX1(double x1) { x1_ = x1; updatePaths(); }
+  double y1() const { return y1_; } void setY1(double y1) { y1_ = y1; updatePaths(); }
+  double x2() const { return x2_; } void setX2(double x2) { x2_ = x2; updatePaths(); }
+  double y2() const { return y2_; } void setY2(double y2) { y2_ = y2; updatePaths(); }
+
+  //---
+
+  bool inside(double x, double y) const override {
+    return rect().contains(QPointF(x, y));
+  }
+
+  double distance(double x, double y) override {
+    return std::min({ Point(x1_, y1_).distance(x, y),
+                      Point(x1_, y2_).distance(x, y),
+                      Point(x2_, y1_).distance(x, y),
+                      Point(x2_, y2_).distance(x, y)});
+  }
+
+  void moveBy(double dx, double dy) override {
+    x1_ += dx; y1_ += dy;
+    x2_ += dx; y2_ += dy;
+
+    updatePaths();
+  }
+
+  QRectF rect() const override { return drawRect(); }
+
+  const QPainterPath &path() const { return path_; }
+
+  const QPainterPath &strokePath() const { return strokePath_; }
+
+ private:
+  void updatePaths() {
+    auto rect = calcRect();
+
+    path_ = QPainterPath();
+    path_.addRect(rect);
+
+    strokePath_ = calcStrokePath(path_, pen());
+
+    setDrawRect(path_.boundingRect().united(strokePath_.boundingRect()));
+  }
+
+  QRectF calcRect() const { return QRectF(x1_, y1_, x2_ - x1_, y2_ - y1_); }
+
+ protected:
+  double x1_ { 0.0 };
+  double y1_ { 0.0 };
+  double x2_ { 1.0 };
+  double y2_ { 1.0 };
+
+  QPainterPath path_;
+  QPainterPath strokePath_;
+};
+
+class CTkAppCanvasOvalShape : public CTkAppCanvasShape {
+  Q_OBJECT
+
+  Q_PROPERTY(double x1 READ x1 WRITE setX1)
+  Q_PROPERTY(double y1 READ y1 WRITE setY1)
+  Q_PROPERTY(double x2 READ x2 WRITE setX2)
+  Q_PROPERTY(double y2 READ y2 WRITE setY2)
+
+ public:
+  explicit CTkAppCanvasOvalShape(CTkAppCanvasWidget *canvas, double x1, double y1,
+                                 double x2, double y2) :
+   CTkAppCanvasShape(canvas, ShapeType::OVAL), x1_(x1), y1_(y1), x2_(x2), y2_(y2) {
+    updatePaths();
+  }
+
+  double x1() const { return x1_; } void setX1(double x1) { x1_ = x1; updatePaths(); }
+  double y1() const { return y1_; } void setY1(double y1) { y1_ = y1; updatePaths(); }
+  double x2() const { return x2_; } void setX2(double x2) { x2_ = x2; updatePaths(); }
+  double y2() const { return y2_; } void setY2(double y2) { y2_ = y2; updatePaths(); }
+
+  bool inside(double x, double y) const override {
+    return rect().contains(QPointF(x, y));
+  }
+
+  double distance(double x, double y) override {
+    return std::min({ Point(x1_, y1_).distance(x, y),
+                      Point(x1_, y2_).distance(x, y),
+                      Point(x2_, y1_).distance(x, y),
+                      Point(x2_, y2_).distance(x, y)});
+  }
+
+  void moveBy(double dx, double dy) override {
+    x1_ += dx; y1_ += dy;
+    x2_ += dx; y2_ += dy;
+
+    updatePaths();
+  }
+
+  QRectF rect() const override { return drawRect(); }
+
+  const QPainterPath &path() const { return path_; }
+
+  const QPainterPath &strokePath() const { return strokePath_; }
+
+ private:
+  void updatePaths() {
+    auto rect = calcRect();
+
+    path_ = QPainterPath();
+    path_.addEllipse(rect);
+
+    strokePath_ = calcStrokePath(path_, pen());
+  }
+
+  QRectF calcRect() const { return QRectF(x1_, y1_, x2_ - x1_, y2_ - y1_); }
+
+ protected:
+  double x1_ { 0.0 };
+  double y1_ { 0.0 };
+  double x2_ { 1.0 };
+  double y2_ { 1.0 };
+
+  QPainterPath path_;
+  QPainterPath strokePath_;
+};
+
+class CTkAppCanvasLineShape : public CTkAppCanvasShape {
   Q_OBJECT
 
  public:
-  using Shape  = CTkAppCanvasShape;
-  using Shapes = std::vector<Shape *>;
-  using Point  = CTkAppPoint;
-  using Points = CTkAppPoints;
-
-  enum class ArcType {
-    NONE,
-    PIE,
-    CHORD,
-    ARC
-  };
-
   enum class ArrowType {
     NONE,
     FIRST,
@@ -727,590 +1084,600 @@ class CTkAppCanvasWidget : public QWidget {
     BOTH
   };
 
-  class Rectangle : public Shape {
-   public:
-    explicit Rectangle(double x1, double y1, double x2, double y2) :
-     Shape(ShapeType::RECTANGLE), x1_(x1), y1_(y1), x2_(x2), y2_(y2) {
-      updatePaths();
+ public:
+  explicit CTkAppCanvasLineShape(CTkAppCanvasWidget *canvas, const Points &points) :
+   CTkAppCanvasShape(canvas, ShapeType::LINE), points_(points) {
+    updatePath();
+  }
+
+  const Points &points() const { return points_; }
+
+  bool inside(double x, double y) const override {
+    return qStrokePath_.contains(QPointF(x, y));
+  }
+
+  QRectF rect() const override {
+    QPainterPath path;
+    uint i = 0;
+    for (auto &p : points_) {
+      if (i == 0)
+        path.moveTo(p.x, p.y);
+      else
+        path.lineTo(p.x, p.y);
+      ++i;
     }
+    return path.boundingRect();
+  }
 
-    double x1() const { return x1_; }
-    double y1() const { return y1_; }
-    double x2() const { return x2_; }
-    double y2() const { return y2_; }
+  double distance(double x, double y) override {
+    double dist = 1E50;
 
-    bool inside(double x, double y) const override {
-      return rect().contains(QPointF(x, y));
+    for (auto &p : points_)
+      dist = std::min(dist, p.distance(x, y));
+
+    return dist;
+  }
+
+  void moveBy(double dx, double dy) override {
+    for (auto &p : points_)
+      p.moveBy(dx, dy);
+
+    updatePath();
+  }
+
+  bool getPoints(Points &points) const override {
+    points = points_;
+
+    return true;
+  }
+
+  bool setPoints(const Points &points) override {
+    points_ = points;
+
+    updatePath();
+
+    return true;
+  }
+
+  const ArrowType &arrowType() const { return arrowType_; }
+  void setArrowType(const ArrowType &t) { arrowType_ = t; updatePath(); }
+
+  const QPainterPath &qpath() const { return qpath_; }
+
+  const QPainterPath &getQStrokePath() const { return qStrokePath_; }
+  void setQStrokePath(const QPainterPath &v) { qStrokePath_ = v; }
+
+ protected:
+  void updatePath() {
+    qpath_.clear();
+    auto n = points_.size();
+    for (uint i = 0; i < n; ++i) {
+      const auto &point = points_[i];
+
+      if (i == 0)
+        qpath_.moveTo(point.x, point.y);
+      else
+        qpath_.lineTo(point.x, point.y);
     }
+  }
 
-    double distance(double x, double y) override {
-      return std::min({ Point(x1_, y1_).distance(x, y),
-                        Point(x1_, y2_).distance(x, y),
-                        Point(x2_, y1_).distance(x, y),
-                        Point(x2_, y2_).distance(x, y)});
-    }
-
-    void moveBy(double dx, double dy) override {
-      x1_ += dx; y1_ += dy;
-      x2_ += dx; y2_ += dy;
-
-      updatePaths();
-    }
-
-    void updatePaths() {
-      auto rect = calcRect();
-
-      path_ = QPainterPath();
-      path_.addRect(rect);
-
-      strokePath_ = calcStrokePath(path_, pen());
-
-      setDrawRect(path_.boundingRect().united(strokePath_.boundingRect()));
-    }
-
-    QRectF calcRect() const { return QRectF(x1_, y1_, x2_ - x1_, y2_ - y1_); }
-
-    QRectF rect() const override { return drawRect(); }
-
-    const QPainterPath &path() const { return path_; }
-
-    const QPainterPath &strokePath() const { return strokePath_; }
-
-   protected:
-    double       x1_ { 0.0 };
-    double       y1_ { 0.0 };
-    double       x2_ { 1.0 };
-    double       y2_ { 1.0 };
-    QPainterPath path_;
-    QPainterPath strokePath_;
-  };
-
-  class Oval : public Shape {
-   public:
-    explicit Oval(double x1, double y1, double x2, double y2) :
-     Shape(ShapeType::OVAL), x1_(x1), y1_(y1), x2_(x2), y2_(y2) {
-    }
-
-    double x1() const { return x1_; }
-    double y1() const { return y1_; }
-    double x2() const { return x2_; }
-    double y2() const { return y2_; }
-
-    bool inside(double x, double y) const override {
-      return rect().contains(QPointF(x, y));
-    }
-
-    double distance(double x, double y) override {
-      return std::min({ Point(x1_, y1_).distance(x, y),
-                        Point(x1_, y2_).distance(x, y),
-                        Point(x2_, y1_).distance(x, y),
-                        Point(x2_, y2_).distance(x, y)});
-    }
-
-    void moveBy(double dx, double dy) override {
-      x1_ += dx; y1_ += dy;
-      x2_ += dx; y2_ += dy;
-    }
-
-    QRectF rect() const override { return QRectF(x1_, y1_, x2_ - x1_, y2_ - y1_); }
-
-   protected:
-    double x1_ { 0.0 };
-    double y1_ { 0.0 };
-    double x2_ { 1.0 };
-    double y2_ { 1.0 };
-  };
-
-  class Line : public Shape {
-   public:
-    explicit Line(const Points &points) :
-     Shape(ShapeType::LINE), points_(points) {
-      updatePath();
-    }
-
-    const Points &points() const { return points_; }
-
-    bool inside(double x, double y) const override {
-      return qStrokePath_.contains(QPointF(x, y));
-    }
-
-    QRectF rect() const override {
-      QPainterPath path;
-      uint i = 0;
-      for (auto &p : points_) {
-        if (i == 0)
-          path.moveTo(p.x, p.y);
-        else
-          path.lineTo(p.x, p.y);
-        ++i;
-      }
-      return path.boundingRect();
-    }
-
-    double distance(double x, double y) override {
-      double dist = 1E50;
-
-      for (auto &p : points_)
-        dist = std::min(dist, p.distance(x, y));
-
-      return dist;
-    }
-
-    void moveBy(double dx, double dy) override {
-      for (auto &p : points_)
-        p.moveBy(dx, dy);
-
-      updatePath();
-    }
-
-    bool getPoints(Points &points) const override {
-      points = points_;
-
-      return true;
-    }
-
-    bool setPoints(const Points &points) override {
-      points_ = points;
-
-      updatePath();
-
-      return true;
-    }
-
-    const ArrowType &arrowType() const { return arrowType_; }
-    void setArrowType(const ArrowType &t) { arrowType_ = t; updatePath(); }
-
-    const QPainterPath &qpath() const { return qpath_; }
-
-    const QPainterPath &getQStrokePath() const { return qStrokePath_; }
-    void setQStrokePath(const QPainterPath &v) { qStrokePath_ = v; }
-
-   protected:
-    void updatePath() {
-      qpath_.clear();
-      auto n = points_.size();
-      for (uint i = 0; i < n; ++i) {
-        const auto &point = points_[i];
-
-        if (i == 0)
-          qpath_.moveTo(point.x, point.y);
-        else
-          qpath_.lineTo(point.x, point.y);
-      }
-    }
-
-   protected:
-    Points       points_;
-    ArrowType    arrowType_ { ArrowType::NONE };
-    QPainterPath qpath_;
-    QPainterPath qStrokePath_;
-  };
+ protected:
+  Points       points_;
+  ArrowType    arrowType_ { ArrowType::NONE };
+  QPainterPath qpath_;
+  QPainterPath qStrokePath_;
+};
 
 #ifdef CTK_APP_TKPATH
-  class Path : public Shape {
-   public:
-    explicit Path(const QString &pathStr, const QPainterPath &qpath) :
-     Shape(ShapeType::PATH), pathStr_(pathStr), qpath_(qpath) {
-    }
+class CTkAppCanvasPathShape : public CTkAppCanvasShape {
+  Q_OBJECT
 
-    const QString &pathStr() const { return pathStr_; }
+ public:
+  explicit CTkAppCanvasPathShape(CTkAppCanvasWidget *canvas, const QString &pathStr,
+                                 const QPainterPath &qpath) :
+   CTkAppCanvasShape(canvas, ShapeType::PATH), pathStr_(pathStr), qpath_(qpath) {
+  }
 
-    QRectF rect() const override {
-      return qpath_.boundingRect();
-    }
+  const QString &pathStr() const { return pathStr_; }
 
-    bool inside(double x, double y) const override {
-      return qpath_.contains(QPointF(x, y)) || qStrokePath_.contains(QPointF(x, y));
-    }
+  QRectF rect() const override {
+    return qpath_.boundingRect();
+  }
 
-    double distance(double, double) override {
-      return 1E50;
-    }
+  bool inside(double x, double y) const override {
+    return qpath_.contains(QPointF(x, y)) || qStrokePath_.contains(QPointF(x, y));
+  }
 
-    void moveBy(double dx, double dy) override {
-      qpath_.translate(dx, dy);
-    }
+  double distance(double, double) override {
+    return 1E50;
+  }
 
-    bool getPoints(Points &) const override {
-      return false;
-    }
+  void moveBy(double dx, double dy) override {
+    qpath_.translate(dx, dy);
+  }
 
-    bool setPoints(const Points &) override {
-      return false;
-    }
+  bool getPoints(Points &) const override {
+    return false;
+  }
 
-    const QPainterPath &qpath() const { return qpath_; }
+  bool setPoints(const Points &) override {
+    return false;
+  }
 
-    const QPainterPath &getQStrokePath() const { return qStrokePath_; }
-    void setQStrokePath(const QPainterPath &v) { qStrokePath_ = v; }
+  const QPainterPath &qpath() const { return qpath_; }
 
-   protected:
-    QString      pathStr_;
-    QPainterPath qpath_;
-    QPainterPath qStrokePath_;
-  };
+  const QPainterPath &getQStrokePath() const { return qStrokePath_; }
+  void setQStrokePath(const QPainterPath &v) { qStrokePath_ = v; }
+
+ protected:
+  QString      pathStr_;
+  QPainterPath qpath_;
+  QPainterPath qStrokePath_;
+};
 #endif
 
-  class Polygon : public Shape {
-   public:
-    explicit Polygon(const Points &points) :
-     Shape(ShapeType::POLYGON), points_(points) {
-      updatePath();
+class CTkAppCanvasPolygonShape : public CTkAppCanvasShape {
+  Q_OBJECT
+
+ public:
+  explicit CTkAppCanvasPolygonShape(CTkAppCanvasWidget *canvas, const Points &points) :
+   CTkAppCanvasShape(canvas, ShapeType::POLYGON), points_(points) {
+    updatePath();
+  }
+
+  const Points &points() const { return points_; }
+
+  QRectF rect() const override {
+    return qpath_.boundingRect();
+  }
+
+  bool inside(double x, double y) const override {
+    return qpath_.contains(QPointF(x, y));
+  }
+
+  double distance(double x, double y) override {
+    double dist = 1E50;
+
+    for (auto &p : points_)
+      dist = std::min(dist, p.distance(x, y));
+
+    return dist;
+  }
+
+  void moveBy(double dx, double dy) override {
+    for (auto &p : points_)
+      p.moveBy(dx, dy);
+
+    updatePath();
+  }
+
+  bool getPoints(Points &points) const override {
+    points = points_;
+
+    return true;
+  }
+
+  bool setPoints(const Points &points) override {
+    points_ = points;
+
+    updatePath();
+
+    return true;
+  }
+
+  const QPainterPath &qpath() const { return qpath_; }
+
+ protected:
+  void updatePath() {
+    qpath_.clear();
+
+    auto n = points_.size();
+
+    for (uint i = 0; i < n; ++i) {
+      const auto &p = points_[i];
+
+      if (i == 0)
+        qpath_.moveTo(p.x, p.y);
+      else
+        qpath_.lineTo(p.x, p.y);
     }
 
-    const Points &points() const { return points_; }
+    qpath_.closeSubpath();
+  }
 
-    QRectF rect() const override {
-      return qpath_.boundingRect();
-    }
+ protected:
+  Points       points_;
+  QPainterPath qpath_;
+};
 
-    bool inside(double x, double y) const override {
-      return qpath_.contains(QPointF(x, y));
-    }
+class CTkAppCanvasArcShape : public CTkAppCanvasShape {
+  Q_OBJECT
 
-    double distance(double x, double y) override {
-      double dist = 1E50;
-
-      for (auto &p : points_)
-        dist = std::min(dist, p.distance(x, y));
-
-      return dist;
-    }
-
-    void moveBy(double dx, double dy) override {
-      for (auto &p : points_)
-        p.moveBy(dx, dy);
-
-      updatePath();
-    }
-
-    bool getPoints(Points &points) const override {
-      points = points_;
-
-      return true;
-    }
-
-    bool setPoints(const Points &points) override {
-      points_ = points;
-
-      updatePath();
-
-      return true;
-    }
-
-    const QPainterPath &qpath() const { return qpath_; }
-
-   protected:
-    void updatePath() {
-      qpath_.clear();
-
-      auto n = points_.size();
-
-      for (uint i = 0; i < n; ++i) {
-        const auto &p = points_[i];
-
-        if (i == 0)
-          qpath_.moveTo(p.x, p.y);
-        else
-          qpath_.lineTo(p.x, p.y);
-      }
-
-      qpath_.closeSubpath();
-    }
-
-   protected:
-    Points       points_;
-    QPainterPath qpath_;
+ public:
+  enum class ArcType {
+    NONE,
+    PIE,
+    CHORD,
+    ARC
   };
 
-  class Arc : public Shape {
-   public:
-    explicit Arc(const Points &points) :
-     Shape(ShapeType::ARC), points_(points) {
-      updatePath();
-    }
+ public:
+  explicit CTkAppCanvasArcShape(CTkAppCanvasWidget *canvas, const Points &points) :
+   CTkAppCanvasShape(canvas, ShapeType::ARC), points_(points) {
+    updatePath();
+  }
 
-    const Points &points() const { return points_; }
+  const Points &points() const { return points_; }
 
-    int start() const { return start_; }
-    void setStart(int i) { start_ = i; updatePath(); }
+  int start() const { return start_; }
+  void setStart(int i) { start_ = i; updatePath(); }
 
-    int extent() const { return extent_; }
-    void setExtent(int i) { extent_ = i; updatePath(); }
+  int extent() const { return extent_; }
+  void setExtent(int i) { extent_ = i; updatePath(); }
 
-    const ArcType &arcType() const { return arcType_; }
-    void setArcType(const ArcType &t) { arcType_ = t; updatePath(); }
+  const ArcType &arcType() const { return arcType_; }
+  void setArcType(const ArcType &t) { arcType_ = t; updatePath(); }
 
-    QRectF rect() const override {
-      return qpath_.boundingRect();
-    }
+  QRectF rect() const override {
+    return qpath_.boundingRect();
+  }
 
-    bool inside(double x, double y) const override {
-      return qpath_.contains(QPointF(x, y));
-    }
+  bool inside(double x, double y) const override {
+    return qpath_.contains(QPointF(x, y));
+  }
 
-    double distance(double x, double y) override {
-      double dist = 1E50;
+  double distance(double x, double y) override {
+    double dist = 1E50;
 
-      for (auto &p : points_)
-        dist = std::min(dist, p.distance(x, y));
+    for (auto &p : points_)
+      dist = std::min(dist, p.distance(x, y));
 
-      return dist;
-    }
+    return dist;
+  }
 
-    void moveBy(double dx, double dy) override {
-      for (auto &p : points_)
-        p.moveBy(dx, dy);
-    }
+  void moveBy(double dx, double dy) override {
+    for (auto &p : points_)
+      p.moveBy(dx, dy);
+  }
 
-    bool getPoints(Points &points) const override {
-      points = points_;
+  bool getPoints(Points &points) const override {
+    points = points_;
 
-      return true;
-    }
+    return true;
+  }
 
-    bool setPoints(const Points &points) override {
-      points_ = points;
+  bool setPoints(const Points &points) override {
+    points_ = points;
 
-      updatePath();
+    updatePath();
 
-      return true;
-    }
+    return true;
+  }
 
-    const QPainterPath &qpath() const { return qpath_; }
+  const QPainterPath &qpath() const { return qpath_; }
 
-   protected:
-    void updatePath() {
-      qpath_.clear();
-      assert(points_.size() == 2);
-      QRectF r(points_[0].x, points_[0].y,
-               points_[1].x - points_[0].x, points_[1].y - points_[0].y);
-      qpath_.arcMoveTo(r, start());
-      qpath_.arcTo(r, start(), extent());
-    }
+ protected:
+  void updatePath() {
+    qpath_.clear();
+    assert(points_.size() == 2);
+    QRectF r(points_[0].x, points_[0].y,
+             points_[1].x - points_[0].x, points_[1].y - points_[0].y);
+    qpath_.arcMoveTo(r, start());
+    qpath_.arcTo(r, start(), extent());
+  }
 
-   protected:
-    Points       points_;
-    int          start_   { 0 };
-    int          extent_  { 360 };
-    ArcType      arcType_ { ArcType::ARC };
-    QPainterPath qpath_;
-  };
+ protected:
+  Points       points_;
+  int          start_   { 0 };
+  int          extent_  { 360 };
+  ArcType      arcType_ { ArcType::ARC };
+  QPainterPath qpath_;
+};
 
 #ifdef CTK_APP_TKPATH
-  class Circle : public Shape {
-   public:
-    explicit Circle(double xc, double yc) :
-     Shape(ShapeType::CIRCLE), xc_(xc), yc_(yc) {
-      updatePath();
-    }
+class CTkAppCanvasCircleShape : public CTkAppCanvasShape {
+  Q_OBJECT
 
-    double radius() const { return r_; }
-    void setRadius(double r) { r_ = r; updatePath(); }
+ public:
+  explicit CTkAppCanvasCircleShape(CTkAppCanvasWidget *canvas, double xc, double yc) :
+   CTkAppCanvasShape(canvas, ShapeType::CIRCLE), xc_(xc), yc_(yc) {
+    updatePath();
+  }
 
-    QRectF rect() const override { return QRectF(xc_ - r_, yc_ - r_, 2*r_, 2*r_); }
+  double radius() const { return r_; }
+  void setRadius(double r) { r_ = r; updatePath(); }
 
-    bool inside(double x, double y) const override {
-      return qpath_.contains(QPointF(x, y));
-    }
+  QRectF rect() const override { return QRectF(xc_ - r_, yc_ - r_, 2*r_, 2*r_); }
 
-    double distance(double x, double y) override {
-      double dist = std::max(std::hypot(x - xc_, y - yc_) - r_, 0.0);
+  bool inside(double x, double y) const override {
+    return qpath_.contains(QPointF(x, y));
+  }
 
-      return dist;
-    }
+  double distance(double x, double y) override {
+    double dist = std::max(std::hypot(x - xc_, y - yc_) - r_, 0.0);
 
-    void moveBy(double dx, double dy) override {
-      xc_ += dx;
-      yc_ += dy;
+    return dist;
+  }
 
-      updatePath();
-    }
+  void moveBy(double dx, double dy) override {
+    xc_ += dx;
+    yc_ += dy;
 
-    bool getPoints(Points &) const override {
-      return false;
-    }
+    updatePath();
+  }
 
-    bool setPoints(const Points &) override {
-      return false;
-    }
+  bool getPoints(Points &) const override {
+    return false;
+  }
 
-    const QPainterPath &qpath() const { return qpath_; }
+  bool setPoints(const Points &) override {
+    return false;
+  }
 
-   protected:
-    void updatePath() {
-      qpath_.clear();
-      qpath_.addEllipse(rect());
-    }
+  const QPainterPath &qpath() const { return qpath_; }
 
-   protected:
-    double       xc_ { 0.0 };
-    double       yc_ { 0.0 };
-    double       r_  { 1.0 };
-    QPainterPath qpath_;
-  };
+ protected:
+  void updatePath() {
+    qpath_.clear();
+    qpath_.addEllipse(rect());
+  }
 
-  class Ellipse : public Shape {
-   public:
-    explicit Ellipse(double xc, double yc) :
-     Shape(ShapeType::ELLIPSE), xc_(xc), yc_(yc) {
-      updatePath();
-    }
+ protected:
+  double       xc_ { 0.0 };
+  double       yc_ { 0.0 };
+  double       r_  { 1.0 };
+  QPainterPath qpath_;
+};
 
-    double radiusX() const { return xr_; }
-    void setRadiusX(double r) { xr_ = r; updatePath(); }
+class CTkAppCanvasEllipseShape : public CTkAppCanvasShape {
+  Q_OBJECT
 
-    double radiusY() const { return yr_; }
-    void setRadiusY(double r) { yr_ = r; updatePath(); }
+ public:
+  explicit CTkAppCanvasEllipseShape(CTkAppCanvasWidget *canvas, double xc, double yc) :
+   CTkAppCanvasShape(canvas, ShapeType::ELLIPSE), xc_(xc), yc_(yc) {
+    updatePath();
+  }
 
-    QRectF rect() const override { return QRectF(xc_ - xr_, yc_ - yr_, 2*xr_, 2*yr_); }
+  double radiusX() const { return xr_; }
+  void setRadiusX(double r) { xr_ = r; updatePath(); }
 
-    bool inside(double x, double y) const override {
-      return qpath_.contains(QPointF(x, y));
-    }
+  double radiusY() const { return yr_; }
+  void setRadiusY(double r) { yr_ = r; updatePath(); }
 
-    double distance(double x, double y) override {
-      double dist = std::max(std::hypot(x - xc_, y - yc_) - xr_, 0.0);
+  QRectF rect() const override { return QRectF(xc_ - xr_, yc_ - yr_, 2*xr_, 2*yr_); }
 
-      return dist;
-    }
+  bool inside(double x, double y) const override {
+    return qpath_.contains(QPointF(x, y));
+  }
 
-    void moveBy(double dx, double dy) override {
-      xc_ += dx;
-      yc_ += dy;
+  double distance(double x, double y) override {
+    double dist = std::max(std::hypot(x - xc_, y - yc_) - xr_, 0.0);
 
-      updatePath();
-    }
+    return dist;
+  }
 
-    bool getPoints(Points &) const override {
-      return false;
-    }
+  void moveBy(double dx, double dy) override {
+    xc_ += dx;
+    yc_ += dy;
 
-    bool setPoints(const Points &) override {
-      return false;
-    }
+    updatePath();
+  }
 
-    const QPainterPath &qpath() const { return qpath_; }
+  bool getPoints(Points &) const override {
+    return false;
+  }
 
-   protected:
-    void updatePath() {
-      qpath_.clear();
-      qpath_.addEllipse(rect());
-    }
+  bool setPoints(const Points &) override {
+    return false;
+  }
 
-   protected:
-    double       xc_ { 0.0 };
-    double       yc_ { 0.0 };
-    double       xr_ { 1.0 };
-    double       yr_ { 1.0 };
-    QPainterPath qpath_;
-  };
+  const QPainterPath &qpath() const { return qpath_; }
+
+ protected:
+  void updatePath() {
+    qpath_.clear();
+    qpath_.addEllipse(rect());
+  }
+
+ protected:
+  double       xc_ { 0.0 };
+  double       yc_ { 0.0 };
+  double       xr_ { 1.0 };
+  double       yr_ { 1.0 };
+  QPainterPath qpath_;
+};
 #endif
 
-  class Text : public Shape {
-   public:
-    explicit Text(const Point &p, const QString &text) :
-     Shape(ShapeType::TEXT), p_(p), text_(text) {
-    }
+class CTkAppCanvasTextShape : public CTkAppCanvasShape {
+  Q_OBJECT
 
-    const Point &pos() const { return p_; }
+ public:
+  explicit CTkAppCanvasTextShape(CTkAppCanvasWidget *canvas, const Point &p, const QString &text) :
+   CTkAppCanvasShape(canvas, ShapeType::TEXT), p_(p), text_(text) {
+  }
 
-    const QString &getText() const { return text_; }
-    void setText(const QString &s) { text_ = s; }
+  const Point &pos() const { return p_; }
 
-    Qt::Alignment textAnchor() const { return textAnchor_; }
-    void setTextAnchor(const Qt::Alignment &textAnchor) { textAnchor_ = textAnchor; }
+  const QString &getText() const { return text_; }
+  void setText(const QString &s) { text_ = s; }
 
-    const QFont &font() const { return font_; }
-    void setFont(const QFont &f) { font_ = f; }
+  Qt::Alignment textAnchor() const { return textAnchor_; }
+  void setTextAnchor(const Qt::Alignment &textAnchor) { textAnchor_ = textAnchor; }
 
-    const Qt::Alignment &justify() const { return justify_; }
-    void setJustify(const Qt::Alignment &v) { justify_ = v; }
+  const QFont &font() const { return font_; }
+  void setFont(const QFont &f) { font_ = f; }
 
-    QRectF rect() const override {
-      return QRectF(); // TODO
-    }
+  const Qt::Alignment &justify() const { return justify_; }
+  void setJustify(const Qt::Alignment &v) { justify_ = v; }
 
-    bool inside(double /*x*/, double /*y*/) const override { return false; }
+  QRectF rect() const override {
+    return QRectF(); // TODO
+  }
 
-    double distance(double x, double y) override {
-      return p_.distance(x, y);
-    }
+  bool inside(double /*x*/, double /*y*/) const override { return false; }
 
-    void moveBy(double dx, double dy) override {
-      p_.moveBy(dx, dy);
-    }
+  double distance(double x, double y) override {
+    return p_.distance(x, y);
+  }
 
-   protected:
-    Point         p_;
-    QString       text_;
-    QFont         font_;
-    Qt::Alignment justify_    { Qt::AlignLeft | Qt::AlignTop };
-    Qt::Alignment textAnchor_ { Qt::AlignLeft };
-  };
+  void moveBy(double dx, double dy) override {
+    p_.moveBy(dx, dy);
+  }
 
-  class Image : public Shape {
-   public:
-    explicit Image(const Point &p, const CTkAppImageRef &image) :
-     Shape(ShapeType::IMAGE), p_(p), image_(image) {
-    }
+ protected:
+  Point         p_;
+  QString       text_;
+  QFont         font_;
+  Qt::Alignment justify_    { Qt::AlignLeft | Qt::AlignTop };
+  Qt::Alignment textAnchor_ { Qt::AlignLeft };
+};
 
-    const Point &pos() const { return p_; }
+class CTkAppCanvasImageShape : public CTkAppCanvasShape {
+  Q_OBJECT
 
-    const CTkAppImageRef &getImage() const { return image_; }
-    void setImage(const CTkAppImageRef &i) { image_ = i; }
+ public:
+  explicit CTkAppCanvasImageShape(CTkAppCanvasWidget *canvas, const Point &p,
+                                  const CTkAppImageRef &image) :
+   CTkAppCanvasShape(canvas, ShapeType::IMAGE), p_(p), image_(image) {
+  }
 
-    QRectF rect() const override { return drawRect(); }
+  const Point &pos() const { return p_; }
 
-    bool inside(double x, double y) const override {
-      return drawRect().contains(QPointF(x, y));
-    }
+  const CTkAppImageRef &getImage() const { return image_; }
 
-    double distance(double x, double y) override {
-      return p_.distance(x, y);
-    }
+  void setImage(const CTkAppImageRef &i) { image_ = i; }
 
-    void moveBy(double dx, double dy) override {
-      p_.moveBy(dx, dy);
-    }
+  QRectF rect() const override { return drawRect(); }
 
-   protected:
-    Point          p_;
-    CTkAppImageRef image_;
-  };
+  bool inside(double x, double y) const override {
+    return drawRect().contains(QPointF(x, y));
+  }
 
-  class Bitmap : public Shape {
-   public:
-    explicit Bitmap(const Point &p, const CTkAppImageRef &image) :
-     Shape(ShapeType::BITMAP), p_(p), image_(image) {
-    }
+  double distance(double x, double y) override {
+    return p_.distance(x, y);
+  }
 
-    const Point &pos() const { return p_; }
+  void moveBy(double dx, double dy) override {
+    p_.moveBy(dx, dy);
+  }
 
-    const CTkAppImageRef &getImage() const { return image_; }
-    void setImage(const CTkAppImageRef &i) { image_ = i; }
+ protected:
+  Point          p_;
+  CTkAppImageRef image_;
+};
 
-    QRectF rect() const override { return drawRect(); }
+class CTkAppCanvasBitmapShape : public CTkAppCanvasShape {
+  Q_OBJECT
 
-    bool inside(double /*x*/, double /*y*/) const override { return false; }
+  Q_PROPERTY(QColor background READ background WRITE setBackground)
+  Q_PROPERTY(QColor foreground READ foreground WRITE setForeground)
 
-    double distance(double x, double y) override {
-      return p_.distance(x, y);
-    }
+  Q_PROPERTY(QColor activeBackground READ activeBackground WRITE setActiveBackground)
+  Q_PROPERTY(QColor activeForeground READ activeForeground WRITE setActiveForeground)
 
-    void moveBy(double dx, double dy) override {
-      p_.moveBy(dx, dy);
-    }
+  Q_PROPERTY(QColor disabledBackground READ disabledBackground WRITE setDisabledBackground)
+  Q_PROPERTY(QColor disabledForeground READ disabledForeground WRITE setDisabledForeground)
 
-   protected:
-    Point          p_;
-    CTkAppImageRef image_;
-  };
+ public:
+  explicit CTkAppCanvasBitmapShape(CTkAppCanvasWidget *canvas, const Point &p,
+                                   const CTkAppImageRef &image) :
+   CTkAppCanvasShape(canvas, ShapeType::BITMAP), p_(p), image_(image) {
+  }
+
+  const Point &pos() const { return p_; }
+
+  //---
+
+  const CTkAppImageRef &getImage() const { return image_; }
+  void setImage(const CTkAppImageRef &i) { image_ = i; }
+
+  const CTkAppImageRef &getActiveImage() const { return activeImage_; }
+  void setActiveImage(const CTkAppImageRef &i) { activeImage_ = i; }
+
+  const CTkAppImageRef &getDisabledImage() const { return disabledImage_; }
+  void setDisabledImage(const CTkAppImageRef &i) { disabledImage_ = i; }
+
+  //---
+
+  const QColor &background() const { return background_; }
+  void setBackground(const QColor &c) { background_ = c; }
+
+  const QColor &foreground() const { return foreground_; }
+  void setForeground(const QColor &c) { foreground_ = c; }
+
+  const QColor &activeBackground() const { return activeBackground_; }
+  void setActiveBackground(const QColor &c) { activeBackground_ = c; }
+
+  const QColor &activeForeground() const { return activeForeground_; }
+  void setActiveForeground(const QColor &c) { activeForeground_ = c; }
+
+  const QColor &disabledBackground() const { return disabledBackground_; }
+  void setDisabledBackground(const QColor &c) { disabledBackground_ = c; }
+
+  const QColor &disabledForeground() const { return disabledForeground_; }
+  void setDisabledForeground(const QColor &c) { disabledForeground_ = c; }
+
+  //---
+
+  QRectF rect() const override { return drawRect(); }
+
+  bool inside(double /*x*/, double /*y*/) const override { return false; }
+
+  double distance(double x, double y) override {
+    return p_.distance(x, y);
+  }
+
+  void moveBy(double dx, double dy) override {
+    p_.moveBy(dx, dy);
+  }
+
+ protected:
+  Point p_;
+
+  QColor background_;
+  QColor foreground_;
+  QColor activeBackground_;
+  QColor activeForeground_;
+  QColor disabledBackground_;
+  QColor disabledForeground_;
+
+  CTkAppImageRef image_;
+  CTkAppImageRef activeImage_;
+  CTkAppImageRef disabledImage_;
+};
+
+class CTkAppCanvasWidget : public QWidget {
+  Q_OBJECT
+
+ public:
+  using Canvas = CTkAppCanvasWidget;
+  using Shape  = CTkAppCanvasShape;
+  using Shapes = std::vector<Shape *>;
+  using Point  = CTkAppPoint;
+  using Points = CTkAppPoints;
+
+  using Rectangle = CTkAppCanvasRectangleShape;
+  using Oval      = CTkAppCanvasOvalShape;
+  using Line      = CTkAppCanvasLineShape;
+#ifdef CTK_APP_TKPATH
+  using Path      = CTkAppCanvasPathShape;
+#endif
+  using Polygon   = CTkAppCanvasPolygonShape;
+  using Arc       = CTkAppCanvasArcShape;
+#ifdef CTK_APP_TKPATH
+  using Circle    = CTkAppCanvasCircleShape;
+  using Ellipse   = CTkAppCanvasEllipseShape;
+#endif
+  using Text      = CTkAppCanvasTextShape;
+  using Image     = CTkAppCanvasImageShape;
+  using Bitmap    = CTkAppCanvasBitmapShape;
 
  public:
   CTkAppCanvasWidget(CTkAppCanvas *canvas);
 
   //---
+
+  CTkAppCanvas *canvas() const { return canvas_; }
 
   const Shapes &getShapes() const { return shapes_; }
 
@@ -1333,75 +1700,23 @@ class CTkAppCanvasWidget : public QWidget {
 
   //---
 
-  Rectangle *addRectangle(double x1, double y1, double x2, double y2) {
-    auto *rectangleShape = new Rectangle(x1, y1, x2, y2);
-
-    return static_cast<Rectangle *>(addShape(rectangleShape));
-  }
-
-  Oval *addOval(double x1, double y1, double x2, double y2) {
-    auto *ovalShape = new Oval(x1, y1, x2, y2);
-
-    return static_cast<Oval *>(addShape(ovalShape));
-  }
-
-  Line *addLine(const Points &points) {
-    auto *lineShape = new Line(points);
-
-    return static_cast<Line *>(addShape(lineShape));
-  }
-
+  Rectangle* addRectangle(double x1, double y1, double x2, double y2);
+  Oval*      addOval     (double x1, double y1, double x2, double y2);
+  Line*      addLine     (const Points &points);
 #ifdef CTK_APP_TKPATH
-  Path *addPath(const QString &pathStr, const QPainterPath &qpath) {
-    auto *pathShape = new Path(pathStr, qpath);
-
-    return static_cast<Path *>(addShape(pathShape));
-  }
+  Path*      addPath     (const QString &pathStr, const QPainterPath &qpath);
 #endif
-
-  Polygon *addPolygon(const Points &points) {
-    auto *polygonShape = new Polygon(points);
-
-    return static_cast<Polygon *>(addShape(polygonShape));
-  }
-
-  Arc *addArc(const Points &points) {
-    auto *arcShape = new Arc(points);
-
-    return static_cast<Arc *>(addShape(arcShape));
-  }
-
+  Polygon*   addPolygon  (const Points &points);
+  Arc*       addArc      (const Points &points);
 #ifdef CTK_APP_TKPATH
-  Circle *addCircle(double xc, double yc) {
-    auto *circleShape = new Circle(xc, yc);
-
-    return static_cast<Circle *>(addShape(circleShape));
-  }
-
-  Ellipse *addEllipse(double xc, double yc) {
-    auto *ellipseShape = new Ellipse(xc, yc);
-
-    return static_cast<Ellipse *>(addShape(ellipseShape));
-  }
+  Circle*    addCircle   (double xc, double yc);
+  Ellipse*   addEllipse  (double xc, double yc);
 #endif
+  Text*      addText     (const Point &pos, const QString &text);
+  Image*     addImage    (const Point &pos, const CTkAppImageRef &image=CTkAppImageRef());
+  Bitmap*    addBitmap   (const Point &pos, const CTkAppImageRef &image=CTkAppImageRef());
 
-  Text *addText(const Point &pos, const QString &text) {
-    auto *textShape = new Text(pos, text);
-
-    return static_cast<Text *>(addShape(textShape));
-  }
-
-  Image *addImage(const Point &pos, const CTkAppImageRef &image=CTkAppImageRef()) {
-    auto *imageShape = new Image(pos, image);
-
-    return static_cast<Image *>(addShape(imageShape));
-  }
-
-  Bitmap *addBitmap(const Point &pos, const CTkAppImageRef &image=CTkAppImageRef()) {
-    auto *bitmapShape = new Bitmap(pos, image);
-
-    return static_cast<Bitmap *>(addShape(bitmapShape));
-  }
+  //---
 
   QRectF getShapeBBox(const QString &name) const {
     QRectF bbox;
@@ -1728,7 +2043,13 @@ class CTkAppCheckButtonWidget;
 class CTkAppCheckButton : public CTkAppWidget {
   Q_OBJECT
 
-  Q_PROPERTY(bool overRaised READ isOverRaised WRITE setOverRaised)
+  Q_PROPERTY(QString       varName       READ varName         WRITE setVarName)
+  Q_PROPERTY(QString       onValue       READ onValueStr      WRITE setOnValueStr)
+  Q_PROPERTY(QString       offValue      READ offValueStr     WRITE setOffValueStr)
+  Q_PROPERTY(bool          showIndicator READ isShowIndicator WRITE setShowIndicator)
+  Q_PROPERTY(bool          overRaised    READ isOverRaised    WRITE setOverRaised)
+  Q_PROPERTY(Qt::Alignment justify       READ justify         WRITE setJustify)
+  Q_PROPERTY(int           underlinePos  READ underlinePos    WRITE setUnderlinePos)
 
  public:
   using OptString = std::optional<QString>;
@@ -1738,21 +2059,42 @@ class CTkAppCheckButton : public CTkAppWidget {
 
   const char *getClassName() const override { return "CheckButton"; }
 
-  const OptString &onValue() const { return onValue_; }
-  void setOnValue(const OptString &s) { onValue_ = s; }
-
-  const OptString &offValue() const { return offValue_; }
-  void setOffValue(const OptString &s) { offValue_ = s; }
-
-  bool isOverRaised() const { return overRaised_; }
-  void setOverRaised(bool b) { overRaised_ = b; }
-
-  const QString &varName() const { return varName_; }
-  void setVarName(const QString &s) { varName_ = s; }
+  //---
 
   bool execConfig(const QString &name, const QString &value) override;
 
   bool execOp(const Args &args) override;
+
+  //---
+
+  const QString &varName() const { return varName_; }
+  void setVarName(const QString &s) { varName_ = s; }
+
+  const OptString &onValue() const { return onValue_; }
+  void setOnValue(const OptString &s) { onValue_ = s; }
+
+  QString onValueStr() const { return onValue().value_or(""); }
+  void setOnValueStr(const QString &s) { setOnValue(s); }
+
+  const OptString &offValue() const { return offValue_; }
+  void setOffValue(const OptString &s) { offValue_ = s; }
+
+  QString offValueStr() const { return offValue().value_or(""); }
+  void setOffValueStr(const QString &s) { setOffValue(s); }
+
+  bool isShowIndicator() const { return showIndicator_; }
+  void setShowIndicator(bool b) { showIndicator_ = b; }
+
+  bool isOverRaised() const { return overRaised_; }
+  void setOverRaised(bool b) { overRaised_ = b; }
+
+  const Qt::Alignment &justify() const { return justify_; }
+  void setJustify(const Qt::Alignment &v) { justify_ = v; }
+
+  int underlinePos() const { return underlinePos_; }
+  void setUnderlinePos(int i) { underlinePos_ = i; }
+
+  //---
 
   void setText(const QString &text) override;
 
@@ -1776,6 +2118,8 @@ class CTkAppCheckButton : public CTkAppWidget {
   QColor                    selectColor_;
   bool                      showIndicator_ { true };
   bool                      overRaised_ { false };
+  Qt::Alignment             justify_ { Qt::AlignLeft | Qt::AlignTop };
+  int                       underlinePos_ { -1 };
 };
 
 class CTkAppCheckButtonWidget : public QCheckBox {
@@ -1800,17 +2144,23 @@ class CTkAppComboBoxVarProc;
 class CTkAppComboBox : public CTkAppWidget {
   Q_OBJECT
 
+  Q_PROPERTY(QString varName READ varName WRITE setVarName)
+
  public:
   explicit CTkAppComboBox(CTkApp *tk, CTkAppWidget *parent=nullptr, const QString &name="");
 
   const char *getClassName() const override { return "ComboBox"; }
 
-  const QString &varName() const { return varName_; }
-  void setVarName(const QString &s) { varName_ = s; }
-
   bool execConfig(const QString &name, const QString &value) override;
 
   bool execOp(const Args &args) override;
+
+  //---
+
+  const QString &varName() const { return varName_; }
+  void setVarName(const QString &s) { varName_ = s; }
+
+  //---
 
   void updateFromVar();
 
@@ -1855,17 +2205,23 @@ class CTkAppEntryValidator;
 class CTkAppEntry : public CTkAppWidget {
   Q_OBJECT
 
+  Q_PROPERTY(QString varName READ varName WRITE setVarName)
+
  public:
   explicit CTkAppEntry(CTkApp *tk, CTkAppWidget *parent=nullptr, const QString &name="");
 
   const char *getClassName() const override { return "Entry"; }
 
-  const QString &varName() const { return varName_; }
-  void setVarName(const QString &s) { varName_ = s; }
-
   bool execConfig(const QString &name, const QString &value) override;
 
   bool execOp(const Args &args) override;
+
+  //---
+
+  const QString &varName() const { return varName_; }
+  void setVarName(const QString &s) { varName_ = s; }
+
+  //---
 
   void setText(const QString &text) override;
 
@@ -1938,21 +2294,27 @@ class CTkAppLabelVarProc;
 class CTkAppLabel : public CTkAppWidget {
   Q_OBJECT
 
+  Q_PROPERTY(QString varName READ varName WRITE setVarName)
+
  public:
   explicit CTkAppLabel(CTkApp *tk, CTkAppWidget *parent=nullptr, const QString &name="");
 
   const char *getClassName() const override { return "Label"; }
 
-  const QString &varName() const { return varName_; }
-  void setVarName(const QString &s) { varName_ = s; }
-
   bool execConfig(const QString &name, const QString &value) override;
 
   bool execOp(const Args &args) override;
 
+  //---
+
+  const QString &varName() const { return varName_; }
+  void setVarName(const QString &s) { varName_ = s; }
+
+  //---
+
   void setText(const QString &text) override;
 
-  void setImage(const CTkAppImageRef &i) override;
+  void setImageRef(const CTkAppImageRef &i) override;
 
   void updateFromVar();
 
@@ -1990,17 +2352,23 @@ class CTkAppListBoxVarProc;
 class CTkAppListBox : public CTkAppWidget {
   Q_OBJECT
 
+  Q_PROPERTY(QString varName READ varName WRITE setVarName)
+
  public:
   explicit CTkAppListBox(CTkApp *tk, CTkAppWidget *parent=nullptr, const QString &name="");
 
   const char *getClassName() const override { return "ListBox"; }
 
-  const QString &varName() const { return varName_; }
-  void setVarName(const QString &s) { varName_ = s; }
-
   bool execConfig(const QString &name, const QString &value) override;
 
   bool execOp(const Args &args) override;
+
+  //---
+
+  const QString &varName() const { return varName_; }
+  void setVarName(const QString &s) { varName_ = s; }
+
+  //---
 
   void updateFromVar();
 
@@ -2053,6 +2421,9 @@ class CTkAppListBoxWidget : public QListWidget {
 class CTkAppCheckAction : public QWidgetAction {
   Q_OBJECT
 
+  Q_PROPERTY(QString text    READ text    WRITE setText)
+  Q_PROPERTY(QString varName READ varName WRITE setVarName)
+
  public:
   explicit CTkAppCheckAction(CTkApp* tk) :
    QWidgetAction(nullptr), tk_(tk) {
@@ -2069,11 +2440,15 @@ class CTkAppCheckAction : public QWidgetAction {
     return check_;
   }
 
+  //---
+
   const QString &getText() const { return text_; }
   void setText(const QString &s) { text_ = s; }
 
   const QString &varName() const { return varName_; }
   void setVarName(const QString &s) { varName_ = s; }
+
+  //---
 
   void updateFromVar();
 
@@ -2089,6 +2464,10 @@ class CTkAppCheckAction : public QWidgetAction {
 
 class CTkAppRadioAction : public QWidgetAction {
   Q_OBJECT
+
+  Q_PROPERTY(QString text    READ text    WRITE setText)
+  Q_PROPERTY(QString value   READ value   WRITE setValue)
+  Q_PROPERTY(QString varName READ varName WRITE setVarName)
 
  public:
   explicit CTkAppRadioAction(CTkApp* tk) :
@@ -2106,6 +2485,8 @@ class CTkAppRadioAction : public QWidgetAction {
     return radio_;
   }
 
+  //---
+
   const QString &getText() const { return text_; }
   void setText(const QString &s) { text_ = s; }
 
@@ -2114,6 +2495,8 @@ class CTkAppRadioAction : public QWidgetAction {
 
   const QString &varName() const { return varName_; }
   void setVarName(const QString &s) { varName_ = s; }
+
+  //---
 
   void updateFromVar();
 
@@ -2185,21 +2568,31 @@ class CTkAppMenuButtonVarProc;
 class CTkAppMenuButton : public CTkAppWidget {
   Q_OBJECT
 
+  Q_PROPERTY(QString varName       READ varName         WRITE setVarName)
+  Q_PROPERTY(bool    showIndicator READ isShowIndicator WRITE setShowIndicator)
+
  public:
   explicit CTkAppMenuButton(CTkApp *tk, CTkAppWidget *parent=nullptr, const QString &name="");
 
   const char *getClassName() const override { return "MenuButton"; }
 
-  const QString &varName() const { return varName_; }
-  void setVarName(const QString &s) { varName_ = s; }
-
   bool execConfig(const QString &name, const QString &value) override;
 
   bool execOp(const Args &args) override;
 
+  //---
+
+  const QString &varName() const { return varName_; }
+  void setVarName(const QString &s) { varName_ = s; }
+
+  bool isShowIndicator() const { return showIndicator_; }
+  void setShowIndicator(bool b) { showIndicator_ = b; }
+
+  //---
+
   void setText(const QString &text) override;
 
-  void setImage(const CTkAppImageRef &i) override;
+  void setImageRef(const CTkAppImageRef &i) override;
 
   void updateMenu();
 
@@ -2242,17 +2635,23 @@ class CTkAppMessageVarProc;
 class CTkAppMessage : public CTkAppWidget {
   Q_OBJECT
 
+  Q_PROPERTY(QString varName READ varName WRITE setVarName)
+
  public:
   explicit CTkAppMessage(CTkApp *tk, CTkAppWidget *parent=nullptr, const QString &name="");
 
   const char *getClassName() const override { return "Message"; }
 
-  const QString &varName() const { return varName_; }
-  void setVarName(const QString &s) { varName_ = s; }
-
   bool execConfig(const QString &name, const QString &value) override;
 
   bool execOp(const Args &args) override;
+
+  //---
+
+  const QString &varName() const { return varName_; }
+  void setVarName(const QString &s) { varName_ = s; }
+
+  //---
 
   void setText(const QString &text) override;
 
@@ -2320,24 +2719,62 @@ class CTkAppRadioButtonVarProc;
 class CTkAppRadioButton : public CTkAppWidget {
   Q_OBJECT
 
+  Q_PROPERTY(QString varName       READ varName         WRITE setVarName)
+  Q_PROPERTY(QString value         READ value           WRITE setValue)
+  Q_PROPERTY(QColor  selectColor   READ selectColor     WRITE setSelectColor)
+  Q_PROPERTY(bool    showIndicator READ isShowIndicator WRITE setShowIndicator)
+  Q_PROPERTY(double  userWidth     READ userWidth       WRITE setUserWidth)
+  Q_PROPERTY(double  userHeight    READ userHeight      WRITE setUserHeight)
+
+ public:
+  struct RadioGroupData {
+    QButtonGroup*                 group { nullptr };
+    std::set<CTkAppRadioButton *> buttons;
+  };
+
+  using RadioGroups = std::map<QString, RadioGroupData>;
+
+ public:
+  static void addRadioGroup   (CTkAppRadioButton *radio, const QString &varName);
+  static void removeRadioGroup(CTkAppRadioButton *radio, const QString &varName);
+
  public:
   explicit CTkAppRadioButton(CTkApp *tk, CTkAppWidget *parent=nullptr, const QString &name="");
  ~CTkAppRadioButton();
 
   const char *getClassName() const override { return "RadioButton"; }
 
-  const QString &varName() const { return varName_; }
-  void setVarName(const QString &s) { varName_ = s; }
-
   bool execConfig(const QString &name, const QString &value) override;
 
   bool execOp(const Args &args) override;
 
+  //---
+
+  CTkAppRadioButtonWidget *qradio() const { return qradio_; }
+
+  const QString &varName() const { return varName_; }
+  void setVarName(const QString &s);
+
+  const QString &value() const { return value_; }
+  void setValue(const QString &value);
+
+  const QColor &selectColor() const { return selectColor_; }
+  void setSelectColor(const QColor &c) { selectColor_ = c; }
+
+  bool isShowIndicator() const { return showIndicator_; }
+  void setShowIndicator(bool b) { showIndicator_ = b; }
+
+  int userWidth() const { return userWidth_; }
+  void setUserWidth(int i) { userWidth_ = i; }
+
+  int userHeight() const { return userHeight_; }
+  void setUserHeight(int i) { userHeight_ = i; }
+
+  //---
+
   void setText(const QString &text) override;
 
-  void setImage(const CTkAppImageRef &i) override;
-
-  void setValue(const QString &value);
+  void setImageRef(const CTkAppImageRef &i) override;
 
   void setChecked(bool b);
 
@@ -2351,12 +2788,16 @@ class CTkAppRadioButton : public CTkAppWidget {
   void toggleSlot(bool);
 
  private:
+  static RadioGroups s_radioGroups;
+
   CTkAppRadioButtonWidget*  qradio_  { nullptr };
   QString                   varName_;
   QString                   value_   { "1" };
   CTkAppRadioButtonVarProc* varProc_ { nullptr };
   QColor                    selectColor_;
   bool                      showIndicator_ { true };
+  double                    userWidth_ { -1 };
+  double                    userHeight_ { -1 };
 };
 
 class CTkAppRadioButtonWidget : public QRadioButton {
@@ -2372,9 +2813,6 @@ class CTkAppRadioButtonWidget : public QRadioButton {
   bool isReadOnly() const { return readOnly_; }
   void setReadOnly(bool b) { readOnly_ = b; }
 
-  int userWidth() const { return userWidth_; }
-  void setUserWidth(int i) { userWidth_ = i; }
-
   void paintEvent(QPaintEvent *) override;
 
   QSize sizeHint() const override;
@@ -2383,7 +2821,6 @@ class CTkAppRadioButtonWidget : public QRadioButton {
   CTkAppRadioButton *radio_     { nullptr };
   QImage             image_;
   bool               readOnly_  { false };
-  int                userWidth_ { -1 };
 };
 
 //---
@@ -2393,17 +2830,23 @@ class CTkAppScaleVarProc;
 class CTkAppScale : public CTkAppWidget {
   Q_OBJECT
 
+  Q_PROPERTY(QString varName READ varName WRITE setVarName)
+
  public:
   explicit CTkAppScale(CTkApp *tk, CTkAppWidget *parent=nullptr, const QString &name="");
 
   const char *getClassName() const override { return "Scale"; }
 
-  const QString &varName() const { return varName_; }
-  void setVarName(const QString &s) { varName_ = s; }
-
   bool execConfig(const QString &name, const QString &value) override;
 
   bool execOp(const Args &args) override;
+
+  //---
+
+  const QString &varName() const { return varName_; }
+  void setVarName(const QString &s) { varName_ = s; }
+
+  //---
 
   void updateFromVar();
   void updateToVar();
@@ -2473,6 +2916,7 @@ class CTkAppSpinBoxValidator;
 class CTkAppSpinBox : public CTkAppWidget {
   Q_OBJECT
 
+  Q_PROPERTY(QString varName        READ varName           WRITE setVarName)
   Q_PROPERTY(QString invalidCommand READ getInvalidCommand WRITE setInvalidCommand)
 
  public:
@@ -2480,15 +2924,19 @@ class CTkAppSpinBox : public CTkAppWidget {
 
   const char *getClassName() const override { return "SpinBox"; }
 
-  const QString &varName() const { return varName_; }
-  void setVarName(const QString &s) { varName_ = s; }
-
   bool execConfig(const QString &name, const QString &value) override;
 
   bool execOp(const Args &args) override;
 
+  //---
+
+  const QString &varName() const { return varName_; }
+  void setVarName(const QString &s) { varName_ = s; }
+
   const QString &getInvalidCommand() const { return invalidCommand_; }
   void setInvalidCommand(const QString &command) { invalidCommand_ = command; }
+
+  //---
 
   void setText(const QString &text) override;
 
@@ -2719,6 +3167,9 @@ class CTkAppTopLevel : public CTkAppWidget {
 
   const QString &iconWindow() const { return iconWindow_; }
   void setIconWindow(const QString &s) { iconWindow_ = s; }
+
+  void show() override;
+  void hide() override;
 
   bool execConfig(const QString &name, const QString &value) override;
 

@@ -1,0 +1,10 @@
+canvas .c
+
+grid .c -sticky nsew
+
+set circle1 [.c create oval 1c 1c 2c 2c -fill red -outline {}]
+set circle2 [.c create oval 2c 2c 3c 3c -fill green -outline {}]
+
+.c delete $circle1
+
+set circle1 [.c create oval 1c 1c 2c 2c -fill blue -outline {}]

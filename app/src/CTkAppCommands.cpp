@@ -140,6 +140,8 @@ class CLASS : public DERIVED { \
   CTkAppCommandDef("gradientstopsstyle", CTkAppGradientStopStyleCmd)
 #endif
 
+  CTkAppCommandDef("error_info", CTkAppErrorInfoCmd)
+
 //---
 
 class CTkAppRootCommand :  public CTkAppCommand {
@@ -257,6 +259,8 @@ addCommands(CTkApp *tk)
 //new CTkAppTtkSizeGripCmd   (tk);
   new CTkAppTtkSpinBoxCmd    (tk);
   new CTkAppTtkTreeViewCmd   (tk);
+
+  new CTkAppErrorInfoCmd(tk);
 
   //---
 
@@ -871,7 +875,21 @@ run(const Args &args)
     if (numArgs < 2)
       return tk_->wrongNumArgs("event delete virtual ?sequence ...?");
 
-    tk_->TODO(args);
+    CTkAppVirtualEventData vdata;
+    if (! tk_->stringToVirtualEvent(args[1].toString(), vdata))
+      return false;
+
+    if (numArgs == 2)
+      tk_->deleteAllVirtualEventData(vdata);
+    else {
+      for (uint i = 2; i < numArgs; ++i) {
+        CTkAppEventData edata;
+        if (! tk_->parseEvent(args[i].toString(), edata))
+          (void) tk_->throwError("bad event pattern \"" + args[i].toString() + "\"");
+
+        tk_->deleteVirtualEventData(vdata, edata);
+      }
+    }
   }
   else if (arg == "generate") {
     if (numArgs < 3)
@@ -2083,6 +2101,9 @@ run(const Args &args)
         image->loadData(name, format, data);
     }
 
+    if (format != "")
+      image->setFormat(format);
+
     auto *cmd = new CTkAppImageCommand(tk_, name);
     assert(cmd);
 
@@ -2831,8 +2852,8 @@ run(const Args &args)
       return tk_->wrongNumArgs("pack forget slave ?slave ...?");
 
     for (uint i = 1; i < numArgs; ++i) {
-      auto *child = tk_->lookupWidgetByName(args[i].toString());
-      if (! child) return false;
+      auto *child = tk_->lookupWidgetByName(args[i].toString(), /*quiet*/true);
+      if (! child) continue;
 
       auto *layout = child->getParent()->getTkPackLayout();
       if (! layout) return tk_->throwError("no pack layout for \"" + option + "\"");
@@ -2918,8 +2939,9 @@ run(const Args &args)
 
       setStringArrayResult(names);
     }
-    else
-      tk_->TODO(args);
+    else {
+      return false;
+    }
   }
   else {
     configure = true;
@@ -3958,10 +3980,12 @@ run(const Args &args)
   auto arg = args[0].toString();
 
   if      (arg == "appname") {
-    if (numArgs == 1)
-      tk_->setStringResult("CTkApp");
+    if      (numArgs == 1)
+      tk_->setStringResult(tk_->getAppName());
+    else if (numArgs == 2)
+      tk_->setAppName(args[1].toString());
     else
-      tk_->TODO(args);
+      return tk_->wrongNumArgs("tk appname ?newName?");
   }
   else if (arg == "busy") {
     if (numArgs < 1)
@@ -3988,6 +4012,7 @@ run(const Args &args)
       tk_->TODO(args);
     }
     else if (option == "current") {
+      tk_->setStringResult("");
       tk_->TODO(args);
     }
     else if (option == "forget") {
@@ -4058,12 +4083,45 @@ run(const Args &args)
     auto subcommand = args[1].toString();
 
     if      (subcommand == "configure") {
+      if (numArgs == 2)
+        tk_->setStringResult("-parent . -title Font -font TkDefaultFont -command {} -visible 0");
+      else {
+        for (uint i = 2; i < numArgs; ++i) {
+          const auto &name = args[i].toString();
+
+          if      (name == "-command") {
+            auto value = args[++i].toString();
+            tk_->TODO(name + " " + value, args);
+          }
+          else if (name == "-font") {
+            auto value = args[++i].toString();
+            tk_->TODO(name + " " + value, args);
+          }
+          else if (name == "-parent") {
+            auto value = args[++i].toString();
+            tk_->TODO(name + " " + value, args);
+          }
+          else if (name == "-title") {
+            auto value = args[++i].toString();
+            tk_->TODO(name + " " + value, args);
+          }
+          else
+            return false;
+        }
+      }
+
       tk_->TODO(args);
     }
     else if (subcommand == "hide") {
+      if (numArgs != 2)
+        return tk_->wrongNumArgs("tk fontchooser hide");
+
       tk_->showFontDialog(false);
     }
     else if (subcommand == "show") {
+      if (numArgs != 2)
+        return tk_->wrongNumArgs("tk fontchooser show");
+
       tk_->showFontDialog(true);
     }
     else
@@ -4101,6 +4159,7 @@ run(const Args &args)
     if (i < numArgs && args[i] == "-displayof")
       i += 2;
 
+    tk_->setIntegerResult(1);
     tk_->TODO(args);
   }
   else if (arg == "windowingsystem") {
@@ -4145,38 +4204,83 @@ run(const Args &args)
 {
   tk_->debugCmd(name_, args);
 
+  uint i       = 0;
   uint numArgs = args.size();
 
-  for (uint i = 0; i < numArgs; ++i) {
+  bool rc = true;
+
+  auto getValue = [&]() {
+    rc = true;
+
+    if (i + 1 >= numArgs) {
+      rc = tk_->throwError("value for \"" + args[i].toString() + "\" missing");
+      return QString();
+    }
+
+    return args[++i].toString();
+  };
+
+  auto getBoolValue = [&]() {
+    auto str = getValue(); if (! rc) return false;
+    bool b;
+    if (! CTkAppUtil::stringToBool(str, b)) {
+      rc = false;
+      return false;
+    }
+    return rc;
+  };
+
+  CTkAppWidget* parentWidget = nullptr;
+  bool          confirmOverwrite { false };
+  QString       defaulTextExtension, fileTypes;
+  QString       initialDir, initialFile, parent, title, typeVariable;
+
+  for ( ; i < numArgs; ++i) {
     auto name = args[i].toString();
 
-    if (name.size() > 0 && name[0] == '-') {
-      auto value = (i < numArgs - 1 ? args[++i] : "");
-
-      if      (name == "-defaultextension") {
-        tk_->TODO(name);
-      }
-      else if (name == "-filetypes") {
-        tk_->TODO(name);
-      }
-      else if (name == "-initialfile") {
-        tk_->TODO(name);
-      }
-      else
-        tk_->TODO(name);
+    if      (name == "-confirmoverwrite") {
+      confirmOverwrite = getBoolValue(); if (! rc) return false;
+    }
+    else if (name == "-defaultextension") {
+      defaulTextExtension = getValue(); if (! rc) return false;
+    }
+    else if (name == "-filetypes") {
+      fileTypes = getValue(); if (! rc) return false;
+    }
+    else if (name == "-initialdir") {
+      initialDir = getValue(); if (! rc) return false;
+    }
+    else if (name == "-initialfile") {
+      initialFile = getValue(); if (! rc) return false;
+    }
+    else if (name == "-parent") {
+      auto parentName = getValue(); if (! rc) return false;
+      parentWidget = tk_->lookupWidgetByName(parentName);
+      if (! parentWidget) return false;
+    }
+    else if (name == "-title") {
+      title = getValue(); if (! rc) return false;
+    }
+    else if (name == "-typevariable") {
+      typeVariable = getValue(); if (! rc) return false;
     }
     else
-      tk_->TODO(name);
+      return false;
   }
 
-  QWidget *parent = nullptr;
+  //---
 
-  QString              dir;
+  if (title == "")
+    title = "Open File";
+
   QString              filter;
   QString*             selectedFilter = nullptr;
   QFileDialog::Options options;
 
-  auto file = QFileDialog::getSaveFileName(parent, "Open File", dir, filter,
+  if (! confirmOverwrite)
+    options |= QFileDialog::Option::DontConfirmOverwrite;
+
+  auto file = QFileDialog::getSaveFileName(parentWidget->getQWidget(), title, initialDir, filter,
                                            selectedFilter, options);
 
   tk_->setStringResult(file);
@@ -4400,7 +4504,33 @@ run(const Args &args)
 {
   tk_->debugCmd(name_, args);
 
-  tk_->TODO("tk_popup");
+  uint numArgs = args.size();
+
+  if (numArgs != 3 && numArgs != 4)
+    return tk_->wrongNumArgs("tk_popup menu x y ?entry?");
+
+  auto *w = tk_->lookupWidgetByName(args[0].toString());
+  if (! w) return false;
+
+  auto *menu = dynamic_cast<CTkAppMenu *>(w);
+  if (! menu) return tk_->throwError("No menu '" + args[0].toString() + "'");
+
+  long x;
+  if (! CTkAppUtil::stringToInt(args[1].toString(), x))
+    return tk_->throwError("expected integer but got \"" + args[1].toString() + "\"");
+
+  long y;
+  if (! CTkAppUtil::stringToInt(args[2].toString(), y))
+    return tk_->throwError("expected integer but got \"" + args[2].toString() + "\"");
+
+  CTkAppWidget *refWidget = nullptr;
+
+  if (numArgs == 4) {
+    refWidget = tk_->lookupWidgetByName(args[3].toString());
+    if (! refWidget) return false;
+  }
+
+  menu->qmenu()->popup(QPoint(x, y));
 
   return true;
 }
@@ -4680,26 +4810,24 @@ run(const Args &args)
 
     long x;
     if (! CTkAppUtil::stringToInt(args[i].toString(), x))
-      return tk_->throwError("expected integer but got \"" +
-                             args[i].toString() + "\"");
+      return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
 
     ++i;
 
     long y;
     if (! CTkAppUtil::stringToInt(args[i].toString(), y))
-      return tk_->throwError("expected integer but got \"" +
-                             args[i].toString() + "\"");
+      return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
 
     tk_->TODO(args);
   }
   else if (arg == "depth") {
     if (! getWindow()) return false;
 
-    //tk_->TODO(args);
-    setIntegerResult(24);
+    auto *screen = qApp->primaryScreen();
+    setIntegerResult(screen->depth());
   }
   else if (arg == "exists") {
-    setIntegerResult(getWindow(0, /*quiet*/true) ? 1 : 0);
+    setIntegerResult(getWindow(1, /*quiet*/true) ? 1 : 0);
   }
   else if (arg == "fpixels") {
     if (numArgs != 3)
@@ -4835,19 +4963,22 @@ run(const Args &args)
   else if (arg == "rootx") {
     if (! getWindow()) return false;
 
-    auto r = qApp->primaryScreen()->geometry();
+    auto *screen = qApp->primaryScreen();
+    auto r = screen->geometry();
     setIntegerResult(r.x());
   }
   else if (arg == "rooty") {
     if (! getWindow()) return false;
 
-    auto r = qApp->primaryScreen()->geometry();
+    auto *screen = qApp->primaryScreen();
+    auto r = screen->geometry();
     setIntegerResult(r.y());
   }
   else if (arg == "screen") {
     if (! getWindow()) return false;
 
-    tk_->TODO(args); // screen name
+    auto *screen = qApp->primaryScreen();
+    setStringResult(screen->name());
   }
   else if (arg == "screencells") {
     if (! getWindow()) return false;
@@ -4862,19 +4993,22 @@ run(const Args &args)
   else if (arg == "screenheight") {
     if (! getWindow()) return false;
 
-    auto r = qApp->primaryScreen()->geometry();
+    auto *screen = qApp->primaryScreen();
+    auto r = screen->geometry();
     setIntegerResult(r.height());
   }
   else if (arg == "screenmmheight") {
     if (! getWindow()) return false;
 
-    auto r = qApp->primaryScreen()->geometry();
+    auto *screen = qApp->primaryScreen();
+    auto r = screen->geometry();
     tk_->setRealResult(r.height()/CScreenUnitsMgrInst->mmSize());
   }
   else if (arg == "screenmmwidth") {
     if (! getWindow()) return false;
 
-    auto r = qApp->primaryScreen()->geometry();
+    auto *screen = qApp->primaryScreen();
+    auto r = screen->geometry();
     tk_->setRealResult(r.width()/CScreenUnitsMgrInst->mmSize());
   }
   else if (arg == "screenvisual") {
@@ -4885,13 +5019,14 @@ run(const Args &args)
   else if (arg == "screenwidth") {
     if (! getWindow()) return false;
 
-    auto r = qApp->primaryScreen()->geometry();
+    auto *screen = qApp->primaryScreen();
+    auto r = screen->geometry();
     setIntegerResult(r.width());
   }
   else if (arg == "server") {
     if (! getWindow()) return false;
 
-    tk_->TODO(args); // x server name
+    setStringResult("X11R0 The X.Org Foundation 12101004"); // TODO
   }
   else if (arg == "toplevel") {
     if (! getWindow()) return false;
@@ -4912,7 +5047,7 @@ run(const Args &args)
   else if (arg == "visualid") {
     if (! getWindow()) return false;
 
-    tk_->TODO(args); // screen visualid
+    setStringResult("0x21"); // TODO
   }
   else if (arg == "visualsavailable") {
     if (! getWindow()) return false;
@@ -4922,25 +5057,29 @@ run(const Args &args)
   else if (arg == "vrootheight") {
     if (! getWindow()) return false;
 
-    auto r = qApp->primaryScreen()->geometry();
+    auto *screen = qApp->primaryScreen();
+    auto r = screen->geometry();
     setIntegerResult(r.height());
   }
   else if (arg == "vrootwidth") {
     if (! getWindow()) return false;
 
-    auto r = qApp->primaryScreen()->geometry();
+    auto *screen = qApp->primaryScreen();
+    auto r = screen->geometry();
     setIntegerResult(r.width());
   }
   else if (arg == "vrootx") {
     if (! getWindow()) return false;
 
-    auto r = qApp->primaryScreen()->geometry();
+    auto *screen = qApp->primaryScreen();
+    auto r = screen->geometry();
     setIntegerResult(r.x());
   }
   else if (arg == "vrooty") {
     if (! getWindow()) return false;
 
-    auto r = qApp->primaryScreen()->geometry();
+    auto *screen = qApp->primaryScreen();
+    auto r = screen->geometry();
     setIntegerResult(r.y());
   }
   else if (arg == "width") {
@@ -5017,7 +5156,7 @@ run(const Args &args)
   //---
 
   if      (arg == "aspect") {
-    tk_->TODO(args);
+    tk_->setStringResult(""); // TODO
   }
   else if (arg == "attributes") {
     if (numArgs == 2) {
@@ -5028,52 +5167,49 @@ run(const Args &args)
 
       if      (opt == "-alpha") {
         if (numArgs == 2)
-          tk_->setStringResult("1.0");
+          tk_->setStringResult("1.0"); // TODO
       }
       else if (opt == "-topmost") {
         if (numArgs == 2)
-          tk_->setStringResult("0");
+          tk_->setStringResult("0"); // TODO
       }
       else if (opt == "-zoomed") {
         if (numArgs == 2)
-          tk_->setStringResult("0");
+          tk_->setStringResult("0"); // TODO
       }
       else if (opt == "-fullscreen") {
         if (numArgs == 2)
-          tk_->setStringResult("0");
+          tk_->setStringResult("0"); // TODO
       }
       else if (opt == "-type") {
         if (numArgs == 2)
-          tk_->setStringResult("");
+          tk_->setStringResult(""); // TODO
       }
       else
         return tk_->throwError("bad attribute \"" + opt + "\": must be "
           "-alpha, -topmost, -zoomed, -fullscreen, or -type");
-
-      tk_->TODO(args);
     }
   }
   else if (arg == "client") {
-    tk_->TODO(args);
+    tk_->setStringResult(""); // TODO
   }
   else if (arg == "colormapwindows") {
-    tk_->TODO(args);
+    tk_->setStringResult(""); // TODO
   }
   else if (arg == "command") {
-    tk_->TODO(args);
+    tk_->setStringResult(""); // TODO
   }
   else if (arg == "deiconify") {
-    w->getQWidget()->show();
+    w->show();
   }
   else if (arg == "focusmodel") {
-    tk_->setStringResult("passive");
-    tk_->TODO(args);
+    tk_->setStringResult("passive"); // TODO
   }
   else if (arg == "forget") {
-    tk_->TODO(args);
+    w->hide();
   }
   else if (arg == "frame") {
-    tk_->TODO(args); // toplevel
+    tk_->setStringResult(""); // TODO
   }
   else if (arg == "geometry") {
     if (numArgs == 3) {
@@ -5120,13 +5256,13 @@ run(const Args &args)
     }
   }
   else if (arg == "iconbitmap") {
-    tk_->TODO(args);
+    setStringResult(""); // TODO
   }
   else if (arg == "iconify") {
-    tk_->TODO(args);
+    w->getQWidget()->showMinimized();
   }
   else if (arg == "iconmask") {
-    tk_->TODO(args);
+    setStringResult(""); // TODO
   }
   else if (arg == "iconname") {
     if (numArgs == 3)
@@ -5135,10 +5271,13 @@ run(const Args &args)
       setStringResult(w->getIcon());
   }
   else if (arg == "iconphoto") {
-    tk_->TODO(args);
+    if (numArgs < 2)
+      return tk_->wrongNumArgs("wm iconphoto window ?-default? image1 ?image2 ...?");
+
+    setStringResult(""); // TODO
   }
   else if (arg == "iconposition") {
-    tk_->TODO(args);
+    setStringResult(""); // TODO
   }
   else if (arg == "iconwindow") {
     if (numArgs != 2 && numArgs != 3)
@@ -5155,10 +5294,11 @@ run(const Args &args)
 
       toplevel->setIconWindow(name);
 
-      toplevel->getQWidget()->hide();
+      toplevel->hide();
     }
   }
   else if (arg == "manage") {
+    // set as toplevel
     tk_->TODO(args);
   }
   else if (arg == "maxsize") {
@@ -5174,12 +5314,10 @@ run(const Args &args)
       long sw, sh;
 
       if (! CTkAppUtil::stringToInt(args[2].toString(), sw))
-        return tk_->throwError("expected integer but got \"" +
-                                 args[2].toString() + "\"");
+        return tk_->throwError("expected integer but got \"" + args[2].toString() + "\"");
 
       if (! CTkAppUtil::stringToInt(args[3].toString(), sh))
-        return tk_->throwError("expected integer but got \"" +
-                                 args[3].toString() + "\"");
+        return tk_->throwError("expected integer but got \"" + args[3].toString() + "\"");
 
       sw = std::max(sw, 1L);
       sh = std::max(sh, 1L);
@@ -5200,12 +5338,10 @@ run(const Args &args)
       long sw, sh;
 
       if (! CTkAppUtil::stringToInt(args[2].toString(), sw))
-        return tk_->throwError("expected integer but got \"" +
-                                 args[2].toString() + "\"");
+        return tk_->throwError("expected integer but got \"" + args[2].toString() + "\"");
 
       if (! CTkAppUtil::stringToInt(args[3].toString(), sh))
-        return tk_->throwError("expected integer but got \"" +
-                                 args[3].toString() + "\"");
+        return tk_->throwError("expected integer but got \"" + args[3].toString() + "\"");
 
       sw = std::max(sw, 1L);
       sh = std::max(sh, 1L);
@@ -5228,7 +5364,7 @@ run(const Args &args)
       return false;
   }
   else if (arg == "positionfrom") {
-    tk_->TODO(args);
+    setStringResult(""); // TODO
   }
   else if (arg == "protocol") {
     QString atomName;
@@ -5236,10 +5372,13 @@ run(const Args &args)
     if (numArgs > 2)
       atomName = args[2].toString();
 
-    if (numArgs > 3)
-      tk_->setWmAtomValue(atomName, args[3].toString());
+    if (numArgs > 3) {
+      auto atomValue = args[3].toString();
+
+      w->setWmAtomValue(atomName, atomValue);
+    }
     else
-      tk_->setStringResult(tk_->getWmAtomValue(atomName));
+      tk_->setStringResult(w->getWmAtomValue(atomName));
   }
   else if (arg == "resizable") {
     if      (numArgs == 2) {
@@ -5258,7 +5397,7 @@ run(const Args &args)
       return tk_->wrongNumArgs("wm resizable window ?width height?");
   }
   else if (arg == "sizefrom") {
-    tk_->TODO(args);
+    setStringResult(""); // TODO
   }
   else if (arg == "stackorder") {
     tk_->TODO(args);
@@ -5284,8 +5423,8 @@ run(const Args &args)
       else if (state == "iconic") {
         w->getQWidget()->showMinimized();
       }
-      else if (state == "withdraw") {
-        w->getQWidget()->hide();
+      else if (state == "withdrawn") {
+        w->hide();
       }
       else
         return tk_->throwError("bad argument \"" + state + "\": must be "
@@ -5311,13 +5450,13 @@ run(const Args &args)
     auto *pw = tk_->lookupWidgetByName(args[2].toString());
     if (! pw) return false;
 
-    w->getQWidget()->setWindowFlags(
-      Qt::Tool | Qt::FramelessWindowHint | Qt::X11BypassWindowManagerHint);
+    //w->getQWidget()->setWindowFlags(
+    //  Qt::Tool | Qt::FramelessWindowHint | Qt::X11BypassWindowManagerHint);
 
     //CXMachine::setWMTransientFor();
   }
   else if (arg == "withdraw") {
-    w->getQWidget()->hide();
+    w->hide();
   }
 
   return true;
@@ -5605,13 +5744,13 @@ run(const Args &args)
       tk_->TODO(args);
     }
     else if (opt == "-format") {
-      tk_->TODO(args);
+      tk_->setStringResult(image->format());
     }
     else if (opt == "-file") {
       tk_->setStringResult(image->filename());
     }
     else if (opt == "-gamma") {
-      tk_->TODO(args);
+      tk_->setRealResult(image->gamma());
     }
     else if (opt == "-height") {
       tk_->setIntegerResult(image->height());
@@ -5636,14 +5775,12 @@ run(const Args &args)
         res += "{" + name + "{} {} {" + def + "} {" + value + "}}";
       };
 
-      auto filename = image->filename();
-
-      addData("-data"   , "", "");
-      addData("-format" , "", "");
-      addData("-file"   , "", filename);
-      addData("-gamma"  , "1", "1");
+      addData("-data"   , "" , "");
+      addData("-format" , "" , image->format());
+      addData("-file"   , "" , image->filename());
+      addData("-gamma"  , "1", QString::number(image->gamma()));
       addData("-height" , "0", QString::number(image->height()));
-      addData("-palette", "", "");
+      addData("-palette", "" , "");
       addData("-width " , "0", QString::number(image->width()));
 
       tk_->setStringResult(res);
@@ -5663,13 +5800,16 @@ run(const Args &args)
           tk_->TODO(args);
         }
         else if (name == "-format") {
-          tk_->TODO(args);
+          image->setFormat(value);
         }
         else if (name == "-file") {
-          tk_->TODO(args);
+          image->setFilename(value);
         }
         else if (name == "-gamma") {
-          tk_->TODO(args);
+          double r;
+          if (! CTkAppUtil::stringToReal(value, r))
+            return tk_->throwError("expected real but got \"" + value + "\"");
+          image->setGamma(r);
         }
         else if (name == "-height") {
           long h;
@@ -5708,13 +5848,11 @@ run(const Args &args)
 
     long x;
     if (! CTkAppUtil::stringToInt(args[1].toString(), x))
-      return tk_->throwError("expected integer but got \"" +
-                               args[1].toString() + "\"");
+      return tk_->throwError("expected integer but got \"" + args[1].toString() + "\"");
 
     long y;
     if (! CTkAppUtil::stringToInt(args[2].toString(), y))
-      return tk_->throwError("expected integer but got \"" +
-                               args[2].toString() + "\"");
+      return tk_->throwError("expected integer but got \"" + args[2].toString() + "\"");
 
     QColor c;
     if (! image->getPixel(x, y, c))
@@ -5750,30 +5888,26 @@ run(const Args &args)
 
         long x1;
         if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), x1))
-          return tk_->throwError("expected integer but got \"" +
-                                   args[i].toString() + "\"");
+          return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
 
         ++i;
 
         long y1;
         if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), y1))
-          return tk_->throwError("expected integer but got \"" +
-                                   args[i].toString() + "\"");
+          return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
 
         if (i < numArgs) {
           ++i;
 
           long x2;
           if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), x2))
-            return tk_->throwError("expected integer but got \"" +
-                                     args[i].toString() + "\"");
+            return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
 
           ++i;
 
           long y2;
           if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), y2))
-            return tk_->throwError("expected integer but got \"" +
-                                     args[i].toString() + "\"");
+            return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
 
           image->setPixels(x1, y1, x2, y2, c);
         }
@@ -5798,42 +5932,36 @@ run(const Args &args)
       else if (args[i] == "-from") {
         long x1;
         if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), x1))
-          return tk_->throwError("expected integer but got \"" +
-                                   args[i].toString() + "\"");
+          return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
 
         ++i;
 
         long y1;
         if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), y1))
-          return tk_->throwError("expected integer but got \"" +
-                                   args[i].toString() + "\"");
+          return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
 
         ++i;
 
         long x2;
         if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), x2))
-          return tk_->throwError("expected integer but got \"" +
-                                   args[i].toString() + "\"");
+          return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
 
         ++i;
 
         long y2;
         if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), y2))
-          return tk_->throwError("expected integer but got \"" +
-                                   args[i].toString() + "\"");
+          return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
       }
       else if (args[i] == "-to") {
         long x1;
         if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), x1))
-          return tk_->throwError("expected integer but got \"" +
-                                   args[i].toString() + "\"");
+          return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
 
         ++i;
 
         long y1;
         if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), y1))
-          return tk_->throwError("expected integer but got \"" +
-                                   args[i].toString() + "\"");
+          return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
 
         ++i;
       }
@@ -5861,13 +5989,11 @@ run(const Args &args)
 
       long x;
       if (! CTkAppUtil::stringToInt(args[1].toString(), x))
-        return tk_->throwError("expected integer but got \"" +
-                                 args[1].toString() + "\"");
+        return tk_->throwError("expected integer but got \"" + args[1].toString() + "\"");
 
       long y;
       if (! CTkAppUtil::stringToInt(args[2].toString(), y))
-        return tk_->throwError("expected integer but got \"" +
-                                 args[2].toString() + "\"");
+        return tk_->throwError("expected integer but got \"" + args[2].toString() + "\"");
 
       QColor c;
       if (! image->getPixel(x, y, c))
@@ -5881,13 +6007,11 @@ run(const Args &args)
 
       long x;
       if (! CTkAppUtil::stringToInt(args[1].toString(), x))
-        return tk_->throwError("expected integer but got \"" +
-                                 args[1].toString() + "\"");
+        return tk_->throwError("expected integer but got \"" + args[1].toString() + "\"");
 
       long y;
       if (! CTkAppUtil::stringToInt(args[2].toString(), y))
-        return tk_->throwError("expected integer but got \"" +
-                                 args[2].toString() + "\"");
+        return tk_->throwError("expected integer but got \"" + args[2].toString() + "\"");
 
       bool b;
       if (! CTkAppUtil::stringToBool(args[3].toString(), b))
@@ -5925,29 +6049,25 @@ run(const Args &args)
       else if (args[i] == "-from") {
         long x1;
         if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), x1))
-          return tk_->throwError("expected integer but got \"" +
-                                   args[i].toString() + "\"");
+          return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
 
         ++i;
 
         long y1;
         if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), y1))
-          return tk_->throwError("expected integer but got \"" +
-                                   args[i].toString() + "\"");
+          return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
 
         ++i;
 
         long x2;
         if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), x2))
-          return tk_->throwError("expected integer but got \"" +
-                                   args[i].toString() + "\"");
+          return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
 
         ++i;
 
         long y2;
         if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), y2))
-          return tk_->throwError("expected integer but got \"" +
-                                   args[i].toString() + "\"");
+          return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
       }
       else if (args[i] == "-grayscale") {
         tk_->TODO(args);
@@ -6077,6 +6197,15 @@ run(const Args &args)
   return true;
 }
 #endif
+
+bool
+CTkAppErrorInfoCmd::
+run(const Args &)
+{
+  tk_->lastErrorInfo();
+
+  return true;
+}
 
 //---
 

@@ -182,7 +182,8 @@ construct(int argc, const char **argv)
 {
   s_app = this;
 
-  appFont_ = qApp->font();
+  setAppName("CTkApp");
+  setAppFont(qApp->font());
 
   root_ = new CTkAppRoot(this);
 
@@ -253,6 +254,10 @@ construct(int argc, const char **argv)
   connect(timer_, SIGNAL(timeout()), this, SLOT(timerSlot()));
 
   timer_->start(100);
+
+  //---
+
+  createAlias("echo", "puts");
 }
 
 int
@@ -287,9 +292,6 @@ timerSlot()
   for (auto *toplevel : toplevels_) {
     if (toplevel->isNeedsShow()) {
       toplevel->setNeedsShow(false);
-
-      if (toplevel->iconWindow() != "")
-        continue;
 
       toplevel->show();
     }
@@ -361,8 +363,13 @@ show()
   if (toplevels_.empty())
     root_->show();
   else {
-    for (auto *toplevel : toplevels_)
-      toplevel->show();
+    for (auto *toplevel : toplevels_) {
+      if (toplevel->isNeedsShow()) {
+        toplevel->setNeedsShow(false);
+
+        toplevel->show();
+      }
+    }
   }
 }
 
@@ -513,6 +520,14 @@ getImage(const QString &name) const
   return (*p).second;
 }
 
+void
+CTkApp::
+getImageNames(std::vector<QString> &names) const
+{
+  for (const auto &pi : images_)
+    names.push_back(pi.first);
+}
+
 CTkAppImageRef
 CTkApp::
 getBitmap(const QString &name) const
@@ -562,9 +577,9 @@ addBitmap(const QString &name, CTkAppImageRef &image)
 
 void
 CTkApp::
-getImageNames(std::vector<QString> &names) const
+getBitmapNames(std::vector<QString> &names) const
 {
-  for (const auto &pi : images_)
+  for (const auto &pi : bitmaps_)
     names.push_back(pi.first);
 }
 
@@ -1595,6 +1610,33 @@ addVirtualEventData(const CTkAppVirtualEventData &vdata, const CTkAppEventData &
 
 void
 CTkApp::
+deleteAllVirtualEventData(const CTkAppVirtualEventData &vdata)
+{
+  auto p = virtualEventData_.find(vdata);
+  if (p == virtualEventData_.end()) return;
+
+  (*p).second.clear();
+}
+
+void
+CTkApp::
+deleteVirtualEventData(const CTkAppVirtualEventData &vdata, const CTkAppEventData &edata)
+{
+  auto p = virtualEventData_.find(vdata);
+  if (p == virtualEventData_.end()) return;
+
+  EventDatas eventDatas1;
+
+  for (const auto &eventData : (*p).second) {
+    if (eventData != edata)
+      eventDatas1.push_back(edata);
+  }
+
+  std::swap((*p).second, eventDatas1);
+}
+
+void
+CTkApp::
 virtualEventNames(std::vector<QString> &names) const
 {
   for (uint i = 0; virtualEventData[i].type != CTkAppVirtualEventType::None; ++i)
@@ -1757,22 +1799,6 @@ toQTransform(const CMatrix2D &m) const
 }
 
 //---
-
-void
-CTkApp::
-setWmAtomValue(const QString &atomName, const QString &atomValue)
-{
-  wmAtoms_[atomName] = atomValue;
-}
-
-QString
-CTkApp::
-getWmAtomValue(const QString &atomName) const
-{
-  auto p = wmAtoms_.find(atomName);
-
-  return (p != wmAtoms_.end() ? (*p).second : "");
-}
 
 CTkAppWidget *
 CTkApp::

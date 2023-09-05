@@ -105,6 +105,8 @@ removeWidget(CTkAppWidget *widget)
     delete item;
   }
 
+  widget->hide();
+
   invalidate();
 }
 
@@ -380,19 +382,41 @@ setGeometry(const QRect &rect)
       xWidgets[x1].push_back(w);
     }
 
-    int dx = (x1 + (rect.width() - x2))/(expandHWidgets.size() + 1);
+    bool placed = false;
 
-    int d = dx;
+    if (expandHWidgets.size() == 1) {
+      auto *w = expandHWidgets[0];
 
-    for (const auto &p1 : xWidgets) {
-      for (auto *w : p1.second) {
-        auto r = w->geometry();
+      auto r = w->geometry();
 
-        auto r1 = QRect(r.left() + d, r.top(), r.width(), r.height());
+      if (placeRect.top() == r.top() && placeRect.bottom() == r.bottom()) {
+        x1 = std::min(x1, placeRect.left());
+        x2 = std::max(x2, placeRect.right());
 
-        w->setGeometry(r1);
+        r.setLeft (x1);
+        r.setRight(x2);
 
-        d += dx;
+        w->setGeometry(r);
+
+        placed = true;
+      }
+    }
+
+    if (! placed) {
+      int dx = (x1 + (rect.width() - x2))/(expandHWidgets.size() + 1);
+
+      int d = dx;
+
+      for (const auto &p1 : xWidgets) {
+        for (auto *w : p1.second) {
+          auto r = w->geometry();
+
+          auto r1 = QRect(r.left() + d, r.top(), r.width(), r.height());
+
+          w->setGeometry(r1);
+
+          d += dx;
+        }
       }
     }
   }

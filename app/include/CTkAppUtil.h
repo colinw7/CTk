@@ -20,8 +20,14 @@ bool stringToDistanceI(const QString &str, int &i);
 
 bool stringToOrient(const QString &str, Qt::Orientation &orient);
 
-bool stringToAlign(const QString &value, Qt::Alignment &align);
-QString alignToString(Qt::Alignment &align);
+bool stringToAlign(const QString &value, Qt::Alignment &align, bool quiet=false);
+QString alignToString(const Qt::Alignment &align);
+
+bool stringToCapStyle(const QString &value, Qt::PenCapStyle &capStyle);
+QString capStyleToString(const Qt::PenCapStyle &capStyle);
+
+bool stringToFillRule(const QString &value, Qt::FillRule &fillRule);
+QString fillRuleToString(const Qt::FillRule &fillRule);
 
 bool uniqueMatch(const std::vector<QString> &values, const QString &str, QString &match);
 

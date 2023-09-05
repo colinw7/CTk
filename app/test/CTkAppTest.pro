@@ -49,6 +49,7 @@ INCLUDEPATH += \
 
 unix:LIBS += \
 -L$$LIB_DIR \
+-L../../../CQPropertyView/lib \
 -L../../../CQUtil/lib \
 -L../../../CCommand/lib \
 -L../../../CArgs/lib \
@@ -66,7 +67,7 @@ unix:LIBS += \
 -L../../../CStrUtil/lib \
 -L../../../CRegExp/lib \
 -L../../../CRGBName/lib \
--lCTkApp -lCQUtil -lCReadLine -lCConfig -lCUtil -lCCommand \
+-lCTkApp -lCQPropertyView -lCQUtil -lCReadLine -lCConfig -lCUtil -lCCommand \
 -lCArgs -lCImageLib -lCFont -lCTimer -lCGlob -lCMath \
 -lCRGBName -lCFileUtil -lCFile -lCOS -lCStrUtil -lCRegExp \
 -lpng -ljpeg -ltre -lreadline -lncurses \

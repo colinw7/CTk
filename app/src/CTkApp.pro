@@ -94,6 +94,7 @@ INCLUDEPATH += \
 ../include \
 ../../../CQUtil/include \
 ../../../CTclApp/include \
+../../../CQPropertyView/include \
 ../../../CXLib/include \
 ../../../CReadLine/include \
 ../../../CImageLib/include \

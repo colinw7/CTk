@@ -388,7 +388,8 @@ getStringArrayGlobalVar(const QString &var, std::vector<QString> &strs) const
   auto rc = CQTclUtil::splitList(str, strs);
 
   if (rc != TCL_OK) {
-    std::cerr << errorInfo_(rc).toStdString() << "\n";
+    lastErrorMsg_ = errorInfo_(lastError_);
+    std::cerr << lastErrorMsg_.toStdString() << "\n";
     return false;
   }
 
@@ -720,6 +721,16 @@ handleUnset(const char *name)
 
 //---
 
+int
+CTclApp::
+createAlias(const QString &newName, const QString &oldName)
+{
+  return Tcl_CreateAlias(interp_, newName.toLatin1().constData(),
+                         interp_, oldName.toLatin1().constData(), 0, nullptr);
+}
+
+//---
+
 bool
 CTclApp::
 evalFile(const QString &filename) const
@@ -730,31 +741,42 @@ evalFile(const QString &filename) const
   return eval(cmd);
 #endif
 
-  auto rc = Tcl_EvalFile(interp_, filename.toLatin1().constData());
+  lastError_ = Tcl_EvalFile(interp_, filename.toLatin1().constData());
 
-  if (rc != TCL_OK)
-    std::cerr << errorInfo_(rc).toStdString() << "\n";
+  if (lastError_ != TCL_OK) {
+    lastErrorMsg_ = errorInfo_(lastError_);
+    std::cerr << lastErrorMsg_.toStdString() << "\n";
+  }
 
-  return (rc == TCL_OK);
+  return (lastError_ == TCL_OK);
 }
 
 bool
 CTclApp::
 eval(const QString &str) const
 {
-  auto rc = Tcl_Eval(interp_, str.toLatin1().constData());
+  lastError_ = Tcl_Eval(interp_, str.toLatin1().constData());
 
-  if (rc != TCL_OK)
-    std::cerr << errorInfo_(rc).toStdString() << "\n";
+  if (lastError_ != TCL_OK) {
+    lastErrorMsg_ = errorInfo_(lastError_);
+    std::cerr << lastErrorMsg_.toStdString() << "\n";
+  }
 
-  return (rc == TCL_OK);
+  return (lastError_ == TCL_OK);
 }
-
-//---
 
 QString
 CTclApp::
 errorInfo_(int rc) const
 {
   return QString::fromStdString(CTclUtil::errorInfo(interp_, rc));
+}
+
+//---
+
+QString
+CTclApp::
+lastErrorInfo() const
+{
+  return lastErrorMsg_;
 }

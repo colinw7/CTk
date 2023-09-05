@@ -170,7 +170,7 @@ removeWidget(CTkAppWidget *widget)
 
       delete l;
 
-      widget->getQWidget()->hide();
+      widget->hide();
 
       return true;
     }

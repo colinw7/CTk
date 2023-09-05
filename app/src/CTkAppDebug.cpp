@@ -6,6 +6,7 @@
 #include <CTkAppGridLayout.h>
 #include <CTkAppPlaceLayout.h>
 
+#include <CQPropertyViewTree.h>
 #include <CQIntegerSpin.h>
 #include <CQRealSpin.h>
 #include <CQOptEdit.h>
@@ -31,10 +32,16 @@ CTkAppDebug(CTkApp *tk) :
 
   //---
 
+  tab_ = new QTabWidget;
+
+  layout->addWidget(tab_);
+
+  //---
+
   auto *widgetFrame = new QFrame;
   auto *widgetLayout = new QVBoxLayout(widgetFrame);
 
-  layout->addWidget(widgetFrame);
+  tab_->addTab(widgetFrame, "Child Widgets");
 
   //---
 
@@ -71,17 +78,40 @@ CTkAppDebug(CTkApp *tk) :
 
   dataLayout_ = new QVBoxLayout(dataFrame);
 
-  layout->addWidget(dataFrame);
-
   typeLabel_   = new QLabel;
   layoutLabel_ = new QLabel;
 
   dataLayout_->addWidget(typeLabel_);
   dataLayout_->addWidget(layoutLabel_);
 
+  tab_->addTab(dataFrame, "Layout");
+
+  //---
+
+  propertyView_ = new CQPropertyViewTree;
+
+  tab_->addTab(propertyView_, "Properties");
+
+  //---
+
+  auto *imageFrame  = new QFrame;
+  auto *imageLayout = new QVBoxLayout(imageFrame);
+
+  imageList_  = new QListWidget;
+  bitmapList_ = new QListWidget;
+
+  imageLayout->addWidget(imageList_);
+  imageLayout->addWidget(bitmapList_);
+
+  tab_->addTab(imageFrame, "Images");
+
   //---
 
   updateChildren();
+
+  updateImages();
+
+  updateProperties();
 }
 
 void
@@ -102,6 +132,28 @@ updateChildren()
   layoutLabel_->setText(currentLayout_ ? currentLayout_->name() : "");
 
   createLayoutWidgets();
+}
+
+void
+CTkAppDebug::
+updateImages()
+{
+  imageList_->clear();
+
+  std::vector<QString> imageNames;
+
+  tk_->getImageNames(imageNames);
+
+  for (const auto &imageName : imageNames)
+    imageList_->addItem(imageName);
+
+  std::vector<QString> bitmapNames;
+
+  tk_->getBitmapNames(bitmapNames);
+
+  for (const auto &bitmapName : bitmapNames)
+    bitmapList_->addItem(bitmapName);
+
 }
 
 void
@@ -489,6 +541,173 @@ updateLayoutWidgets()
   }
 
   updating_ = false;
+}
+
+void
+CTkAppDebug::
+updateProperties()
+{
+  propertyView_->clear();
+
+  for (auto *w : tk_->widgets()) {
+    auto parentName = "widgets/" + widgetPropPath(w) + "/.DATA";
+
+    propertyView_->addProperty(parentName, w, "type");
+    propertyView_->addProperty(parentName, w, "name");
+    propertyView_->addProperty(parentName, w, "fullName");
+
+    propertyView_->addProperty(parentName, w, "background");
+    propertyView_->addProperty(parentName, w, "foreground");
+
+    propertyView_->addProperty(parentName, w, "activeBackground");
+    propertyView_->addProperty(parentName, w, "activeForeground");
+
+    propertyView_->addProperty(parentName, w, "disabledBackground");
+    propertyView_->addProperty(parentName, w, "disabledForeground");
+
+    propertyView_->addProperty(parentName, w, "highlightBackground");
+    propertyView_->addProperty(parentName, w, "highlightForeground");
+
+    propertyView_->addProperty(parentName, w, "insertBackground");
+
+    propertyView_->addProperty(parentName, w, "relief");
+
+    propertyView_->addProperty(parentName, w, "anchorStr");
+    propertyView_->addProperty(parentName, w, "anchor");
+
+    propertyView_->addProperty(parentName, w, "borderWidth");
+    propertyView_->addProperty(parentName, w, "selectBorderWidth");
+    propertyView_->addProperty(parentName, w, "insertBorderWidth");
+    propertyView_->addProperty(parentName, w, "insertWidth");
+
+    propertyView_->addProperty(parentName, w, "bitmap");
+
+    propertyView_->addProperty(parentName, w, "highlightThickness");
+
+    propertyView_->addProperty(parentName, w, "text");
+    propertyView_->addProperty(parentName, w, "width");
+    propertyView_->addProperty(parentName, w, "height");
+    propertyView_->addProperty(parentName, w, "title");
+    propertyView_->addProperty(parentName, w, "icon");
+    propertyView_->addProperty(parentName, w, "geometry");
+
+    propertyView_->addProperty(parentName, w, "command");
+    propertyView_->addProperty(parentName, w, "xScrollCommand");
+    propertyView_->addProperty(parentName, w, "yScrollCommand");
+
+    auto *button     = qobject_cast<CTkAppButton *>(w);
+    auto *canvas     = qobject_cast<CTkAppCanvas *>(w);
+    auto *check      = qobject_cast<CTkAppCheckButton *>(w);
+    auto *combo      = qobject_cast<CTkAppComboBox *>(w);
+    auto *entry      = qobject_cast<CTkAppEntry *>(w);
+    auto *label      = qobject_cast<CTkAppLabel *>(w);
+    auto *listbox    = qobject_cast<CTkAppListBox *>(w);
+    auto *menubutton = qobject_cast<CTkAppMenuButton *>(w);
+    auto *message    = qobject_cast<CTkAppMessage *>(w);
+    auto *radio      = qobject_cast<CTkAppRadioButton *>(w);
+    auto *scale      = qobject_cast<CTkAppScale *>(w);
+    auto *spinbox    = qobject_cast<CTkAppSpinBox *>(w);
+
+    if (button) {
+      propertyView_->addProperty(parentName, button, "overRaised");
+    }
+
+    if (canvas) {
+      auto *cw = canvas->canvasWidget();
+
+      for (auto *shape : cw->getShapes()) {
+        auto shapeName = parentName + "/shapes/" + QString::number(shape->id());
+
+        propertyView_->addProperty(shapeName, shape, "id");
+
+        propertyView_->addProperty(shapeName, shape, "enabled");
+        propertyView_->addProperty(shapeName, shape, "visible");
+
+        propertyView_->addProperty(shapeName, shape, "strokeColor");
+        propertyView_->addProperty(shapeName, shape, "strokeAlpha");
+        propertyView_->addProperty(shapeName, shape, "strokeWidth");
+        propertyView_->addProperty(shapeName, shape, "strokeCap");
+
+        propertyView_->addProperty(shapeName, shape, "fillColor");
+        propertyView_->addProperty(shapeName, shape, "fillAlpha");
+
+        auto *rectShape = qobject_cast<CTkAppCanvasRectangleShape *>(shape);
+        auto *ovalShape = qobject_cast<CTkAppCanvasOvalShape      *>(shape);
+
+        if (rectShape) {
+          propertyView_->addProperty(shapeName, rectShape, "x1");
+          propertyView_->addProperty(shapeName, rectShape, "y1");
+          propertyView_->addProperty(shapeName, rectShape, "x2");
+          propertyView_->addProperty(shapeName, rectShape, "y2");
+        }
+
+        if (ovalShape) {
+          propertyView_->addProperty(shapeName, ovalShape, "x1");
+          propertyView_->addProperty(shapeName, ovalShape, "y1");
+          propertyView_->addProperty(shapeName, ovalShape, "x2");
+          propertyView_->addProperty(shapeName, ovalShape, "y2");
+        }
+      }
+    }
+
+    if (check) {
+      propertyView_->addProperty(parentName, check, "varName");
+      propertyView_->addProperty(parentName, check, "onValue");
+      propertyView_->addProperty(parentName, check, "offValue");
+      propertyView_->addProperty(parentName, check, "showIndicator");
+      propertyView_->addProperty(parentName, check, "overRaised");
+      propertyView_->addProperty(parentName, check, "justify");
+      propertyView_->addProperty(parentName, check, "underlinePos");
+    }
+
+    if (combo) {
+      propertyView_->addProperty(parentName, combo, "varName");
+    }
+
+    if (entry) {
+      propertyView_->addProperty(parentName, entry, "varName");
+    }
+
+    if (label) {
+      propertyView_->addProperty(parentName, label, "varName");
+    }
+
+    if (listbox) {
+      propertyView_->addProperty(parentName, listbox, "varName");
+    }
+
+    if (menubutton) {
+      propertyView_->addProperty(parentName, menubutton, "varName");
+    }
+
+    if (message) {
+      propertyView_->addProperty(parentName, message, "varName");
+    }
+
+    if (radio) {
+      propertyView_->addProperty(parentName, radio, "varName");
+      propertyView_->addProperty(parentName, radio, "value");
+    }
+
+    if (scale) {
+      propertyView_->addProperty(parentName, scale, "varName");
+    }
+
+    if (spinbox) {
+      propertyView_->addProperty(parentName, spinbox, "varName");
+      propertyView_->addProperty(parentName, spinbox, "invalidCommand");
+    }
+  }
+}
+
+QString
+CTkAppDebug::
+widgetPropPath(CTkAppWidget *w) const
+{
+  if (w->getParent())
+    return widgetPropPath(w->getParent()) + "/" + w->getName();
+  else
+    return w->getName();
 }
 
 void

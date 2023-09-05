@@ -174,10 +174,12 @@ class CTkAppPackLayout : public CTkAppLayout {
   void setItemGeometry(QLayoutItem *item, const QRect &r);
 
  private:
+  using ItemList = QList<QLayoutItem *>;
+
   QSize calculateSize(SizeType sizeType) const;
 
-  QList<QLayoutItem *> list_;
-  bool                 propagate_ { true };
+  ItemList list_;
+  bool     propagate_ { true };
 };
 
 #endif

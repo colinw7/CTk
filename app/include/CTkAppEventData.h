@@ -137,6 +137,10 @@ struct CTkAppEventData {
 
     return true;
   }
+
+  friend bool operator!=(const CTkAppEventData &lhs, const CTkAppEventData &rhs) {
+    return ! operator==(lhs, rhs);
+  }
 };
 
 #endif
