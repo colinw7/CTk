@@ -382,12 +382,16 @@ show()
   }
 
   CTkAppWidget::show();
+
+  qroot_->resize(qroot_->sizeHint());
 }
 
 bool
 CTkAppRoot::
-execConfig(const QString &name, const QString &value)
+execConfig(const QString &name, const QVariant &var)
 {
+  auto value = CTkAppUtil::variantToString(var);
+
   if (name == "-menu") {
     menuName_ = value;
 
@@ -403,7 +407,7 @@ execConfig(const QString &name, const QString &value)
     }
   }
   else
-    return CTkAppWidget::execConfig(name, value);
+    return CTkAppWidget::execConfig(name, var);
 
   return true;
 }
@@ -558,8 +562,10 @@ connectSlots(bool b)
 
 bool
 CTkAppButton::
-execConfig(const QString &name, const QString &value)
+execConfig(const QString &name, const QVariant &var)
 {
+  auto value = CTkAppUtil::variantToString(var);
+
   long underlinePos = -1;
 
   if      (name == "-command") {
@@ -618,7 +624,7 @@ execConfig(const QString &name, const QString &value)
     qbutton_->setWrapLength(length);
   }
   else
-    return CTkAppWidget::execConfig(name, value);
+    return CTkAppWidget::execConfig(name, var);
 
   return true;
 }
@@ -775,8 +781,10 @@ CTkAppCanvas(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
 
 bool
 CTkAppCanvas::
-execConfig(const QString &name, const QString &value)
+execConfig(const QString &name, const QVariant &var)
 {
+  auto value = CTkAppUtil::variantToString(var);
+
   if      (name == "-closeenough") {
     double r;
     if (! CTkAppUtil::stringToReal(value, r))
@@ -834,7 +842,7 @@ execConfig(const QString &name, const QString &value)
     qcanvas_->setYScrollIncrement(ys);
   }
   else
-    return CTkAppWidget::execConfig(name, value);
+    return CTkAppWidget::execConfig(name, var);
 
   return true;
 }
@@ -3199,8 +3207,10 @@ connectSlots(bool b)
 
 bool
 CTkAppCheckButton::
-execConfig(const QString &name, const QString &value)
+execConfig(const QString &name, const QVariant &var)
 {
+  auto value = CTkAppUtil::variantToString(var);
+
   if      (name == "-command") {
     setCommand(value);
   }
@@ -3306,7 +3316,7 @@ execConfig(const QString &name, const QString &value)
     tk_->TODO(name);
   }
   else
-    return CTkAppWidget::execConfig(name, value);
+    return CTkAppWidget::execConfig(name, var);
 
   return true;
 }
@@ -3469,8 +3479,10 @@ connectSlots(bool b)
 
 bool
 CTkAppComboBox::
-execConfig(const QString &name, const QString &value)
+execConfig(const QString &name, const QVariant &var)
 {
+  auto value = CTkAppUtil::variantToString(var);
+
   if      (name == "-exportselection") {
     tk_->TODO(name);
   }
@@ -3524,7 +3536,7 @@ execConfig(const QString &name, const QString &value)
     qcombo_->setWidth(w);
   }
   else
-    return CTkAppWidget::execConfig(name, value);
+    return CTkAppWidget::execConfig(name, var);
 
   return true;
 }
@@ -3872,8 +3884,10 @@ connectSlots(bool b)
 
 bool
 CTkAppEntry::
-execConfig(const QString &name, const QString &value)
+execConfig(const QString &name, const QVariant &var)
 {
+  auto value = CTkAppUtil::variantToString(var);
+
   if      (name == "-show") {
     qedit_->setEchoMode(QLineEdit::Password);
   }
@@ -3922,7 +3936,7 @@ execConfig(const QString &name, const QString &value)
     qedit_->setWidth(w);
   }
   else
-    return CTkAppWidget::execConfig(name, value);
+    return CTkAppWidget::execConfig(name, var);
 
   return true;
 }
@@ -4209,13 +4223,15 @@ CTkAppFrame(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
 
 bool
 CTkAppFrame::
-execConfig(const QString &name, const QString &value)
+execConfig(const QString &name, const QVariant &var)
 {
+  auto value = CTkAppUtil::variantToString(var);
+
   if      (name == "-class") {
     setOptionClass(value);
   }
   else
-    return CTkAppWidget::execConfig(name, value);
+    return CTkAppWidget::execConfig(name, var);
 
   return true;
 }
@@ -4256,8 +4272,10 @@ CTkAppLabel(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
 
 bool
 CTkAppLabel::
-execConfig(const QString &name, const QString &value)
+execConfig(const QString &name, const QVariant &var)
 {
+  auto value = CTkAppUtil::variantToString(var);
+
   long underlinePos = -1;
 
   if      (name == "-textvariable") {
@@ -4303,7 +4321,7 @@ execConfig(const QString &name, const QString &value)
     }
   }
   else
-    return CTkAppWidget::execConfig(name, value);
+    return CTkAppWidget::execConfig(name, var);
 
   return true;
 }
@@ -4356,9 +4374,9 @@ CTkAppLabelFrame(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
 
 bool
 CTkAppLabelFrame::
-execConfig(const QString &name, const QString &value)
+execConfig(const QString &name, const QVariant &var)
 {
-  return CTkAppWidget::execConfig(name, value);
+  return CTkAppWidget::execConfig(name, var);
 }
 
 bool
@@ -4423,8 +4441,10 @@ connectSlots(bool b)
 
 bool
 CTkAppListBox::
-execConfig(const QString &name, const QString &value)
+execConfig(const QString &name, const QVariant &var)
 {
+  auto value = CTkAppUtil::variantToString(var);
+
   if      (name == "-activestyle") {
     tk_->TODO(name);
   }
@@ -4481,7 +4501,7 @@ execConfig(const QString &name, const QString &value)
     qlist_->setWidth(CTkAppListBoxWidget::OptReal(w));
   }
   else
-    return CTkAppWidget::execConfig(name, value);
+    return CTkAppWidget::execConfig(name, var);
 
   return true;
 }
@@ -4980,13 +5000,15 @@ CTkAppMenu(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
 
 bool
 CTkAppMenu::
-execConfig(const QString &name, const QString &value)
+execConfig(const QString &name, const QVariant &var)
 {
+  auto value = CTkAppUtil::variantToString(var);
+
   if (name == "-tearoff") {
     tk_->TODO(name);
   }
   else
-    return CTkAppWidget::execConfig(name, value);
+    return CTkAppWidget::execConfig(name, var);
 
   return true;
 }
@@ -5282,8 +5304,10 @@ connectSlots(bool b)
 
 bool
 CTkAppMenuButton::
-execConfig(const QString &name, const QString &value)
+execConfig(const QString &name, const QVariant &var)
 {
+  auto value = CTkAppUtil::variantToString(var);
+
   long underlinePos = -1;
 
   if      (name == "-command") {
@@ -5331,7 +5355,7 @@ execConfig(const QString &name, const QString &value)
     }
   }
   else
-    return CTkAppWidget::execConfig(name, value);
+    return CTkAppWidget::execConfig(name, var);
 
   return true;
 }
@@ -5455,8 +5479,10 @@ CTkAppMessage(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
 
 bool
 CTkAppMessage::
-execConfig(const QString &name, const QString &value)
+execConfig(const QString &name, const QVariant &var)
 {
+  auto value = CTkAppUtil::variantToString(var);
+
   if      (name == "-textvariable") {
     setVarName(value);
 
@@ -5477,7 +5503,7 @@ execConfig(const QString &name, const QString &value)
     tk_->TODO(name);
   }
   else
-    return CTkAppWidget::execConfig(name, value);
+    return CTkAppWidget::execConfig(name, var);
 
   return true;
 }
@@ -5519,9 +5545,9 @@ CTkAppNoteBook(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
 
 bool
 CTkAppNoteBook::
-execConfig(const QString &name, const QString &value)
+execConfig(const QString &name, const QVariant &var)
 {
-  return CTkAppWidget::execConfig(name, value);
+  return CTkAppWidget::execConfig(name, var);
 }
 
 bool
@@ -5656,8 +5682,10 @@ CTkAppPanedWindow(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
 
 bool
 CTkAppPanedWindow::
-execConfig(const QString &name, const QString &value)
+execConfig(const QString &name, const QVariant &var)
 {
+  auto value = CTkAppUtil::variantToString(var);
+
   if      (name == "-orient") {
     Qt::Orientation orient;
 
@@ -5670,7 +5698,7 @@ execConfig(const QString &name, const QString &value)
     tk_->TODO(name);
   }
   else
-    return CTkAppWidget::execConfig(name, value);
+    return CTkAppWidget::execConfig(name, var);
 
   return true;
 }
@@ -5844,8 +5872,10 @@ connectSlots(bool b)
 
 bool
 CTkAppRadioButton::
-execConfig(const QString &name, const QString &value)
+execConfig(const QString &name, const QVariant &var)
 {
+  auto value = CTkAppUtil::variantToString(var);
+
   if      (name == "-command") {
     setCommand(value);
   }
@@ -5905,7 +5935,7 @@ execConfig(const QString &name, const QString &value)
     tk_->TODO(name);
   }
   else
-    return CTkAppWidget::execConfig(name, value);
+    return CTkAppWidget::execConfig(name, var);
 
   return true;
 }
@@ -6198,8 +6228,10 @@ connectSlots(bool b)
 
 bool
 CTkAppScale::
-execConfig(const QString &name, const QString &value)
+execConfig(const QString &name, const QVariant &var)
 {
+  auto value = CTkAppUtil::variantToString(var);
+
   // widget specific options
   if      (name == "-bigincrement") {
     tk_->TODO(name);
@@ -6315,7 +6347,7 @@ execConfig(const QString &name, const QString &value)
     updateSize();
   }
   else
-    return CTkAppWidget::execConfig(name, value);
+    return CTkAppWidget::execConfig(name, var);
 
   return true;
 }
@@ -6411,8 +6443,10 @@ connectSlots(bool b)
 
 bool
 CTkAppScrollBar::
-execConfig(const QString &name, const QString &value)
+execConfig(const QString &name, const QVariant &var)
 {
+  auto value = CTkAppUtil::variantToString(var);
+
   if      (name == "-orient") {
     Qt::Orientation orient;
 
@@ -6431,7 +6465,7 @@ execConfig(const QString &name, const QString &value)
     qscrollbar_->setTroughColor(c);
   }
   else
-    return CTkAppWidget::execConfig(name, value);
+    return CTkAppWidget::execConfig(name, var);
 
   return true;
 }
@@ -6557,8 +6591,10 @@ connectSlots(bool b)
 
 bool
 CTkAppSpinBox::
-execConfig(const QString &name, const QString &value)
+execConfig(const QString &name, const QVariant &var)
 {
+  auto value = CTkAppUtil::variantToString(var);
+
   if      (name == "-buttonbackground") {
     tk_->TODO(name);
   }
@@ -6671,7 +6707,7 @@ execConfig(const QString &name, const QString &value)
     tk_->TODO(name);
   }
   else
-    return CTkAppWidget::execConfig(name, value);
+    return CTkAppWidget::execConfig(name, var);
 
   return true;
 }
@@ -7001,8 +7037,10 @@ connectSlots(bool b)
 
 bool
 CTkAppText::
-execConfig(const QString &name, const QString &value)
+execConfig(const QString &name, const QVariant &var)
 {
+  auto value = CTkAppUtil::variantToString(var);
+
   if      (name == "-autoseparators") {
     tk_->TODO(name);
   }
@@ -7081,7 +7119,7 @@ execConfig(const QString &name, const QString &value)
       return false;
   }
   else
-    return CTkAppWidget::execConfig(name, value);
+    return CTkAppWidget::execConfig(name, var);
 
   return true;
 }
@@ -7721,51 +7759,63 @@ execOp(const Args &args)
       else {
         uint i = 3;
 
+        QString value1;
+
+        auto nextI = [&]() {
+          ++i;
+          if (i >= numArgs) return false;
+          value1 = args[i].toString();
+          return true;
+        };
+
         for ( ; i < numArgs; ++i) {
           auto arg1 = args[i].toString();
 
           if      (arg1 == "-background") {
-            ++i;
-            if (i >= numArgs)
-              return false;
-            auto value1 = args[i].toString();
+            if (! nextI()) return false;
             QColor c;
-            if (CTkAppUtil::stringToQColor(value1, c))
-              tagData.background = c;
+            if (! CTkAppUtil::stringToQColor(value1, c))
+              return false;
+            tagData.background = c;
           }
           else if (arg1 == "-foreground") {
-            ++i;
-            if (i >= numArgs)
-              return false;
-            auto value1 = args[i].toString();
+            if (! nextI()) return false;
             QColor c;
-            if (CTkAppUtil::stringToQColor(value1, c))
-              tagData.foreground = c;
+            if (! CTkAppUtil::stringToQColor(value1, c))
+              return false;
+            tagData.foreground = c;
           }
           else if (arg1 == "-font") {
-            ++i;
-            if (i >= numArgs)
-              return false;
-            auto value1 = args[i].toString();
+            if (! nextI()) return false;
             tagData.font = tk_->getQFont(value1);
           }
           else if (arg1 == "-borderwidth") {
-            tk_->TODO(args);
-            ++i;
+            if (! nextI()) return false;
+            double w;
+            if (! CTkAppUtil::stringToDistance(value1, w))
+              return false;
+            tagData.borderWidth = w;
           }
           else if (arg1 == "-relief") {
+            if (! nextI()) return false;
             tk_->TODO(args);
-            ++i;
+          }
+          else if (arg1 == "-underline") {
+            if (! nextI()) return false;
+            bool b;
+            if (! CTkAppUtil::stringToBool(value1, b))
+              return false;
+            tagData.underline = b;
           }
           else
-            tk_->TODO(args);
+            return false;
         }
 
         applyTag(tagData);
       }
     }
     else if (opt == "delete") {
-      if (numArgs < 3)
+      if (numArgs < 2)
         return tk_->wrongNumArgs(getName() + " tag delete tagName ?tagName ...?");
 
       uint i = 2;
@@ -7843,10 +7893,11 @@ execOp(const Args &args)
 
       tagRemove(tag); // remove tag from chars between index pairs
     }
-    else
+    else {
       tk_->throwError("bad tag option \"" + opt + "\": must be "
         "add, bind, cget, configure, delete, lower, names, nextrange, prevrange, "
         "raise, ranges, or remove");
+    }
   }
   else if (arg == "window") {
     if (numArgs < 1)
@@ -8113,8 +8164,13 @@ stringToTextInd(const QString &str, TextInd &ind) const
     if (parse.isChar('.')) {
       parse.skipChar();
 
-      if (! parse.readInteger(&charNum))
-        return errorMsg();
+      if (parse.isString("end")) {
+        parse.skipLastString();
+      }
+      else {
+        if (! parse.readInteger(&charNum))
+          return errorMsg();
+      }
     }
 
     ind = TextInd(lineNum, charNum);
@@ -8468,11 +8524,11 @@ CTkAppTopLevel::
 CTkAppTopLevel(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
  CTkAppWidget(tk, parent, name)
 {
-  qframe_ = new QFrame(nullptr);
+  qtoplevel_ = new CTkAppTopLevelWidget(this);
 
-  qframe_->setWindowTitle(name);
+  qtoplevel_->setWindowTitle(name);
 
-  setQWidget(qframe_);
+  setQWidget(qtoplevel_);
 
   tk_->addTopLevel(this);
 }
@@ -8485,13 +8541,13 @@ CTkAppTopLevel::
 
 void
 CTkAppTopLevel::
-setFrame(QFrame *qframe)
+setTopLevelWidget(CTkAppTopLevelWidget *qtoplevel)
 {
-  delete qframe_;
+  delete qtoplevel_;
 
-  qframe_ = qframe;
+  qtoplevel_ = qtoplevel;
 
-  setQWidget(qframe_);
+  setQWidget(qtoplevel_);
 }
 
 void
@@ -8504,6 +8560,8 @@ show()
   setNeedsShow(false);
 
   CTkAppWidget::show();
+
+  qtoplevel_->resize(qtoplevel_->sizeHint());
 }
 
 void
@@ -8517,9 +8575,14 @@ hide()
 
 bool
 CTkAppTopLevel::
-execConfig(const QString &name, const QString &value)
+execConfig(const QString &name, const QVariant &var)
 {
-  return CTkAppWidget::execConfig(name, value);
+  if (name == "-class")
+    tk_->TODO(name);
+  else
+    return CTkAppWidget::execConfig(name, var);
+
+  return true;
 }
 
 bool
@@ -8527,6 +8590,24 @@ CTkAppTopLevel::
 execOp(const Args &args)
 {
   return CTkAppWidget::execOp(args);
+}
+
+//---
+
+CTkAppTopLevelWidget::
+CTkAppTopLevelWidget(CTkAppTopLevel *toplevel) :
+ QFrame(nullptr), toplevel_(toplevel)
+{
+  setObjectName("toplevel");
+}
+
+QSize
+CTkAppTopLevelWidget::
+sizeHint() const
+{
+  auto s = QFrame::sizeHint();
+
+  return s;
 }
 
 //----------
@@ -8554,8 +8635,10 @@ connectSlots(bool b)
 
 bool
 CTkAppTreeView::
-execConfig(const QString &name, const QString &value)
+execConfig(const QString &name, const QVariant &var)
 {
+  auto value = CTkAppUtil::variantToString(var);
+
   if      (name == "-columns") {
     std::vector<QString> strs;
     if (! tk_->splitList(value, strs))
@@ -8600,7 +8683,7 @@ execConfig(const QString &name, const QString &value)
       return false;
   }
   else
-    return CTkAppWidget::execConfig(name, value);
+    return CTkAppWidget::execConfig(name, var);
 
   return true;
 }
@@ -9233,8 +9316,8 @@ CTkAppWidget(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
 CTkAppWidget::
 ~CTkAppWidget()
 {
-  if (deleteWindowCmd_ != "")
-    tk_->eval(deleteWindowCmd_);
+  if (deleteWindowCmd() != "")
+    tk_->eval(deleteWindowCmd());
 
   //---
 
@@ -9245,7 +9328,11 @@ CTkAppWidget::
 
   tk_->removeWidget(this);
 
-  for (auto &pc : children_)
+  WidgetMap children;
+
+  std::swap(children, children_);
+
+  for (auto &pc : children)
     delete pc.second;
 
   delete qwidget_;
@@ -9676,8 +9763,10 @@ getTkPlaceLayout(bool create)
 
 bool
 CTkAppWidget::
-execConfig(const QString &name, const QString &value)
+execConfig(const QString &name, const QVariant &var)
 {
+  auto value = CTkAppUtil::variantToString(var);
+
   if      (name == "-activebackground") {
     QColor c;
     if (! CTkAppUtil::stringToQColor(value, c))
@@ -9862,7 +9951,7 @@ execConfig(const QString &name, const QString &value)
     bool b;
     if (! CTkAppUtil::stringToBool(value, b))
       return tk_->throwError("Invalid " + name + " \"" + value + "\"");
-    gridSize_ = b;
+    setGridWidget(b);
   }
   else if (name == "-visual") {
     tk_->TODO(name);
@@ -10349,7 +10438,7 @@ CTkAppWidget::
 setWmAtomValue(const QString &atomName, const QString &atomValue)
 {
   if (atomName == "WM_DELETE_WINDOW")
-    deleteWindowCmd_ = atomValue;
+    setDeleteWindowCmd(atomValue);
 
   wmAtoms_[atomName] = atomValue;
 }

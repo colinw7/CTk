@@ -58,7 +58,7 @@ class CTkAppWidgetCommand : public CTkAppCommand {
   bool processArgs(const Args &args);
 
   bool getOptValue(const QString &name, QString &value);
-  bool setOptValue(const QString &name, const QString &value);
+  bool setOptValue(const QString &name, const QVariant &value);
 
  private:
   CTkAppCommand* command_ { nullptr };

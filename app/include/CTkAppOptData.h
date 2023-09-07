@@ -29,7 +29,7 @@ class CTkAppOptData {
 
   bool getDefValue(const QString &optName, const QString &optClass, QString &value) const;
 
-  bool setOptValue(const QString &name, const QString &value, const CTkAppOpt **opt);
+  bool setOptValue(const QString &name, const QVariant &value, const CTkAppOpt **opt);
 
  private:
   CTkApp*              tk_   { nullptr };

@@ -101,6 +101,10 @@ class CTkAppWidget : public QObject {
   Q_PROPERTY(QString xScrollCommand READ getXScrollCommand WRITE setXScrollCommand)
   Q_PROPERTY(QString yScrollCommand READ getYScrollCommand WRITE setYScrollCommand)
 
+  Q_PROPERTY(bool gridWidget READ isGridWidget WRITE setGridWidget)
+
+  Q_PROPERTY(QString deleteWindowCmd READ deleteWindowCmd WRITE setDeleteWindowCmd)
+
  public:
   enum class Relief {
     NONE,
@@ -222,9 +226,9 @@ class CTkAppWidget : public QObject {
 
   //---
 
-  QSize sizeHint() const;
+  virtual QSize sizeHint() const;
 
-  QSize minimumSizeHint() const;
+  virtual QSize minimumSizeHint() const;
 
   QMargins contentsMargins() const;
 
@@ -289,7 +293,7 @@ class CTkAppWidget : public QObject {
   //---
 
   // handle name/value change (configure)
-  virtual bool execConfig(const QString &name, const QString &value);
+  virtual bool execConfig(const QString &name, const QVariant &value);
 
   // handle widget operation (<widget> <operation>)
   virtual bool execOp(const Args &);
@@ -354,6 +358,12 @@ class CTkAppWidget : public QObject {
 
   const QString &anchorStr() const { return anchorStr_; }
   bool setAnchorStr(const QString &s);
+
+  bool isGridWidget() const { return gridWidget_; }
+  void setGridWidget(bool b) { gridWidget_ = b; }
+
+  const QString &deleteWindowCmd() const { return deleteWindowCmd_; }
+  void setDeleteWindowCmd(const QString &s) { deleteWindowCmd_ = s; }
 
   //---
 
@@ -472,7 +482,7 @@ class CTkAppWidget : public QObject {
   QColor selectBackground_;
   QColor selectForeground_;
 
-  bool gridSize_ { false }; // is size based on number of grid cells (chars)
+  bool gridWidget_ { false }; // is size based on number of grid cells (chars)
 
   QString cursor_;
 
@@ -522,7 +532,7 @@ class CTkAppRoot : public CTkAppWidget {
 
   void show() override;
 
-  bool execConfig(const QString &name, const QString &value) override;
+  bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
 
@@ -565,7 +575,7 @@ class CTkAppButton : public CTkAppWidget {
 
   const char *getClassName() const override { return "Button"; }
 
-  bool execConfig(const QString &name, const QString &value) override;
+  bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
 
@@ -635,7 +645,7 @@ class CTkAppCanvas : public CTkAppWidget {
 
   Shape *insideShape() const { return insideShape_; }
 
-  bool execConfig(const QString &name, const QString &value) override;
+  bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
 
@@ -2061,7 +2071,7 @@ class CTkAppCheckButton : public CTkAppWidget {
 
   //---
 
-  bool execConfig(const QString &name, const QString &value) override;
+  bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
 
@@ -2151,7 +2161,7 @@ class CTkAppComboBox : public CTkAppWidget {
 
   const char *getClassName() const override { return "ComboBox"; }
 
-  bool execConfig(const QString &name, const QString &value) override;
+  bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
 
@@ -2212,7 +2222,7 @@ class CTkAppEntry : public CTkAppWidget {
 
   const char *getClassName() const override { return "Entry"; }
 
-  bool execConfig(const QString &name, const QString &value) override;
+  bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
 
@@ -2279,7 +2289,7 @@ class CTkAppFrame : public CTkAppWidget {
 
   const char *getClassName() const override { return "Frame"; }
 
-  bool execConfig(const QString &name, const QString &value) override;
+  bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
 
@@ -2301,7 +2311,7 @@ class CTkAppLabel : public CTkAppWidget {
 
   const char *getClassName() const override { return "Label"; }
 
-  bool execConfig(const QString &name, const QString &value) override;
+  bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
 
@@ -2334,7 +2344,7 @@ class CTkAppLabelFrame : public CTkAppWidget {
 
   const char *getClassName() const override { return "LabelFrame"; }
 
-  bool execConfig(const QString &name, const QString &value) override;
+  bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
 
@@ -2359,7 +2369,7 @@ class CTkAppListBox : public CTkAppWidget {
 
   const char *getClassName() const override { return "ListBox"; }
 
-  bool execConfig(const QString &name, const QString &value) override;
+  bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
 
@@ -2542,7 +2552,7 @@ class CTkAppMenu : public CTkAppWidget {
 
   QMenu *qmenu() { return qmenu_; }
 
-  bool execConfig(const QString &name, const QString &value) override;
+  bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
 
@@ -2576,7 +2586,7 @@ class CTkAppMenuButton : public CTkAppWidget {
 
   const char *getClassName() const override { return "MenuButton"; }
 
-  bool execConfig(const QString &name, const QString &value) override;
+  bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
 
@@ -2642,7 +2652,7 @@ class CTkAppMessage : public CTkAppWidget {
 
   const char *getClassName() const override { return "Message"; }
 
-  bool execConfig(const QString &name, const QString &value) override;
+  bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
 
@@ -2675,7 +2685,7 @@ class CTkAppNoteBook : public CTkAppWidget {
 
   const char *getClassName() const override { return "NoteBook"; }
 
-  bool execConfig(const QString &name, const QString &value) override;
+  bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
 
@@ -2703,7 +2713,7 @@ class CTkAppPanedWindow : public CTkAppWidget {
 
   const char *getClassName() const override { return "PanedWindow"; }
 
-  bool execConfig(const QString &name, const QString &value) override;
+  bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
 
@@ -2744,7 +2754,7 @@ class CTkAppRadioButton : public CTkAppWidget {
 
   const char *getClassName() const override { return "RadioButton"; }
 
-  bool execConfig(const QString &name, const QString &value) override;
+  bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
 
@@ -2837,7 +2847,7 @@ class CTkAppScale : public CTkAppWidget {
 
   const char *getClassName() const override { return "Scale"; }
 
-  bool execConfig(const QString &name, const QString &value) override;
+  bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
 
@@ -2893,7 +2903,7 @@ class CTkAppScrollBar : public CTkAppWidget {
 
   const char *getClassName() const override { return "ScrollBar"; }
 
-  bool execConfig(const QString &name, const QString &value) override;
+  bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
 
@@ -2924,7 +2934,7 @@ class CTkAppSpinBox : public CTkAppWidget {
 
   const char *getClassName() const override { return "SpinBox"; }
 
-  bool execConfig(const QString &name, const QString &value) override;
+  bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
 
@@ -3049,6 +3059,8 @@ class CTkAppText : public CTkAppWidget {
     QColor        background;
     QFont         font;
     TextIndRanges indRanges;
+    double        borderWidth { 0.0 };
+    bool          underline { false };
   };
 
  public:
@@ -3056,7 +3068,7 @@ class CTkAppText : public CTkAppWidget {
 
   const char *getClassName() const override { return "Text"; }
 
-  bool execConfig(const QString &name, const QString &value) override;
+  bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
 
@@ -3148,6 +3160,8 @@ class CTkAppTextWidget : public CQTextWidget {
 
 //---
 
+class CTkAppTopLevelWidget;
+
 class CTkAppTopLevel : public CTkAppWidget {
   Q_OBJECT
 
@@ -3156,11 +3170,15 @@ class CTkAppTopLevel : public CTkAppWidget {
 
  ~CTkAppTopLevel();
 
-  void setFrame(QFrame *qframe);
-
   const char *getClassName() const override { return "TopLevel"; }
 
   bool isTopLevel() const override { return true; }
+
+  bool execConfig(const QString &name, const QVariant &value) override;
+
+  bool execOp(const Args &args) override;
+
+  void setTopLevelWidget(CTkAppTopLevelWidget *qtoplevel);
 
   bool isNeedsShow() const { return needsShow_; }
   void setNeedsShow(bool b) { needsShow_ = b; }
@@ -3171,14 +3189,22 @@ class CTkAppTopLevel : public CTkAppWidget {
   void show() override;
   void hide() override;
 
-  bool execConfig(const QString &name, const QString &value) override;
+ private:
+  CTkAppTopLevelWidget* qtoplevel_ { nullptr };
+  bool                  needsShow_ { false };
+  QString               iconWindow_;
+};
 
-  bool execOp(const Args &args) override;
+class CTkAppTopLevelWidget : public QFrame {
+  Q_OBJECT
+
+ public:
+  explicit CTkAppTopLevelWidget(CTkAppTopLevel *toplevel);
+
+  QSize sizeHint() const override;
 
  private:
-  QFrame* qframe_ { nullptr };
-  bool    needsShow_ { false };
-  QString iconWindow_;
+  CTkAppTopLevel* toplevel_ { nullptr };
 };
 
 //---
@@ -3257,7 +3283,7 @@ class CTkAppTreeView : public CTkAppWidget {
 
   const char *getClassName() const override { return "TreeView"; }
 
-  bool execConfig(const QString &name, const QString &value) override;
+  bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
 

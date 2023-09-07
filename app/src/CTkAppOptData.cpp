@@ -148,7 +148,7 @@ getDefValue(const QString &optName, const QString &optClass, QString &value) con
 
 bool
 CTkAppOptData::
-setOptValue(const QString &name, const QString &value, const CTkAppOpt **opt)
+setOptValue(const QString &name, const QVariant &value, const CTkAppOpt **opt)
 {
   // exact match
   for (uint i = 0; opts_[i].name != nullptr; ++i) {
@@ -161,7 +161,7 @@ setOptValue(const QString &name, const QString &value, const CTkAppOpt **opt)
 
     *opt = &opt1;
 
-    values_[name].setString(value);
+    values_[name].setValue(value);
 
     return true;
   }
@@ -184,7 +184,7 @@ setOptValue(const QString &name, const QString &value, const CTkAppOpt **opt)
   if (! *opt)
     return false;
 
-  values_[name].setString(value);
+  values_[name].setValue(value);
 
   return true;
 }

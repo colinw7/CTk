@@ -3,6 +3,7 @@
 #include <CQStrParse.h>
 #include <CScreenUnits.h>
 
+#include <QVariant>
 #include <set>
 
 namespace CTkAppUtil {
@@ -300,6 +301,53 @@ uniqueMatch(const std::vector<QString> &values, const QString &str, QString &mat
   match = *partialValues.begin();
 
   return true;
+}
+
+QString variantToString(const QVariant &var, bool quote) {
+  if (! var.isValid())
+    return "";
+
+  QString str;
+
+  if      (var.type() == QVariant::String) {
+    str = var.toString();
+  }
+  else if (var.type() == QVariant::Double) {
+    str = QString::number(var.toDouble());
+  }
+  else if (var.type() == QVariant::Int) {
+    str = QString::number(var.toInt());
+  }
+  else if (var.type() == QVariant::LongLong) {
+    str = QString::number(var.toLongLong());
+  }
+  else if (var.type() == QVariant::Bool) {
+    str = (var.toBool() ? "1" : "0");
+  }
+  else if (var.type() == QVariant::List) {
+    auto vars = var.toList();
+
+    QStringList strs;
+
+    for (int i = 0; i < vars.length(); ++i) {
+      auto str1 = variantToString(vars[i]);
+
+      strs.push_back(str1);
+    }
+
+    if (quote)
+      str = "{" + strs.join(" ") + "}";
+    else
+      str = strs.join(" ");
+  }
+  else if (var.canConvert(QVariant::String)) {
+    str = var.toString();
+  }
+  else {
+    assert(false);
+  }
+
+  return str;
 }
 
 }

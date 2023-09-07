@@ -31,6 +31,8 @@ QString fillRuleToString(const Qt::FillRule &fillRule);
 
 bool uniqueMatch(const std::vector<QString> &values, const QString &str, QString &match);
 
+QString variantToString(const QVariant &var, bool quote=false);
+
 }
 
 #endif

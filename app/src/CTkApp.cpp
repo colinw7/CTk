@@ -422,7 +422,7 @@ processOption(CTkAppOption *opts, const Args &args, uint &i, CTkAppOptionValueMa
       value.setBool(true);
     else if (option.type == CTkAppOptionType::String) {
       if (i < numArgs - 1)
-        value.setString(args[++i].toString());
+        value.setValue(args[++i]);
       else
         return false;
     }
@@ -994,7 +994,7 @@ execVirtualEvent(CTkAppWidget *w, const CTkAppEventData &, const QString &comman
 
 CTkAppTopLevel *
 CTkApp::
-installToplevel(const QString &id, QFrame *frame)
+installToplevel(const QString &id, CTkAppTopLevelWidget *qtoplevel)
 {
   static CTkAppOpt opts[] = {
     { nullptr, nullptr, nullptr, nullptr }
@@ -1007,7 +1007,7 @@ installToplevel(const QString &id, QFrame *frame)
 
   auto *toplevel = new CTkAppTopLevel(this, root(), id);
 
-  toplevel->setFrame(frame);
+  toplevel->setTopLevelWidget(qtoplevel);
 
   auto *cmd = new CTkAppWidgetCommand(this, widgetName, toplevel, opts);
   assert(cmd);
@@ -1073,6 +1073,11 @@ void
 CTkApp::
 addDeleteWidget(CTkAppWidget *w)
 {
+  for (const auto &dw : deleteWidgets_) {
+    if (w == dw)
+      return;
+  }
+
   deleteWidgets_.push_back(w);
 }
 
@@ -1080,14 +1085,19 @@ void
 CTkApp::
 purgeWidgets()
 {
-  auto num = deleteWidgets_.size();
+  if (deleteWidgets_.empty())
+    return;
+
+  WidgetArray deleteWidgets;
+
+  std::swap(deleteWidgets, deleteWidgets_);
+
+  auto num = deleteWidgets.size();
 
   for (uint i = 0; i < num; ++i) {
-    if (deleteWidgets_[i])
-      delete deleteWidgets_[i];
+    if (deleteWidgets[i])
+      delete deleteWidgets[i];
   }
-
-  deleteWidgets_.clear();
 }
 
 //---

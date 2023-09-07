@@ -21,6 +21,7 @@ class CTkAppTopLevel;
 class CTkAppWidget;
 class CTkAppImage;
 class CTkAppFont;
+class CTkAppTopLevelWidget;
 
 using CTkAppImageRef = std::shared_ptr<CTkAppImage>;
 using CTkAppFontRef  = std::shared_ptr<CTkAppFont>;
@@ -188,7 +189,7 @@ class CTkApp : public QObject, public CTclApp {
 
   //---
 
-  CTkAppTopLevel *installToplevel(const QString &id, QFrame *frame);
+  CTkAppTopLevel *installToplevel(const QString &id, CTkAppTopLevelWidget *frame);
 
   void addTopLevel(CTkAppTopLevel *toplevel);
   void removeTopLevel(CTkAppTopLevel *toplevel);

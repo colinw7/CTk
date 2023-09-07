@@ -4270,6 +4270,11 @@ run(const Args &args)
 
   //---
 
+  if (! parentWidget)
+    parentWidget = root();
+
+  auto *parentW = parentWidget->getQWidget();
+
   if (title == "")
     title = "Open File";
 
@@ -4280,7 +4285,7 @@ run(const Args &args)
   if (! confirmOverwrite)
     options |= QFileDialog::Option::DontConfirmOverwrite;
 
-  auto file = QFileDialog::getSaveFileName(parentWidget->getQWidget(), title, initialDir, filter,
+  auto file = QFileDialog::getSaveFileName(parentW, title, initialDir, filter,
                                            selectedFilter, options);
 
   tk_->setStringResult(file);
@@ -5533,7 +5538,7 @@ run(const Args &args)
     else {
       for (uint i = 1; i < numArgs - 1; i += 2) {
         auto name  = args[i + 0].toString();
-        auto value = args[i + 1].toString();
+        auto value = args[i + 1];
 
         const CTkAppOpt *opt;
 
@@ -5611,7 +5616,7 @@ run(const Args &args)
     else {
       for (uint i = 1; i < numArgs - 1; i += 2) {
         auto name  = args[i + 0].toString();
-        auto value = args[i + 1].toString();
+        auto value = args[i + 1];
 
         if (! setOptValue(name, value))
           return tk_->throwError("unknown config option \"" + name + "\"");
@@ -5660,7 +5665,7 @@ processArgs(const Args &args)
       ++i;
 
       if (i < numArgs) {
-        auto value = args[i].toString();
+        auto value = args[i];
 
         if (! setOptValue(name, value))
           getTk()->throwError("unknown option \"" + name + "\"");
@@ -5687,7 +5692,7 @@ getOptValue(const QString &name, QString &value)
 
 bool
 CTkAppWidgetCommand::
-setOptValue(const QString &name, const QString &value)
+setOptValue(const QString &name, const QVariant &value)
 {
   const CTkAppOpt *opt;
 
