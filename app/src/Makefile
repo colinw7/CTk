@@ -75,6 +75,8 @@ SOURCES       = CTkApp.cpp \
 		CQOptEdit.cpp \
 		CXBMImage.cpp .moc/moc_CTkApp.cpp \
 		.moc/moc_CTkAppCommands.cpp \
+		.moc/moc_CTkAppImage.cpp \
+		.moc/moc_CTkAppFont.cpp \
 		.moc/moc_CTkAppWidget.cpp \
 		.moc/moc_CTkAppGridLayout.cpp \
 		.moc/moc_CTkAppPackLayout.cpp \
@@ -83,6 +85,9 @@ SOURCES       = CTkApp.cpp \
 		.moc/moc_CTkAppLayoutWidget.cpp \
 		.moc/moc_CTkWidget.cpp \
 		.moc/moc_CTkAppDebug.cpp \
+		.moc/moc_CTkAppButtonWidget.cpp \
+		.moc/moc_CTkAppSpinBoxWidget.cpp \
+		.moc/moc_CTkAppTextWidget.cpp \
 		.moc/moc_CQLabelImage.cpp \
 		.moc/moc_CQButtonImage.cpp \
 		.moc/moc_CQTextWidget.cpp \
@@ -116,6 +121,8 @@ OBJECTS       = ../obj/CTkApp.o \
 		../obj/CXBMImage.o \
 		../obj/moc_CTkApp.o \
 		../obj/moc_CTkAppCommands.o \
+		../obj/moc_CTkAppImage.o \
+		../obj/moc_CTkAppFont.o \
 		../obj/moc_CTkAppWidget.o \
 		../obj/moc_CTkAppGridLayout.o \
 		../obj/moc_CTkAppPackLayout.o \
@@ -124,6 +131,9 @@ OBJECTS       = ../obj/CTkApp.o \
 		../obj/moc_CTkAppLayoutWidget.o \
 		../obj/moc_CTkWidget.o \
 		../obj/moc_CTkAppDebug.o \
+		../obj/moc_CTkAppButtonWidget.o \
+		../obj/moc_CTkAppSpinBoxWidget.o \
+		../obj/moc_CTkAppTextWidget.o \
 		../obj/moc_CQLabelImage.o \
 		../obj/moc_CQButtonImage.o \
 		../obj/moc_CQTextWidget.o \
@@ -238,6 +248,9 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		../include/CTclAppCommand.h \
 		../include/CTkWidget.h \
 		../include/CTkAppDebug.h \
+		../include/CTkAppButtonWidget.h \
+		../include/CTkAppSpinBoxWidget.h \
+		../include/CTkAppTextWidget.h \
 		../include/CQLabelImage.h \
 		../include/CQButtonImage.h \
 		../include/CQTextWidget.h \
@@ -484,7 +497,7 @@ distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents ../include/CTkApp.h ../include/CTkAppCommands.h ../include/CTkAppEventData.h ../include/CTkAppImage.h ../include/CTkAppFont.h ../include/CTkAppOptData.h ../include/CTkAppOptionValue.h ../include/CTkAppWidget.h ../include/CTkAppGridLayout.h ../include/CTkAppPackLayout.h ../include/CTkAppPlaceLayout.h ../include/CTkAppLayout.h ../include/CTkAppLayoutWidget.h ../include/CTkAppUtil.h ../include/CTclApp.h ../include/CTclAppCommand.h ../include/CTkWidget.h ../include/CTkAppDebug.h ../include/CQLabelImage.h ../include/CQButtonImage.h ../include/CQTextWidget.h ../include/CQSpinList.h ../include/CQSlider.h ../include/CSVGUtil.h ../include/CQRotatedText.h CQOptEdit.h $(DISTDIR)/
+	$(COPY_FILE) --parents ../include/CTkApp.h ../include/CTkAppCommands.h ../include/CTkAppEventData.h ../include/CTkAppImage.h ../include/CTkAppFont.h ../include/CTkAppOptData.h ../include/CTkAppOptionValue.h ../include/CTkAppWidget.h ../include/CTkAppGridLayout.h ../include/CTkAppPackLayout.h ../include/CTkAppPlaceLayout.h ../include/CTkAppLayout.h ../include/CTkAppLayoutWidget.h ../include/CTkAppUtil.h ../include/CTclApp.h ../include/CTclAppCommand.h ../include/CTkWidget.h ../include/CTkAppDebug.h ../include/CTkAppButtonWidget.h ../include/CTkAppSpinBoxWidget.h ../include/CTkAppTextWidget.h ../include/CQLabelImage.h ../include/CQButtonImage.h ../include/CQTextWidget.h ../include/CQSpinList.h ../include/CQSlider.h ../include/CSVGUtil.h ../include/CQRotatedText.h CQOptEdit.h $(DISTDIR)/
 	$(COPY_FILE) --parents CTkApp.cpp CTkAppCommands.cpp CTkAppImage.cpp CTkAppFont.cpp CTkAppOptData.cpp CTkAppWidget.cpp CTkAppGridLayout.cpp CTkAppPackLayout.cpp CTkAppPlaceLayout.cpp CTkAppLayout.cpp CTkAppLayoutWidget.cpp CTkAppUtil.cpp CTclApp.cpp CTclAppCommand.cpp CTkWidget.cpp CTkAppDebug.cpp CQLabelImage.cpp CQButtonImage.cpp CQTextWidget.cpp CQSpinList.cpp CQSlider.cpp CSVGUtil.cpp CQRotatedText.cpp CQOptEdit.cpp CXBMImage.cpp $(DISTDIR)/
 
 
@@ -517,9 +530,9 @@ compiler_moc_predefs_clean:
 .moc/moc_predefs.h: /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp
 	g++ -pipe -std=c++17 -DCQUTIL_PEN -DCQUTIL_BRUSH -DCQUTIL_FONT -DCQUTIL_IMAGE -DCBRUSH_IMAGE -g -fPIC -Wall -Wextra -dM -E -o .moc/moc_predefs.h /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp
 
-compiler_moc_header_make_all: .moc/moc_CTkApp.cpp .moc/moc_CTkAppCommands.cpp .moc/moc_CTkAppWidget.cpp .moc/moc_CTkAppGridLayout.cpp .moc/moc_CTkAppPackLayout.cpp .moc/moc_CTkAppPlaceLayout.cpp .moc/moc_CTkAppLayout.cpp .moc/moc_CTkAppLayoutWidget.cpp .moc/moc_CTkWidget.cpp .moc/moc_CTkAppDebug.cpp .moc/moc_CQLabelImage.cpp .moc/moc_CQButtonImage.cpp .moc/moc_CQTextWidget.cpp .moc/moc_CQSpinList.cpp .moc/moc_CQSlider.cpp .moc/moc_CQOptEdit.cpp
+compiler_moc_header_make_all: .moc/moc_CTkApp.cpp .moc/moc_CTkAppCommands.cpp .moc/moc_CTkAppImage.cpp .moc/moc_CTkAppFont.cpp .moc/moc_CTkAppWidget.cpp .moc/moc_CTkAppGridLayout.cpp .moc/moc_CTkAppPackLayout.cpp .moc/moc_CTkAppPlaceLayout.cpp .moc/moc_CTkAppLayout.cpp .moc/moc_CTkAppLayoutWidget.cpp .moc/moc_CTkWidget.cpp .moc/moc_CTkAppDebug.cpp .moc/moc_CTkAppButtonWidget.cpp .moc/moc_CTkAppSpinBoxWidget.cpp .moc/moc_CTkAppTextWidget.cpp .moc/moc_CQLabelImage.cpp .moc/moc_CQButtonImage.cpp .moc/moc_CQTextWidget.cpp .moc/moc_CQSpinList.cpp .moc/moc_CQSlider.cpp .moc/moc_CQOptEdit.cpp
 compiler_moc_header_clean:
-	-$(DEL_FILE) .moc/moc_CTkApp.cpp .moc/moc_CTkAppCommands.cpp .moc/moc_CTkAppWidget.cpp .moc/moc_CTkAppGridLayout.cpp .moc/moc_CTkAppPackLayout.cpp .moc/moc_CTkAppPlaceLayout.cpp .moc/moc_CTkAppLayout.cpp .moc/moc_CTkAppLayoutWidget.cpp .moc/moc_CTkWidget.cpp .moc/moc_CTkAppDebug.cpp .moc/moc_CQLabelImage.cpp .moc/moc_CQButtonImage.cpp .moc/moc_CQTextWidget.cpp .moc/moc_CQSpinList.cpp .moc/moc_CQSlider.cpp .moc/moc_CQOptEdit.cpp
+	-$(DEL_FILE) .moc/moc_CTkApp.cpp .moc/moc_CTkAppCommands.cpp .moc/moc_CTkAppImage.cpp .moc/moc_CTkAppFont.cpp .moc/moc_CTkAppWidget.cpp .moc/moc_CTkAppGridLayout.cpp .moc/moc_CTkAppPackLayout.cpp .moc/moc_CTkAppPlaceLayout.cpp .moc/moc_CTkAppLayout.cpp .moc/moc_CTkAppLayoutWidget.cpp .moc/moc_CTkWidget.cpp .moc/moc_CTkAppDebug.cpp .moc/moc_CTkAppButtonWidget.cpp .moc/moc_CTkAppSpinBoxWidget.cpp .moc/moc_CTkAppTextWidget.cpp .moc/moc_CQLabelImage.cpp .moc/moc_CQButtonImage.cpp .moc/moc_CQTextWidget.cpp .moc/moc_CQSpinList.cpp .moc/moc_CQSlider.cpp .moc/moc_CQOptEdit.cpp
 .moc/moc_CTkApp.cpp: ../include/CTkApp.h \
 		../include/CTkAppOptionValue.h \
 		../include/CTkAppEventData.h \
@@ -543,6 +556,16 @@ compiler_moc_header_clean:
 		/usr/lib/qt5/bin/moc
 	/usr/lib/qt5/bin/moc $(DEFINES) --include /home/colinw/git/CTk/app/src/.moc/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I/home/colinw/git/CTk/app/src -I/home/colinw/git/CTk/app/include -I/home/colinw/git/CQUtil/include -I/home/colinw/git/CTclApp/include -I/home/colinw/git/CQPropertyView/include -I/home/colinw/git/CXLib/include -I/home/colinw/git/CReadLine/include -I/home/colinw/git/CImageLib/include -I/home/colinw/git/CRGBName/include -I/home/colinw/git/CFont/include -I/home/colinw/git/CFile/include -I/home/colinw/git/CMath/include -I/home/colinw/git/CStrUtil/include -I/home/colinw/git/CGlob/include -I/home/colinw/git/CUtil/include -I/home/colinw/git/COS/include -I/usr/include/tcl -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtSvg -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -I/usr/include/c++/11/backward -I/usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include ../include/CTkAppCommands.h -o .moc/moc_CTkAppCommands.cpp
 
+.moc/moc_CTkAppImage.cpp: ../include/CTkAppImage.h \
+		.moc/moc_predefs.h \
+		/usr/lib/qt5/bin/moc
+	/usr/lib/qt5/bin/moc $(DEFINES) --include /home/colinw/git/CTk/app/src/.moc/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I/home/colinw/git/CTk/app/src -I/home/colinw/git/CTk/app/include -I/home/colinw/git/CQUtil/include -I/home/colinw/git/CTclApp/include -I/home/colinw/git/CQPropertyView/include -I/home/colinw/git/CXLib/include -I/home/colinw/git/CReadLine/include -I/home/colinw/git/CImageLib/include -I/home/colinw/git/CRGBName/include -I/home/colinw/git/CFont/include -I/home/colinw/git/CFile/include -I/home/colinw/git/CMath/include -I/home/colinw/git/CStrUtil/include -I/home/colinw/git/CGlob/include -I/home/colinw/git/CUtil/include -I/home/colinw/git/COS/include -I/usr/include/tcl -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtSvg -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -I/usr/include/c++/11/backward -I/usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include ../include/CTkAppImage.h -o .moc/moc_CTkAppImage.cpp
+
+.moc/moc_CTkAppFont.cpp: ../include/CTkAppFont.h \
+		.moc/moc_predefs.h \
+		/usr/lib/qt5/bin/moc
+	/usr/lib/qt5/bin/moc $(DEFINES) --include /home/colinw/git/CTk/app/src/.moc/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I/home/colinw/git/CTk/app/src -I/home/colinw/git/CTk/app/include -I/home/colinw/git/CQUtil/include -I/home/colinw/git/CTclApp/include -I/home/colinw/git/CQPropertyView/include -I/home/colinw/git/CXLib/include -I/home/colinw/git/CReadLine/include -I/home/colinw/git/CImageLib/include -I/home/colinw/git/CRGBName/include -I/home/colinw/git/CFont/include -I/home/colinw/git/CFile/include -I/home/colinw/git/CMath/include -I/home/colinw/git/CStrUtil/include -I/home/colinw/git/CGlob/include -I/home/colinw/git/CUtil/include -I/home/colinw/git/COS/include -I/usr/include/tcl -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtSvg -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -I/usr/include/c++/11/backward -I/usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include ../include/CTkAppFont.h -o .moc/moc_CTkAppFont.cpp
+
 .moc/moc_CTkAppWidget.cpp: ../include/CTkAppWidget.h \
 		../include/CTkAppEventData.h \
 		../include/CTkApp.h \
@@ -555,9 +578,6 @@ compiler_moc_header_clean:
 		../../../CMath/include/CIPoint2D.h \
 		../../../CMath/include/CMathUtil.h \
 		../../../COS/include/COSNaN.h \
-		../include/CQSpinList.h \
-		../include/CQButtonImage.h \
-		../include/CQTextWidget.h \
 		.moc/moc_predefs.h \
 		/usr/lib/qt5/bin/moc
 	/usr/lib/qt5/bin/moc $(DEFINES) --include /home/colinw/git/CTk/app/src/.moc/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I/home/colinw/git/CTk/app/src -I/home/colinw/git/CTk/app/include -I/home/colinw/git/CQUtil/include -I/home/colinw/git/CTclApp/include -I/home/colinw/git/CQPropertyView/include -I/home/colinw/git/CXLib/include -I/home/colinw/git/CReadLine/include -I/home/colinw/git/CImageLib/include -I/home/colinw/git/CRGBName/include -I/home/colinw/git/CFont/include -I/home/colinw/git/CFile/include -I/home/colinw/git/CMath/include -I/home/colinw/git/CStrUtil/include -I/home/colinw/git/CGlob/include -I/home/colinw/git/CUtil/include -I/home/colinw/git/COS/include -I/usr/include/tcl -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtSvg -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -I/usr/include/c++/11/backward -I/usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include ../include/CTkAppWidget.h -o .moc/moc_CTkAppWidget.cpp
@@ -594,6 +614,18 @@ compiler_moc_header_clean:
 	/usr/lib/qt5/bin/moc $(DEFINES) --include /home/colinw/git/CTk/app/src/.moc/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I/home/colinw/git/CTk/app/src -I/home/colinw/git/CTk/app/include -I/home/colinw/git/CQUtil/include -I/home/colinw/git/CTclApp/include -I/home/colinw/git/CQPropertyView/include -I/home/colinw/git/CXLib/include -I/home/colinw/git/CReadLine/include -I/home/colinw/git/CImageLib/include -I/home/colinw/git/CRGBName/include -I/home/colinw/git/CFont/include -I/home/colinw/git/CFile/include -I/home/colinw/git/CMath/include -I/home/colinw/git/CStrUtil/include -I/home/colinw/git/CGlob/include -I/home/colinw/git/CUtil/include -I/home/colinw/git/COS/include -I/usr/include/tcl -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtSvg -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -I/usr/include/c++/11/backward -I/usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include ../include/CTkAppLayoutWidget.h -o .moc/moc_CTkAppLayoutWidget.cpp
 
 .moc/moc_CTkWidget.cpp: ../include/CTkWidget.h \
+		../include/CTkAppWidget.h \
+		../include/CTkAppEventData.h \
+		../include/CTkApp.h \
+		../include/CTkAppOptionValue.h \
+		../include/CTclApp.h \
+		../../../CMath/include/CMatrix2D.h \
+		../../../CMath/include/CPoint2D.h \
+		../../../CMath/include/CVector2D.h \
+		../../../CMath/include/CMathGen.h \
+		../../../CMath/include/CIPoint2D.h \
+		../../../CMath/include/CMathUtil.h \
+		../../../COS/include/COSNaN.h \
 		.moc/moc_predefs.h \
 		/usr/lib/qt5/bin/moc
 	/usr/lib/qt5/bin/moc $(DEFINES) --include /home/colinw/git/CTk/app/src/.moc/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I/home/colinw/git/CTk/app/src -I/home/colinw/git/CTk/app/include -I/home/colinw/git/CQUtil/include -I/home/colinw/git/CTclApp/include -I/home/colinw/git/CQPropertyView/include -I/home/colinw/git/CXLib/include -I/home/colinw/git/CReadLine/include -I/home/colinw/git/CImageLib/include -I/home/colinw/git/CRGBName/include -I/home/colinw/git/CFont/include -I/home/colinw/git/CFile/include -I/home/colinw/git/CMath/include -I/home/colinw/git/CStrUtil/include -I/home/colinw/git/CGlob/include -I/home/colinw/git/CUtil/include -I/home/colinw/git/COS/include -I/usr/include/tcl -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtSvg -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -I/usr/include/c++/11/backward -I/usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include ../include/CTkWidget.h -o .moc/moc_CTkWidget.cpp
@@ -602,6 +634,24 @@ compiler_moc_header_clean:
 		.moc/moc_predefs.h \
 		/usr/lib/qt5/bin/moc
 	/usr/lib/qt5/bin/moc $(DEFINES) --include /home/colinw/git/CTk/app/src/.moc/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I/home/colinw/git/CTk/app/src -I/home/colinw/git/CTk/app/include -I/home/colinw/git/CQUtil/include -I/home/colinw/git/CTclApp/include -I/home/colinw/git/CQPropertyView/include -I/home/colinw/git/CXLib/include -I/home/colinw/git/CReadLine/include -I/home/colinw/git/CImageLib/include -I/home/colinw/git/CRGBName/include -I/home/colinw/git/CFont/include -I/home/colinw/git/CFile/include -I/home/colinw/git/CMath/include -I/home/colinw/git/CStrUtil/include -I/home/colinw/git/CGlob/include -I/home/colinw/git/CUtil/include -I/home/colinw/git/COS/include -I/usr/include/tcl -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtSvg -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -I/usr/include/c++/11/backward -I/usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include ../include/CTkAppDebug.h -o .moc/moc_CTkAppDebug.cpp
+
+.moc/moc_CTkAppButtonWidget.cpp: ../include/CTkAppButtonWidget.h \
+		../include/CQButtonImage.h \
+		.moc/moc_predefs.h \
+		/usr/lib/qt5/bin/moc
+	/usr/lib/qt5/bin/moc $(DEFINES) --include /home/colinw/git/CTk/app/src/.moc/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I/home/colinw/git/CTk/app/src -I/home/colinw/git/CTk/app/include -I/home/colinw/git/CQUtil/include -I/home/colinw/git/CTclApp/include -I/home/colinw/git/CQPropertyView/include -I/home/colinw/git/CXLib/include -I/home/colinw/git/CReadLine/include -I/home/colinw/git/CImageLib/include -I/home/colinw/git/CRGBName/include -I/home/colinw/git/CFont/include -I/home/colinw/git/CFile/include -I/home/colinw/git/CMath/include -I/home/colinw/git/CStrUtil/include -I/home/colinw/git/CGlob/include -I/home/colinw/git/CUtil/include -I/home/colinw/git/COS/include -I/usr/include/tcl -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtSvg -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -I/usr/include/c++/11/backward -I/usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include ../include/CTkAppButtonWidget.h -o .moc/moc_CTkAppButtonWidget.cpp
+
+.moc/moc_CTkAppSpinBoxWidget.cpp: ../include/CTkAppSpinBoxWidget.h \
+		../include/CQSpinList.h \
+		.moc/moc_predefs.h \
+		/usr/lib/qt5/bin/moc
+	/usr/lib/qt5/bin/moc $(DEFINES) --include /home/colinw/git/CTk/app/src/.moc/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I/home/colinw/git/CTk/app/src -I/home/colinw/git/CTk/app/include -I/home/colinw/git/CQUtil/include -I/home/colinw/git/CTclApp/include -I/home/colinw/git/CQPropertyView/include -I/home/colinw/git/CXLib/include -I/home/colinw/git/CReadLine/include -I/home/colinw/git/CImageLib/include -I/home/colinw/git/CRGBName/include -I/home/colinw/git/CFont/include -I/home/colinw/git/CFile/include -I/home/colinw/git/CMath/include -I/home/colinw/git/CStrUtil/include -I/home/colinw/git/CGlob/include -I/home/colinw/git/CUtil/include -I/home/colinw/git/COS/include -I/usr/include/tcl -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtSvg -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -I/usr/include/c++/11/backward -I/usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include ../include/CTkAppSpinBoxWidget.h -o .moc/moc_CTkAppSpinBoxWidget.cpp
+
+.moc/moc_CTkAppTextWidget.cpp: ../include/CTkAppTextWidget.h \
+		../include/CQTextWidget.h \
+		.moc/moc_predefs.h \
+		/usr/lib/qt5/bin/moc
+	/usr/lib/qt5/bin/moc $(DEFINES) --include /home/colinw/git/CTk/app/src/.moc/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I/home/colinw/git/CTk/app/src -I/home/colinw/git/CTk/app/include -I/home/colinw/git/CQUtil/include -I/home/colinw/git/CTclApp/include -I/home/colinw/git/CQPropertyView/include -I/home/colinw/git/CXLib/include -I/home/colinw/git/CReadLine/include -I/home/colinw/git/CImageLib/include -I/home/colinw/git/CRGBName/include -I/home/colinw/git/CFont/include -I/home/colinw/git/CFile/include -I/home/colinw/git/CMath/include -I/home/colinw/git/CStrUtil/include -I/home/colinw/git/CGlob/include -I/home/colinw/git/CUtil/include -I/home/colinw/git/COS/include -I/usr/include/tcl -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtSvg -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -I/usr/include/c++/11/backward -I/usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include ../include/CTkAppTextWidget.h -o .moc/moc_CTkAppTextWidget.cpp
 
 .moc/moc_CQLabelImage.cpp: ../include/CQLabelImage.h \
 		.moc/moc_predefs.h \
@@ -661,9 +711,6 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../../../CMath/include/CMathUtil.h \
 		../../../COS/include/COSNaN.h \
 		../include/CTkAppWidget.h \
-		../include/CQSpinList.h \
-		../include/CQButtonImage.h \
-		../include/CQTextWidget.h \
 		../include/CTkAppImage.h \
 		../include/CTkAppFont.h \
 		../include/CTkAppCommands.h \
@@ -691,9 +738,6 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../../../CMath/include/CMathUtil.h \
 		../../../COS/include/COSNaN.h \
 		../include/CTkAppWidget.h \
-		../include/CQSpinList.h \
-		../include/CQButtonImage.h \
-		../include/CQTextWidget.h \
 		../include/CTkAppPackLayout.h \
 		../include/CTkAppLayout.h \
 		../include/CTkAppLayoutWidget.h \
@@ -789,9 +833,6 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../../../CMath/include/CIPoint2D.h \
 		../../../CMath/include/CMathUtil.h \
 		../../../COS/include/COSNaN.h \
-		../include/CQSpinList.h \
-		../include/CQButtonImage.h \
-		../include/CQTextWidget.h \
 		../include/CTkAppCommands.h \
 		../include/CTclAppCommand.h \
 		../include/CTkAppOptData.h \
@@ -802,6 +843,12 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../include/CTkAppGridLayout.h \
 		../include/CTkAppImage.h \
 		../include/CTkAppUtil.h \
+		../include/CTkAppSpinBoxWidget.h \
+		../include/CQSpinList.h \
+		../include/CTkAppButtonWidget.h \
+		../include/CQButtonImage.h \
+		../include/CTkAppTextWidget.h \
+		../include/CQTextWidget.h \
 		../include/CQSlider.h \
 		../include/CQLabelImage.h \
 		../../../CQUtil/include/CQUtil.h \
@@ -829,10 +876,7 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../../../CMath/include/CMathGen.h \
 		../../../CMath/include/CIPoint2D.h \
 		../../../CMath/include/CMathUtil.h \
-		../../../COS/include/COSNaN.h \
-		../include/CQSpinList.h \
-		../include/CQButtonImage.h \
-		../include/CQTextWidget.h
+		../../../COS/include/COSNaN.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTkAppGridLayout.o CTkAppGridLayout.cpp
 
 ../obj/CTkAppPackLayout.o: CTkAppPackLayout.cpp ../include/CTkAppPackLayout.h \
@@ -849,10 +893,7 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../../../CMath/include/CMathGen.h \
 		../../../CMath/include/CIPoint2D.h \
 		../../../CMath/include/CMathUtil.h \
-		../../../COS/include/COSNaN.h \
-		../include/CQSpinList.h \
-		../include/CQButtonImage.h \
-		../include/CQTextWidget.h
+		../../../COS/include/COSNaN.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTkAppPackLayout.o CTkAppPackLayout.cpp
 
 ../obj/CTkAppPlaceLayout.o: CTkAppPlaceLayout.cpp ../include/CTkAppPlaceLayout.h \
@@ -869,10 +910,7 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../../../CMath/include/CMathGen.h \
 		../../../CMath/include/CIPoint2D.h \
 		../../../CMath/include/CMathUtil.h \
-		../../../COS/include/COSNaN.h \
-		../include/CQSpinList.h \
-		../include/CQButtonImage.h \
-		../include/CQTextWidget.h
+		../../../COS/include/COSNaN.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTkAppPlaceLayout.o CTkAppPlaceLayout.cpp
 
 ../obj/CTkAppLayout.o: CTkAppLayout.cpp ../include/CTkAppLayout.h \
@@ -887,10 +925,7 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../../../CMath/include/CMathGen.h \
 		../../../CMath/include/CIPoint2D.h \
 		../../../CMath/include/CMathUtil.h \
-		../../../COS/include/COSNaN.h \
-		../include/CQSpinList.h \
-		../include/CQButtonImage.h \
-		../include/CQTextWidget.h
+		../../../COS/include/COSNaN.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTkAppLayout.o CTkAppLayout.cpp
 
 ../obj/CTkAppLayoutWidget.o: CTkAppLayoutWidget.cpp ../include/CTkAppLayoutWidget.h \
@@ -906,13 +941,11 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../../../CMath/include/CIPoint2D.h \
 		../../../CMath/include/CMathUtil.h \
 		../../../COS/include/COSNaN.h \
-		../include/CQSpinList.h \
-		../include/CQButtonImage.h \
-		../include/CQTextWidget.h \
 		../include/CTkAppLayout.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTkAppLayoutWidget.o CTkAppLayoutWidget.cpp
 
 ../obj/CTkAppUtil.o: CTkAppUtil.cpp ../include/CTkAppUtil.h \
+		../include/CTclApp.h \
 		../../../CQUtil/include/CQStrParse.h \
 		../../../CUtil/include/CScreenUnits.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTkAppUtil.o CTkAppUtil.cpp
@@ -930,9 +963,10 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTclAppCommand.o CTclAppCommand.cpp
 
 ../obj/CTkWidget.o: CTkWidget.cpp ../include/CTkWidget.h \
+		../include/CTkAppWidget.h \
+		../include/CTkAppEventData.h \
 		../include/CTkApp.h \
 		../include/CTkAppOptionValue.h \
-		../include/CTkAppEventData.h \
 		../include/CTclApp.h \
 		../../../CMath/include/CMatrix2D.h \
 		../../../CMath/include/CPoint2D.h \
@@ -956,14 +990,13 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../../../CMath/include/CMathUtil.h \
 		../../../COS/include/COSNaN.h \
 		../include/CTkAppWidget.h \
-		../include/CQSpinList.h \
-		../include/CQButtonImage.h \
-		../include/CQTextWidget.h \
 		../include/CTkAppLayout.h \
 		../include/CTkAppPackLayout.h \
 		../include/CTkAppLayoutWidget.h \
 		../include/CTkAppGridLayout.h \
 		../include/CTkAppPlaceLayout.h \
+		../include/CTkAppImage.h \
+		../include/CTkAppFont.h \
 		../../../CQPropertyView/include/CQPropertyViewTree.h \
 		../../../CQUtil/include/CQIntegerSpin.h \
 		../../../CQUtil/include/CQRealSpin.h \
@@ -1019,6 +1052,12 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 ../obj/moc_CTkAppCommands.o: .moc/moc_CTkAppCommands.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/moc_CTkAppCommands.o .moc/moc_CTkAppCommands.cpp
 
+../obj/moc_CTkAppImage.o: .moc/moc_CTkAppImage.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/moc_CTkAppImage.o .moc/moc_CTkAppImage.cpp
+
+../obj/moc_CTkAppFont.o: .moc/moc_CTkAppFont.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/moc_CTkAppFont.o .moc/moc_CTkAppFont.cpp
+
 ../obj/moc_CTkAppWidget.o: .moc/moc_CTkAppWidget.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/moc_CTkAppWidget.o .moc/moc_CTkAppWidget.cpp
 
@@ -1042,6 +1081,15 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 
 ../obj/moc_CTkAppDebug.o: .moc/moc_CTkAppDebug.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/moc_CTkAppDebug.o .moc/moc_CTkAppDebug.cpp
+
+../obj/moc_CTkAppButtonWidget.o: .moc/moc_CTkAppButtonWidget.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/moc_CTkAppButtonWidget.o .moc/moc_CTkAppButtonWidget.cpp
+
+../obj/moc_CTkAppSpinBoxWidget.o: .moc/moc_CTkAppSpinBoxWidget.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/moc_CTkAppSpinBoxWidget.o .moc/moc_CTkAppSpinBoxWidget.cpp
+
+../obj/moc_CTkAppTextWidget.o: .moc/moc_CTkAppTextWidget.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/moc_CTkAppTextWidget.o .moc/moc_CTkAppTextWidget.cpp
 
 ../obj/moc_CQLabelImage.o: .moc/moc_CQLabelImage.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/moc_CQLabelImage.o .moc/moc_CQLabelImage.cpp

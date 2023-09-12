@@ -76,6 +76,10 @@ HEADERS += \
 ../include/CTkWidget.h \
 ../include/CTkAppDebug.h \
 \
+../include/CTkAppButtonWidget.h \
+../include/CTkAppSpinBoxWidget.h \
+../include/CTkAppTextWidget.h \
+\
 ../include/CQLabelImage.h \
 ../include/CQButtonImage.h \
 ../include/CQTextWidget.h \

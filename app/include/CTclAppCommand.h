@@ -4,6 +4,7 @@
 class CTclApp;
 
 #include <QString>
+#include <QVariant>
 
 #include <vector>
 #include <string>
@@ -29,6 +30,7 @@ class CTclAppCommand {
   void setRealResult   (double value);
   void setStringResult (const QString &value);
   void setBoolResult   (bool b);
+  void setResult       (const QVariant &var);
 
   void setIntegerArrayResult(int *values, int num_values);
   void setIntegerArrayResult(const std::vector<int> &values);

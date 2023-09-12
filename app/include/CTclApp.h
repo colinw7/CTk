@@ -83,31 +83,35 @@ class CTclApp {
 
   //---
 
-  bool getStringResult(QString &res) const;
+  bool getStringResult(QString &str) const;
+  bool getResult      (QVariant &res) const;
 
   //---
 
-  void setIntegerGlobalVar(const QString &var, int value);
-  void setRealGlobalVar   (const QString &var, double value);
-  void setStringGlobalVar (const QString &var, const QString &value);
-  void setBoolGlobalVar   (const QString &var, bool value);
+  void setIntegerGlobalVar(const QString &name, int value);
+  void setRealGlobalVar   (const QString &name, double value);
+  void setBoolGlobalVar   (const QString &name, bool value);
+  void setStringGlobalVar (const QString &name, const QString &value);
+  void setGlobalVar       (const QString &name, const QVariant &var);
 
-  void setStringArrayGlobalVar (const QString &var, const std::vector<QString> &strs);
-  void setIntegerArrayGlobalVar(const QString &var, const std::vector<int> &strs);
+  void setStringLocalVar(const QString &name, const QString &value);
+  void setLocalVar      (const QString &name, const QVariant &var);
 
-  void setStringVar(const QString &var, const QString &value);
+  void setStringArrayGlobalVar (const QString &name, const std::vector<QString> &strs);
+  void setIntegerArrayGlobalVar(const QString &name, const std::vector<int> &strs);
 
-  void setStringArrayVar (const QString &var, const std::vector<QString> &strs);
-  void setIntegerArrayVar(const QString &var, const std::vector<int> &strs);
+  void setStringArrayLocalVar (const QString &name, const std::vector<QString> &strs);
+  void setIntegerArrayLocalVar(const QString &name, const std::vector<int> &strs);
 
   //---
 
-  bool hasGlobalVar(const QString &var) const;
+  bool hasGlobalVar(const QString &name) const;
 
-  int     getIntegerGlobalVar(const QString &var) const;
-  double  getRealGlobalVar   (const QString &var) const;
-  QString getStringGlobalVar (const QString &var) const;
-  bool    getBoolGlobalVar   (const QString &var) const;
+  int      getIntegerGlobalVar(const QString &name) const;
+  double   getRealGlobalVar   (const QString &name) const;
+  QString  getStringGlobalVar (const QString &name) const;
+  bool     getBoolGlobalVar   (const QString &name) const;
+  QVariant getGlobalVar       (const QString &name) const;
 
   bool getStringArrayGlobalVar(const QString &var, std::vector<QString> &strs) const;
 
@@ -146,6 +150,8 @@ class CTclApp {
   bool evalFile(const QString &filename) const;
 
   bool eval(const QString &str) const;
+
+  bool evalNoExcept(const QString &str) const;
 
   QString lastErrorInfo() const;
 

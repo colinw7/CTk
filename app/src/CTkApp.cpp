@@ -377,7 +377,7 @@ show()
 
 CTkAppWidget *
 CTkApp::
-lookupWidgetByName(const QString &widgetName, bool quiet) const
+lookupWidgetByName(const QVariant &widgetName, bool quiet) const
 {
   if (widgetName == ".")
     return root();
@@ -386,7 +386,7 @@ lookupWidgetByName(const QString &widgetName, bool quiet) const
   QString       childName;
 
   if (! root_->decodeWidgetName(widgetName, &parent, childName)) {
-    if (! quiet) throwError("Invalid name '" + widgetName + "'");
+    if (! quiet) throwError(msg() + "Invalid name '" + widgetName + "'");
     return nullptr;
   }
 
@@ -408,7 +408,7 @@ processOption(CTkAppOption *opts, const Args &args, uint &i, CTkAppOptionValueMa
 {
   uint numArgs = args.size();
 
-  auto arg = args[i].toString();
+  auto arg = variantToString(args[i]);
 
   for (uint j = 0; opts[j].name != nullptr; ++j) {
     const auto &option = opts[j];
@@ -429,7 +429,7 @@ processOption(CTkAppOption *opts, const Args &args, uint &i, CTkAppOptionValueMa
     else if (option.type == CTkAppOptionType::Int) {
       if (i < numArgs - 1) {
         long l;
-        if (! CTkAppUtil::stringToInt(args[++i].toString(), l))
+        if (! variantToInt(args[++i], l))
           return false;
         value.setInteger(l);
       }
@@ -439,7 +439,7 @@ processOption(CTkAppOption *opts, const Args &args, uint &i, CTkAppOptionValueMa
     else if (option.type == CTkAppOptionType::Real) {
       if (i < numArgs - 1) {
         double r;
-        if (! CTkAppUtil::stringToReal(args[++i].toString(), r))
+        if (! variantToReal(args[++i], r))
           return false;
         value.setReal(r);
       }
@@ -449,7 +449,7 @@ processOption(CTkAppOption *opts, const Args &args, uint &i, CTkAppOptionValueMa
     else if (option.type == CTkAppOptionType::Boolean) {
       if (i < numArgs - 1) {
         bool b;
-        if (! CTkAppUtil::stringToBool(args[++i].toString(), b))
+        if (! variantToBool(args[++i], b))
           return false;
         value.setBool(b);
       }
@@ -510,8 +510,10 @@ deleteImage(const CTkAppImageRef &image)
 
 CTkAppImageRef
 CTkApp::
-getImage(const QString &name) const
+getImage(const QVariant &var) const
 {
+  auto name = variantToString(var);
+
   auto p = images_.find(name);
 
   if (p == images_.end())
@@ -606,8 +608,10 @@ getNewFontName() const
 
 CTkAppFontRef
 CTkApp::
-createFont(const QString &name)
+createFont(const QVariant &var)
 {
+  auto name = variantToString(var);
+
   auto font = std::make_shared<CTkAppFont>(this, name);
 
   fonts_[name] = font;
@@ -624,8 +628,10 @@ deleteFont(const CTkAppFontRef &font)
 
 CTkAppFontRef
 CTkApp::
-getFont(const QString &name) const
+getFont(const QVariant &var) const
 {
+  auto name = variantToString(var);
+
   auto p = fonts_.find(name);
 
   if (p == fonts_.end())
@@ -636,8 +642,10 @@ getFont(const QString &name) const
 
 QFont
 CTkApp::
-getQFont(const QString &name) const
+getQFont(const QVariant &var) const
 {
+  auto name = variantToString(var);
+
   auto font = getFont(name);
 
   QFont qfont;
@@ -645,7 +653,7 @@ getQFont(const QString &name) const
   if (font)
     return font->getQFont();
 
-  CTkAppUtil::stringToQFont(name, qfont);
+  CTkAppUtil::variantToQFont(const_cast<CTkApp *>(this), var, qfont);
 
   return qfont;
 }
@@ -927,7 +935,7 @@ execEvent(CTkAppWidget *w, QEvent *e, const CTkAppEventData &data, const QString
 
   //std::cerr << "Exec: " << command1 << "\n";
 
-  eval(command1);
+  evalNoExcept(command1);
 
   w->getQWidget()->update();
 
@@ -1148,8 +1156,10 @@ encodeEvent(QMouseEvent *e, CTkAppEventMode mode, int button, CTkAppEventData &d
 
 bool
 CTkApp::
-stringToVirtualEvent(const QString &str, CTkAppVirtualEventData &data, bool quiet) const
+stringToVirtualEvent(const QVariant &var, CTkAppVirtualEventData &data, bool quiet) const
 {
+  auto str = variantToString(var);
+
   CQStrParse parse(str);
 
   parse.skipSpace();
@@ -1176,8 +1186,10 @@ stringToVirtualEvent(const QString &str, CTkAppVirtualEventData &data, bool quie
 
 bool
 CTkApp::
-parseEvent(const QString &pattern, CTkAppEventData &data)
+parseEvent(const QVariant &var, CTkAppEventData &data)
 {
+  auto pattern = variantToString(var);
+
   // See xmodmap ?
 
   /*
@@ -1669,7 +1681,7 @@ virtualEventNames(const CTkAppVirtualEventData &vdata, std::vector<QString> &nam
 
 void
 CTkApp::
-addOption(const QString &pattern, const QString &value, int priority)
+addOption(const QString &pattern, const QVariant &value, int priority)
 {
   //std::cerr << "addOption: " << pattern.toStdString() << " " <<
   //             value.toStdString() << " " << priority << "\n";
@@ -1680,7 +1692,7 @@ addOption(const QString &pattern, const QString &value, int priority)
 bool
 CTkApp::
 matchOption(const QString &widgetClass, const QString &optName,
-            const QString &optClass, QString &optValue) const
+            const QString &optClass, QVariant &optValue) const
 {
   optValue = "";
   //std::cerr << "matchOption: " << widgetClass.toStdString() << " " <<
@@ -1731,9 +1743,27 @@ clearOptions()
 bool
 CTkApp::
 lookupOptionName(const std::vector<QString> &names,
+                 const QVariant &arg, QString &opt, bool quiet) const
+{
+  return lookupName("option", names, arg, opt, quiet);
+}
+
+bool
+CTkApp::
+lookupOptionName(const std::vector<QString> &names,
                  const QString &arg, QString &opt, bool quiet) const
 {
   return lookupName("option", names, arg, opt, quiet);
+}
+
+bool
+CTkApp::
+lookupName(const QString &msg, const std::vector<QString> &names,
+           const QVariant &arg, QString &opt, bool quiet) const
+{
+  auto arg1 = variantToString(arg);
+
+  return lookupName(msg, names, arg1, opt, quiet);
 }
 
 bool
@@ -1772,10 +1802,11 @@ lookupName(const QString &msg, const std::vector<QString> &names,
 
 bool
 CTkApp::
-getOptionInt(const QString &name, const QString &value, long &i) const
+getOptionInt(const QString &name, const QVariant &value, long &i) const
 {
-  if (! CTkAppUtil::stringToInt(value, i)) {
-    throwError("Invalid value \"" + value + "\" for \"" + name + "\"");
+  if (! variantToInt(value, i)) {
+    auto str = variantToString(value);
+    throwError("Invalid value \"" + str + "\" for \"" + name + "\"");
     return false;
   }
 
@@ -1784,10 +1815,11 @@ getOptionInt(const QString &name, const QString &value, long &i) const
 
 bool
 CTkApp::
-getOptionReal(const QString &name, const QString &value, double &r) const
+getOptionReal(const QString &name, const QVariant &value, double &r) const
 {
-  if (! CTkAppUtil::stringToReal(value, r)) {
-    throwError("Invalid value \"" + value + "\" for \"" + name + "\"");
+  if (! variantToReal(value, r)) {
+    auto str = variantToString(value);
+    throwError("Invalid value \"" + str + "\" for \"" + name + "\"");
     return false;
   }
 
@@ -1862,11 +1894,55 @@ getScaling() const
 
 bool
 CTkApp::
+variantToDistance(const QVariant &var, double &r) const
+{
+  return CTkAppUtil::variantToDistance(const_cast<CTkApp *>(this), var, r);
+}
+
+bool
+CTkApp::
+variantToInt(const QVariant &var, long &i) const
+{
+  return CTkAppUtil::variantToInt(const_cast<CTkApp *>(this), var, i);
+}
+
+bool
+CTkApp::
+variantToReal(const QVariant &var, double &r) const
+{
+  return CTkAppUtil::variantToReal(const_cast<CTkApp *>(this), var, r);
+}
+
+bool
+CTkApp::
+variantToBool(const QVariant &var, bool &b) const
+{
+  return CTkAppUtil::variantToBool(const_cast<CTkApp *>(this), var, b);
+}
+
+QString
+CTkApp::
+variantToString(const QVariant &var) const
+{
+  return CTkAppUtil::variantToString(const_cast<CTkApp *>(this), var);
+}
+
+//---
+
+bool
+CTkApp::
 wrongNumArgs(const QString &msg) const
 {
   std::cerr << "wrong # args: should be \"" << msg.toStdString() << "\"\n";
 
   return false;
+}
+
+bool
+CTkApp::
+throwError(const Msg &msg) const
+{
+  return throwError(msg.str());
 }
 
 bool
@@ -1878,23 +1954,24 @@ throwError(const QString &msg) const
   return false;
 }
 
-#if 0
 void
 CTkApp::
 debugCmd(const QString &cmd, const Args &args) const
 {
-  std::cerr << "Run: " << cmd.toStdString();
-  for (const auto &arg : args)
-    std::cerr << " " << arg;
-  std::cerr << "\n";
+  if (getenv("CTK_APP_DEBUG")) {
+    std::cerr << "Run: " << cmd.toStdString();
+    for (const auto &arg : args)
+      std::cerr << " " << variantToString(arg).toStdString();
+    std::cerr << "\n";
+  }
 }
-#else
-void
+
+bool
 CTkApp::
-debugCmd(const QString &, const Args &) const
+TODO(const Msg &msg) const
 {
+  return TODO(msg.str());;
 }
-#endif
 
 bool
 CTkApp::
@@ -1912,7 +1989,7 @@ TODO(const Args &args) const
   std::cerr << "TODO: " << currentCommand().toStdString();
 
   for (const auto &arg : args)
-    std::cerr << " " << arg.toString().toStdString();
+    std::cerr << " " << variantToString(arg).toStdString();
 
   std::cerr << "\n";
 
@@ -1930,7 +2007,7 @@ TODO(const QString &arg, const Args &args) const
   std::cerr << currentCommand().toStdString();
 
   for (const auto &arg : args)
-    std::cerr << " " << arg.toString().toStdString();
+    std::cerr << " " << variantToString(arg).toStdString();
 
   std::cerr << "\n";
 

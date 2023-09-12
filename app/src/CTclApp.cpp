@@ -240,10 +240,23 @@ bool
 CTclApp::
 getStringResult(QString &res) const
 {
+  QVariant var;
+  if (! getResult(var))
+    return false;
+
+  res = CTkAppUtil::variantToString(const_cast<CTclApp *>(this), var);
+
+  return true;
+}
+
+bool
+CTclApp::
+getResult(QVariant &res) const
+{
   auto var = CQTclUtil::getResult(app_->getInterp());
   if (! var.isValid()) return false;
 
-  res = var.toString();
+  res = var;
 
   return true;
 }
@@ -252,56 +265,67 @@ getStringResult(QString &res) const
 
 void
 CTclApp::
-setIntegerGlobalVar(const QString &var, int value)
+setIntegerGlobalVar(const QString &name, int value)
 {
-  setStringGlobalVar(var, QString::number(value));
+  setGlobalVar(name, QVariant(value));
 }
 
 void
 CTclApp::
-setRealGlobalVar(const QString &var, double value)
+setRealGlobalVar(const QString &name, double value)
 {
-  setStringGlobalVar(var, QString::number(value));
-}
-
-void
-CTclApp::
-setStringGlobalVar(const QString &var, const QString &value)
-{
-  CQTclUtil::createGlobalVar(app_->interp_, var, value);
-}
-
-void
-CTclApp::
-setStringVar(const QString &var, const QString &value)
-{
-  CQTclUtil::createLocalVar(app_->interp_, var, value);
+  setGlobalVar(name, QVariant(value));
 }
 
 void
 CTclApp::
 setBoolGlobalVar(const QString &name, bool b)
 {
-  setStringGlobalVar(name, QString(b ? "1" : "0"));
+  setGlobalVar(name, QVariant(b ? "1" : "0"));
 }
 
 void
 CTclApp::
-setStringArrayGlobalVar(const QString &var, const std::vector<QString> &strs)
+setStringGlobalVar(const QString &name, const QString &value)
 {
-  setStringGlobalVar(var, mergeList(strs));
+  setGlobalVar(name, QVariant(value));
 }
 
 void
 CTclApp::
-setStringArrayVar(const QString &var, const std::vector<QString> &strs)
+setGlobalVar(const QString &name, const QVariant &value)
 {
-  setStringVar(var, mergeList(strs));
+  CQTclUtil::createGlobalVar(app_->interp_, name, value);
+}
+
+//---
+
+void
+CTclApp::
+setStringLocalVar(const QString &name, const QString &value)
+{
+  setLocalVar(name, QVariant(value));
 }
 
 void
 CTclApp::
-setIntegerArrayGlobalVar(const QString &var, const std::vector<int> &values)
+setLocalVar(const QString &name, const QVariant &value)
+{
+  CQTclUtil::createLocalVar(app_->interp_, name, value);
+}
+
+//---
+
+void
+CTclApp::
+setStringArrayGlobalVar(const QString &name, const std::vector<QString> &strs)
+{
+  setStringGlobalVar(name, mergeList(strs));
+}
+
+void
+CTclApp::
+setIntegerArrayGlobalVar(const QString &name, const std::vector<int> &values)
 {
   std::vector<QString> strs;
 
@@ -310,12 +334,19 @@ setIntegerArrayGlobalVar(const QString &var, const std::vector<int> &values)
   for (uint i = 0; i < num_values; ++i)
     strs.push_back(QString::number(values[i]));
 
-  setStringArrayGlobalVar(var, strs);
+  setStringArrayGlobalVar(name, strs);
 }
 
 void
 CTclApp::
-setIntegerArrayVar(const QString &var, const std::vector<int> &values)
+setStringArrayLocalVar(const QString &name, const std::vector<QString> &strs)
+{
+  setStringLocalVar(name, mergeList(strs));
+}
+
+void
+CTclApp::
+setIntegerArrayLocalVar(const QString &name, const std::vector<int> &values)
 {
   std::vector<QString> strs;
 
@@ -324,66 +355,75 @@ setIntegerArrayVar(const QString &var, const std::vector<int> &values)
   for (uint i = 0; i < num_values; ++i)
     strs.push_back(QString::number(values[i]));
 
-  setStringArrayVar(var, strs);
+  setStringArrayLocalVar(name, strs);
 }
 
 //---
 
 bool
 CTclApp::
-hasGlobalVar(const QString &var) const
+hasGlobalVar(const QString &name) const
 {
-  return CQTclUtil::hasGlobalVar(app_->interp_, var);
+  return CQTclUtil::hasGlobalVar(app_->interp_, name);
 }
 
 int
 CTclApp::
-getIntegerGlobalVar(const QString &var) const
+getIntegerGlobalVar(const QString &name) const
 {
-  auto str = getStringGlobalVar(var);
+  auto var = getGlobalVar(name);
 
   long i = 0;
-  (void) CTkAppUtil::stringToInt(str, i);
+  (void) CTkAppUtil::variantToInt(app_, var, i);
 
   return i;
 }
 
 double
 CTclApp::
-getRealGlobalVar(const QString &var) const
+getRealGlobalVar(const QString &name) const
 {
-  auto str = getStringGlobalVar(var);
+  auto var = getGlobalVar(name);
 
   double r = 0.0;
-  (void) CTkAppUtil::stringToReal(str, r);
+  (void) CTkAppUtil::variantToReal(app_, var, r);
 
   return r;
 }
 
-QString
-CTclApp::
-getStringGlobalVar(const QString &var) const
-{
-  return CQTclUtil::getGlobalVar(app_->interp_, var).toString();
-}
-
 bool
 CTclApp::
-getBoolGlobalVar(const QString &var) const
+getBoolGlobalVar(const QString &name) const
 {
-  auto str = getStringGlobalVar(var).toLower();
+  auto var = getGlobalVar(name);
 
   bool b = false;
-  (void) CTkAppUtil::stringToBool(str, b);
+  (void) CTkAppUtil::variantToBool(app_, var, b);
 
   return b;
 }
 
+QString
+CTclApp::
+getStringGlobalVar(const QString &name) const
+{
+  auto var = getGlobalVar(name);
+
+  return CTkAppUtil::variantToString(app_, var);
+}
+
+QVariant
+CTclApp::
+getGlobalVar(const QString &name) const
+{
+  return CQTclUtil::getGlobalVar(app_->interp_, name);
+}
+
 bool
 CTclApp::
-getStringArrayGlobalVar(const QString &var, std::vector<QString> &strs) const
+getStringArrayGlobalVar(const QString &name, std::vector<QString> &strs) const
 {
-  auto str = CQTclUtil::getGlobalVar(app_->interp_, var).toString();
+  auto str = getStringGlobalVar(name);
 
   auto rc = CQTclUtil::splitList(str, strs);
 
@@ -763,6 +803,17 @@ eval(const QString &str) const
   }
 
   return (lastError_ == TCL_OK);
+}
+
+bool
+CTclApp::
+evalNoExcept(const QString &str) const
+{
+  Tcl_AllowExceptions(interp_);
+
+  int rc = Tcl_Eval(interp_, str.toLatin1().constData());
+
+  return (rc == TCL_OK);
 }
 
 QString

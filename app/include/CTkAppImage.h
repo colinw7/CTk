@@ -2,17 +2,30 @@
 #define CTkAppImage_H
 
 #include <QImage>
+#include <QObject>
 
 #include <string>
 #include <set>
 
 class CTkApp;
 
-class CTkAppImage {
+class CTkAppImage : public QObject {
+  Q_OBJECT
+
+  Q_PROPERTY(QString name     READ name)
+  Q_PROPERTY(QString filename READ filename WRITE setFilename)
+  Q_PROPERTY(QString type     READ type     WRITE setType)
+  Q_PROPERTY(QString format   READ format   WRITE setFormat)
+  Q_PROPERTY(double  gamma    READ gamma    WRITE setGamma)
+  Q_PROPERTY(int     width    READ width    WRITE setWidth)
+  Q_PROPERTY(int     height   READ height   WRITE setHeight)
+
  public:
   explicit CTkAppImage(CTkApp *tk, const QString &name, int width=-1, int height=-1);
 
  ~CTkAppImage();
+
+  //---
 
   const QString &name() const { return name_; }
 
@@ -39,6 +52,8 @@ class CTkAppImage {
 
   int height() const;
   void setHeight(int h);
+
+  //---
 
   bool loadFile(const QString &filename);
   bool loadSVG (const QString &filename);

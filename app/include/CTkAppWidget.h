@@ -4,10 +4,6 @@
 #include <CTkAppEventData.h>
 #include <CTkApp.h>
 
-#include <CQSpinList.h>
-#include <CQButtonImage.h>
-#include <CQTextWidget.h>
-
 #include <QBrush>
 #include <QCheckBox>
 #include <QComboBox>
@@ -104,6 +100,7 @@ class CTkAppWidget : public QObject {
   Q_PROPERTY(bool gridWidget READ isGridWidget WRITE setGridWidget)
 
   Q_PROPERTY(QString deleteWindowCmd READ deleteWindowCmd WRITE setDeleteWindowCmd)
+  Q_PROPERTY(QString wmTransientFor  READ wmTransientFor  WRITE setWmTransientFor)
 
  public:
   enum class Relief {
@@ -312,6 +309,8 @@ class CTkAppWidget : public QObject {
   QString getGeometry() const;
   bool setGeometry(const QString &s);
 
+  bool setTransientGeometry(CTkAppWidget *pw, const QString &s);
+
   //---
 
   int padX() const { return padx_; }
@@ -396,7 +395,7 @@ class CTkAppWidget : public QObject {
   void deleteLater();
 
   bool getOptionValue(const QString &optName, const QString &optClass,
-                      QString &optValue) const;
+                      QVariant &optValue) const;
 
   //---
 
@@ -406,6 +405,11 @@ class CTkAppWidget : public QObject {
 
   void setWmAtomValue(const QString &atomName, const QString &atomValue);
   QString getWmAtomValue(const QString &atomName) const;
+
+  //---
+
+  const QString &wmTransientFor() const { return wmTransientFor_; }
+  void setWmTransientFor(const QString &name);
 
  protected:
   const QString &getCommand() const { return command_; }
@@ -494,6 +498,7 @@ class CTkAppWidget : public QObject {
 
   WmAtoms wmAtoms_;
   QString deleteWindowCmd_;
+  QString wmTransientFor_;
 };
 
 //---
@@ -536,7 +541,7 @@ class CTkAppRoot : public CTkAppWidget {
 
   bool execOp(const Args &args) override;
 
-  bool decodeWidgetName(const QString &name, CTkAppWidget **parent, QString &childName) const;
+  bool decodeWidgetName(const QVariant &name, CTkAppWidget **parent, QString &childName) const;
 
  private:
   QFrame* qroot_ { nullptr };
@@ -599,31 +604,6 @@ class CTkAppButton : public CTkAppWidget {
  private:
   CTkAppButtonWidget* qbutton_    { nullptr };
   bool                overRaised_ { false };
-};
-
-class CTkAppButtonWidget : public CQButtonImage {
-  Q_OBJECT
-
- public:
-  explicit CTkAppButtonWidget(CTkAppButton *button);
-
-  const QString &getText() const { return text_; }
-  void setText(const QString &s);
-
-  double wrapLength() const { return wrapLength_; }
-  void setWrapLength(double r);
-
-  bool isReadOnly() const { return readOnly_; }
-  void setReadOnly(bool b) { readOnly_ = b; }
-
- private:
-  void updateText();
-
- private:
-  CTkAppButton *button_     { nullptr };
-  double        wrapLength_ { -1 };
-  QString       text_;
-  bool          readOnly_   { false };
 };
 
 //---
@@ -903,7 +883,7 @@ class CTkAppCanvasShape : public QObject {
   const OffsetData &stippleOutlineOffset() { return outlineOffsetData_; }
   void setStippleOutlineOffset(const OffsetData &offsetData) { outlineOffsetData_ = offsetData; }
 
-  static bool stringToOffsetData(const QString &str, OffsetData &offsetData);
+  static bool stringToOffsetData(CTclApp *app, const QString &str, OffsetData &offsetData);
   static QString offsetDataToString(const OffsetData &offsetData);
 
  protected:
@@ -2979,22 +2959,6 @@ class CTkAppSpinBox : public CTkAppWidget {
   QString                 invalidCommand_;
 };
 
-class CTkAppSpinBoxWidget : public CQSpinList {
-  Q_OBJECT
-
- public:
-  explicit CTkAppSpinBoxWidget(CTkAppSpinBox *spin);
-
-  int width() const { return width_; }
-  void setWidth(int i) { width_ = i; }
-
-  QSize sizeHint() const override;
-
- private:
-  CTkAppSpinBox* spin_  { nullptr };
-  int            width_ { -1 };
-};
-
 //---
 
 class CTkAppTextWidget;
@@ -3058,9 +3022,9 @@ class CTkAppText : public CTkAppWidget {
     QColor        foreground;
     QColor        background;
     QFont         font;
-    TextIndRanges indRanges;
     double        borderWidth { 0.0 };
     bool          underline { false };
+    TextIndRanges indRanges;
   };
 
  public:
@@ -3080,7 +3044,7 @@ class CTkAppText : public CTkAppWidget {
   void getCurrentInd(TextInd &ind) const;
   void getCurrentInd(QTextCursor &cursor, TextInd &ind) const;
 
-  bool stringToTextInd(const QString &str, TextInd &ind) const;
+  bool stringToTextInd(const QVariant &str, TextInd &ind) const;
 
   void setMark(const QString &mark, const TextInd &ind);
   bool getMark(const QString &mark, TextInd &ind) const;
@@ -3138,32 +3102,14 @@ class CTkAppText : public CTkAppWidget {
   Tags              tags_;
 };
 
-class CTkAppTextWidget : public CQTextWidget {
-  Q_OBJECT
-
- public:
-  CTkAppTextWidget(CTkAppText *text);
-
-  int width() const { return width_; }
-  void setWidth(int i) { width_ = i; }
-
-  int height() const { return height_; }
-  void setHeight(int i) { height_ = i; }
-
-  QSize sizeHint() const override;
-
- private:
-  CTkAppText *text_   { nullptr };
-  int         width_  { -1 };
-  int         height_ { -1 };
-};
-
 //---
 
 class CTkAppTopLevelWidget;
 
 class CTkAppTopLevel : public CTkAppWidget {
   Q_OBJECT
+
+  Q_PROPERTY(QString iconWindow READ iconWindow WRITE setIconWindow)
 
  public:
   explicit CTkAppTopLevel(CTkApp *tk, CTkAppWidget *parent=nullptr, const QString &name="");

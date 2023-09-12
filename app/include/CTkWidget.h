@@ -1,11 +1,11 @@
 #ifndef CTkWidget_H
 #define CTkWidget_H
 
-#include <QFrame>
+#include <CTkAppWidget.h>
 
 class CTkApp;
 
-class CTkWidget : public QFrame {
+class CTkWidget : public CTkAppTopLevelWidget {
   Q_OBJECT
 
   Q_PROPERTY(QString id READ id)

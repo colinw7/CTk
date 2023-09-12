@@ -5,12 +5,15 @@
 #include <CTkAppPackLayout.h>
 #include <CTkAppGridLayout.h>
 #include <CTkAppPlaceLayout.h>
+#include <CTkAppImage.h>
+#include <CTkAppFont.h>
 
 #include <CQPropertyViewTree.h>
 #include <CQIntegerSpin.h>
 #include <CQRealSpin.h>
 #include <CQOptEdit.h>
 
+#include <QGroupBox>
 #include <QFrame>
 #include <QPushButton>
 #include <QLabel>
@@ -53,7 +56,7 @@ CTkAppDebug(CTkApp *tk) :
 
   layoutWidget_ = nullptr;
 
-  connect(childList_, SIGNAL(itemSelectionChanged()), this, SLOT(selectionSlot()));
+  connect(childList_, SIGNAL(itemSelectionChanged()), this, SLOT(childSelectionSlot()));
 
   widgetLayout->addWidget(childList_);
 
@@ -94,22 +97,75 @@ CTkAppDebug(CTkApp *tk) :
 
   //---
 
-  auto *imageFrame  = new QFrame;
-  auto *imageLayout = new QVBoxLayout(imageFrame);
+  auto *imagesFrame  = new QFrame;
+  auto *imagesLayout = new QVBoxLayout(imagesFrame);
+
+  tab_->addTab(imagesFrame, "Images");
+
+  //---
+
+  auto *imageGroup  = new QGroupBox("Images");
+  auto *imageLayout = new QHBoxLayout(imageGroup);
+
+  imagesLayout->addWidget(imageGroup);
 
   imageList_  = new QListWidget;
-  bitmapList_ = new QListWidget;
+  imageLabel_ = new QLabel;
+
+  connect(imageList_, SIGNAL(itemSelectionChanged()), this, SLOT(imageSelectionSlot()));
 
   imageLayout->addWidget(imageList_);
-  imageLayout->addWidget(bitmapList_);
+  imageLayout->addWidget(imageLabel_);
 
-  tab_->addTab(imageFrame, "Images");
+  //---
+
+  auto *bitmapGroup  = new QGroupBox("Bitmaps");
+  auto *bitmapLayout = new QHBoxLayout(bitmapGroup);
+
+  imagesLayout->addWidget(bitmapGroup);
+
+  bitmapList_  = new QListWidget;
+  bitmapLabel_ = new QLabel;
+
+  connect(bitmapList_, SIGNAL(itemSelectionChanged()), this, SLOT(bitmapSelectionSlot()));
+
+  bitmapLayout->addWidget(bitmapList_);
+  bitmapLayout->addWidget(bitmapLabel_);
+
+  imageProperties_ = new CQPropertyViewTree;
+
+  imagesLayout->addWidget(imageProperties_);
+
+  //---
+
+  auto *fontsFrame  = new QFrame;
+  auto *fontsLayout = new QVBoxLayout(fontsFrame);
+
+  tab_->addTab(fontsFrame, "Fonts");
+
+  auto *fontGroup  = new QGroupBox("Fonts");
+  auto *fontLayout = new QHBoxLayout(fontGroup);
+
+  fontsLayout->addWidget(fontGroup);
+
+  fontList_  = new QListWidget;
+  fontLabel_ = new QLabel;
+
+  connect(fontList_, SIGNAL(itemSelectionChanged()), this, SLOT(fontSelectionSlot()));
+
+  fontLayout->addWidget(fontList_);
+  fontLayout->addWidget(fontLabel_);
+
+  fontProperties_ = new CQPropertyViewTree;
+
+  fontsLayout->addWidget(fontProperties_);
 
   //---
 
   updateChildren();
 
   updateImages();
+  updateFonts();
 
   updateProperties();
 }
@@ -153,7 +209,20 @@ updateImages()
 
   for (const auto &bitmapName : bitmapNames)
     bitmapList_->addItem(bitmapName);
+}
 
+void
+CTkAppDebug::
+updateFonts()
+{
+  fontList_->clear();
+
+  std::vector<QString> fontNames;
+
+  tk_->getFontNames(fontNames);
+
+  for (const auto &fontName : fontNames)
+    fontList_->addItem(fontName);
 }
 
 void
@@ -407,7 +476,7 @@ currentSlot()
 
 void
 CTkAppDebug::
-selectionSlot()
+childSelectionSlot()
 {
   auto items = childList_->selectedItems();
 
@@ -436,6 +505,123 @@ selectionSlot()
   typeLabel_->setText(currentChild_ ? currentChild_->getClassName() : "");
 
   updateLayoutWidgets();
+}
+
+void
+CTkAppDebug::
+imageSelectionSlot()
+{
+  imageProperties_->clear();
+
+  //---
+
+  auto items = imageList_->selectedItems();
+
+  int row = -1;
+
+  for (auto *item : items)
+    row = imageList_->row(item);
+
+  if (row < 0) return;
+
+  std::vector<QString> imageNames;
+
+  tk_->getImageNames(imageNames);
+
+  auto *image = tk_->getImage(imageNames[row]).get();
+
+  //---
+
+  QPixmap pixmap;
+
+  pixmap.convertFromImage(image->getQImage());
+
+  imageLabel_->setPixmap(pixmap);
+
+  //---
+
+  imageProperties_->addProperty("", image, "name");
+  imageProperties_->addProperty("", image, "filename");
+  imageProperties_->addProperty("", image, "type");
+  imageProperties_->addProperty("", image, "format");
+  imageProperties_->addProperty("", image, "gamma");
+  imageProperties_->addProperty("", image, "width");
+  imageProperties_->addProperty("", image, "height");
+}
+
+void
+CTkAppDebug::
+bitmapSelectionSlot()
+{
+  imageProperties_->clear();
+
+  //---
+
+  auto items = bitmapList_->selectedItems();
+
+  int row = -1;
+
+  for (auto *item : items)
+    row = bitmapList_->row(item);
+
+  if (row < 0) return;
+
+  std::vector<QString> bitmapNames;
+
+  tk_->getBitmapNames(bitmapNames);
+
+  auto *image = tk_->getBitmap(bitmapNames[row]).get();
+
+  //---
+
+  QPixmap pixmap;
+
+  pixmap.convertFromImage(image->getQImage());
+
+  bitmapLabel_->setPixmap(pixmap);
+
+  //---
+
+  imageProperties_->addProperty("", image, "name");
+  imageProperties_->addProperty("", image, "filename");
+  imageProperties_->addProperty("", image, "type");
+  imageProperties_->addProperty("", image, "format");
+  imageProperties_->addProperty("", image, "gamma");
+  imageProperties_->addProperty("", image, "width");
+  imageProperties_->addProperty("", image, "height");
+}
+
+void
+CTkAppDebug::
+fontSelectionSlot()
+{
+  fontProperties_->clear();
+
+  //---
+
+  auto items = fontList_->selectedItems();
+
+  int row = -1;
+
+  for (auto *item : items)
+    row = fontList_->row(item);
+
+  if (row < 0) return;
+
+  std::vector<QString> fontNames;
+
+  tk_->getFontNames(fontNames);
+
+  auto *font = tk_->getFont(fontNames[row]).get();
+
+  //---
+
+  fontProperties_->addProperty("", font, "family");
+  fontProperties_->addProperty("", font, "bold");
+  fontProperties_->addProperty("", font, "italic");
+  fontProperties_->addProperty("", font, "underline");
+  fontProperties_->addProperty("", font, "overstrike");
+  fontProperties_->addProperty("", font, "height");
 }
 
 void
@@ -595,22 +781,18 @@ updateProperties()
     propertyView_->addProperty(parentName, w, "xScrollCommand");
     propertyView_->addProperty(parentName, w, "yScrollCommand");
 
-    auto *button     = qobject_cast<CTkAppButton *>(w);
-    auto *canvas     = qobject_cast<CTkAppCanvas *>(w);
-    auto *check      = qobject_cast<CTkAppCheckButton *>(w);
-    auto *combo      = qobject_cast<CTkAppComboBox *>(w);
-    auto *entry      = qobject_cast<CTkAppEntry *>(w);
-    auto *label      = qobject_cast<CTkAppLabel *>(w);
-    auto *listbox    = qobject_cast<CTkAppListBox *>(w);
-    auto *menubutton = qobject_cast<CTkAppMenuButton *>(w);
-    auto *message    = qobject_cast<CTkAppMessage *>(w);
-    auto *radio      = qobject_cast<CTkAppRadioButton *>(w);
-    auto *scale      = qobject_cast<CTkAppScale *>(w);
-    auto *spinbox    = qobject_cast<CTkAppSpinBox *>(w);
+    propertyView_->addProperty(parentName, w, "gridWidget");
+    propertyView_->addProperty(parentName, w, "deleteWindowCmd");
+
+    //---
+
+    auto *button = qobject_cast<CTkAppButton *>(w);
 
     if (button) {
       propertyView_->addProperty(parentName, button, "overRaised");
     }
+
+    auto *canvas = qobject_cast<CTkAppCanvas *>(w);
 
     if (canvas) {
       auto *cw = canvas->canvasWidget();
@@ -650,6 +832,8 @@ updateProperties()
       }
     }
 
+    auto *check = qobject_cast<CTkAppCheckButton *>(w);
+
     if (check) {
       propertyView_->addProperty(parentName, check, "varName");
       propertyView_->addProperty(parentName, check, "onValue");
@@ -660,42 +844,71 @@ updateProperties()
       propertyView_->addProperty(parentName, check, "underlinePos");
     }
 
+    auto *combo = qobject_cast<CTkAppComboBox *>(w);
+
     if (combo) {
       propertyView_->addProperty(parentName, combo, "varName");
     }
+
+    auto *entry = qobject_cast<CTkAppEntry *>(w);
 
     if (entry) {
       propertyView_->addProperty(parentName, entry, "varName");
     }
 
+    auto *label = qobject_cast<CTkAppLabel *>(w);
+
     if (label) {
       propertyView_->addProperty(parentName, label, "varName");
     }
+
+    auto *listbox = qobject_cast<CTkAppListBox *>(w);
 
     if (listbox) {
       propertyView_->addProperty(parentName, listbox, "varName");
     }
 
+    auto *menubutton = qobject_cast<CTkAppMenuButton *>(w);
+
     if (menubutton) {
       propertyView_->addProperty(parentName, menubutton, "varName");
+      propertyView_->addProperty(parentName, menubutton, "showIndicator");
     }
+
+    auto *message = qobject_cast<CTkAppMessage *>(w);
 
     if (message) {
       propertyView_->addProperty(parentName, message, "varName");
     }
 
+    auto *radio = qobject_cast<CTkAppRadioButton *>(w);
+
     if (radio) {
       propertyView_->addProperty(parentName, radio, "varName");
       propertyView_->addProperty(parentName, radio, "value");
+      propertyView_->addProperty(parentName, radio, "selectColor");
+      propertyView_->addProperty(parentName, radio, "showIndicator");
+      propertyView_->addProperty(parentName, radio, "userWidth");
+      propertyView_->addProperty(parentName, radio, "userHeight");
     }
+
+    auto *scale = qobject_cast<CTkAppScale *>(w);
 
     if (scale) {
       propertyView_->addProperty(parentName, scale, "varName");
     }
 
+    auto *spinbox = qobject_cast<CTkAppSpinBox *>(w);
+
     if (spinbox) {
       propertyView_->addProperty(parentName, spinbox, "varName");
       propertyView_->addProperty(parentName, spinbox, "invalidCommand");
+    }
+
+    auto *toplevel = qobject_cast<CTkAppTopLevel *>(w);
+
+    if (toplevel) {
+      propertyView_->addProperty(parentName, toplevel, "iconWindow");
     }
   }
 }

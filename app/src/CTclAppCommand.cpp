@@ -62,6 +62,13 @@ setBoolResult(bool b)
 
 void
 CTclAppCommand::
+setResult(const QVariant &var)
+{
+  app_->setResult(var);
+}
+
+void
+CTclAppCommand::
 setIntegerArrayResult(int *values, int num_values)
 {
   app_->setIntegerArrayResult(values, num_values);

@@ -123,7 +123,7 @@ getOptValue(const QString &name, QString &value) const
 
 bool
 CTkAppOptData::
-getDefValue(const QString &optName, const QString &optClass, QString &value) const
+getDefValue(const QString &optName, const QString &optClass, QVariant &value) const
 {
   for (uint i = 0; opts_[i].name != nullptr; ++i) {
     const auto &opt = opts_[i];

@@ -280,7 +280,7 @@ run(const Args &args)
   uint numArgs = args.size();
 
   for (uint i = 1; i < numArgs; ++i) {
-    auto &arg = args[i];
+    auto arg = tk_->variantToString(args[i]);
 
     if      (arg == "-displayof") {
       tk_->TODO(args);
@@ -294,7 +294,7 @@ run(const Args &args)
       tk_->TODO(args);
     }
     else
-      return tk_->throwError("bad option \"" + arg.toString() + "\": must be "
+      return tk_->throwError("bad option \"" + arg + "\": must be "
                              "-displayof, or -nice");
   }
 
@@ -319,7 +319,7 @@ run(const Args &args)
   //---
 
   // get widget (TODO: late bind ?)
-  auto name = args[0].toString();
+  auto name = tk_->variantToString(args[0]);
 
   bool          all       = false;
   CTkAppWidget* w         = nullptr;
@@ -337,15 +337,13 @@ run(const Args &args)
   //---
 
   if (numArgs > 1) {
-    auto pattern = args[1].toString();
-
     CTkAppEventData data;
 
-    if (! tk_->parseEvent(pattern, data))
-      return tk_->throwError("bad event pattern \"" + pattern + "\"");
+    if (! tk_->parseEvent(args[1], data))
+      return tk_->throwError("bad event pattern \"" + tk_->variantToString(args[1]) + "\"");
 
     if (numArgs > 2) {
-      data.command = args[2].toString();
+      data.command = tk_->variantToString(args[2]);
 
       bool rc;
 
@@ -406,15 +404,18 @@ run(const Args &args)
   if (numArgs < 1)
     return tk_->wrongNumArgs("bindtags window ?tagList?");
 
-  auto widgetName = args[0].toString();
+  auto widgetName = args[0];
 
   auto *w = tk_->lookupWidgetByName(widgetName, /*quiet*/true);
-  if (! w) return tk_->throwError("bad window path name \"" + widgetName + "\"");
+  if (! w) return tk_->throwError(tk_->msg() + "Invalid widget name \"" + widgetName + "\"");
 
   if (numArgs > 1) {
     std::vector<QString> bindtags;
-    for (uint i = 1; i < numArgs; ++i)
-      bindtags.push_back(args[i].toString());
+    for (uint i = 1; i < numArgs; ++i) {
+      auto arg = tk_->variantToString(args[i]);
+
+      bindtags.push_back(arg);
+    }
     w->setBindtags(bindtags);
   }
   else {
@@ -472,12 +473,12 @@ run(const Args &args)
     { nullptr               , nullptr              , nullptr              , nullptr         }
   };
 
-  QString widgetName;
+  QVariant widgetName;
 
   auto numArgs = args.size();
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto name = args[i].toString();
+    auto name = tk_->variantToString(args[i]);
 
     if (name.size() > 0 && name[0] == '-') {
       ++i;
@@ -485,28 +486,28 @@ run(const Args &args)
       continue;
     }
     else
-      widgetName = name;
+      widgetName = args[i];
   }
 
-  if (widgetName == "")
+  if (! widgetName.isValid())
     return tk_->throwError("No name");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
 
   auto *button = new CTkAppButton(tk_, parent, childName);
 
   if (! tk_->useStyle())
     button->setBackground(QColor("#d9d9d9"));
 
-  auto *cmd = new CTkAppWidgetCommand(this, widgetName, button, opts);
+  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), button, opts);
 
   cmd->processArgs(args);
 
-  setStringResult(widgetName);
+  setResult(widgetName);
 
   return true;
 }
@@ -552,12 +553,12 @@ run(const Args &args)
     { nullptr               , nullptr              , nullptr              , nullptr   }
   };
 
-  uint numArgs = args.size();
+  QVariant widgetName;
 
-  QString widgetName;
+  auto numArgs = args.size();
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto name = args[i].toString();
+    auto name = tk_->variantToString(args[i]);
 
     if (name.size() > 0 && name[0] == '-') {
       ++i;
@@ -565,28 +566,28 @@ run(const Args &args)
       continue;
     }
     else
-      widgetName = name;
+      widgetName = args[i];
   }
 
-  if (widgetName == "")
+  if (! widgetName.isValid())
     return tk_->throwError("No name");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
 
   auto *canvas = new CTkAppCanvas(tk_, parent, childName);
 
   if (! tk_->useStyle())
     canvas->setBackground(QColor("#d9d9d9"));
 
-  auto *cmd = new CTkAppWidgetCommand(this, widgetName, canvas, opts);
+  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), canvas, opts);
 
   cmd->processArgs(args);
 
-  setStringResult(widgetName);
+  setResult(widgetName);
 
   return true;
 }
@@ -644,12 +645,12 @@ run(const Args &args)
     { nullptr               , nullptr              , nullptr              , nullptr         }
   };
 
-  uint numArgs = args.size();
+  QVariant widgetName;
 
-  QString widgetName;
+  auto numArgs = args.size();
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto name = args[i].toString();
+    auto name = tk_->variantToString(args[i]);
 
     if (name.size() > 0 && name[0] == '-') {
       ++i;
@@ -657,28 +658,28 @@ run(const Args &args)
       continue;
     }
     else
-      widgetName = name;
+      widgetName = args[i];
   }
 
-  if (widgetName == "")
+  if (! widgetName.isValid())
     return tk_->throwError("No name");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
 
   auto *check = new CTkAppCheckButton(tk_, parent, childName);
 
   if (! tk_->useStyle())
     check->setBackground(QColor("#d9d9d9"));
 
-  auto *cmd = new CTkAppWidgetCommand(this, widgetName, check, opts);
+  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), check, opts);
 
   cmd->processArgs(args);
 
-  setStringResult(widgetName);
+  setResult(widgetName);
 
   return true;
 }
@@ -734,12 +735,12 @@ run(const Args &args)
     { nullptr               , nullptr              , nullptr              , nullptr      }
   };
 
-  uint numArgs = args.size();
+  QVariant widgetName;
 
-  QString widgetName;
+  auto numArgs = args.size();
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto name = args[i].toString();
+    auto name = tk_->variantToString(args[i]);
 
     if (name.size() > 0 && name[0] == '-') {
       ++i;
@@ -747,28 +748,28 @@ run(const Args &args)
       continue;
     }
     else
-      widgetName = name;
+      widgetName = args[i];
   }
 
-  if (widgetName == "")
+  if (! widgetName.isValid())
     return tk_->throwError("No name");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
 
   auto *check = new CTkAppComboBox(tk_, parent, childName);
 
   if (! tk_->useStyle())
     check->setBackground(QColor("#d9d9d9"));
 
-  auto *cmd = new CTkAppWidgetCommand(this, widgetName, check, opts);
+  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), check, opts);
 
   cmd->processArgs(args);
 
-  setStringResult(widgetName);
+  setResult(widgetName);
 
   return true;
 }
@@ -790,7 +791,7 @@ run(const Args &args)
     "append", "clear", "get"});
 
   QString opt;
-  if (! tk_->lookupOptionName(optionNames, args[0].toString(), opt))
+  if (! tk_->lookupOptionName(optionNames, args[0], opt))
     return false;
 
   //---
@@ -806,7 +807,7 @@ run(const Args &args)
     if (numArgs < 2)
       return tk_->wrongNumArgs("clipboard append ?-option value ...? data");
 
-    clipboard->setText(clipboard->text(QClipboard::Clipboard) + args[1].toString());
+    clipboard->setText(clipboard->text(QClipboard::Clipboard) + tk_->variantToString(args[1]));
   }
   else if (opt == "get") {
     setStringResult(clipboard->text(QClipboard::Clipboard));
@@ -826,9 +827,7 @@ run(const Args &args)
   uint numArgs = args.size();
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto widgetName = args[i].toString();
-
-    auto *w = tk_->lookupWidgetByName(widgetName, /*quiet*/true);
+    auto *w = tk_->lookupWidgetByName(args[i], /*quiet*/true);
     if (! w) continue;
 
     w->deleteLater();
@@ -854,7 +853,7 @@ run(const Args &args)
     "add", "delete", "generate", "info" });
 
   QString arg;
-  if (! tk_->lookupOptionName(optionNames, args[0].toString(), arg))
+  if (! tk_->lookupOptionName(optionNames, args[0], arg))
     return false;
 
   if      (arg == "add") {
@@ -862,12 +861,12 @@ run(const Args &args)
       return tk_->wrongNumArgs("event add virtual sequence ?sequence ...?");
 
     CTkAppVirtualEventData vdata;
-    if (! tk_->stringToVirtualEvent(args[1].toString(), vdata))
+    if (! tk_->stringToVirtualEvent(args[1], vdata))
       return false;
 
     CTkAppEventData edata;
-    if (! tk_->parseEvent(args[2].toString(), edata))
-      (void) tk_->throwError("bad event pattern \"" + args[2].toString() + "\"");
+    if (! tk_->parseEvent(args[2], edata))
+      (void) tk_->throwError(tk_->msg() + "bad event pattern \"" + args[2] + "\"");
 
     tk_->addVirtualEventData(vdata, edata);
   }
@@ -876,7 +875,7 @@ run(const Args &args)
       return tk_->wrongNumArgs("event delete virtual ?sequence ...?");
 
     CTkAppVirtualEventData vdata;
-    if (! tk_->stringToVirtualEvent(args[1].toString(), vdata))
+    if (! tk_->stringToVirtualEvent(args[1], vdata))
       return false;
 
     if (numArgs == 2)
@@ -884,8 +883,8 @@ run(const Args &args)
     else {
       for (uint i = 2; i < numArgs; ++i) {
         CTkAppEventData edata;
-        if (! tk_->parseEvent(args[i].toString(), edata))
-          (void) tk_->throwError("bad event pattern \"" + args[i].toString() + "\"");
+        if (! tk_->parseEvent(args[i], edata))
+          (void) tk_->throwError(tk_->msg() + "bad event pattern \"" + args[i] + "\"");
 
         tk_->deleteVirtualEventData(vdata, edata);
       }
@@ -895,12 +894,12 @@ run(const Args &args)
     if (numArgs < 3)
       return tk_->wrongNumArgs("event generate window event ?-option value ...?");
 
-    auto *w = tk_->lookupWidgetByName(args[1].toString());
+    auto *w = tk_->lookupWidgetByName(args[1]);
     if (! w) return false;
 
     CTkAppEventData data;
-    if (! tk_->parseEvent(args[2].toString(), data))
-      (void) tk_->throwError("bad event pattern \"" + args[2].toString() + "\"");
+    if (! tk_->parseEvent(args[2], data))
+      (void) tk_->throwError(tk_->msg() + "bad event pattern \"" + args[2] + "\"");
 
     w->processEvents(nullptr, data);
   }
@@ -913,7 +912,7 @@ run(const Args &args)
     }
     else if (numArgs == 2) {
       CTkAppVirtualEventData vdata;
-      if (! tk_->stringToVirtualEvent(args[1].toString(), vdata))
+      if (! tk_->stringToVirtualEvent(args[1], vdata))
         return false;
 
       std::vector<QString> names;
@@ -977,12 +976,12 @@ run(const Args &args)
     { nullptr               , nullptr              , nullptr              , nullptr      }
   };
 
-  uint numArgs = args.size();
+  QVariant widgetName;
 
-  QString widgetName;
+  auto numArgs = args.size();
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto name = args[i].toString();
+    auto name = tk_->variantToString(args[i]);
 
     if (name.size() > 0 && name[0] == '-') {
       ++i;
@@ -990,28 +989,28 @@ run(const Args &args)
       continue;
     }
     else
-      widgetName = name;
+      widgetName = args[i];
   }
 
-  if (widgetName == "")
+  if (! widgetName.isValid())
     return tk_->throwError("No name");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
 
   auto *entry = new CTkAppEntry(tk_, parent, childName);
 
   if (! tk_->useStyle())
     entry->setBackground(QColor("#ffffff"));
 
-  auto *cmd = new CTkAppWidgetCommand(this, widgetName, entry, opts);
+  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), entry, opts);
 
   cmd->processArgs(args);
 
-  setStringResult(widgetName);
+  setResult(widgetName);
 
   return true;
 }
@@ -1038,9 +1037,7 @@ run(const Args &args)
     return true;
   }
   else if (numArgs == 1) {
-    auto widgetName = args[0].toString();
-
-    auto *w = tk_->lookupWidgetByName(widgetName);
+    auto *w = tk_->lookupWidgetByName(args[0]);
     if (! w) return false;
 
     w->setFocus();
@@ -1049,7 +1046,7 @@ run(const Args &args)
     uint i = 1;
 
     for ( ; i < numArgs; ++i) {
-      auto arg = args[i].toString();
+      auto arg = tk_->variantToString(args[i]);
 
       if (arg[0] != '-')
         break;
@@ -1086,9 +1083,7 @@ run(const Args &args)
     if (i >= numArgs)
       return false;
 
-    auto widgetName = args[i].toString();
-
-    auto *w = tk_->lookupWidgetByName(widgetName);
+    auto *w = tk_->lookupWidgetByName(args[i]);
     if (! w) return false;
 
     w->setFocus();
@@ -1111,12 +1106,12 @@ run(const Args &args)
     for ( ; i < numArgs; ++i) {
       if      (args[i] == "-family") {
         ++i; if (i >= numArgs) return false;
-        font->setFamily(args[i].toString());
+        font->setFamily(tk_->variantToString(args[i]));
       }
       else if (args[i] == "-size") {
         ++i; if (i >= numArgs) return false;
         double size;
-        if (! CTkAppUtil::stringToReal(args[2].toString(), size))
+        if (! tk_->variantToReal(args[i], size))
           return tk_->throwError("Bad size");
         if (size >= 0)
           font->setPointSize(size);
@@ -1144,19 +1139,19 @@ run(const Args &args)
       else if (args[i] == "-underline") {
         ++i; if (i >= numArgs) return false;
         bool b;
-        if (! CTkAppUtil::stringToBool(args[i].toString(), b))
-          return tk_->throwError("Invalid bool '" + args[i].toString() + "'");
+        if (! tk_->variantToBool(args[i], b))
+          return tk_->throwError(tk_->msg() + "Invalid bool '" + args[i] + "'");
         font->setUnderline(b);
       }
       else if (args[i] == "-overstrike") {
         ++i; if (i >= numArgs) return false;
         bool b;
-        if (! CTkAppUtil::stringToBool(args[i].toString(), b))
-          return tk_->throwError("Invalid bool '" + args[i].toString() + "'");
+        if (! tk_->variantToBool(args[i], b))
+          return tk_->throwError(tk_->msg() + "Invalid bool '" + args[i] + "'");
         font->setOverstrike(b);
       }
       else {
-        return tk_->throwError("bad option \"" + args[i].toString() + "\": must be "
+        return tk_->throwError(tk_->msg() + "bad option \"" + args[i] + "\": must be "
           "-family, -size, -weight, -slant, -underline, or -overstrike");
       }
     }
@@ -1171,14 +1166,14 @@ run(const Args &args)
     "actual", "configure", "create", "delete", "families", "measure", "metrics", "names"});
 
   QString option;
-  if (! tk_->lookupOptionName(optionNames, args[0].toString(), option))
+  if (! tk_->lookupOptionName(optionNames, args[0], option))
     return false;
 
   if      (option == "actual") {
     if (numArgs < 2)
       return tk_->wrongNumArgs("font actual font ?-displayof window? ?option? ?--? ?char?");
 
-    auto name = args[1].toString();
+    auto name = args[1];
 
     auto font = tk_->getFont(name);
 
@@ -1187,7 +1182,7 @@ run(const Args &args)
     if (font)
       qfont = font->getQFont();
     else
-      CTkAppUtil::stringToQFont(name, qfont);
+      CTkAppUtil::variantToQFont(tk_, name, qfont);
 
     CTkApp::FontData fontData;
     tk_->getFontData(qfont, fontData);
@@ -1221,20 +1216,20 @@ run(const Args &args)
     if (numArgs < 3)
       return tk_->wrongNumArgs("font configure fontname ?-option value ...?");
 
-    auto name = args[1].toString();
+    auto name = args[1];
 
     auto font = tk_->getFont(name);
 
     if (font)
-      return tk_->throwError("invalid font \"" + name + "\"");
+      return tk_->throwError(tk_->msg() + "invalid font \"" + name + "\"");
 
     processFontOptions(font, 2);
   }
   else if (option == "create") {
-    QString name;
+    QVariant name;
 
     if (numArgs > 1)
-      name = args[1].toString();
+      name = args[1];
 
     if (name == "")
       name = tk_->getNewFontName();
@@ -1242,13 +1237,13 @@ run(const Args &args)
     auto font = tk_->getFont(name);
 
     if (font)
-      return tk_->throwError("named font \"" + name + "\" already exists");
+      return tk_->throwError(tk_->msg() + "named font \"" + name + "\" already exists");
 
     font = tk_->createFont(name);
 
     processFontOptions(font, 2);
 
-    setStringResult(name);
+    setResult(name);
   }
   else if (option == "delete") {
     if (numArgs < 2)
@@ -1257,10 +1252,10 @@ run(const Args &args)
     uint i = 1;
 
     for ( ; i < numArgs; ++i) {
-      auto font = tk_->getFont(args[i].toString());
+      auto font = tk_->getFont(args[i]);
 
       if (! font)
-        return tk_->throwError("named font \"" + args[i].toString() +
+        return tk_->throwError(tk_->msg() + "named font \"" + args[i] +
                                "\" doesn't exist");
 
       tk_->deleteFont(font);
@@ -1292,7 +1287,7 @@ run(const Args &args)
     if (numArgs < 3)
       return tk_->wrongNumArgs("font measure font ?-displayof window? text");
 
-    auto qfont = tk_->getQFont(args[1].toString());
+    auto qfont = tk_->getQFont(args[1]);
 
     uint i = 2;
 
@@ -1302,7 +1297,7 @@ run(const Args &args)
     if (i >= numArgs)
       return tk_->wrongNumArgs("font measure font ?-displayof window? text");
 
-    auto text = args[i].toString();
+    auto text = tk_->variantToString(args[i]);
 
     QFontMetrics fm(qfont);
 
@@ -1314,7 +1309,7 @@ run(const Args &args)
     if (numArgs < 2)
       return tk_->wrongNumArgs("font metrics font ?-displayof window? ?option?");
 
-    auto qfont = tk_->getQFont(args[1].toString());
+    auto qfont = tk_->getQFont(args[1]);
 
     uint i = 2;
 
@@ -1379,12 +1374,12 @@ run(const Args &args)
     { nullptr               , nullptr              , nullptr              , nullptr   }
   };
 
-  uint numArgs = args.size();
+  QVariant widgetName;
 
-  QString widgetName;
+  auto numArgs = args.size();
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto name = args[i].toString();
+    auto name = tk_->variantToString(args[i]);
 
     if (name.size() > 0 && name[0] == '-') {
       ++i;
@@ -1392,28 +1387,28 @@ run(const Args &args)
       continue;
     }
     else
-      widgetName = name;
+      widgetName = args[i];
   }
 
-  if (widgetName == "")
+  if (! widgetName.isValid())
     return tk_->throwError("No name");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
 
   auto *frame = new CTkAppFrame(tk_, parent, childName);
 
   if (! tk_->useStyle())
     frame->setBackground(QColor("#d9d9d9"));
 
-  auto *cmd = new CTkAppWidgetCommand(this, widgetName, frame, opts);
+  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), frame, opts);
 
   cmd->processArgs(args);
 
-  setStringResult(widgetName);
+  setResult(widgetName);
 
   return true;
 }
@@ -1439,7 +1434,7 @@ run(const Args &args)
       setStringResult("."); // current grab
     }
     else {
-      auto *w = tk_->lookupWidgetByName(args[1].toString());
+      auto *w = tk_->lookupWidgetByName(args[1]);
       if (! w) return false;
 
       setStringResult("."); // current grab
@@ -1449,7 +1444,7 @@ run(const Args &args)
     if (numArgs != 2)
       return tk_->wrongNumArgs("grab release window");
 
-    auto *w = tk_->lookupWidgetByName(args[1].toString());
+    auto *w = tk_->lookupWidgetByName(args[1]);
     if (! w) return false;
   }
   else if (args[0] == "set") {
@@ -1464,14 +1459,14 @@ run(const Args &args)
     if (i != numArgs - 1)
       return tk_->wrongNumArgs("grab set ?-global? window");
 
-    auto *w = tk_->lookupWidgetByName(args[i].toString());
+    auto *w = tk_->lookupWidgetByName(args[i]);
     if (! w) return false;
   }
   else if (args[0] == "status") {
     if (numArgs != 2)
       return tk_->wrongNumArgs("grab status window");
 
-    auto *w = tk_->lookupWidgetByName(args[1].toString());
+    auto *w = tk_->lookupWidgetByName(args[1]);
     if (! w) return false;
 
     setStringResult("none");
@@ -1488,10 +1483,10 @@ run(const Args &args)
     CTkAppWidget *w = nullptr;
 
     if (i < numArgs)
-      w = tk_->lookupWidgetByName(args[i].toString(), /*quiet*/true);
+      w = tk_->lookupWidgetByName(args[i], /*quiet*/true);
 
     if (! w)
-     return tk_->throwError("bad option \"" + args[i].toString() + "\": must be "
+     return tk_->throwError(tk_->msg() + "bad option \"" + args[i] + "\": must be "
               "current, release, set, or status");
   }
 
@@ -1532,14 +1527,13 @@ run(const Args &args)
     "info", "location", "propagate", "rowconfigure", "remove", "size", "slaves" });
 
   QString option;
-  (void) tk_->lookupName("option", optionNames, args[0].toString(),
-                         option, /*quiet*/true);
+  (void) tk_->lookupName("option", optionNames, args[0], option, /*quiet*/true);
 
   if      (option == "anchor") {
     if (numArgs != 2 && numArgs != 3)
       return tk_->wrongNumArgs("grid anchor window ?anchor?");
 
-    auto *window = tk_->lookupWidgetByName(args[1].toString());
+    auto *window = tk_->lookupWidgetByName(args[1]);
     if (! window) return false;
 
     if (numArgs == 2) {
@@ -1549,8 +1543,8 @@ run(const Args &args)
     }
     else {
       Qt::Alignment anchor;
-      if (! CTkAppUtil::stringToAlign(args[2].toString(), anchor))
-        return tk_->throwError("bad anchor \"" + args[2].toString() + "\": must be "
+      if (! CTkAppUtil::variantToAlign(tk_, args[2], anchor))
+        return tk_->throwError(tk_->msg() + "bad anchor \"" + args[2] + "\": must be "
                                "n, ne, e, se, s, sw, w, nw, or center");
 
       window->setGridAnchor(anchor);
@@ -1560,7 +1554,7 @@ run(const Args &args)
     if (numArgs != 2 && numArgs != 4 && numArgs != 6)
       return tk_->wrongNumArgs("grid bbox master ?column row? ?column2 row2?");
 
-    auto *window = tk_->lookupWidgetByName(args[1].toString());
+    auto *window = tk_->lookupWidgetByName(args[1]);
     if (! window) return false;
 
     if      (numArgs == 2) {
@@ -1570,17 +1564,14 @@ run(const Args &args)
     }
     else if (numArgs == 4) {
       long column, row;
-      if (! CTkAppUtil::stringToInt(args[2].toString(), column) ||
-          ! CTkAppUtil::stringToInt(args[3].toString(), row))
+      if (! tk_->variantToInt(args[2], column) || ! tk_->variantToInt(args[3], row))
         return tk_->throwError("Bad column/row");
       window->setGridBBox(column, row, column, row);
     }
     else if (numArgs == 4) {
       long column1, row1, column2, row2;
-      if (! CTkAppUtil::stringToInt(args[2].toString(), column1) ||
-          ! CTkAppUtil::stringToInt(args[3].toString(), row1) ||
-          ! CTkAppUtil::stringToInt(args[4].toString(), column2) ||
-          ! CTkAppUtil::stringToInt(args[5].toString(), row2))
+      if (! tk_->variantToInt(args[2], column1) || ! tk_->variantToInt(args[3], row1) ||
+          ! tk_->variantToInt(args[4], column2) || ! tk_->variantToInt(args[5], row2))
         return tk_->throwError("Bad column/row");
       window->setGridBBox(column1, row1, column2, row2);
     }
@@ -1589,45 +1580,42 @@ run(const Args &args)
     if (numArgs < 3)
       return tk_->wrongNumArgs("grid columnconfigure master index ?-option value...?");
 
-    auto masterName = args[1].toString();
-
-    auto *master = tk_->lookupWidgetByName(masterName);
+    auto *master = tk_->lookupWidgetByName(args[1]);
     if (! master) return false;
 
     auto *layout = master->getTkGridLayout();
     if (! layout) return tk_->throwError("no grid layout for \"" + option + "\"");
 
     long index;
-    if (! CTkAppUtil::stringToInt(args[2].toString(), index))
+    if (! tk_->variantToInt(args[2], index))
       return tk_->throwError("Bad index");
 
     for (uint i = 3; i < numArgs - 1; i += 2) {
-      auto name  = args[i    ].toString();
-      auto value = args[i + 1].toString();
+      auto name  = tk_->variantToString(args[i]);
+      auto value = args[i + 1];
 
       if      (name == "-minsize") {
         double size;
-        if (! CTkAppUtil::stringToDistance(value, size))
-          return tk_->throwError("Invalid width \"" + value + "\"");
+        if (! CTkAppUtil::variantToDistance(tk_, value, size))
+          return tk_->throwError(tk_->msg() + "Invalid width \"" + value + "\"");
 
         layout->setColumnMinSize(index, size);
       }
       else if (name == "-pad") {
         long pad;
-
-        if (! CTkAppUtil::stringToInt(value, pad))
-          return tk_->throwError("expected integer but got \"" + value + "\"");
+        if (! tk_->variantToInt(value, pad))
+          return tk_->throwError(tk_->msg() + "expected integer but got \"" + value + "\"");
 
         layout->setColumnPad(index, pad);
       }
       else if (name == "-uniform") {
-        layout->setColumnUniform(index, value);
+        auto str = tk_->variantToString(value);
+        layout->setColumnUniform(index, str);
       }
       else if (name == "-weight") {
         long weight;
-
-        if (! CTkAppUtil::stringToInt(value, weight))
-          return tk_->throwError("expected integer but got \"" + value + "\"");
+        if (! tk_->variantToInt(value, weight))
+          return tk_->throwError(tk_->msg() + "expected integer but got \"" + value + "\"");
 
         layout->setColumnWeight(index, weight);
       }
@@ -1646,7 +1634,7 @@ run(const Args &args)
     uint i = 2;
 
     for ( ; i < numArgs; ++i) {
-      auto *child = tk_->lookupWidgetByName(args[i].toString());
+      auto *child = tk_->lookupWidgetByName(args[i]);
       if (! child) return false;
 
       auto *layout = child->getParent()->getTkGridLayout();
@@ -1659,13 +1647,11 @@ run(const Args &args)
     if (numArgs != 2)
       return tk_->wrongNumArgs("grid info window");
 
-    auto window = args[1].toString();
-
-    auto *child = tk_->lookupWidgetByName(window);
+    auto *child = tk_->lookupWidgetByName(args[1]);
     if (! child) return false;
 
     auto *layout = child->getParent()->getTkGridLayout();
-    if (! layout) return tk_->throwError("no grid layout for \"" + window + "\"");
+    if (! layout) return tk_->throwError(tk_->msg() + "no grid layout for \"" + args[1] + "\"");
 
     CTkAppGridLayout::Info info;
     layout->getChildInfo(child, info);
@@ -1681,14 +1667,13 @@ run(const Args &args)
     if (numArgs != 4)
       return tk_->wrongNumArgs("grid location master x y");
 
-    auto *master = tk_->lookupWidgetByName(args[1].toString());
+    auto *master = tk_->lookupWidgetByName(args[1]);
     if (! master) return false;
 
     double x, y;
-    if (! CTkAppUtil::stringToDistance(args[2].toString(), x) ||
-        ! CTkAppUtil::stringToDistance(args[3].toString(), y))
-      return tk_->throwError("bad screen distance \"" + args[2].toString() +
-                             "\" or \"" + args[3].toString() + "\"");
+    if (! tk_->variantToDistance(args[2], x) || ! tk_->variantToDistance(args[3], y))
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + args[2] +
+                             "\" or \"" + args[3] + "\"");
 
     tk_->TODO(args);
   }
@@ -1696,7 +1681,7 @@ run(const Args &args)
     if (numArgs != 2 && numArgs != 3)
       return tk_->wrongNumArgs("grid propagate window ?boolean?");
 
-    auto *window = tk_->lookupWidgetByName(args[1].toString());
+    auto *window = tk_->lookupWidgetByName(args[1]);
     if (! window) return false;
 
     if (numArgs == 2) {
@@ -1704,8 +1689,8 @@ run(const Args &args)
     }
     else {
       bool b;
-      if (! CTkAppUtil::stringToBool(args[2].toString(), b))
-        return tk_->throwError("Invalid bool '" + args[2].toString() + "'");
+      if (! tk_->variantToBool(args[2], b))
+        return tk_->throwError(tk_->msg() + "Invalid bool '" + args[2] + "'");
       window->setGridPropagate(b);
     }
   }
@@ -1713,46 +1698,42 @@ run(const Args &args)
     if (numArgs < 3)
       return tk_->wrongNumArgs("grid rowconfigure master index ?-option value...?");
 
-    auto masterName = args[1].toString();
-
-    auto *master = tk_->lookupWidgetByName(masterName);
+    auto *master = tk_->lookupWidgetByName(args[1]);
     if (! master) return false;
 
     auto *layout = master->getTkGridLayout();
     if (! layout) return tk_->throwError("no grid layout for \"" + option + "\"");
 
     long index;
-    if (! CTkAppUtil::stringToInt(args[2].toString(), index))
+    if (! tk_->variantToInt(args[2], index))
       return tk_->throwError("Bad index");
 
     for (uint i = 3; i < numArgs - 1; i += 2) {
-      auto name = args[i].toString();
-
-      auto value = args[i + 1].toString();
+      auto name  = tk_->variantToString(args[i]);
+      auto value = args[i + 1];
 
       if      (name == "-minsize") {
         double size;
-        if (! CTkAppUtil::stringToDistance(value, size))
-          return tk_->throwError("Invalid width \"" + value + "\"");
+        if (! CTkAppUtil::variantToDistance(tk_, value, size))
+          return tk_->throwError(tk_->msg() + "Invalid width \"" + value + "\"");
 
         layout->setRowMinSize(index, size);
       }
       else if (name == "-pad") {
         long pad;
-
-        if (! CTkAppUtil::stringToInt(value, pad))
-          return tk_->throwError("expected integer but got \"" + value + "\"");
+        if (! tk_->variantToInt(value, pad))
+          return tk_->throwError(tk_->msg() + "expected integer but got \"" + value + "\"");
 
         layout->setRowPad(index, pad);
       }
       else if (name == "-uniform") {
-        layout->setRowUniform(index, value);
+        auto str = tk_->variantToString(value);
+        layout->setRowUniform(index, str);
       }
       else if (name == "-weight") {
         long weight;
-
-        if (! CTkAppUtil::stringToInt(value, weight))
-          return tk_->throwError("expected integer but got \"" + value + "\"");
+        if (! tk_->variantToInt(value, weight))
+          return tk_->throwError(tk_->msg() + "expected integer but got \"" + value + "\"");
 
         layout->setRowWeight(index, weight);
       }
@@ -1765,16 +1746,14 @@ run(const Args &args)
     if (numArgs < 2)
       return tk_->wrongNumArgs("grid remove window ?window ...?");
 
-    auto *window = tk_->lookupWidgetByName(args[1].toString());
-    if (! window) return tk_->throwError("Invalid window \"" +
-                           args[1].toString() + "\"");
+    auto *window = tk_->lookupWidgetByName(args[1]);
+    if (! window) return tk_->throwError(tk_->msg() + "Invalid window \"" + args[1] + "\"");
 
     auto *layout = window->getTkGridLayout();
-    if (! layout) return tk_->throwError("no grid layout for \"" +
-                           args[1].toString() + "\"");
+    if (! layout) return tk_->throwError(tk_->msg() + "no grid layout for \"" + args[1] + "\"");
 
     for (uint i = 2; i < numArgs; ++i) {
-      auto *child = tk_->lookupWidgetByName(args[i].toString());
+      auto *child = tk_->lookupWidgetByName(args[i]);
       if (! child) continue;
 
       layout->removeWidget(child);
@@ -1784,13 +1763,11 @@ run(const Args &args)
     if (numArgs != 2)
       return tk_->wrongNumArgs("grid size window");
 
-    auto *window = tk_->lookupWidgetByName(args[1].toString());
-    if (! window) return tk_->throwError("Invalid window \"" +
-                           args[1].toString() + "\"");
+    auto *window = tk_->lookupWidgetByName(args[1]);
+    if (! window) return tk_->throwError(tk_->msg() + "Invalid window \"" + args[1] + "\"");
 
     auto *layout = window->getTkGridLayout();
-    if (! layout) return tk_->throwError("no grid layout for \"" +
-                           args[1].toString() + "\"");
+    if (! layout) return tk_->throwError(tk_->msg() + "no grid layout for \"" + args[1] + "\"");
 
     CTkAppGridLayout::Info info;
     layout->getChildInfo(window, info);
@@ -1801,12 +1778,11 @@ run(const Args &args)
     if (numArgs < 2)
       return tk_->wrongNumArgs("grid " + option + " window ?-option value ...?");
 
-    auto *w = tk_->lookupWidgetByName(args[1].toString());
+    auto *w = tk_->lookupWidgetByName(args[1]);
     if (! w) return false;
 
     auto *layout = w->getTkGridLayout();
-    if (! layout) return tk_->throwError("no grid layout for \"" +
-                           args[1].toString() + "\"");
+    if (! layout) return tk_->throwError(tk_->msg() + "no grid layout for \"" + args[1] + "\"");
 
     auto widgets = layout->getWidgets();
 
@@ -1816,14 +1792,14 @@ run(const Args &args)
       if      (args[i] == "-row") {
         if (i + 1 < numArgs) return false;
 
-        if (! CTkAppUtil::stringToInt(args[i].toString(), row))
-          return tk_->throwError("bad row \"" + args[i].toString() + "\"");
+        if (! tk_->variantToInt(args[i], row))
+          return tk_->throwError(tk_->msg() + "bad row \"" + args[i] + "\"");
       }
       else if (args[i] == "-column") {
         if (i + 1 < numArgs) return false;
 
-        if (! CTkAppUtil::stringToInt(args[i].toString(), col))
-          return tk_->throwError("bad column \"" + args[i].toString() + "\"");
+        if (! tk_->variantToInt(args[i], col))
+          return tk_->throwError(tk_->msg() + "bad column \"" + args[i] + "\"");
       }
       else
         return false;
@@ -1859,7 +1835,7 @@ run(const Args &args)
     CTkAppOptionValueMap optValues;
 
     for (uint i = 0; i < numArgs; ++i) {
-      auto arg = args[i].toString();
+      auto arg = tk_->variantToString(args[i]);
       if (! arg.size()) continue;
 
       //---
@@ -1985,14 +1961,14 @@ run(const Args &args)
     "create", "delete", "height", "inuse", "names", "type", "types", "width"});
 
   QString name;
-  if (! tk_->lookupOptionName(optionNames, args[0].toString(), name))
+  if (! tk_->lookupOptionName(optionNames, args[0], name))
     return false;
 
   if      (name == "create") {
     if (numArgs < 2)
       return tk_->wrongNumArgs("image create type ?name? ?-option value ...?");
 
-    auto type = args[1].toString();
+    auto type = tk_->variantToString(args[1]);
 
     if (type != "photo" && type != "bitmap" && type != "svg")
       return tk_->throwError("image type \"" + type + "\" doesn't exist");
@@ -2002,7 +1978,7 @@ run(const Args &args)
     std::string data;
 
     for (uint i = 2; i < numArgs; ++i) {
-      auto arg = args[i].toString();
+      auto arg = tk_->variantToString(args[i]);
 
       if      (arg == "-file") {
         ++i;
@@ -2010,7 +1986,7 @@ run(const Args &args)
         if (i >= numArgs)
           return tk_->throwError("value for \"" + arg + "\" missing");
 
-        filename = args[i].toString();
+        filename = tk_->variantToString(args[i]);
       }
       else if (arg == "-data") {
         ++i;
@@ -2018,7 +1994,7 @@ run(const Args &args)
         if (i >= numArgs)
           return tk_->throwError("value for \"" + arg + "\" missing");
 
-        data = args[i].toString().toStdString();
+        data = tk_->variantToString(args[i]).toStdString();
 
         if (type == "photo") {
           std::string dataStr;
@@ -2036,7 +2012,7 @@ run(const Args &args)
         if (i >= numArgs)
           return tk_->throwError("value for \"" + arg + "\" missing");
 
-        format = args[i].toString();
+        format = tk_->variantToString(args[i]);
       }
       else if (arg == "-background") {
         ++i;
@@ -2044,7 +2020,7 @@ run(const Args &args)
         if (i >= numArgs)
           return tk_->throwError("value for \"" + arg + "\" missing");
 
-        background = args[i].toString();
+        background = tk_->variantToString(args[i]);
       }
       else if (arg == "-foreground") {
         ++i;
@@ -2052,7 +2028,7 @@ run(const Args &args)
         if (i >= numArgs)
           return tk_->throwError("value for \"" + arg + "\" missing");
 
-        foreground = args[i].toString();
+        foreground = tk_->variantToString(args[i]);
       }
       else if (arg == "-width") {
         ++i;
@@ -2060,8 +2036,8 @@ run(const Args &args)
         if (i >= numArgs)
           return tk_->throwError("value for \"" + arg + "\" missing");
 
-        if (! CTkAppUtil::stringToInt(args[i].toString(), width))
-          return tk_->throwError("bad image width \"" + args[i].toString() + "\"");
+        if (! tk_->variantToInt(args[i], width))
+          return tk_->throwError(tk_->msg() + "bad image width \"" + args[i] + "\"");
       }
       else if (arg == "-height") {
         ++i;
@@ -2069,8 +2045,8 @@ run(const Args &args)
         if (i >= numArgs)
           return tk_->throwError("value for \"" + arg + "\" missing");
 
-        if (! CTkAppUtil::stringToInt(args[i].toString(), height))
-          return tk_->throwError("bad image height \"" + args[i].toString() + "\"");
+        if (! tk_->variantToInt(args[i], height))
+          return tk_->throwError(tk_->msg() + "bad image height \"" + args[i] + "\"");
       }
       else if (arg[0] == '-') {
         return tk_->throwError("unknown image create option \"" + arg + "\"");
@@ -2107,11 +2083,11 @@ run(const Args &args)
     auto *cmd = new CTkAppImageCommand(tk_, name);
     assert(cmd);
 
-    setStringResult(name);
+    setResult(name);
   }
   else if (name == "delete") {
     for (uint i = 1; i < numArgs; ++i) {
-      auto image = tk_->getImage(args[i].toString());
+      auto image = tk_->getImage(args[i]);
       if (! image) return false;
 
       tk_->deleteImage(image);
@@ -2121,7 +2097,7 @@ run(const Args &args)
     if (numArgs != 2)
       return tk_->wrongNumArgs("image height name");
 
-    auto image = tk_->getImage(args[1].toString());
+    auto image = tk_->getImage(args[1]);
     if (! image) return false;
 
     tk_->setIntegerResult(image->height());
@@ -2130,7 +2106,7 @@ run(const Args &args)
     if (numArgs != 2)
       return tk_->wrongNumArgs("image inuse name");
 
-    auto image = tk_->getImage(args[1].toString());
+    auto image = tk_->getImage(args[1]);
     if (! image) return false;
 
     setBoolResult(image->numRefs() > 0 ? true : false);
@@ -2144,7 +2120,7 @@ run(const Args &args)
     if (numArgs != 2)
       return tk_->wrongNumArgs("image type name");
 
-    auto image = tk_->getImage(args[1].toString());
+    auto image = tk_->getImage(args[1]);
     if (! image) return false;
 
     tk_->setStringResult(image->type());
@@ -2166,7 +2142,7 @@ run(const Args &args)
     if (numArgs != 2)
       return tk_->wrongNumArgs("image width name");
 
-    auto image = tk_->getImage(args[1].toString());
+    auto image = tk_->getImage(args[1]);
     if (! image) return false;
 
     tk_->setIntegerResult(image->width());
@@ -2217,12 +2193,12 @@ run(const Args &args)
     { nullptr               , nullptr              , nullptr              , nullptr         }
   };
 
-  uint numArgs = args.size();
+  QVariant widgetName;
 
-  QString widgetName;
+  auto numArgs = args.size();
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto name = args[i].toString();
+    auto name = tk_->variantToString(args[i]);
 
     if (name.size() > 0 && name[0] == '-') {
       ++i;
@@ -2230,28 +2206,28 @@ run(const Args &args)
       continue;
     }
     else
-      widgetName = name;
+      widgetName = args[i];
   }
 
-  if (widgetName == "")
+  if (! widgetName.isValid())
     return tk_->throwError("No name");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
 
   auto *label = new CTkAppLabel(tk_, parent, childName);
 
   if (! tk_->useStyle())
     label->setBackground(QColor("#d9d9d9"));
 
-  auto *cmd = new CTkAppWidgetCommand(this, widgetName, label, opts);
+  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), label, opts);
 
   cmd->processArgs(args);
 
-  setStringResult(widgetName);
+  setResult(widgetName);
 
   return true;
 }
@@ -2292,12 +2268,12 @@ run(const Args &args)
     { nullptr               , nullptr              , nullptr              , nullptr         }
   };
 
-  uint numArgs = args.size();
+  QVariant widgetName;
 
-  QString widgetName;
+  auto numArgs = args.size();
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto name = args[i].toString();
+    auto name = tk_->variantToString(args[i]);
 
     if (name.size() > 0 && name[0] == '-') {
       ++i;
@@ -2305,28 +2281,28 @@ run(const Args &args)
       continue;
     }
     else
-      widgetName = name;
+      widgetName = args[i];
   }
 
-  if (widgetName == "")
+  if (! widgetName.isValid())
     return tk_->throwError("No name");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
 
   auto *frame = new CTkAppLabelFrame(tk_, parent, childName);
 
   if (! tk_->useStyle())
     frame->setBackground(QColor("#d9d9d9"));
 
-  auto *cmd = new CTkAppWidgetCommand(this, widgetName, frame, opts);
+  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), frame, opts);
 
   cmd->processArgs(args);
 
-  setStringResult(widgetName);
+  setResult(widgetName);
 
   return true;
 }
@@ -2370,12 +2346,12 @@ run(const Args &args)
     { nullptr               , nullptr              , nullptr              , nullptr         }
   };
 
-  uint numArgs = args.size();
+  QVariant widgetName;
 
-  QString widgetName;
+  auto numArgs = args.size();
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto name = args[i].toString();
+    auto name = tk_->variantToString(args[i]);
 
     if (name.size() > 0 && name[0] == '-') {
       ++i;
@@ -2383,28 +2359,28 @@ run(const Args &args)
       continue;
     }
     else
-      widgetName = name;
+      widgetName = args[i];
   }
 
-  if (widgetName == "")
+  if (! widgetName.isValid())
     return tk_->throwError("No name");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
 
   auto *list = new CTkAppListBox(tk_, parent, childName);
 
   if (! tk_->useStyle())
     list->setBackground(QColor("#ffffff"));
 
-  auto *cmd = new CTkAppWidgetCommand(this, widgetName, list, opts);
+  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), list, opts);
 
   cmd->processArgs(args);
 
-  setStringResult(widgetName);
+  setResult(widgetName);
 
   return true;
 }
@@ -2422,18 +2398,18 @@ run(const Args &args)
   if (numArgs < 1)
     return tk_->wrongNumArgs("lower window ?belowThis?");
 
-  auto widgetName = args[0].toString();
+  auto widgetName = args[0];
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
 
   auto *child = parent->getChild(childName);
 
   if (child == nullptr)
-    return tk_->throwError("bad window path name \"" + widgetName + "\"");
+    return tk_->throwError(tk_->msg() + "Invalid widget name \"" + widgetName + "\"");
 
   child->lower();
 
@@ -2468,12 +2444,12 @@ run(const Args &args)
     { nullptr            , nullptr           , nullptr      , nullptr         }
   };
 
-  uint numArgs = args.size();
+  QVariant widgetName;
 
-  QString widgetName;
+  auto numArgs = args.size();
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto name = args[i].toString();
+    auto name = tk_->variantToString(args[i]);
 
     if (name.size() > 0 && name[0] == '-') {
       ++i;
@@ -2481,28 +2457,28 @@ run(const Args &args)
       continue;
     }
     else
-      widgetName = name;
+      widgetName = args[i];
   }
 
-  if (widgetName == "")
+  if (! widgetName.isValid())
     return tk_->throwError("No name");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
 
   auto *menu = new CTkAppMenu(tk_, parent, childName);
 
   if (! tk_->useStyle())
     menu->setBackground(QColor("#d9d9d9"));
 
-  auto *cmd = new CTkAppWidgetCommand(this, widgetName, menu, opts);
+  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), menu, opts);
 
   cmd->processArgs(args);
 
-  setStringResult(widgetName);
+  setResult(widgetName);
 
   return true;
 }
@@ -2552,12 +2528,12 @@ run(const Args &args)
     { nullptr               , nullptr              , nullptr              , nullptr         }
   };
 
-  uint numArgs = args.size();
+  QVariant widgetName;
 
-  QString widgetName;
+  auto numArgs = args.size();
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto name = args[i].toString();
+    auto name = tk_->variantToString(args[i]);
 
     if (name.size() > 0 && name[0] == '-') {
       ++i;
@@ -2565,28 +2541,28 @@ run(const Args &args)
       continue;
     }
     else
-      widgetName = name;
+      widgetName = args[i];
   }
 
-  if (widgetName == "")
+  if (! widgetName.isValid())
     return tk_->throwError("No name");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
 
   auto *button = new CTkAppMenuButton(tk_, parent, childName);
 
   if (! tk_->useStyle())
     button->setBackground(QColor("#d9d9d9"));
 
-  auto *cmd = new CTkAppWidgetCommand(this, widgetName, button, opts);
+  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), button, opts);
 
   cmd->processArgs(args);
 
-  setStringResult(widgetName);
+  setResult(widgetName);
 
   return true;
 }
@@ -2608,12 +2584,12 @@ run(const Args &args)
     { nullptr     , nullptr    , nullptr    , nullptr  }
   };
 
-  uint numArgs = args.size();
+  QVariant widgetName;
 
-  QString widgetName;
+  auto numArgs = args.size();
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto name = args[i].toString();
+    auto name = tk_->variantToString(args[i]);
 
     if (name.size() > 0 && name[0] == '-') {
       ++i;
@@ -2621,28 +2597,28 @@ run(const Args &args)
       continue;
     }
     else
-      widgetName = name;
+      widgetName = args[i];
   }
 
-  if (widgetName == "")
+  if (! widgetName.isValid())
     return tk_->throwError("No name");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
 
   auto *button = new CTkAppNoteBook(tk_, parent, childName);
 
   if (! tk_->useStyle())
     button->setBackground(QColor("#d9d9d9"));
 
-  auto *cmd = new CTkAppWidgetCommand(this, widgetName, button, opts);
+  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), button, opts);
 
   cmd->processArgs(args);
 
-  setStringResult(widgetName);
+  setResult(widgetName);
 
   return true;
 }
@@ -2680,12 +2656,12 @@ run(const Args &args)
     { nullptr               , nullptr              , nullptr              , nullptr         }
   };
 
-  uint numArgs = args.size();
+  QVariant widgetName;
 
-  QString widgetName;
+  auto numArgs = args.size();
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto name = args[i].toString();
+    auto name = tk_->variantToString(args[i]);
 
     if (name.size() > 0 && name[0] == '-') {
       ++i;
@@ -2693,28 +2669,28 @@ run(const Args &args)
       continue;
     }
     else
-      widgetName = name;
+      widgetName = args[i];
   }
 
-  if (widgetName == "")
+  if (! widgetName.isValid())
     return tk_->throwError("No name");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
 
   auto *message = new CTkAppMessage(tk_, parent, childName);
 
   if (! tk_->useStyle())
     message->setBackground(QColor("#d9d9d9"));
 
-  auto *cmd = new CTkAppWidgetCommand(this, widgetName, message, opts);
+  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), message, opts);
 
   cmd->processArgs(args);
 
-  setStringResult(widgetName);
+  setResult(widgetName);
 
   return true;
 }
@@ -2732,14 +2708,13 @@ run(const Args &args)
   if (numArgs == 0)
     return tk_->wrongNumArgs("option cmd arg ?arg ...?");
 
-  auto cmd = args[0].toString();
+  auto cmd = tk_->variantToString(args[0]);
 
   if      (cmd == "add") {
     if (numArgs != 3 && numArgs != 4)
       return tk_->wrongNumArgs("option add pattern value ?priority?");
 
-    auto pattern = args[1].toString();
-    auto value   = args[2].toString();
+    auto pattern = tk_->variantToString(args[1]);
 
     QString priority;
     int     ipriority = -1;
@@ -2761,7 +2736,7 @@ run(const Args &args)
       }
       else {
         long i;
-        if (! CTkAppUtil::stringToInt(priority, i) || i < 0 || i > 100)
+        if (! tk_->variantToInt(args[3], i) || i < 0 || i > 100)
           return tk_->throwError("bad priority level \"" + priority + "\": must be "
             "widgetDefault, startupFile, userDefault, interactive, or a number between 0 and 100");
 
@@ -2769,7 +2744,7 @@ run(const Args &args)
       }
     }
 
-    tk_->addOption(pattern, value, ipriority);
+    tk_->addOption(pattern, args[2], ipriority);
   }
   else if (cmd == "clear") {
     if (numArgs != 1)
@@ -2789,11 +2764,11 @@ run(const Args &args)
     auto optName  = args[2].toString();
     auto optClass = args[3].toString();
 
-    QString optValue;
+    QVariant optValue;
     if (! window->getOptionValue(optName, optClass, optValue))
       return false;
 
-    setStringResult(optValue);
+    setResult(optValue);
   }
   else if (cmd == "readfile") {
     tk_->TODO(cmd);
@@ -2838,8 +2813,7 @@ run(const Args &args)
     "configure", "content", "forget", "info", "propagate", "slaves" });
 
   QString option;
-  (void) tk_->lookupName("option", optionNames, args[0].toString(),
-                         option, /*quiet*/true);
+  (void) tk_->lookupName("option", optionNames, args[0], option, /*quiet*/true);
 
   int ic = 0;
 
@@ -2852,7 +2826,7 @@ run(const Args &args)
       return tk_->wrongNumArgs("pack forget slave ?slave ...?");
 
     for (uint i = 1; i < numArgs; ++i) {
-      auto *child = tk_->lookupWidgetByName(args[i].toString(), /*quiet*/true);
+      auto *child = tk_->lookupWidgetByName(args[i], /*quiet*/true);
       if (! child) continue;
 
       auto *layout = child->getParent()->getTkPackLayout();
@@ -2911,7 +2885,7 @@ run(const Args &args)
       auto value = args[2].toString();
 
       bool b;
-      if (! CTkAppUtil::stringToBool(value, b))
+      if (! tk_->variantToBool(value, b))
         return tk_->throwError("Invalid bool '" + value + "'");
 
       layout->setPropagate(b);
@@ -3058,7 +3032,7 @@ run(const Args &args)
       CTkAppWidget* parent1;
       QString       childName;
 
-      if (root()->decodeWidgetName((*p).second.getString(), &parent1, childName)) {
+      if (root()->decodeWidgetName((*p).second.getValue(), &parent1, childName)) {
         auto *child = parent1->getChild(childName);
 
         if (child)
@@ -3125,12 +3099,12 @@ run(const Args &args)
     { nullptr        , nullptr       , nullptr       , nullptr      }
   };
 
-  uint numArgs = args.size();
+  QVariant widgetName;
 
-  QString widgetName;
+  auto numArgs = args.size();
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto name = args[i].toString();
+    auto name = tk_->variantToString(args[i]);
 
     if (name.size() > 0 && name[0] == '-') {
       ++i;
@@ -3138,28 +3112,28 @@ run(const Args &args)
       continue;
     }
     else
-      widgetName = name;
+      widgetName = args[i];
   }
 
-  if (widgetName == "")
+  if (! widgetName.isValid())
     return tk_->throwError("No name");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
 
   auto *pane = new CTkAppPanedWindow(tk_, parent, childName);
 
   if (! tk_->useStyle())
     pane->setBackground(QColor("#d9d9d9"));
 
-  auto *cmd = new CTkAppWidgetCommand(this, widgetName, pane, opts);
+  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), pane, opts);
 
   cmd->processArgs(args);
 
-  setStringResult(widgetName);
+  setResult(widgetName);
 
   return true;
 }
@@ -3198,24 +3172,23 @@ run(const Args &args)
     "configure", "content", "forget", "info", "propagate", "slaves" });
 
   QString option;
-  (void) tk_->lookupName("option", optionNames, args[0].toString(),
-                         option, /*quiet*/true);
+  (void) tk_->lookupName("option", optionNames, args[0], option, /*quiet*/true);
 
-  auto getPlaceLayout = [&](const QString &name, CTkAppPlaceLayout* &layout,
+  auto getPlaceLayout = [&](const QVariant &name, CTkAppPlaceLayout* &layout,
                             CTkAppWidget* &child) {
     CTkAppWidget* parent;
     QString       childName;
 
     if (! root()->decodeWidgetName(name, &parent, childName))
-      return tk_->throwError("Invalid widget name '" + name + "'");
+      return tk_->throwError(tk_->msg() + "Invalid widget name '" + name + "'");
 
     child = parent->getChild(childName);
 
     if (child == nullptr)
-      return tk_->throwError("bad window path name \"" + name + "\"");
+      return tk_->throwError(tk_->msg() + "bad window path name \"" + name + "\"");
 
     layout = parent->getTkPlaceLayout();
-    if (! layout) return tk_->throwError("no place layout for \"" + name + "\"");
+    if (! layout) return tk_->throwError(tk_->msg() + "no place layout for \"" + name + "\"");
 
     return true;
   };
@@ -3273,7 +3246,7 @@ run(const Args &args)
     if (numArgs < 2)
       return tk_->wrongNumArgs("place " + option + "args");
 
-    auto *w = tk_->lookupWidgetByName(args[1].toString());
+    auto *w = tk_->lookupWidgetByName(args[1]);
     if (! w) return false;
 
     // Returns a list of all the content windows for which window is the container.
@@ -3303,7 +3276,7 @@ run(const Args &args)
         CTkAppWidget* parent1;
         QString       childName;
 
-        if (! root()->decodeWidgetName(arg, &parent1, childName))
+        if (! root()->decodeWidgetName(args[i], &parent1, childName))
           return tk_->throwError("Invalid widget name '" + arg + "'");
 
         auto *child = parent1->getChild(childName);
@@ -3323,7 +3296,7 @@ run(const Args &args)
     auto p = optValues.find("-anchor");
     if (p != optValues.end()) {
       Qt::Alignment anchor;
-      if (! CTkAppUtil::stringToAlign((*p).second.getString(), anchor))
+      if (! CTkAppUtil::variantToAlign(tk_, (*p).second.getValue(), anchor))
         return tk_->throwError("bad anchor \"" + (*p).second.getString() + "\": must be "
                                "n, ne, e, se, s, sw, w, nw, or center");
       info.setAnchor(anchor);
@@ -3348,10 +3321,10 @@ run(const Args &args)
     {
     auto p = optValues.find("-height");
     if (p != optValues.end()) {
-      auto arg = (*p).second.getString();
+      auto arg = (*p).second.getValue();
       double height;
-      if (! CTkAppUtil::stringToDistance(arg, height))
-        return tk_->throwError("Invalid number \"" + arg + "\"");
+      if (! CTkAppUtil::variantToDistance(tk_, arg, height))
+        return tk_->throwError(tk_->msg() + "Invalid number \"" + arg + "\"");
       info.setHeight(height);
     }
     }
@@ -3387,10 +3360,10 @@ run(const Args &args)
     {
     auto p = optValues.find("-width");
     if (p != optValues.end()) {
-      auto arg = (*p).second.getString();
+      auto arg = (*p).second.getValue();
       double width;
-      if (! CTkAppUtil::stringToDistance(arg, width))
-        return tk_->throwError("Invalid number \"" + arg + "\"");
+      if (! CTkAppUtil::variantToDistance(tk_, arg, width))
+        return tk_->throwError(tk_->msg() + "Invalid number \"" + arg + "\"");
       info.setWidth(width);
     }
     }
@@ -3398,10 +3371,10 @@ run(const Args &args)
     {
     auto p = optValues.find("-x");
     if (p != optValues.end()) {
-      auto arg = (*p).second.getString();
+      auto arg = (*p).second.getValue();
       double x;
-      if (! CTkAppUtil::stringToDistance(arg, x))
-        return tk_->throwError("Invalid number \"" + arg + "\"");
+      if (! CTkAppUtil::variantToDistance(tk_, arg, x))
+        return tk_->throwError(tk_->msg() + "Invalid number \"" + arg + "\"");
       info.setX(x);
     }
     }
@@ -3409,10 +3382,10 @@ run(const Args &args)
     {
     auto p = optValues.find("-y");
     if (p != optValues.end()) {
-      auto arg = (*p).second.getString();
+      auto arg = (*p).second.getValue();
       double y;
-      if (! CTkAppUtil::stringToDistance(arg, y))
-        return tk_->throwError("Invalid number \"" + arg + "\"");
+      if (! CTkAppUtil::variantToDistance(tk_, arg, y))
+        return tk_->throwError(tk_->msg() + "Invalid number \"" + arg + "\"");
       info.setY(y);
     }
     }
@@ -3485,12 +3458,12 @@ run(const Args &args)
     { nullptr               , nullptr              , nullptr              , nullptr          }
   };
 
-  uint numArgs = args.size();
+  QVariant widgetName;
 
-  QString widgetName;
+  auto numArgs = args.size();
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto name = args[i].toString();
+    auto name = tk_->variantToString(args[i]);
 
     if (name.size() > 0 && name[0] == '-') {
       ++i;
@@ -3498,28 +3471,28 @@ run(const Args &args)
       continue;
     }
     else
-      widgetName = name;
+      widgetName = args[i];
   }
 
-  if (widgetName == "")
+  if (! widgetName.isValid())
     return tk_->throwError("No name");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
 
   auto *radio = new CTkAppRadioButton(tk_, parent, childName);
 
   if (! tk_->useStyle())
     radio->setBackground(QColor("#d9d9d9"));
 
-  auto *cmd = new CTkAppWidgetCommand(this, widgetName, radio, opts);
+  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), radio, opts);
 
   cmd->processArgs(args);
 
-  setStringResult(widgetName);
+  setResult(widgetName);
 
   return true;
 }
@@ -3537,18 +3510,18 @@ run(const Args &args)
   if (numArgs < 1)
     return tk_->wrongNumArgs("raise window ?aboveThis?");
 
-  auto widgetName = args[0].toString();
+  auto widgetName = args[0];
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
 
   auto *child = parent->getChild(childName);
 
   if (child == nullptr)
-    return tk_->throwError("bad window path name \"" + widgetName + "\"");
+    return tk_->throwError(tk_->msg() + "Invalid widget name \"" + widgetName + "\"");
 
   child->raise();
 
@@ -3600,12 +3573,12 @@ run(const Args &args)
     { nullptr               , nullptr              , nullptr              , nullptr         }
   };
 
-  uint numArgs = args.size();
+  QVariant widgetName;
 
-  QString widgetName;
+  auto numArgs = args.size();
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto name = args[i].toString();
+    auto name = tk_->variantToString(args[i]);
 
     if (name.size() > 0 && name[0] == '-') {
       ++i;
@@ -3613,28 +3586,28 @@ run(const Args &args)
       continue;
     }
     else
-      widgetName = name;
+      widgetName = args[i];
   }
 
-  if (widgetName == "")
+  if (! widgetName.isValid())
     return tk_->throwError("No name");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
 
   auto *scale = new CTkAppScale(tk_, parent, childName);
 
   if (! tk_->useStyle())
     scale->setBackground(QColor("#d9d9d9"));
 
-  auto *cmd = new CTkAppWidgetCommand(this, widgetName, scale, opts);
+  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), scale, opts);
 
   cmd->processArgs(args);
 
-  setStringResult(widgetName);
+  setResult(widgetName);
 
   return true;
 }
@@ -3671,12 +3644,12 @@ run(const Args &args)
     { nullptr               , nullptr              , nullptr              , nullptr    }
   };
 
-  uint numArgs = args.size();
+  QVariant widgetName;
 
-  QString widgetName;
+  auto numArgs = args.size();
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto name = args[i].toString();
+    auto name = tk_->variantToString(args[i]);
 
     if (name.size() > 0 && name[0] == '-') {
       ++i;
@@ -3684,28 +3657,28 @@ run(const Args &args)
       continue;
     }
     else
-      widgetName = name;
+      widgetName = args[i];
   }
 
-  if (widgetName == "")
+  if (! widgetName.isValid())
     return tk_->throwError("No name");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
 
   auto *scrollbar = new CTkAppScrollBar(tk_, parent, childName);
 
   if (! tk_->useStyle())
     scrollbar->setBackground(QColor("#d9d9d9"));
 
-  auto *cmd = new CTkAppWidgetCommand(this, widgetName, scrollbar, opts);
+  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), scrollbar, opts);
 
   cmd->processArgs(args);
 
-  setStringResult(widgetName);
+  setResult(widgetName);
 
   return true;
 }
@@ -3727,7 +3700,7 @@ run(const Args &args)
     "append", "clear", "get"});
 
   QString opt;
-  if (! tk_->lookupOptionName(optionNames, args[0].toString(), opt))
+  if (! tk_->lookupOptionName(optionNames, args[0], opt))
     return false;
 
   //---
@@ -3831,12 +3804,12 @@ run(const Args &args)
     { nullptr               , nullptr              , nullptr              , nullptr      }
   };
 
-  uint numArgs = args.size();
+  QVariant widgetName;
 
-  QString widgetName;
+  auto numArgs = args.size();
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto name = args[i].toString();
+    auto name = tk_->variantToString(args[i]);
 
     if (name.size() > 0 && name[0] == '-') {
       ++i;
@@ -3844,28 +3817,28 @@ run(const Args &args)
       continue;
     }
     else
-      widgetName = name;
+      widgetName = args[i];
   }
 
-  if (widgetName == "")
+  if (! widgetName.isValid())
     return tk_->throwError("No name");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
 
   auto *spin = new CTkAppSpinBox(tk_, parent, childName);
 
   if (! tk_->useStyle())
     spin->setBackground(QColor("#ffffff"));
 
-  auto *cmd = new CTkAppWidgetCommand(this, widgetName, spin, opts);
+  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), spin, opts);
 
   cmd->processArgs(args);
 
-  setStringResult(widgetName);
+  setResult(widgetName);
 
   return true;
 }
@@ -3925,12 +3898,12 @@ run(const Args &args)
    {nullptr                    , nullptr                   , nullptr              , nullptr      }
   };
 
-  uint numArgs = args.size();
+  QVariant widgetName;
 
-  QString widgetName;
+  auto numArgs = args.size();
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto name = args[i].toString();
+    auto name = tk_->variantToString(args[i]);
 
     if (name.size() > 0 && name[0] == '-') {
       ++i;
@@ -3938,28 +3911,28 @@ run(const Args &args)
       continue;
     }
     else
-      widgetName = name;
+      widgetName = args[i];
   }
 
-  if (widgetName == "")
+  if (! widgetName.isValid())
     return tk_->throwError("No name");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
 
   auto *text = new CTkAppText(tk_, parent, childName);
 
   if (! tk_->useStyle())
     text->setBackground(QColor("#ffffff"));
 
-  auto *cmd = new CTkAppWidgetCommand(this, widgetName, text, opts);
+  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), text, opts);
 
   cmd->processArgs(args);
 
-  setStringResult(widgetName);
+  setResult(widgetName);
 
   return true;
 }
@@ -3997,7 +3970,7 @@ run(const Args &args)
       if (numArgs != 4)
         return tk_->wrongNumArgs("tk busy cget window option");
 
-      auto *w = tk_->lookupWidgetByName(args[2].toString());
+      auto *w = tk_->lookupWidgetByName(args[2]);
       if (! w) return false;
 
       tk_->TODO(args);
@@ -4006,7 +3979,7 @@ run(const Args &args)
       if (numArgs < 3)
         return tk_->wrongNumArgs("tk busy configure window ?option? ?value ...?");
 
-      auto *w = tk_->lookupWidgetByName(args[2].toString());
+      auto *w = tk_->lookupWidgetByName(args[2]);
       if (! w) return false;
 
       tk_->TODO(args);
@@ -4019,7 +3992,7 @@ run(const Args &args)
       if (numArgs != 3)
         return tk_->wrongNumArgs("tk busy forget window");
 
-      auto *w = tk_->lookupWidgetByName(args[2].toString());
+      auto *w = tk_->lookupWidgetByName(args[2]);
       if (! w) return false;
 
       tk_->TODO(args);
@@ -4028,7 +4001,7 @@ run(const Args &args)
       if (numArgs < 3)
         return tk_->wrongNumArgs("tk busy hold window ?option? ?value ...?");
 
-      auto *w = tk_->lookupWidgetByName(args[2].toString());
+      auto *w = tk_->lookupWidgetByName(args[2]);
       if (! w) return false;
 
       tk_->TODO(args);
@@ -4037,7 +4010,7 @@ run(const Args &args)
       if (numArgs != 3)
         return tk_->wrongNumArgs("tk busy status window");
 
-      auto *w = tk_->lookupWidgetByName(args[2].toString());
+      auto *w = tk_->lookupWidgetByName(args[2]);
       if (! w) return false;
 
       tk_->setIntegerResult(0);
@@ -4050,7 +4023,7 @@ run(const Args &args)
     if (numArgs < 2)
       return tk_->wrongNumArgs("tk caret window ?-x x? ?-y y? ?-height height?");
 
-    auto *w = tk_->lookupWidgetByName(args[1].toString());
+    auto *w = tk_->lookupWidgetByName(args[1]);
     if (! w) return false;
 
     if (numArgs == 2)
@@ -4147,7 +4120,7 @@ run(const Args &args)
     }
     else {
       double s;
-      if (! CTkAppUtil::stringToReal(args[1].toString(), s))
+      if (! tk_->variantToReal(args[1], s))
         return false;
 
       tk_->setScaling(s);
@@ -4213,7 +4186,7 @@ run(const Args &args)
     rc = true;
 
     if (i + 1 >= numArgs) {
-      rc = tk_->throwError("value for \"" + args[i].toString() + "\" missing");
+      rc = tk_->throwError(tk_->msg() + "value for \"" + args[i] + "\" missing");
       return QString();
     }
 
@@ -4223,7 +4196,7 @@ run(const Args &args)
   auto getBoolValue = [&]() {
     auto str = getValue(); if (! rc) return false;
     bool b;
-    if (! CTkAppUtil::stringToBool(str, b)) {
+    if (! tk_->variantToBool(str, b)) {
       rc = false;
       return false;
     }
@@ -4310,7 +4283,7 @@ run(const Args &args)
     "variable", "visibility", "window" });
 
   QString arg;
-  if (! tk_->lookupOptionName(optionNames, args[0].toString(), arg))
+  if (! tk_->lookupOptionName(optionNames, args[0], arg))
     return false;
 
   auto name = args[1].toString();
@@ -4514,24 +4487,24 @@ run(const Args &args)
   if (numArgs != 3 && numArgs != 4)
     return tk_->wrongNumArgs("tk_popup menu x y ?entry?");
 
-  auto *w = tk_->lookupWidgetByName(args[0].toString());
+  auto *w = tk_->lookupWidgetByName(args[0]);
   if (! w) return false;
 
   auto *menu = dynamic_cast<CTkAppMenu *>(w);
-  if (! menu) return tk_->throwError("No menu '" + args[0].toString() + "'");
+  if (! menu) return tk_->throwError(tk_->msg() + "No menu '" + args[0] + "'");
 
   long x;
-  if (! CTkAppUtil::stringToInt(args[1].toString(), x))
-    return tk_->throwError("expected integer but got \"" + args[1].toString() + "\"");
+  if (! tk_->variantToInt(args[1], x))
+    return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[1] + "\"");
 
   long y;
-  if (! CTkAppUtil::stringToInt(args[2].toString(), y))
-    return tk_->throwError("expected integer but got \"" + args[2].toString() + "\"");
+  if (! tk_->variantToInt(args[2], y))
+    return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[2] + "\"");
 
   CTkAppWidget *refWidget = nullptr;
 
   if (numArgs == 4) {
-    refWidget = tk_->lookupWidgetByName(args[3].toString());
+    refWidget = tk_->lookupWidgetByName(args[3]);
     if (! refWidget) return false;
   }
 
@@ -4573,12 +4546,12 @@ run(const Args &args)
     { nullptr               , nullptr              , nullptr              , nullptr    }
   };
 
-  uint numArgs = args.size();
+  QVariant widgetName;
 
-  QString widgetName;
+  auto numArgs = args.size();
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto name = args[i].toString();
+    auto name = tk_->variantToString(args[i]);
 
     if (name.size() > 0 && name[0] == '-') {
       ++i;
@@ -4586,28 +4559,28 @@ run(const Args &args)
       continue;
     }
     else
-      widgetName = name;
+      widgetName = args[i];
   }
 
-  if (widgetName == "")
+  if (! widgetName.isValid())
     return tk_->throwError("No name");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
 
   auto *toplevel = new CTkAppTopLevel(tk_, parent, childName);
 
   if (! tk_->useStyle())
     toplevel->setBackground(QColor("#d9d9d9"));
 
-  auto *cmd = new CTkAppWidgetCommand(this, widgetName, toplevel, opts);
+  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), toplevel, opts);
 
   cmd->processArgs(args);
 
-  setStringResult(widgetName);
+  setResult(widgetName);
 
   return true;
 }
@@ -4636,12 +4609,12 @@ run(const Args &args)
     { nullptr          , nullptr         , nullptr         , nullptr        }
   };
 
-  uint numArgs = args.size();
+  QVariant widgetName;
 
-  QString widgetName;
+  auto numArgs = args.size();
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto name = args[i].toString();
+    auto name = tk_->variantToString(args[i]);
 
     if (name.size() > 0 && name[0] == '-') {
       ++i;
@@ -4649,28 +4622,28 @@ run(const Args &args)
       continue;
     }
     else
-      widgetName = name;
+      widgetName = args[i];
   }
 
-  if (widgetName == "")
+  if (! widgetName.isValid())
     return tk_->throwError("No name");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError("Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
 
   auto *toplevel = new CTkAppTreeView(tk_, parent, childName);
 
   if (! tk_->useStyle())
     toplevel->setBackground(QColor("#d9d9d9"));
 
-  auto *cmd = new CTkAppWidgetCommand(this, widgetName, toplevel, opts);
+  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), toplevel, opts);
 
   cmd->processArgs(args);
 
-  setStringResult(widgetName);
+  setResult(widgetName);
 
   return true;
 }
@@ -4692,7 +4665,7 @@ run(const Args &args)
       "idletasks"});
 
     QString arg;
-    if (! tk_->lookupOptionName(optionNames, args[0].toString(), arg))
+    if (! tk_->lookupOptionName(optionNames, args[0], arg))
       return false;
 
     if (arg == "idletasks")
@@ -4727,7 +4700,7 @@ run(const Args &args)
     "pathname", "exists", "fpixels", "pixels", "rgb", "visualsavailable", "debug" });
 
   QString arg;
-  if (! tk_->lookupOptionName(optionNames, args[0].toString(), arg))
+  if (! tk_->lookupOptionName(optionNames, args[0], arg))
     return false;
 
   CTkAppWidget *w = nullptr;
@@ -4736,7 +4709,7 @@ run(const Args &args)
     if (numArgs < 2)
       return tk_->wrongNumArgs("winfo " + arg + " window");
 
-    auto widgetName = args[i].toString();
+    auto widgetName = args[i];
 
     w = tk_->lookupWidgetByName(widgetName, quiet);
 
@@ -4814,14 +4787,14 @@ run(const Args &args)
       return tk_->wrongNumArgs("winfo containing ?-displayof window? rootX rootY");
 
     long x;
-    if (! CTkAppUtil::stringToInt(args[i].toString(), x))
-      return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
+    if (! tk_->variantToInt(args[i], x))
+      return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
 
     ++i;
 
     long y;
-    if (! CTkAppUtil::stringToInt(args[i].toString(), y))
-      return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
+    if (! tk_->variantToInt(args[i], y))
+      return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
 
     tk_->TODO(args);
   }
@@ -4838,12 +4811,12 @@ run(const Args &args)
     if (numArgs != 3)
       return tk_->wrongNumArgs("winfo fpixels window number");
 
-    auto *w = tk_->lookupWidgetByName(args[1].toString());
+    auto *w = tk_->lookupWidgetByName(args[1]);
     if (! w) return false;
 
     double size;
-    if (! CTkAppUtil::stringToDistance(args[2].toString(), size))
-      return tk_->throwError("Invalid number \"" + args[2].toString() + "\"");
+    if (! tk_->variantToDistance(args[2], size))
+      return tk_->throwError(tk_->msg() + "Invalid number \"" + args[2] + "\"");
 
     setRealResult(size);
   }
@@ -4906,8 +4879,8 @@ run(const Args &args)
       i += 2;
 
     long id;
-    if (! CTkAppUtil::stringToInt(args[i].toString(), id))
-      return tk_->throwError("Invalid number \"" + args[i].toString() + "\"");
+    if (! tk_->variantToInt(args[i], id))
+      return tk_->throwError(tk_->msg() + "Invalid number \"" + args[i] + "\"");
 
     tk_->TODO(args); // window id to widget
   }
@@ -4915,12 +4888,12 @@ run(const Args &args)
     if (numArgs != 3)
       return tk_->wrongNumArgs("winfo fpixels window number");
 
-    auto *w = tk_->lookupWidgetByName(args[1].toString());
+    auto *w = tk_->lookupWidgetByName(args[1]);
     if (! w) return false;
 
     double size;
-    if (! CTkAppUtil::stringToDistance(args[2].toString(), size))
-      return tk_->throwError("Invalid number \"" + args[2].toString() + "\"");
+    if (! tk_->variantToDistance(args[2], size))
+      return tk_->throwError(tk_->msg() + "Invalid number \"" + args[2] + "\"");
 
     setIntegerResult(int(size));
   }
@@ -4956,11 +4929,11 @@ run(const Args &args)
     if (numArgs != 3)
       return tk_->wrongNumArgs("winfo rgb window colorName");
 
-    auto *w = tk_->lookupWidgetByName(args[1].toString());
+    auto *w = tk_->lookupWidgetByName(args[1]);
     if (! w) return false;
 
     QColor c;
-    if (! CTkAppUtil::stringToQColor(args[2].toString(), c))
+    if (! CTkAppUtil::variantToQColor(tk_, args[2], c))
       return false;
 
     tk_->setIntegerArrayResult({int(65535*c.redF()), int(65535*c.greenF()), int(65535*c.blueF())});
@@ -5132,18 +5105,18 @@ run(const Args &args)
     "state", "title", "transient", "withdraw" });
 
   QString arg;
-  if (! tk_->lookupOptionName(optionNames, args[0].toString(), arg))
+  if (! tk_->lookupOptionName(optionNames, args[0], arg))
     return false;
 
   //---
 
-  auto name = args[1].toString();
+  auto name = args[1];
 
   CTkAppWidget* parent;
   QString       childName;
 
   if (! root()->decodeWidgetName(name, &parent, childName))
-    return tk_->throwError("Invalid widget name '" + name + "'");
+    return tk_->throwError(tk_->msg() + "Invalid widget name '" + name + "'");
 
   CTkAppWidget *w;
 
@@ -5151,7 +5124,7 @@ run(const Args &args)
     auto *child = parent->getChild(childName);
 
     if (child == nullptr)
-      return tk_->throwError("Invalid widget name '" + name + "'");
+      return tk_->throwError(tk_->msg() + "Invalid widget name '" + name + "'");
 
     w = child;
   }
@@ -5218,8 +5191,16 @@ run(const Args &args)
   }
   else if (arg == "geometry") {
     if (numArgs == 3) {
-      if (! w->setGeometry(args[2].toString()))
-        return false;
+      auto *pw = tk_->lookupWidgetByName(w->wmTransientFor(), /*quiet*/true);
+
+      if (pw) {
+        if (! w->setTransientGeometry(pw, args[2].toString()))
+          return false;
+      }
+      else {
+        if (! w->setGeometry(args[2].toString()))
+          return false;
+      }
     }
     else
       setStringResult(w->getGeometry());
@@ -5233,10 +5214,8 @@ run(const Args &args)
     }
     else if (numArgs == 6) {
       long w, h, iw, ih;
-      if (! CTkAppUtil::stringToInt(args[2].toString(), w) ||
-          ! CTkAppUtil::stringToInt(args[3].toString(), h) ||
-          ! CTkAppUtil::stringToInt(args[4].toString(), iw) ||
-          ! CTkAppUtil::stringToInt(args[5].toString(), ih))
+      if (! tk_->variantToInt(args[2],  w) || ! tk_->variantToInt(args[3],  h) ||
+          ! tk_->variantToInt(args[4], iw) || ! tk_->variantToInt(args[5], ih))
         return false;
 
       tk_->setWmGrid(w, h, iw, ih);
@@ -5249,7 +5228,7 @@ run(const Args &args)
       return tk_->wrongNumArgs("wm group window ?pathName?");
 
     if (numArgs > 2) {
-      auto *w1 = tk_->lookupWidgetByName(args[2].toString());
+      auto *w1 = tk_->lookupWidgetByName(args[2]);
       if (! w1) return false;
 
       tk_->setWmGroup(w, w1);
@@ -5291,13 +5270,13 @@ run(const Args &args)
     if (numArgs == 2)
       setStringResult("");
     else {
-      auto *iw = tk_->lookupWidgetByName(args[2].toString());
+      auto *iw = tk_->lookupWidgetByName(args[2]);
       if (! iw) return false;
 
       auto *toplevel = iw->toplevel();
       if (! toplevel) return false;
 
-      toplevel->setIconWindow(name);
+      toplevel->setIconWindow(tk_->variantToString(name));
 
       toplevel->hide();
     }
@@ -5318,11 +5297,11 @@ run(const Args &args)
     else {
       long sw, sh;
 
-      if (! CTkAppUtil::stringToInt(args[2].toString(), sw))
-        return tk_->throwError("expected integer but got \"" + args[2].toString() + "\"");
+      if (! tk_->variantToInt(args[2], sw))
+        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[2] + "\"");
 
-      if (! CTkAppUtil::stringToInt(args[3].toString(), sh))
-        return tk_->throwError("expected integer but got \"" + args[3].toString() + "\"");
+      if (! tk_->variantToInt(args[3], sh))
+        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[3] + "\"");
 
       sw = std::max(sw, 1L);
       sh = std::max(sh, 1L);
@@ -5342,11 +5321,11 @@ run(const Args &args)
     else {
       long sw, sh;
 
-      if (! CTkAppUtil::stringToInt(args[2].toString(), sw))
-        return tk_->throwError("expected integer but got \"" + args[2].toString() + "\"");
+      if (! tk_->variantToInt(args[2], sw))
+        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[2] + "\"");
 
-      if (! CTkAppUtil::stringToInt(args[3].toString(), sh))
-        return tk_->throwError("expected integer but got \"" + args[3].toString() + "\"");
+      if (! tk_->variantToInt(args[3], sh))
+        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[3] + "\"");
 
       sw = std::max(sw, 1L);
       sh = std::max(sh, 1L);
@@ -5359,7 +5338,7 @@ run(const Args &args)
       return false;
 
     bool b;
-    if (! CTkAppUtil::stringToBool(args[2].toString(), b))
+    if (! tk_->variantToBool(args[2], b))
       return tk_->throwError("Invalid overrideredirect value");
 
     if (b == 1)
@@ -5391,10 +5370,10 @@ run(const Args &args)
     }
     else if (numArgs == 4) {
       bool wf, hf;
-      if (! CTkAppUtil::stringToBool(args[2].toString(), wf))
-        return tk_->throwError("invalid bool \"" + args[2].toString() + "\"");
-      if (! CTkAppUtil::stringToBool(args[3].toString(), hf))
-        return tk_->throwError("invalid bool \"" + args[3].toString() + "\"");
+      if (! tk_->variantToBool(args[2], wf))
+        return tk_->throwError(tk_->msg() + "invalid bool \"" + args[2] + "\"");
+      if (! tk_->variantToBool(args[3], hf))
+        return tk_->throwError(tk_->msg() + "invalid bool \"" + args[3] + "\"");
 
       w->setResizable(wf, hf);
     }
@@ -5452,13 +5431,10 @@ run(const Args &args)
     if (numArgs != 3)
       return false;
 
-    auto *pw = tk_->lookupWidgetByName(args[2].toString());
+    auto *pw = tk_->lookupWidgetByName(args[2]);
     if (! pw) return false;
 
-    //w->getQWidget()->setWindowFlags(
-    //  Qt::Tool | Qt::FramelessWindowHint | Qt::X11BypassWindowManagerHint);
-
-    //CXMachine::setWMTransientFor();
+    w->setWmTransientFor(pw ? pw->getFullName() : "");
   }
   else if (arg == "withdraw") {
     w->hide();
@@ -5516,7 +5492,7 @@ run(const Args &args)
     "cget", "configure"});
 
   QString arg;
-  if (! tk_->lookupOptionName(optionNames, args[0].toString(), arg))
+  if (! tk_->lookupOptionName(optionNames, args[0], arg))
     return false;
 
   if      (arg == "configure") {
@@ -5812,13 +5788,13 @@ run(const Args &args)
         }
         else if (name == "-gamma") {
           double r;
-          if (! CTkAppUtil::stringToReal(value, r))
+          if (! tk_->variantToReal(value, r))
             return tk_->throwError("expected real but got \"" + value + "\"");
           image->setGamma(r);
         }
         else if (name == "-height") {
           long h;
-          if (! CTkAppUtil::stringToInt(value, h))
+          if (! tk_->variantToInt(args[i], h))
             return tk_->throwError("expected integer but got \"" + value + "\"");
           image->setHeight(h);
         }
@@ -5827,7 +5803,7 @@ run(const Args &args)
         }
         else if (name == "-width") {
           long w;
-          if (! CTkAppUtil::stringToInt(value, w))
+          if (! tk_->variantToInt(args[i], w))
             return tk_->throwError("expected integer but got \"" + value + "\"");
           image->setWidth(w);
         }
@@ -5852,12 +5828,12 @@ run(const Args &args)
       return tk_->wrongNumArgs(getName() + " get x y");
 
     long x;
-    if (! CTkAppUtil::stringToInt(args[1].toString(), x))
-      return tk_->throwError("expected integer but got \"" + args[1].toString() + "\"");
+    if (! tk_->variantToInt(args[1], x))
+      return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[1] + "\"");
 
     long y;
-    if (! CTkAppUtil::stringToInt(args[2].toString(), y))
-      return tk_->throwError("expected integer but got \"" + args[2].toString() + "\"");
+    if (! tk_->variantToInt(args[2], y))
+      return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[2] + "\"");
 
     QColor c;
     if (! image->getPixel(x, y, c))
@@ -5873,11 +5849,11 @@ run(const Args &args)
 
     QColor c;
     if (image->isColor()) {
-      (void) CTkAppUtil::stringToQColor(data, c);
+      (void) CTkAppUtil::variantToQColor(tk_, args[1], c);
     }
     else {
       bool b;
-      CTkAppUtil::stringToBool(data, b);
+      tk_->variantToBool(data, b);
       c = (b ? Qt::white : Qt::black);
     }
 
@@ -5892,27 +5868,27 @@ run(const Args &args)
         ++i;
 
         long x1;
-        if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), x1))
-          return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
+        if (i >= numArgs || ! tk_->variantToInt(args[i], x1))
+          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
 
         ++i;
 
         long y1;
-        if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), y1))
-          return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
+        if (i >= numArgs || ! tk_->variantToInt(args[i], y1))
+          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
 
         if (i < numArgs) {
           ++i;
 
           long x2;
-          if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), x2))
-            return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
+          if (i >= numArgs || ! tk_->variantToInt(args[i], x2))
+            return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
 
           ++i;
 
           long y2;
-          if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), y2))
-            return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
+          if (i >= numArgs || ! tk_->variantToInt(args[i], y2))
+            return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
 
           image->setPixels(x1, y1, x2, y2, c);
         }
@@ -5936,37 +5912,37 @@ run(const Args &args)
       }
       else if (args[i] == "-from") {
         long x1;
-        if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), x1))
-          return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
+        if (i >= numArgs || ! tk_->variantToInt(args[i], x1))
+          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
 
         ++i;
 
         long y1;
-        if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), y1))
-          return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
+        if (i >= numArgs || ! tk_->variantToInt(args[i], y1))
+          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
 
         ++i;
 
         long x2;
-        if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), x2))
-          return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
+        if (i >= numArgs || ! tk_->variantToInt(args[i], x2))
+          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
 
         ++i;
 
         long y2;
-        if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), y2))
-          return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
+        if (i >= numArgs || ! tk_->variantToInt(args[i], y2))
+          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
       }
       else if (args[i] == "-to") {
         long x1;
-        if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), x1))
-          return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
+        if (i >= numArgs || ! tk_->variantToInt(args[i], x1))
+          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
 
         ++i;
 
         long y1;
-        if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), y1))
-          return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
+        if (i >= numArgs || ! tk_->variantToInt(args[i], y1))
+          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
 
         ++i;
       }
@@ -5993,12 +5969,12 @@ run(const Args &args)
         return tk_->wrongNumArgs(getName() + " transparency get x y");
 
       long x;
-      if (! CTkAppUtil::stringToInt(args[1].toString(), x))
-        return tk_->throwError("expected integer but got \"" + args[1].toString() + "\"");
+      if (! tk_->variantToInt(args[1], x))
+        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[1] + "\"");
 
       long y;
-      if (! CTkAppUtil::stringToInt(args[2].toString(), y))
-        return tk_->throwError("expected integer but got \"" + args[2].toString() + "\"");
+      if (! tk_->variantToInt(args[2], y))
+        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[2] + "\"");
 
       QColor c;
       if (! image->getPixel(x, y, c))
@@ -6011,17 +5987,16 @@ run(const Args &args)
         return tk_->wrongNumArgs(getName() + " transparency set x y boolean");
 
       long x;
-      if (! CTkAppUtil::stringToInt(args[1].toString(), x))
-        return tk_->throwError("expected integer but got \"" + args[1].toString() + "\"");
+      if (! tk_->variantToInt(args[1], x))
+        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[1] + "\"");
 
       long y;
-      if (! CTkAppUtil::stringToInt(args[2].toString(), y))
-        return tk_->throwError("expected integer but got \"" + args[2].toString() + "\"");
+      if (! tk_->variantToInt(args[2], y))
+        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[2] + "\"");
 
       bool b;
-      if (! CTkAppUtil::stringToBool(args[3].toString(), b))
-        return tk_->throwError("expected boolean but got \"" +
-                                 args[3].toString() + "\"");
+      if (! tk_->variantToBool(args[3], b))
+        return tk_->throwError(tk_->msg() + "expected boolean but got \"" + args[3] + "\"");
 
       QColor c;
       if (! image->getPixel(x, y, c))
@@ -6053,26 +6028,26 @@ run(const Args &args)
       }
       else if (args[i] == "-from") {
         long x1;
-        if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), x1))
-          return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
+        if (i >= numArgs || ! tk_->variantToInt(args[i], x1))
+          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
 
         ++i;
 
         long y1;
-        if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), y1))
-          return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
+        if (i >= numArgs || ! tk_->variantToInt(args[i], y1))
+          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
 
         ++i;
 
         long x2;
-        if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), x2))
-          return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
+        if (i >= numArgs || ! tk_->variantToInt(args[i], x2))
+          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
 
         ++i;
 
         long y2;
-        if (i >= numArgs || ! CTkAppUtil::stringToInt(args[i].toString(), y2))
-          return tk_->throwError("expected integer but got \"" + args[i].toString() + "\"");
+        if (i >= numArgs || ! tk_->variantToInt(args[i], y2))
+          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
       }
       else if (args[i] == "-grayscale") {
         tk_->TODO(args);
@@ -6114,9 +6089,9 @@ run(const Args &args)
       return tk_->wrongNumArgs(getName() + " rotate a x y");
 
     double a, tx, ty;
-    if (! CTkAppUtil::stringToReal(args[1].toString(), a) ||
-        ! CTkAppUtil::stringToReal(args[2].toString(), tx) ||
-        ! CTkAppUtil::stringToReal(args[3].toString(), ty))
+    if (! tk_->variantToReal(args[1], a) ||
+        ! tk_->variantToReal(args[2], tx) ||
+        ! tk_->variantToReal(args[3], ty))
       return false;
 
     CMatrix2D m1, m2, m3;
@@ -6134,8 +6109,8 @@ run(const Args &args)
       return tk_->wrongNumArgs(getName() + " scale sx sy");
 
     double sx, sy;
-    if (! CTkAppUtil::stringToReal(args[1].toString(), sx) ||
-        ! CTkAppUtil::stringToReal(args[2].toString(), sy))
+    if (! tk_->variantToReal(args[1], sx) ||
+        ! tk_->variantToReal(args[2], sy))
       return false;
 
     CMatrix2D m;
@@ -6149,7 +6124,7 @@ run(const Args &args)
       return tk_->wrongNumArgs(getName() + " skew x");
 
     double a;
-    if (! CTkAppUtil::stringToReal(args[1].toString(), a))
+    if (! tk_->variantToReal(args[1], a))
       return false;
 
     auto m = CMatrix2D::skewX(a);
@@ -6161,7 +6136,7 @@ run(const Args &args)
       return tk_->wrongNumArgs(getName() + " skew y");
 
     double a;
-    if (! CTkAppUtil::stringToReal(args[1].toString(), a))
+    if (! tk_->variantToReal(args[1], a))
       return false;
 
     auto m = CMatrix2D::skewY(a);
@@ -6173,8 +6148,8 @@ run(const Args &args)
       return tk_->wrongNumArgs(getName() + " translate tx ty");
 
     double tx, ty;
-    if (! CTkAppUtil::stringToReal(args[1].toString(), tx) ||
-        ! CTkAppUtil::stringToReal(args[2].toString(), ty))
+    if (! tk_->variantToReal(args[1], tx) ||
+        ! tk_->variantToReal(args[2], ty))
       return false;
 
     CMatrix2D m;

@@ -39,6 +39,7 @@ class CTkAppDebug : public QFrame {
   void updateLayoutWidgets();
 
   void updateImages();
+  void updateFonts();
 
   void updateProperties();
 
@@ -48,7 +49,10 @@ class CTkAppDebug : public QFrame {
   void parentSlot();
   void currentSlot();
 
-  void selectionSlot();
+  void childSelectionSlot();
+  void imageSelectionSlot();
+  void bitmapSelectionSlot();
+  void fontSelectionSlot();
 
   void boolChanged(int i);
   void optIntChanged(bool);
@@ -74,8 +78,15 @@ class CTkAppDebug : public QFrame {
   QLabel*      typeLabel_   { nullptr };
   QLabel*      layoutLabel_ { nullptr };
 
-  QListWidget* imageList_  { nullptr };
-  QListWidget* bitmapList_ { nullptr };
+  QListWidget*        imageList_       { nullptr };
+  QLabel*             imageLabel_      { nullptr };
+  QListWidget*        bitmapList_      { nullptr };
+  QLabel*             bitmapLabel_     { nullptr };
+  CQPropertyViewTree* imageProperties_ { nullptr };
+
+  QListWidget*        fontList_       { nullptr };
+  QLabel*             fontLabel_      { nullptr };
+  CQPropertyViewTree* fontProperties_ { nullptr };
 
   //---
 

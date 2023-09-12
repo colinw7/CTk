@@ -46,6 +46,7 @@ class CTkAppOptionValue {
 
   QString getString() const { return var_.toString(); }
 
+  const QVariant &getValue() const { return var_; }
   void setValue(const QVariant &var) { var_ = var; }
 
  private:

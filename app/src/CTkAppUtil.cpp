@@ -1,4 +1,5 @@
 #include <CTkAppUtil.h>
+#include <CTclApp.h>
 
 #include <CQStrParse.h>
 #include <CScreenUnits.h>
@@ -50,16 +51,20 @@ stringToBool(const QString &str, bool &b)
 }
 
 bool
-stringToQColor(const QString &str, QColor &c)
+variantToQColor(CTclApp *app, const QVariant &var, QColor &c)
 {
+  auto str = variantToString(app, var);
+
   c = QColor(str);
 
   return true;
 }
 
 bool
-stringToQFont(const QString &str, QFont &f)
+variantToQFont(CTclApp *app, const QVariant &var, QFont &f)
 {
+  auto str = variantToString(app, var);
+
   CQStrParse parse(str);
 
   parse.skipSpace();
@@ -130,8 +135,20 @@ stringToQFont(const QString &str, QFont &f)
 }
 
 bool
-stringToDistance(const QString &str, double &r)
+variantToDistanceI(CTclApp *app, const QVariant &var, long &i)
 {
+  double r;
+  if (! variantToDistance(app, var, r))
+    return false;
+  i = long(r);
+  return true;
+}
+
+bool
+variantToDistance(CTclApp *app, const QVariant &var, double &r)
+{
+  auto str = variantToString(app, var);
+
   CQStrParse parse(str);
 
   parse.skipSpace();
@@ -171,19 +188,11 @@ stringToDistance(const QString &str, double &r)
 }
 
 bool
-stringToDistanceI(const QString &str, int &i)
-{
-  double r;
-  if (! stringToDistance(str, r))
-    return false;
-  i = int(r);
-  return true;
-}
-
-bool
-stringToOrient(const QString &str, Qt::Orientation &orient)
+variantToOrient(CTclApp *app, const QVariant &var, Qt::Orientation &orient)
 {
   static auto names = std::vector<QString>({ "horizontal", "vertical" });
+
+  auto str = variantToString(app, var);
 
   QString match;
   if (! uniqueMatch(names, str, match))
@@ -198,8 +207,10 @@ stringToOrient(const QString &str, Qt::Orientation &orient)
 }
 
 bool
-stringToAlign(const QString &value, Qt::Alignment &align, bool quiet)
+variantToAlign(CTclApp *app, const QVariant &var, Qt::Alignment &align, bool quiet)
 {
+  auto value = variantToString(app, var);
+
   align = Qt::AlignCenter;
 
   if      (value == "n"     ) align = Qt::AlignTop;
@@ -238,8 +249,10 @@ alignToString(const Qt::Alignment &align)
 }
 
 bool
-stringToCapStyle(const QString &value, Qt::PenCapStyle &capStyle)
+variantToCapStyle(CTclApp *app, const QVariant &var, Qt::PenCapStyle &capStyle)
 {
+  auto value = variantToString(app, var);
+
   capStyle = Qt::FlatCap;
 
   if      (value == "round" ) capStyle = Qt::RoundCap;
@@ -261,8 +274,10 @@ capStyleToString(const Qt::PenCapStyle &capStyle)
 }
 
 bool
-stringToFillRule(const QString &value, Qt::FillRule &fillRule)
+variantToFillRule(CTclApp *app, const QVariant &var, Qt::FillRule &fillRule)
 {
+  auto value = variantToString(app, var);
+
   fillRule = Qt::OddEvenFill;
 
   if      (value == "evenodd") fillRule = Qt::OddEvenFill;
@@ -303,7 +318,59 @@ uniqueMatch(const std::vector<QString> &values, const QString &str, QString &mat
   return true;
 }
 
-QString variantToString(const QVariant &var, bool quote) {
+bool
+variantToInt(CTclApp *app, const QVariant &var, long &i)
+{
+  if      (var.type() == QVariant::Int) {
+    i = var.toInt();
+  }
+  else if (var.type() == QVariant::LongLong) {
+    i = var.toLongLong();
+  }
+  else if (var.type() == QVariant::Double) {
+    i = long(var.toDouble());
+  }
+  else {
+    auto str = variantToString(app, var);
+
+    return stringToInt(str, i);
+  }
+
+  return true;
+}
+
+bool
+variantToReal(CTclApp *app, const QVariant &var, double &r)
+{
+  if      (var.type() == QVariant::Int) {
+    r = double(var.toInt());
+  }
+  else if (var.type() == QVariant::LongLong) {
+    r = double(var.toLongLong());
+  }
+  else if (var.type() == QVariant::Double) {
+    r = var.toDouble();
+  }
+  else {
+    auto str = variantToString(app, var);
+
+    return stringToReal(str, r);
+  }
+
+  return true;
+}
+
+bool
+variantToBool(CTclApp *app, const QVariant &var, bool &b)
+{
+  auto str = variantToString(app, var);
+
+  return stringToBool(str, b);
+}
+
+QString
+variantToString(CTclApp *app, const QVariant &var, bool quote)
+{
   if (! var.isValid())
     return "";
 
@@ -327,18 +394,15 @@ QString variantToString(const QVariant &var, bool quote) {
   else if (var.type() == QVariant::List) {
     auto vars = var.toList();
 
-    QStringList strs;
+    std::vector<QString> strs;
 
     for (int i = 0; i < vars.length(); ++i) {
-      auto str1 = variantToString(vars[i]);
+      auto str1 = variantToString(app, vars[i], quote);
 
       strs.push_back(str1);
     }
 
-    if (quote)
-      str = "{" + strs.join(" ") + "}";
-    else
-      str = strs.join(" ");
+    str = app->mergeList(strs);
   }
   else if (var.canConvert(QVariant::String)) {
     str = var.toString();

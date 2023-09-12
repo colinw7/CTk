@@ -54,11 +54,25 @@ setNormal()
   qfont_.setBold(false);
 }
 
+bool
+CTkAppFont::
+isBold() const
+{
+  return qfont_.bold();
+}
+
 void
 CTkAppFont::
-setBold()
+setBold(bool b)
 {
-  qfont_.setBold(true);
+  qfont_.setBold(b);
+}
+
+bool
+CTkAppFont::
+isItalic() const
+{
+  return qfont_.italic();
 }
 
 void
@@ -68,11 +82,25 @@ setItalic(bool b)
   qfont_.setItalic(b);
 }
 
+bool
+CTkAppFont::
+isUnderline() const
+{
+  return qfont_.underline();
+}
+
 void
 CTkAppFont::
 setUnderline(bool b)
 {
   qfont_.setUnderline(b);
+}
+
+bool
+CTkAppFont::
+isOverstrike() const
+{
+  return qfont_.strikeOut();
 }
 
 void

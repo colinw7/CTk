@@ -50,6 +50,24 @@ class CTkApp : public QObject, public CTclApp {
   Q_OBJECT
 
  public:
+  class Msg {
+   public:
+    explicit Msg(const CTkApp *app) :
+     app_(app) {
+    }
+
+    Msg &operator+(const char *str) { str_ += str; return *this; }
+    Msg &operator+(const QString &str) { str_ += str; return *this; }
+    Msg &operator+(const QVariant &var) { str_ += app_->variantToString(var); return *this; }
+
+    const QString &str() const { return str_; }
+
+   private:
+    const CTkApp* app_ { nullptr };
+    QString       str_;
+  };
+
+ public:
   struct MatrixData {
     QTransform transform;
   };
@@ -98,7 +116,7 @@ class CTkApp : public QObject, public CTclApp {
 
   //---
 
-  CTkAppWidget *lookupWidgetByName(const QString &widgetName, bool quiet=false) const;
+  CTkAppWidget *lookupWidgetByName(const QVariant &widgetName, bool quiet=false) const;
 
   //---
 
@@ -114,7 +132,7 @@ class CTkApp : public QObject, public CTclApp {
 
   void deleteImage(const CTkAppImageRef &image);
 
-  CTkAppImageRef getImage(const QString &name) const;
+  CTkAppImageRef getImage(const QVariant &var) const;
 
   void getImageNames(std::vector<QString> &names) const;
 
@@ -127,12 +145,12 @@ class CTkApp : public QObject, public CTclApp {
 
   QString getNewFontName() const;
 
-  CTkAppFontRef createFont(const QString &name);
+  CTkAppFontRef createFont(const QVariant &var);
   void deleteFont(const CTkAppFontRef &font);
 
-  CTkAppFontRef getFont(const QString &name) const;
+  CTkAppFontRef getFont(const QVariant &var) const;
 
-  QFont getQFont(const QString &name) const;
+  QFont getQFont(const QVariant &var) const;
 
   struct FontData {
     QString family     { };
@@ -215,10 +233,10 @@ class CTkApp : public QObject, public CTclApp {
   void encodeEvent(QKeyEvent *e, bool press, CTkAppEventData &data) const;
   void encodeEvent(QMouseEvent *e, CTkAppEventMode mode, int button, CTkAppEventData &data) const;
 
-  bool stringToVirtualEvent(const QString &str, CTkAppVirtualEventData &data,
+  bool stringToVirtualEvent(const QVariant &var, CTkAppVirtualEventData &data,
                             bool quiet=false) const;
 
-  bool parseEvent(const QString &str, CTkAppEventData &data);
+  bool parseEvent(const QVariant &var, CTkAppEventData &data);
 
   void addVirtualEventData(const CTkAppVirtualEventData &vdata, const CTkAppEventData &edata);
 
@@ -231,23 +249,27 @@ class CTkApp : public QObject, public CTclApp {
 
   //---
 
-  void addOption(const QString &pattern, const QString &value, int priority);
+  void addOption(const QString &pattern, const QVariant &value, int priority);
 
   bool matchOption(const QString &widgetClass, const QString &optName,
-                   const QString &optClass, QString &optValue) const;
+                   const QString &optClass, QVariant &optValue) const;
 
   void clearOptions();
 
   //---
 
   bool lookupOptionName(const std::vector<QString> &names,
+                        const QVariant &arg, QString &opt, bool quiet=false) const;
+  bool lookupOptionName(const std::vector<QString> &names,
                         const QString &arg, QString &opt, bool quiet=false) const;
 
   bool lookupName(const QString &msg, const std::vector<QString> &names,
+                  const QVariant &arg, QString &opt, bool quiet=false) const;
+  bool lookupName(const QString &msg, const std::vector<QString> &names,
                   const QString &arg, QString &opt, bool quiet=false) const;
 
-  bool getOptionInt (const QString &name, const QString &value, long &i) const;
-  bool getOptionReal(const QString &name, const QString &value, double &r) const;
+  bool getOptionInt (const QString &name, const QVariant &value, long &i) const;
+  bool getOptionReal(const QString &name, const QVariant &value, double &r) const;
 
   //---
 
@@ -288,12 +310,26 @@ class CTkApp : public QObject, public CTclApp {
 
   //---
 
+  bool variantToDistance(const QVariant &var, double &r) const;
+
+  bool variantToInt (const QVariant &var, long &i) const;
+  bool variantToReal(const QVariant &var, double &r) const;
+  bool variantToBool(const QVariant &var, bool &b) const;
+
+  QString variantToString(const QVariant &var) const;
+
+  //---
+
+  Msg msg() const { return Msg(this); }
+
   bool wrongNumArgs(const QString &msg) const;
 
+  bool throwError(const Msg &msg) const;
   bool throwError(const QString &msg) const;
 
   void debugCmd(const QString &cmd, const Args &args) const;
 
+  bool TODO(const Msg &msg) const;
   bool TODO(const QString &msg="") const;
   bool TODO(const Args &args) const;
   bool TODO(const QString &arg, const Args &args) const;
@@ -328,13 +364,13 @@ class CTkApp : public QObject, public CTclApp {
   //--
 
   struct OptionData {
-    QString pattern;
-    QString value;
-    int     priority { -1 };
+    QString  pattern;
+    QVariant value;
+    int      priority { -1 };
 
     OptionData() = default;
 
-    OptionData(const QString &pattern1, const QString &value1, int priority1) :
+    OptionData(const QString &pattern1, const QVariant &value1, int priority1) :
      pattern(pattern1), value(value1), priority(priority1) {
     }
   };

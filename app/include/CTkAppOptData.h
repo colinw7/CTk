@@ -27,7 +27,7 @@ class CTkAppOptData {
 
   bool getOptValue(const QString &name, QString &value) const;
 
-  bool getDefValue(const QString &optName, const QString &optClass, QString &value) const;
+  bool getDefValue(const QString &optName, const QString &optClass, QVariant &value) const;
 
   bool setOptValue(const QString &name, const QVariant &value, const CTkAppOpt **opt);
 
