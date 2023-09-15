@@ -12,7 +12,6 @@
 #include <CTkAppTextWidget.h>
 
 #include <CQSlider.h>
-#include <CQLabelImage.h>
 #include <CQUtil.h>
 
 #include <CSVGUtil.h>
@@ -504,8 +503,10 @@ setMenu(QMenu *menu)
 {
   menu_ = menu;
 
-  if (! menuBar_)
+  if (! menuBar_) {
     menuBar_ = new QMenuBar(this);
+    menuBar_->setObjectName("menuBar");
+  }
 
   for (auto *a : menu_->actions()) {
     if (a->menu())
@@ -2823,6 +2824,23 @@ addBitmap(const Point &pos, const CTkAppImageRef &image)
 
 void
 CTkAppCanvasWidget::
+resizeEvent(QResizeEvent *)
+{
+  auto *tk = canvas_->app();
+
+  if (canvas_->getXScrollCommand() != "") {
+    auto cmd = canvas_->getXScrollCommand() + " 0.0 1.0";
+    tk->eval(cmd);
+  }
+
+  if (canvas_->getYScrollCommand() != "") {
+    auto cmd = canvas_->getYScrollCommand() + " 0.0 1.0";
+    tk->eval(cmd);
+  }
+}
+
+void
+CTkAppCanvasWidget::
 paintEvent(QPaintEvent *)
 {
   QPainter p(this);
@@ -4215,6 +4233,7 @@ CTkAppFrame(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
  CTkAppWidget(tk, parent, name)
 {
   qframe_ = new QFrame(parent ? parent->getQWidget() : nullptr);
+  qframe_->setObjectName("frame");
 
   setQWidget(qframe_);
 }
@@ -4263,7 +4282,7 @@ CTkAppLabel::
 CTkAppLabel(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
  CTkAppWidget(tk, parent, name)
 {
-  qlabel_ = new CQLabelImage(parent ? parent->getQWidget() : nullptr);
+  qlabel_ = new CTkAppLabelWidget(this);
 
   setQWidget(qlabel_);
 }
@@ -4276,20 +4295,7 @@ execConfig(const QString &name, const QVariant &var)
 
   long underlinePos = -1;
 
-  if      (name == "-textvariable") {
-    setVarName(value);
-
-    if (! isInitNotify() && ! tk_->hasGlobalVar(varName()))
-      tk_->setStringGlobalVar(varName(), QString());
-
-    if (tk_->hasGlobalVar(varName()))
-      setText(tk_->getStringGlobalVar(varName()));
-
-    varProc_ = new CTkAppLabelVarProc(tk_, this);
-
-    tk_->traceGlobalVar(varName(), varProc_);
-  }
-  else if (name == "-compound") {
+  if      (name == "-compound") {
     // none, bottom, top, left, right, or center.
     auto type = CQLabelImage::Type::NONE;
 
@@ -4302,12 +4308,11 @@ execConfig(const QString &name, const QVariant &var)
 
     qlabel_->setType(type);
   }
-  else if (name == "-wraplength") {
-    tk_->TODO(name);
-  }
-  else if (name == "-underline") {
-    if (! tk_->getOptionInt(name, var, underlinePos))
-      return false;
+  else if (name == "-height") {
+    double height;
+    if (! CTkAppUtil::variantToDistance(tk_, var, height))
+      return tk_->throwError("Invalid height \"" + value + "\"");
+    qlabel_->setHeight(height);
   }
   else if (name == "-state") {
     if (value == "readonly") {
@@ -4317,6 +4322,32 @@ execConfig(const QString &name, const QVariant &var)
       if (! CTkAppUtil::setWidgetState(this, value))
         return false;
     }
+  }
+  else if (name == "-textvariable") {
+    setVarName(value);
+
+    if (! isInitNotify() && ! tk_->hasGlobalVar(varName()))
+      tk_->setStringGlobalVar(varName(), QString());
+
+    if (tk_->hasGlobalVar(varName()))
+      setText(tk_->getStringGlobalVar(varName()));
+
+    varProc_ = new CTkAppLabelVarProc(tk_, this);
+
+    tk_->traceGlobalVar(varName(), varProc_);
+  }
+  else if (name == "-underline") {
+    if (! tk_->getOptionInt(name, var, underlinePos))
+      return false;
+  }
+  else if (name == "-width") {
+    double width;
+    if (! CTkAppUtil::variantToDistance(tk_, var, width))
+      return tk_->throwError("Invalid width \"" + value + "\"");
+    qlabel_->setWidth(width);
+  }
+  else if (name == "-wraplength") {
+    tk_->TODO(name);
   }
   else
     return CTkAppWidget::execConfig(name, var);
@@ -4359,6 +4390,31 @@ updateFromVar()
     setText(tk_->getStringGlobalVar(varName()));
 }
 
+//---
+
+CTkAppLabelWidget::
+CTkAppLabelWidget(CTkAppLabel *label) :
+ CQLabelImage(label->getParent() ? label->getParent()->getQWidget() : nullptr), label_(label)
+{
+}
+
+QSize
+CTkAppLabelWidget::
+sizeHint() const
+{
+  auto s = CQLabelImage::sizeHint();
+
+  QFontMetrics fm(font());
+
+  if (width_ && *width_ > 0)
+    s.setWidth((*width_)*fm.horizontalAdvance("0"));
+
+  if (height_ && *height_ > 0)
+    s.setHeight((*height_)*fm.height());
+
+  return s;
+}
+
 //----------
 
 CTkAppLabelFrame::
@@ -4366,6 +4422,7 @@ CTkAppLabelFrame(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
  CTkAppWidget(tk, parent, name)
 {
   qframe_ = new QGroupBox(parent ? parent->getQWidget() : nullptr);
+  qframe_->setObjectName("frame");
 
   setQWidget(qframe_);
 }
@@ -5048,6 +5105,7 @@ CTkAppMenu(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
  CTkAppWidget(tk, parent, name)
 {
   qmenu_ = new QMenu(parent ? parent->getQWidget() : nullptr);
+  qmenu_->setObjectName("menu");
 
   setQWidget(qmenu_);
 
@@ -5530,6 +5588,7 @@ CTkAppMessage(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
  CTkAppWidget(tk, parent, name)
 {
   qedit_ = new QTextEdit(parent ? parent->getQWidget() : nullptr);
+  qedit_->setObjectName("edit");
 
   qedit_->setReadOnly(true);
 
@@ -5733,6 +5792,7 @@ CTkAppPanedWindow(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
  CTkAppWidget(tk, parent, name)
 {
   qpane_ = new QSplitter(parent ? parent->getQWidget() : nullptr);
+  qpane_->setObjectName("pane");
 
   qpane_->setChildrenCollapsible(false);
 
@@ -7303,6 +7363,7 @@ execOp(const Args &args)
       TextInd ind1;
       if (! stringToTextInd(args[i], ind1))
         return false;
+      ind1 = remapInd(ind1);
 
       auto cursor = qtext_->textCursor();
       setCurrentInd(cursor, ind1);
@@ -7313,6 +7374,7 @@ execOp(const Args &args)
         TextInd ind2;
         if (! stringToTextInd(args[i], ind2))
           return false;
+        ind2 = remapInd(ind2);
 
         setCurrentInd(cursor, ind2, QTextCursor::KeepAnchor);
       }
@@ -7398,6 +7460,8 @@ execOp(const Args &args)
     if (! parseInd(ind1))
       return false;
 
+    ind1 = remapInd(ind1);
+
     parse.skipSpace();
 
     if (parse.isChar('+') || parse.isChar('-')) {
@@ -7419,7 +7483,10 @@ execOp(const Args &args)
 
           auto cursor = qtext_->textCursor();
           setCurrentInd(cursor, ind1);
-          cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::MoveAnchor, n);
+          if (n > 0)
+            cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::MoveAnchor, n);
+          else
+            cursor.movePosition(QTextCursor::PreviousCharacter, QTextCursor::MoveAnchor, -n);
           getCurrentInd(cursor, ind1);
         }
         else if (parse.isString("lines") || parse.isString("l")) {
@@ -7427,7 +7494,10 @@ execOp(const Args &args)
 
           auto cursor = qtext_->textCursor();
           setCurrentInd(cursor, ind1);
-          cursor.movePosition(QTextCursor::NextBlock, QTextCursor::MoveAnchor, n);
+          if (n > 0)
+            cursor.movePosition(QTextCursor::NextBlock, QTextCursor::MoveAnchor, n);
+          else
+            cursor.movePosition(QTextCursor::PreviousBlock, QTextCursor::MoveAnchor, -n);
           getCurrentInd(cursor, ind1);
         }
         else
@@ -7486,6 +7556,7 @@ execOp(const Args &args)
     TextInd ind;
     if (! stringToTextInd(args[1], ind))
       return false;
+    ind = remapInd(ind);
 
     setCurrentInd(ind);
 
@@ -7543,6 +7614,7 @@ execOp(const Args &args)
       TextInd ind;
       if (! stringToTextInd(args[3], ind))
         return false;
+      ind = remapInd(ind);
 
       setMark(mark, ind);
     }
@@ -9487,10 +9559,14 @@ setBackground(const QColor &c)
 {
   background_ = c;
 
+  auto role = qwidget_->backgroundRole();
+
   auto pal = qwidget_->palette();
-  pal.setColor(QPalette::Normal, getQWidget()->backgroundRole(), background_);
-  pal.setColor(QPalette::Inactive, getQWidget()->backgroundRole(), background_);
+  pal.setColor(QPalette::Normal  , role, background_);
+  pal.setColor(QPalette::Inactive, role, background_);
   qwidget_->setPalette(pal);
+
+  qwidget_->setBackgroundRole(role);
 
   qwidget_->update();
 }

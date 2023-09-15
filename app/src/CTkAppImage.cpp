@@ -268,9 +268,29 @@ bool
 CTkAppImage::
 setPixels(int x1, int y1, int x2, int y2, const QColor &c)
 {
-  for (int y = y1; y < y2; ++y)
-    for (int x = x1; x < x2; ++x)
-      setPixel(x, y, c);
+  int w = qimage_.width ();
+  int h = qimage_.height();
+
+  bool resize = false;
+  if (x2 >= w) { w = x2 + 1; resize = true; }
+  if (y2 >= h) { h = y2 + 1; resize = true; }
+
+  if (resize) {
+    auto newImage = QImage(w, h, QImage::Format_ARGB32);
+
+    int oldW = qimage_.width ();
+    int oldH = qimage_.height();
+
+    for (int y = 0; y < oldH; ++y)
+      for (int x = 0; x < oldW; ++x)
+        newImage.setPixel(x, y, qimage_.pixel(x, y));
+
+    qimage_ = newImage;
+  }
+
+  for (int y = y1; y <= y2; ++y)
+    for (int x = x1; x <= x2; ++x)
+      qimage_.setPixel(x, y, c.rgba());
 
   return true;
 }

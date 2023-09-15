@@ -4,6 +4,8 @@
 #include <CTkAppEventData.h>
 #include <CTkApp.h>
 
+#include <CQLabelImage.h>
+
 #include <QBrush>
 #include <QCheckBox>
 #include <QComboBox>
@@ -35,7 +37,6 @@ class CTkAppGridLayout;
 class CTkAppPlaceLayout;
 
 class CQRealSlider;
-class CQLabelImage;
 
 class QBoxLayout;
 class QFrame;
@@ -2001,6 +2002,8 @@ class CTkAppCanvasWidget : public QWidget {
     return false;
   }
 
+  void resizeEvent(QResizeEvent *) override;
+
   void paintEvent(QPaintEvent *) override;
 
   QBrush calcBrush(Shape *s) const;
@@ -2279,6 +2282,7 @@ class CTkAppFrame : public CTkAppWidget {
 
 //---
 
+class CTkAppLabelWidget;
 class CTkAppLabelVarProc;
 
 class CTkAppLabel : public CTkAppWidget {
@@ -2309,9 +2313,33 @@ class CTkAppLabel : public CTkAppWidget {
   void updateFromVar();
 
  private:
-  CQLabelImage*       qlabel_ { nullptr };
+  CTkAppLabelWidget*  qlabel_ { nullptr };
   QString             varName_;
   CTkAppLabelVarProc* varProc_ { nullptr };
+};
+
+class CTkAppLabelWidget : public CQLabelImage {
+  Q_OBJECT
+
+ public:
+  using OptReal = std::optional<double>;
+
+ public:
+  CTkAppLabelWidget(CTkAppLabel *label);
+
+  const OptReal &width() const { return width_; }
+  void setWidth(const OptReal &w) { width_ = w; }
+
+  const OptReal &height() const { return height_; }
+  void setHeight(const OptReal &h) { height_ = h; }
+
+  QSize sizeHint() const override;
+
+ private:
+  CTkAppLabel* label_ { nullptr };
+
+  OptReal width_;
+  OptReal height_;
 };
 
 //---

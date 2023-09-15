@@ -385,35 +385,45 @@ class CTkApp : public QObject, public CTclApp {
 
   //--
 
-  QString context_;
-
-  WidgetClasses widgetClasses_;
-  NamedMatrices nameMatrices_;
-
   CTkAppRoot* root_ { nullptr };
+
+  QString context_;
+  QString appName_;
+  bool    useStyle_ { false };
+  double  scaling_  { -1.0 };
 
   QTimer *timer_ { nullptr };
 
-  bool            useStyle_ { false };
-  TopLevelSet     toplevels_;
+  // widget class names
+  WidgetClasses widgetClasses_;
+
+  QString currentCommand_;
+
+  // named matrices
+  NamedMatrices nameMatrices_;
+
+  TopLevelSet toplevels_; // toplevels
+
+  // event data
   ClassEventDatas classEvents_;
   TagEventDatas   tagEvents_;
   EventDatas      allEvents_;
-  WidgetSet       widgets_;
-  WidgetArray     deleteWidgets_;
 
+  VirtualEventData virtualEventData_;
+
+  // widgets
+  WidgetSet   widgets_;
+  WidgetArray deleteWidgets_;
+
+  // images and bitmaps
   ImageMap         images_;
   mutable ImageMap bitmaps_;
 
-  QString appName_;
+  // fonts
   QFont   appFont_;
   FontMap fonts_;
 
   OptionDatas options_;
-
-  QString currentCommand_;
-
-  VirtualEventData virtualEventData_;
 
   WmGroups wmGroups_;
 
@@ -425,8 +435,6 @@ class CTkApp : public QObject, public CTclApp {
   };
 
   WmGrid wmGrid_;
-
-  double scaling_ { -1.0 };
 };
 
 #endif

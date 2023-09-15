@@ -21,7 +21,7 @@ class CTkAppImage : public QObject {
   Q_PROPERTY(int     height   READ height   WRITE setHeight)
 
  public:
-  explicit CTkAppImage(CTkApp *tk, const QString &name, int width=-1, int height=-1);
+  explicit CTkAppImage(CTkApp *tk, const QString &name, int width=0, int height=0);
 
  ~CTkAppImage();
 

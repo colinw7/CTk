@@ -20,11 +20,13 @@ class CQOptEdit;
 class QTabWidget;
 class QListWidget;
 class QCheckBox;
+class QGroupBox;
 class QComboBox;
 class QLineEdit;
 class QLabel;
 
 class QVBoxLayout;
+class QRubberBand;
 
 class CTkAppDebug : public QFrame {
   Q_OBJECT
@@ -44,6 +46,8 @@ class CTkAppDebug : public QFrame {
   void updateProperties();
 
   QString widgetPropPath(CTkAppWidget *w) const;
+
+  void showWidget(QWidget *);
 
  private Q_SLOTS:
   void parentSlot();
@@ -65,32 +69,12 @@ class CTkAppDebug : public QFrame {
  private:
   CTkApp* tk_ { nullptr };
 
-  CTkAppWidget* currentWidget_ { nullptr };
-  CTkAppWidget* currentChild_  { nullptr };
-
-  CTkAppLayoutWidget* layoutWidget_ { nullptr };
-
-  QTabWidget *tab_ { nullptr };
-
-  QListWidget* childList_ { nullptr };
-
-  QVBoxLayout* dataLayout_  { nullptr };
-  QLabel*      typeLabel_   { nullptr };
-  QLabel*      layoutLabel_ { nullptr };
-
-  QListWidget*        imageList_       { nullptr };
-  QLabel*             imageLabel_      { nullptr };
-  QListWidget*        bitmapList_      { nullptr };
-  QLabel*             bitmapLabel_     { nullptr };
-  CQPropertyViewTree* imageProperties_ { nullptr };
-
-  QListWidget*        fontList_       { nullptr };
-  QLabel*             fontLabel_      { nullptr };
-  CQPropertyViewTree* fontProperties_ { nullptr };
+  CTkAppWidget*       currentWidget_ { nullptr };
+  CTkAppLayout*       currentLayout_ { nullptr };
+  CTkAppWidget*       currentChild_  { nullptr };
+  CTkAppLayoutWidget* layoutWidget_  { nullptr };
 
   //---
-
-  CTkAppLayout* currentLayout_ { nullptr };
 
   CTkAppPackLayout*  packLayout_  { nullptr };
   CTkAppGridLayout*  gridLayout_  { nullptr };
@@ -98,8 +82,24 @@ class CTkAppDebug : public QFrame {
 
   //---
 
-  QFrame*      layoutFrame_  { nullptr };
-  QVBoxLayout* layoutLayout_ { nullptr };
+  bool updating_ { false };
+
+  //---
+
+  QTabWidget *tab_ { nullptr };
+
+  // current widget and children
+  QLabel*      currentLabel_ { nullptr };
+  QListWidget* childList_    { nullptr };
+
+  QVBoxLayout* layoutDataLayout_  { nullptr };
+  QLabel*      layoutWidgetLabel_ { nullptr };
+
+  //---
+
+  QGroupBox*   layoutGroup_   { nullptr };
+  QVBoxLayout* layoutLayout_  { nullptr };
+  QLabel*      noLayoutLabel_ { nullptr };
 
   struct LayoutWidgets {
     // pack
@@ -139,9 +139,22 @@ class CTkAppDebug : public QFrame {
 
   LayoutWidgets layoutWidgets_;
 
+  // properties
   CQPropertyViewTree *propertyView_ { nullptr };
 
-  bool updating_ { false };
+  // images/bitnaps
+  QListWidget*        imageList_       { nullptr };
+  QLabel*             imageLabel_      { nullptr };
+  QListWidget*        bitmapList_      { nullptr };
+  QLabel*             bitmapLabel_     { nullptr };
+  CQPropertyViewTree* imageProperties_ { nullptr };
+
+  // fonts
+  QListWidget*        fontList_       { nullptr };
+  QLabel*             fontLabel_      { nullptr };
+  CQPropertyViewTree* fontProperties_ { nullptr };
+
+  QRubberBand* rubberBand_ { nullptr };
 };
 
 #endif

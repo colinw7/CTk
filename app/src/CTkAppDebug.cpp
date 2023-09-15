@@ -24,6 +24,7 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QLabel>
+#include <QRubberBand>
 
 CTkAppDebug::
 CTkAppDebug(CTkApp *tk) :
@@ -31,42 +32,67 @@ CTkAppDebug(CTkApp *tk) :
 {
   setObjectName("appDebug");
 
+  //---
+
+  currentWidget_ = tk_->root();
+  currentLayout_ = (currentWidget_ ? currentWidget_->getTkLayout() : nullptr);
+  currentChild_  = nullptr;
+  layoutWidget_  = nullptr;
+
+  //---
+
   auto *layout = new QHBoxLayout(this);
 
   //---
 
   tab_ = new QTabWidget;
+  tab_->setObjectName("tab");
 
   layout->addWidget(tab_);
 
   //---
 
-  auto *widgetFrame = new QFrame;
-  auto *widgetLayout = new QVBoxLayout(widgetFrame);
+  auto *widgetLayoutFrame = new QFrame;
+  widgetLayoutFrame->setObjectName("widgetLayoutFrame");
 
-  tab_->addTab(widgetFrame, "Child Widgets");
+  auto *widgetLayoutLayout = new QHBoxLayout(widgetLayoutFrame);
+
+  tab_->addTab(widgetLayoutFrame, "Widget/Layout");
 
   //---
 
+  auto *widgetGroup = new QGroupBox("Widget");
+  widgetGroup->setObjectName("widgetGroup");
+
+  auto *widgetLayout = new QVBoxLayout(widgetGroup);
+
+  widgetLayoutLayout->addWidget(widgetGroup);
+
+  //--
+
+  currentLabel_ = new QLabel;
+  currentLabel_->setObjectName("currentLabel");
+
+  widgetLayout->addWidget(currentLabel_);
+
   childList_ = new QListWidget;
-
-  currentWidget_ = tk_->root();
-  currentLayout_ = (currentWidget_ ? currentWidget_->getTkLayout() : nullptr);
-  currentChild_  = nullptr;
-
-  layoutWidget_ = nullptr;
+  childList_->setObjectName("childList");
 
   connect(childList_, SIGNAL(itemSelectionChanged()), this, SLOT(childSelectionSlot()));
 
   widgetLayout->addWidget(childList_);
 
-  auto *buttonFrame  = new QFrame;
+  auto *buttonFrame = new QFrame;
+  buttonFrame->setObjectName("buttonFrame");
+
   auto *buttonLayout = new QHBoxLayout(buttonFrame);
 
   widgetLayout->addWidget(buttonFrame);
 
-  auto *parentButton  = new QPushButton("Parent");
+  auto *parentButton = new QPushButton("Parent");
+  parentButton->setObjectName("parentButton");
   auto *currentButton = new QPushButton("Set Current");
+  currentButton->setObjectName("currentButton");
 
   connect(parentButton, SIGNAL(clicked()), this, SLOT(parentSlot()));
   connect(currentButton, SIGNAL(clicked()), this, SLOT(currentSlot()));
@@ -77,17 +103,19 @@ CTkAppDebug(CTkApp *tk) :
 
   //---
 
-  auto *dataFrame = new QFrame;
+  auto *layoutDataGroup = new QGroupBox("Layout");
+  layoutDataGroup->setObjectName("layoutDataGroup");
 
-  dataLayout_ = new QVBoxLayout(dataFrame);
+  layoutDataLayout_ = new QVBoxLayout(layoutDataGroup);
 
-  typeLabel_   = new QLabel;
-  layoutLabel_ = new QLabel;
+  widgetLayoutLayout->addWidget(layoutDataGroup);
 
-  dataLayout_->addWidget(typeLabel_);
-  dataLayout_->addWidget(layoutLabel_);
+  //---
 
-  tab_->addTab(dataFrame, "Layout");
+  layoutWidgetLabel_ = new QLabel;
+  layoutWidgetLabel_->setObjectName("layoutWidgetLabel");
+
+  layoutDataLayout_->addWidget(layoutWidgetLabel_);
 
   //---
 
@@ -97,20 +125,26 @@ CTkAppDebug(CTkApp *tk) :
 
   //---
 
-  auto *imagesFrame  = new QFrame;
+  auto *imagesFrame = new QFrame;
+  imagesFrame->setObjectName("imagesFrame");
   auto *imagesLayout = new QVBoxLayout(imagesFrame);
 
   tab_->addTab(imagesFrame, "Images");
 
   //---
 
-  auto *imageGroup  = new QGroupBox("Images");
+  auto *imageGroup = new QGroupBox("Images");
+  imageGroup->setObjectName("imageGroup");
+
   auto *imageLayout = new QHBoxLayout(imageGroup);
 
   imagesLayout->addWidget(imageGroup);
 
-  imageList_  = new QListWidget;
+  imageList_ = new QListWidget;
+  imageList_->setObjectName("imageList");
+
   imageLabel_ = new QLabel;
+  imageLabel_->setObjectName("imageLabel");
 
   connect(imageList_, SIGNAL(itemSelectionChanged()), this, SLOT(imageSelectionSlot()));
 
@@ -120,12 +154,17 @@ CTkAppDebug(CTkApp *tk) :
   //---
 
   auto *bitmapGroup  = new QGroupBox("Bitmaps");
+  bitmapGroup->setObjectName("bitmapGroup");
+
   auto *bitmapLayout = new QHBoxLayout(bitmapGroup);
 
   imagesLayout->addWidget(bitmapGroup);
 
-  bitmapList_  = new QListWidget;
+  bitmapList_ = new QListWidget;
+  bitmapList_->setObjectName("bitmapList");
+
   bitmapLabel_ = new QLabel;
+  bitmapLabel_->setObjectName("bitmapLabel");
 
   connect(bitmapList_, SIGNAL(itemSelectionChanged()), this, SLOT(bitmapSelectionSlot()));
 
@@ -138,18 +177,25 @@ CTkAppDebug(CTkApp *tk) :
 
   //---
 
-  auto *fontsFrame  = new QFrame;
+  auto *fontsFrame = new QFrame;
+  fontsFrame->setObjectName("fontsFrame");
+
   auto *fontsLayout = new QVBoxLayout(fontsFrame);
 
   tab_->addTab(fontsFrame, "Fonts");
 
-  auto *fontGroup  = new QGroupBox("Fonts");
+  auto *fontGroup = new QGroupBox("Fonts");
+  fontGroup->setObjectName("fontGroup");
+
   auto *fontLayout = new QHBoxLayout(fontGroup);
 
   fontsLayout->addWidget(fontGroup);
 
-  fontList_  = new QListWidget;
+  fontList_ = new QListWidget;
+  fontList_->setObjectName("fontList");
+
   fontLabel_ = new QLabel;
+  fontLabel_->setObjectName("fontLabel");
 
   connect(fontList_, SIGNAL(itemSelectionChanged()), this, SLOT(fontSelectionSlot()));
 
@@ -174,6 +220,14 @@ void
 CTkAppDebug::
 updateChildren()
 {
+  QString currentName;
+
+  if (currentWidget_)
+    currentName = QString("%1 (%2)").
+      arg(currentWidget_->getFullName()).arg(currentWidget_->getType());
+
+  currentLabel_->setText(currentName);
+
   childList_->clear();
 
   if (currentWidget_) {
@@ -185,9 +239,12 @@ updateChildren()
       childList_->addItem(child->getName());
   }
 
-  layoutLabel_->setText(currentLayout_ ? currentLayout_->name() : "");
-
   createLayoutWidgets();
+
+  layoutGroup_->setTitle(currentLayout_ ? currentLayout_->name() : "");
+
+  if (rubberBand_)
+    rubberBand_->hide();
 }
 
 void
@@ -233,26 +290,46 @@ createLayoutWidgets()
   gridLayout_  = dynamic_cast<CTkAppGridLayout  *>(currentLayout_);
   placeLayout_ = dynamic_cast<CTkAppPlaceLayout *>(currentLayout_);
 
-  delete layoutFrame_;
+  //---
+
+  delete layoutGroup_;
+  delete noLayoutLabel_;
 
   //---
 
-  layoutFrame_  = new QFrame;
-  layoutLayout_ = new QVBoxLayout(layoutFrame_);
+  layoutGroup_ = new QGroupBox("Layout");
+  layoutGroup_->setObjectName("layoutGroup");
+
+  layoutLayout_ = new QVBoxLayout(layoutGroup_);
 
   layoutWidgets_ = LayoutWidgets();
 
-  dataLayout_->addWidget(layoutFrame_);
+  layoutDataLayout_->addWidget(layoutGroup_);
+
+  //---
+
+  noLayoutLabel_ = new QLabel;
+  noLayoutLabel_->setObjectName("noLayoutLabel");
+
+  noLayoutLabel_->setText("No Layout");
+
+  layoutDataLayout_->addWidget(noLayoutLabel_);
 
   //---
 
   auto addBoolEdit = [&](const QString &name, const QString &id) {
-    auto *frame  = new QFrame;
+    auto *frame = new QFrame;
+    frame->setObjectName("frame");
+
     auto *layout = new QHBoxLayout(frame);
 
-    layout->addWidget(new QLabel(name));
+    auto *label = new QLabel(name);
+    label->setObjectName("label");
+
+    layout->addWidget(label);
 
     auto *edit = new QCheckBox;
+    edit->setObjectName("edit");
 
     edit->setProperty("id", id);
 
@@ -266,12 +343,18 @@ createLayoutWidgets()
   };
 
   auto addIntEdit = [&](const QString &name, const QString &id) {
-    auto *frame  = new QFrame;
+    auto *frame = new QFrame;
+    frame->setObjectName("frame");
+
     auto *layout = new QHBoxLayout(frame);
 
-    layout->addWidget(new QLabel(name));
+    auto *label = new QLabel(name);
+    label->setObjectName("label");
+
+    layout->addWidget(label);
 
     auto *edit = new CQIntegerSpin;
+    edit->setObjectName("edit");
 
     edit->setProperty("id", id);
 
@@ -285,14 +368,20 @@ createLayoutWidgets()
   };
 
   auto addOptIntEdit = [&](const QString &name, const QString &id, CQOptEdit* &optEdit) {
-    auto *frame  = new QFrame;
+    auto *frame = new QFrame;
+    frame->setObjectName("frame");
+
     auto *layout = new QHBoxLayout(frame);
 
-    layout->addWidget(new QLabel(name));
+    auto *label = new QLabel(name);
+    label->setObjectName("label");
+
+    layout->addWidget(label);
 
     optEdit = new CQOptEdit;
 
     auto *edit = new CQIntegerSpin;
+    edit->setObjectName("edit");
 
     edit->setProperty("id", id);
 
@@ -310,12 +399,18 @@ createLayoutWidgets()
 
 #if 0
   auto addRealEdit = [&](const QString &name, const QString &id) {
-    auto *frame  = new QFrame;
+    auto *frame = new QFrame;
+    frame->setObjectName("frame");
+
     auto *layout = new QHBoxLayout(frame);
 
-    layout->addWidget(new QLabel(name));
+    auto *label = new QLabel(name);
+    label->setObjectName("label");
+
+    layout->addWidget(label);
 
     auto *edit = new CQRealSpin;
+    edit->setObjectName("edit");
 
     edit->setProperty("id", id);
 
@@ -330,14 +425,20 @@ createLayoutWidgets()
 #endif
 
   auto addOptRealEdit = [&](const QString &name, const QString &id, CQOptEdit* &optEdit) {
-    auto *frame  = new QFrame;
+    auto *frame = new QFrame;
+    frame->setObjectName("frame");
+
     auto *layout = new QHBoxLayout(frame);
 
-    layout->addWidget(new QLabel(name));
+    auto *label = new QLabel(name);
+    label->setObjectName("label");
+
+    layout->addWidget(label);
 
     optEdit = new CQOptEdit;
 
     auto *edit = new CQRealSpin;
+    edit->setObjectName("edit");
 
     edit->setProperty("id", id);
 
@@ -354,12 +455,18 @@ createLayoutWidgets()
   };
 
   auto addStringEdit = [&](const QString &name, const QString &id) {
-    auto *frame  = new QFrame;
+    auto *frame = new QFrame;
+    frame->setObjectName("frame");
+
     auto *layout = new QHBoxLayout(frame);
 
-    layout->addWidget(new QLabel(name));
+    auto *label = new QLabel(name);
+    label->setObjectName("label");
+
+    layout->addWidget(label);
 
     auto *edit = new QLineEdit;
+    edit->setObjectName("edit");
 
     edit->setProperty("id", id);
 
@@ -373,12 +480,18 @@ createLayoutWidgets()
   };
 
   auto addComboEdit = [&](const QString &name, const QString &id, const QStringList &items) {
-    auto *frame  = new QFrame;
+    auto *frame = new QFrame;
+    frame->setObjectName("frame");
+
     auto *layout = new QHBoxLayout(frame);
 
-    layout->addWidget(new QLabel(name));
+    auto *label = new QLabel(name);
+    label->setObjectName("label");
+
+    layout->addWidget(label);
 
     auto *edit = new QComboBox;
+    edit->setObjectName("edit");
 
     for (const auto &item : items)
       edit->addItem(item);
@@ -408,8 +521,9 @@ createLayoutWidgets()
     layoutWidgets_.ipadYSpin = addIntEdit("IPad Y", "ipady");
   }
   else if (gridLayout_) {
-    layoutWidgets_.rowSpin     = addOptIntEdit("Row"     , "row", layoutWidgets_.rowOptEdit);
-    layoutWidgets_.colSpin     = addOptIntEdit("Col"     , "col", layoutWidgets_.colOptEdit);
+    layoutWidgets_.rowSpin = addOptIntEdit("Row", "row", layoutWidgets_.rowOptEdit);
+    layoutWidgets_.colSpin = addOptIntEdit("Col", "col", layoutWidgets_.colOptEdit);
+
     layoutWidgets_.rowSpanSpin =
       addOptIntEdit("Row Span", "rowspan", layoutWidgets_.rowSpanOptEdit);
     layoutWidgets_.colSpanSpin =
@@ -478,6 +592,7 @@ void
 CTkAppDebug::
 childSelectionSlot()
 {
+  // get current child
   auto items = childList_->selectedItems();
 
   int row = -1;
@@ -487,7 +602,8 @@ childSelectionSlot()
 
   CTkAppWidget::Children children;
 
-  currentWidget_->getChildren(children);
+  if (currentWidget_)
+    currentWidget_->getChildren(children);
 
   currentChild_ = nullptr;
 
@@ -502,9 +618,22 @@ childSelectionSlot()
     ++i;
   }
 
-  typeLabel_->setText(currentChild_ ? currentChild_->getClassName() : "");
+  //---
+
+  QString childName;
+
+  if (currentChild_)
+    childName = QString("%1 (%2)").
+      arg(currentChild_->getName()).arg(currentChild_->getClassName());
+
+  layoutWidgetLabel_->setText(childName);
+
+  //---
 
   updateLayoutWidgets();
+
+  if (currentChild_ && currentChild_->getQWidget())
+    showWidget(currentChild_->getQWidget());
 }
 
 void
@@ -639,8 +768,15 @@ updateLayoutWidgets()
     }
   }
 
-  if (! layoutWidget_)
+  if (layoutWidget_) {
+    layoutGroup_  ->setVisible(true);
+    noLayoutLabel_->setVisible(false);
+  }
+  else {
+    layoutGroup_  ->setVisible(false);
+    noLayoutLabel_->setVisible(true);
     return;
+  }
 
   //---
 
@@ -1176,4 +1312,21 @@ comboChanged(int)
 
     packLayout_->invalidate();
   }
+}
+
+void
+CTkAppDebug::
+showWidget(QWidget *widget)
+{
+  auto rect  = widget->rect();
+  auto rtl   = widget->mapToGlobal(rect.topLeft());
+  auto rbr   = widget->mapToGlobal(rect.bottomRight());
+  auto rrect = QRect(rtl, rbr);
+
+  if (! rubberBand_)
+    rubberBand_ = new QRubberBand(QRubberBand::Rectangle);
+
+  rubberBand_->setGeometry(rrect);
+
+  rubberBand_->show();
 }

@@ -428,7 +428,7 @@ setGeometry(const QRect &rect)
 
     int y1 = INT_MAX, y2 = 0;
 
-    for (auto *w : expandHWidgets) {
+    for (auto *w : expandVWidgets) {
       auto r = w->geometry();
 
       y1 = std::min(y1, r.top   ());
@@ -437,19 +437,41 @@ setGeometry(const QRect &rect)
       yWidgets[y1].push_back(w);
     }
 
-    int dy = (y1 + (rect.height() - y2))/(expandVWidgets.size() + 1);
+    bool placed = false;
 
-    int d = dy;
+    if (expandVWidgets.size() == 1) {
+      auto *w = expandVWidgets[0];
 
-    for (const auto &p1 : yWidgets) {
-      for (auto *w : p1.second) {
-        auto r = w->geometry();
+      auto r = w->geometry();
 
-        auto r1 = QRect(r.left(), r.top() + dy/2, r.width(), r.height());
+      if (placeRect.left() == r.left() && placeRect.right() == r.right()) {
+        y1 = std::min(y1, placeRect.top());
+        y2 = std::max(y2, placeRect.bottom());
 
-        w->setGeometry(r1);
+        r.setTop   (y1);
+        r.setBottom(y2);
 
-        d += dy;
+        w->setGeometry(r);
+
+        placed = true;
+      }
+    }
+
+    if (! placed) {
+      int dy = (y1 + (rect.height() - y2))/(expandVWidgets.size() + 1);
+
+      int d = dy;
+
+      for (const auto &p1 : yWidgets) {
+        for (auto *w : p1.second) {
+          auto r = w->geometry();
+
+          auto r1 = QRect(r.left(), r.top() + dy/2, r.width(), r.height());
+
+          w->setGeometry(r1);
+
+          d += dy;
+        }
       }
     }
   }
