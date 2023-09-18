@@ -1,0 +1,47 @@
+image create photo my_image
+
+my_image put #8888aa -to 0 0 128 128
+
+set button "Button Var"
+
+button .b
+
+.b config -activebackground red
+.b config -activeforeground green
+.b config -anchor n
+.b config -background white
+.b config -bitmap info
+.b config -borderwidth 4
+.b config -compound left
+.b config -cursor watch
+.b config -disabledforeground gray
+.b config -font {helvetica 22}
+.b config -foreground black
+.b config -highlightbackground yellow
+.b config -highlightcolor orange
+.b config -highlightthickness 2
+.b config -image my_image
+.b config -justify left
+.b config -padx 2
+.b config -pady 2
+.b config -relief sunken
+.b config -repeatdelay 10
+.b config -repeatinterval 10
+.b config -takefocus true
+.b config -text "Button"
+.b config -textvariable button
+.b config -underline 2
+.b config -wraplength 200
+
+.b config -command {puts "Button Press"}
+.b config -default normal
+.b config -height 128
+.b config -overrelief raised
+.b config -state normal
+.b config -width 256
+
+.b cget -activebackground
+.b flash
+.b invoke
+
+pack .b

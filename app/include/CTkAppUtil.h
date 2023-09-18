@@ -1,14 +1,56 @@
 #ifndef CTkAppUtil_H
 #define CTkAppUtil_H
 
-#include <string>
+#include <CTkAppTypes.h>
 
+#include <QPainterPath>
 #include <QColor>
 #include <QFont>
 
+#include <string>
+
+class CTkApp;
 class CTclApp;
 
+struct CTkAppTextInd {
+  enum { END = INT_MAX };
+
+  int lineNum { -1 };
+  int charNum { -1 };
+
+  CTkAppTextInd() { }
+
+  CTkAppTextInd(int l, int c) :
+    lineNum(l), charNum(c) {
+  }
+
+  static CTkAppTextInd end() {
+    return CTkAppTextInd(END, END);
+  }
+
+  static int cmp(const CTkAppTextInd &ind1, const CTkAppTextInd &ind2) {
+    if (ind1.lineNum > ind2.lineNum) return  1;
+    if (ind1.lineNum < ind2.lineNum) return -1;
+    if (ind1.charNum > ind2.charNum) return  1;
+    if (ind1.charNum < ind2.charNum) return -1;
+    return 0;
+  }
+
+  QString toString() const {
+    return QString::number(lineNum) + "." + QString::number(charNum);
+  }
+
+  friend std::ostream &operator<<(std::ostream &os, const CTkAppTextInd &ind) {
+    os << ind.toString().toStdString();
+    return os;
+  }
+};
+
+//---
+
 namespace CTkAppUtil {
+
+enum { END_INDEX=INT_MAX };
 
 bool stringToInt(const QString &str, long &i);
 bool stringToReal(const QString &str, double &r);
@@ -38,6 +80,27 @@ bool variantToReal(CTclApp *app, const QVariant &var, double &r);
 bool variantToBool(CTclApp *app, const QVariant &var, bool &b);
 
 QString variantToString(CTclApp *app, const QVariant &var, bool quote=false);
+
+bool stringToIndex(CTkApp *app, const QVariant &var, int &ind);
+
+bool stringToLineChar(const QString &str, int &lineNum, int &charNum);
+
+bool stringToTextInd(CTkApp *app, const QVariant &var, CTkAppTextInd &ind);
+
+bool stringToRelief(const QString &str, CTkAppWidgetRelief &relief);
+void setFrameRelief(QWidget *w, const CTkAppWidgetRelief &relief);
+
+Qt::Alignment stringToJustify(const QString &value);
+
+QString underlineLabel(const QString &label, long pos);
+
+bool stringToCompound(const QString &value, CTkAppCompoundType &type);
+
+bool stringToPath(const QString &str, QPainterPath &path);
+
+bool stringToMatrix(CTkApp *tk, const QString &str, QTransform &t);
+
+QColor grayColor(const QColor &c);
 
 }
 

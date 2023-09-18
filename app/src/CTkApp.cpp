@@ -6,6 +6,7 @@
 #include <CTkAppEventData.h>
 #include <CTkAppUtil.h>
 #include <CTkAppDebug.h>
+#include <CTkAppBitmaps.h>
 
 #include <CQStrParse.h>
 #include <CScreenUnits.h>
@@ -21,12 +22,6 @@
 #include <tcl.h>
 
 #define MY_EVENT_SOURCE 1
-
-namespace {
-
-#include <bitmaps/question.xbm>
-
-}
 
 //---
 
@@ -231,9 +226,7 @@ construct(int argc, const char **argv)
   //---
 
   // standard bitmaps
-  auto questionImage = std::make_shared<CTkAppImage>(this, "question");
-  questionImage->loadXBMData(question_width, question_height, question_bits);
-  addBitmap("question", questionImage);
+  CTkAppBitmaps::addStandardBitmaps(this);
 
   //---
 

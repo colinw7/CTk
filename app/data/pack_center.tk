@@ -1,0 +1,7 @@
+label .toolbar -text toolbar -height 2 -background red
+label .status  -text status  -height 2 -background green
+label .client  -text client            -background blue
+
+pack .toolbar -side top    -fill x -expand n
+pack .status  -side bottom -fill x -expand n
+pack .client  -side top    -fill both -expand y

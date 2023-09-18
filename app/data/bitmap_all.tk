@@ -1,0 +1,33 @@
+image create bitmap bmp1
+image create bitmap bmp2
+
+set data {
+  #define down_arrow_width 12
+  #define down_arrow_height 12
+  static char down_arrow_bits[] = {
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    0xfc,0xf1,0xf8,0xf0,0x70,0xf0,0x20,0xf0,
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00;
+  }
+}
+
+bmp1 config -background red 
+bmp1 config -foreground yellow 
+bmp1 config -data $data
+bmp1 config -maskdata $data
+
+bmp2 config -background red 
+bmp2 config -foreground yellow 
+bmp2 config -file data/zoom.xbm 
+bmp2 config -maskfile data/zoommask.xbm
+
+puts [bmp1 config]
+puts [bmp2 config]
+
+puts [bmp1 cget -data]
+puts [bmp1 cget -background]
+
+label .l1 -image bmp1 -width 128 -height 128
+label .l2 -image bmp2 -width 128 -height 128
+
+pack .l1 .l2

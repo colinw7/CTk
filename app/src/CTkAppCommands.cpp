@@ -13,7 +13,6 @@
 
 #include <CQTclUtil.h>
 
-#include <CEncode64.h>
 #include <CMatrix2D.h>
 #include <CScreenUnits.h>
 
@@ -141,18 +140,6 @@ class CLASS : public DERIVED { \
 #endif
 
   CTkAppCommandDef("error_info", CTkAppErrorInfoCmd)
-
-//---
-
-class CTkAppRootCommand :  public CTkAppCommand {
- public:
-  CTkAppRootCommand(CTkApp *tk);
-
-  bool run(const Args &args) override;
-
- private:
-  CTkAppOptData opts_;
-};
 
 //---
 
@@ -439,8 +426,6 @@ run(const Args &args)
     { "-activeforeground"   , "activeForeground"   , "Background"         , "#000000"       },
     { "-anchor"             , "anchor"             , "Anchor"             , "center"        },
     { "-background"         , "background"         , "Background"         , "#d9d9d9"       },
-    { "-bd"                 , "-borderwidth"       , nullptr              , nullptr         },
-    { "-bg"                 , "-background"        , nullptr              , nullptr         },
     { "-bitmap"             , "bitmap"             , "Bitmap"             , ""              },
     { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "1"             },
     { "-command"            , "command"            , "Command"            , ""              },
@@ -448,7 +433,6 @@ run(const Args &args)
     { "-cursor"             , "cursor"             , "Cursor"             , ""              },
     { "-default"            , "default"            , "Default"            , "disabled"      },
     { "-disabledforeground" , "disabledForeground" , "DisabledForeground" , "#a3a3a3"       },
-    { "-fg"                 , "-foreground"        , nullptr              , nullptr         },
     { "-font"               , "font"               , "Font"               , "TkDefaultFont" },
     { "-foreground"         , "foreground"         , "Foreground"         , "#000000"       },
     { "-height"             , "height"             , "Height"             , "0"             },
@@ -470,7 +454,12 @@ run(const Args &args)
     { "-underline"          , "underline"          , "Underline"          , "-1"            },
     { "-width"              , "width"              , "Width"              , "0"             },
     { "-wraplength"         , "wrapLength"         , "WrapLength"         , "0"             },
-    { nullptr               , nullptr              , nullptr              , nullptr         }
+
+    { "-bd", "-borderwidth", nullptr, nullptr },
+    { "-bg", "-background" , nullptr, nullptr },
+    { "-fg", "-foreground" , nullptr, nullptr },
+
+    { nullptr, nullptr, nullptr, nullptr }
   };
 
   QVariant widgetName;
@@ -1995,16 +1984,6 @@ run(const Args &args)
           return tk_->throwError("value for \"" + arg + "\" missing");
 
         data = tk_->variantToString(args[i]).toStdString();
-
-        if (type == "photo") {
-          std::string dataStr;
-          for (const auto &c : data) {
-            if (std::isspace(c)) continue;
-            dataStr += c;
-          }
-//        std::cerr << dataStr << "\n";
-          data = CEncode64Inst->decode(dataStr); // don't use QString
-        }
       }
       else if (arg == "-format") {
         ++i;
@@ -2071,16 +2050,18 @@ run(const Args &args)
       if (type == "bitmap" && format == "")
         format = "xbm";
 
-      if (format == "xbm")
-        image->loadXBM(name, data);
+      if (format == "xbm") {
+        if (! image->loadXBM(name, data))
+          return false;
+      }
       else
-        image->loadData(name, format, data);
+        image->loadEncodedData(name, format, data);
     }
 
     if (format != "")
       image->setFormat(format);
 
-    auto *cmd = new CTkAppImageCommand(tk_, name);
+    auto *cmd = new CTkAppImageCommand(tk_, name, type);
     assert(cmd);
 
     setResult(name);
@@ -5447,10 +5428,9 @@ run(const Args &args)
 
 CTkAppRootCommand::
 CTkAppRootCommand(CTkApp *tk) :
- CTkAppCommand(tk, "."), opts_(tk)
+ CTkAppOptsCommand(tk, ".")
 {
   static CTkAppOpt opts[] = {
-    { "-bd"                 , "-borderwidth"       , nullptr              , nullptr    },
     { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "0"        },
     { "-class"              , "class"              , "Class"              , "Toplevel" },
     { "-menu"               , "menu"               , "Menu"               , ""         },
@@ -5458,7 +5438,6 @@ CTkAppRootCommand(CTkApp *tk) :
     { "-screen"             , "screen"             , "Screen"             , ""         },
     { "-use"                , "use"                , "Use"                , ""         },
     { "-background"         , "background"         , "Background"         , "#d9d9d9"  },
-    { "-bg"                 , "-background"        , nullptr              , nullptr    },
     { "-colormap"           , "colormap"           , "Colormap"           , "",        },
     { "-container"          , "container"          , "Container"          , "0"        },
     { "-cursor"             , "cursor"             , "Cursor"             , ""         },
@@ -5471,7 +5450,11 @@ CTkAppRootCommand(CTkApp *tk) :
     { "-takefocus"          , "takeFocus"          , "TakeFocus"          , "0"        },
     { "-visual"             , "visual"             , "Visual"             , "",        },
     { "-width"              , "width"              , "Width"              , "0"        },
-    { nullptr               , nullptr              , nullptr              , nullptr    }
+
+    { "-bg", "-background" , nullptr, nullptr },
+    { "-bd", "-borderwidth", nullptr, nullptr },
+
+    { nullptr, nullptr, nullptr, nullptr }
   };
 
   opts_.init(opts);
@@ -5495,39 +5478,28 @@ run(const Args &args)
   if (! tk_->lookupOptionName(optionNames, args[0], arg))
     return false;
 
+  // set config name/value
   if      (arg == "configure") {
-    // get all options
-    if      (numArgs == 1) {
-      auto var = opts_.getOpts();
-
-      tk_->setResult(var);
-    }
-    // get single option
-    else if (numArgs == 2) {
-      auto name = args[1].toString();
-
-      auto var = opts_.getOpt(name);
-
-      tk_->setResult(var);
-    }
-    // set option
-    else {
-      for (uint i = 1; i < numArgs - 1; i += 2) {
-        auto name  = args[i + 0].toString();
-        auto value = args[i + 1];
-
-        const CTkAppOpt *opt;
-
-        if (! opts_.setOptValue(name, value, &opt))
-          return tk_->throwError("unknown config option \"" + name + "\"");
-
-        root()->execConfig(opt->name, value);
-      }
-    }
+    return execConfigure(args);
   }
+  // get config name/value
   else if (arg == "cget") {
-    tk_->TODO(args);
+    return execCGet(args);
   }
+
+  return true;
+}
+
+bool
+CTkAppRootCommand::
+setOptValue(const QString &name, const QVariant &value)
+{
+  const CTkAppOpt *opt;
+
+  if (! opts_.setOptValue(name, value, &opt))
+    return false;
+
+  root()->execConfig(opt->name, value);
 
   return true;
 }
@@ -5535,9 +5507,9 @@ run(const Args &args)
 //---
 
 CTkAppWidgetCommand::
-CTkAppWidgetCommand(CTkAppCommand *command, const QString &name,
-                    CTkAppWidget *w, const CTkAppOpt *opts) :
- CTkAppCommand(command->getTk(), name), command_(command), w_(w), opts_(command->getTk())
+CTkAppWidgetCommand(CTkAppCommand *command, const QString &name, CTkAppWidget *w,
+                    const CTkAppOpt *opts) :
+ CTkAppOptsCommand(command->getTk(), name), command_(command), w_(w)
 {
   opts_.init(opts);
 
@@ -5545,9 +5517,8 @@ CTkAppWidgetCommand(CTkAppCommand *command, const QString &name,
 }
 
 CTkAppWidgetCommand::
-CTkAppWidgetCommand(CTkApp *app, const QString &name,
-                    CTkAppWidget *w, const CTkAppOpt *opts) :
- CTkAppCommand(app, name), w_(w), opts_(app)
+CTkAppWidgetCommand(CTkApp *app, const QString &name, CTkAppWidget *w, const CTkAppOpt *opts) :
+ CTkAppOptsCommand(app, name), w_(w)
 {
   opts_.init(opts);
 
@@ -5570,60 +5541,23 @@ run(const Args &args)
   if (numArgs == 0)
     return tk_->wrongNumArgs(getName() + " option ?arg arg ...?");
 
-  auto arg = args[0].toString();
+  auto arg = tk_->variantToString(args[0]);
 
   // set config name/value
   if      (arg == "configure" || arg == "config") {
-    // get all options
-    if      (numArgs == 1) {
-      auto var = opts_.getOpts();
-
-      tk_->setResult(var);
-    }
-    // get single option
-    else if (numArgs == 2) {
-      auto name = args[1].toString();
-
-      auto var = opts_.getOpt(name);
-
-      tk_->setResult(var);
-    }
-    // set option
-    else {
-      for (uint i = 1; i < numArgs - 1; i += 2) {
-        auto name  = args[i + 0].toString();
-        auto value = args[i + 1];
-
-        if (! setOptValue(name, value))
-          return tk_->throwError("unknown config option \"" + name + "\"");
-      }
-    }
-
-    return true;
+    return execConfigure(args);
   }
   // get config name/value
   else if (arg == "cget") {
-    if (numArgs != 2)
-      return tk_->wrongNumArgs(getName() + " cget option");
-
-    auto name = args[1].toString();
-
-    QString value;
-
-    if (! getOptValue(name, value))
-      return tk_->throwError("unknown cget option \"" + name + "\"");
-
-    setStringResult(value);
-
-    return true;
+    return execCGet(args);
   }
   // apply operation
   else {
     if (! w_->execOp(args))
       return false;
-
-    return true;
   }
+
+  return true;
 }
 
 bool
@@ -5635,7 +5569,7 @@ processArgs(const Args &args)
   auto numArgs = args.size();
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto name = args[i].toString();
+    auto name = tk_->variantToString(args[i]);
 
     if (name.size() > 0 && name[0] == '-') {
       ++i;
@@ -5658,16 +5592,6 @@ processArgs(const Args &args)
 
 bool
 CTkAppWidgetCommand::
-getOptValue(const QString &name, QString &value)
-{
-  if (! opts_.getOptValue(name, value))
-    return false;
-
-  return true;
-}
-
-bool
-CTkAppWidgetCommand::
 setOptValue(const QString &name, const QVariant &value)
 {
   const CTkAppOpt *opt;
@@ -5683,8 +5607,8 @@ setOptValue(const QString &name, const QVariant &value)
 //---
 
 CTkAppImageCommand::
-CTkAppImageCommand(CTkApp *app, const QString &name) :
- CTkAppCommand(app, name)
+CTkAppImageCommand(CTkApp *app, const QString &name, const QString &type) :
+ CTkAppCommand(app, name), type_(type)
 {
 }
 
@@ -5707,45 +5631,84 @@ run(const Args &args)
   auto image = tk_->getImage(getName());
   assert(image);
 
-  auto opt = args[0].toString();
+  static auto photoNames  =
+    std::vector<QString>({"blank", "cget", "configure", "copy", "data", "get", "put",
+                          "read", "redither", "transparency", "write"});
+  static auto bitmapNames = std::vector<QString>({"cget", "configure"});
 
-  if      (opt == "blank") {
+  QString option;
+  if (type_ == "photo") {
+    if (! tk_->lookupOptionName(photoNames, args[0], option))
+      return false;
+  }
+  else {
+    if (! tk_->lookupOptionName(bitmapNames, args[0], option))
+      return false;
+  }
+
+  if      (option == "blank") {
     if (numArgs != 1)
       return tk_->wrongNumArgs(getName() + " blank");
 
     image->clear();
   }
-  else if (opt == "cget") {
+  else if (option == "cget") {
     if (numArgs < 2)
       return tk_->wrongNumArgs(getName() + " cget option");
 
     auto opt = args[1].toString();
 
-    if      (opt == "-data") {
-      tk_->TODO(args);
+    if (type_ == "photo") {
+      if      (opt == "-data") {
+        tk_->setStringResult(image->getEncodedDataStr());
+      }
+      else if (opt == "-format") {
+        tk_->setStringResult(image->format());
+      }
+      else if (opt == "-file") {
+        tk_->setStringResult(image->filename());
+      }
+      else if (opt == "-gamma") {
+        tk_->setRealResult(image->gamma());
+      }
+      else if (opt == "-height") {
+        tk_->setIntegerResult(image->height());
+      }
+      else if (opt == "-palette") {
+        int r, g, b;
+        image->getColorBits(r, g, b);
+        tk_->setIntegerArrayResult({r, g, b});
+      }
+      else if (opt == "-width") {
+        tk_->setIntegerResult(image->width());
+      }
+      else
+        return false;
     }
-    else if (opt == "-format") {
-      tk_->setStringResult(image->format());
+    else {
+      if      (opt == "-background") {
+        tk_->setStringResult(image->background().name());
+      }
+      else if (opt == "-data") {
+        tk_->setStringResult(image->getBitmapStr());
+      }
+      else if (opt == "-file") {
+        tk_->setStringResult(image->filename());
+      }
+      else if (opt == "-foreground") {
+        tk_->setStringResult(image->foreground().name());
+      }
+      else if (opt == "-maskdata") {
+        tk_->setStringResult(image->getMaskBitmapStr());
+      }
+      else if (opt == "-maskfile") {
+        tk_->setStringResult(image->maskFilename());
+      }
+      else
+        return false;
     }
-    else if (opt == "-file") {
-      tk_->setStringResult(image->filename());
-    }
-    else if (opt == "-gamma") {
-      tk_->setRealResult(image->gamma());
-    }
-    else if (opt == "-height") {
-      tk_->setIntegerResult(image->height());
-    }
-    else if (opt == "-palette") {
-      tk_->TODO(args);
-    }
-    else if (opt == "-width") {
-      tk_->setIntegerResult(image->width());
-    }
-    else
-      return false;
   }
-  else if (opt == "configure") {
+  else if (option == "configure") {
     if      (numArgs == 1) {
       QString res;
 
@@ -5753,16 +5716,57 @@ run(const Args &args)
         if (res != "")
           res += " ";
 
-        res += "{" + name + "{} {} {" + def + "} {" + value + "}}";
+        res += "{" + name + " {} {} {" + def + "} {" + value + "}}";
       };
 
-      addData("-data"   , "" , "");
-      addData("-format" , "" , image->format());
-      addData("-file"   , "" , image->filename());
-      addData("-gamma"  , "1", QString::number(image->gamma()));
-      addData("-height" , "0", QString::number(image->height()));
-      addData("-palette", "" , "");
-      addData("-width " , "0", QString::number(image->width()));
+      if (type_ == "photo") {
+        int r, g, b;
+        image->getColorBits(r, g, b);
+
+        addData("-data"   , "" , image->getEncodedDataStr());
+        addData("-format" , "" , image->format());
+        addData("-file"   , "" , image->filename());
+        addData("-gamma"  , "1", QString::number(image->gamma()));
+        addData("-height" , "0", QString::number(image->height()));
+        addData("-palette", "" , QString("%1 %2 %3").arg(r).arg(g).arg(b));
+        addData("-width " , "0", QString::number(image->width()));
+      }
+      else {
+        addData("-background", "", image->background().name());
+        addData("-data"      , "", image->getBitmapStr());
+        addData("-file"      , "", image->filename());
+        addData("-foreground", "", image->foreground().name());
+        addData("-maskdata"  , "", image->getMaskBitmapStr());
+        addData("-maskfile"  , "", image->maskFilename());
+      }
+
+      tk_->setStringResult(res);
+    }
+    else if (numArgs == 2) {
+      auto name = args[1].toString();
+
+      QString res;
+
+      if (type_ == "photo") {
+        int r, g, b;
+        image->getColorBits(r, g, b);
+
+        if (name == "-data"   ) res = image->getEncodedDataStr();
+        if (name == "-format" ) res = image->format();
+        if (name == "-file"   ) res = image->filename();
+        if (name == "-gamma"  ) res = QString::number(image->gamma());
+        if (name == "-height" ) res = QString::number(image->height());
+        if (name == "-palette") res = QString("%1 %2 %3").arg(r).arg(g).arg(b);
+        if (name == "-width " ) res = QString::number(image->width());
+      }
+      else {
+        if (name == "-background") res = image->background().name();
+        if (name == "-data"      ) res = image->getBitmapStr();
+        if (name == "-file"      ) res = image->filename();
+        if (name == "-foreground") res = image->foreground().name();
+        if (name == "-maskdata"  ) res = image->getMaskBitmapStr();
+        if (name == "-maskfile"  ) res = image->maskFilename();
+      }
 
       tk_->setStringResult(res);
     }
@@ -5773,46 +5777,97 @@ run(const Args &args)
         auto name = args[i++].toString();
 
         if (i >= numArgs)
-          return tk_->throwError("value for \"" + name + "\"missing");
+          return tk_->throwError("value for \"" + name + "\" missing");
 
-        auto value = args[i].toString();
+        auto value = tk_->variantToString(args[i]);
 
-        if      (name == "-data") {
-          tk_->TODO(args);
+        if (type_ == "photo") {
+          if      (name == "-data") {
+            auto data = value.toStdString();
+            image->loadEncodedData("", "", data);
+          }
+          else if (name == "-format") {
+            image->setFormat(value);
+          }
+          else if (name == "-file") {
+            image->setFilename(value);
+          }
+          else if (name == "-gamma") {
+            double r;
+            if (! tk_->variantToReal(args[i], r))
+              return tk_->throwError(tk_->msg() + "expected real but got \"" + args[i] + "\"");
+            image->setGamma(r);
+          }
+          else if (name == "-height") {
+            long h;
+            if (! tk_->variantToInt(args[i], h))
+              return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
+            image->setHeight(h);
+          }
+          else if (name == "-palette") {
+            std::vector<QString> strs;
+            if (! tk_->splitList(value, strs))
+              return false;
+            if (strs.size() != 1 && strs.size() != 3)
+              return false;
+            long r, g, b;
+            if (strs.size() == 1) {
+              if (! CTkAppUtil::stringToInt(strs[0], g))
+                return false;
+              r = g;
+              b = g;
+            }
+            else {
+              if (! CTkAppUtil::stringToInt(strs[0], r) ||
+                  ! CTkAppUtil::stringToInt(strs[1], g) ||
+                  ! CTkAppUtil::stringToInt(strs[2], b))
+                return false;
+            }
+            image->setColorBits(r, g, b);
+          }
+          else if (name == "-width") {
+            long w;
+            if (! tk_->variantToInt(args[i], w))
+              return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
+            image->setWidth(w);
+          }
+          else
+            return false;
         }
-        else if (name == "-format") {
-          image->setFormat(value);
+        else {
+          if      (name == "-background") {
+            QColor c;
+            if (! CTkAppUtil::variantToQColor(tk_, args[i], c))
+              return false;
+            image->setBackground(c);
+          }
+          else if (name == "-data") {
+            auto data = value.toStdString();
+            if (! image->loadXBM("bitmap", data))
+              return false;
+          }
+          else if (name == "-file") {
+            image->setFilename(value);
+          }
+          else if (name == "-foreground") {
+            QColor c;
+            if (! CTkAppUtil::variantToQColor(tk_, args[i], c))
+              return false;
+            image->setForeground(c);
+          }
+          else if (name == "-maskdata") {
+            auto data = value.toStdString();
+            if (! image->loadMaskXBM("mask", data))
+              return false;
+          }
+          else if (name == "-maskfile") {
+            image->setMaskFilename(value);
+          }
         }
-        else if (name == "-file") {
-          image->setFilename(value);
-        }
-        else if (name == "-gamma") {
-          double r;
-          if (! tk_->variantToReal(value, r))
-            return tk_->throwError("expected real but got \"" + value + "\"");
-          image->setGamma(r);
-        }
-        else if (name == "-height") {
-          long h;
-          if (! tk_->variantToInt(args[i], h))
-            return tk_->throwError("expected integer but got \"" + value + "\"");
-          image->setHeight(h);
-        }
-        else if (name == "-palette") {
-          tk_->TODO(args);
-        }
-        else if (name == "-width") {
-          long w;
-          if (! tk_->variantToInt(args[i], w))
-            return tk_->throwError("expected integer but got \"" + value + "\"");
-          image->setWidth(w);
-        }
-        else
-          return false;
       }
     }
   }
-  else if (opt == "copy") {
+  else if (option == "copy") {
     if (numArgs < 3)
       return tk_->wrongNumArgs(getName() +
         " copy source-image ?-compositingrule rule? "
@@ -5820,10 +5875,10 @@ run(const Args &args)
 
     tk_->TODO(args);
   }
-  else if (opt == "data") {
+  else if (option == "data") {
     tk_->TODO(args);
   }
-  else if (opt == "get") {
+  else if (option == "get") {
     if (numArgs != 3)
       return tk_->wrongNumArgs(getName() + " get x y");
 
@@ -5841,7 +5896,7 @@ run(const Args &args)
 
     tk_->setIntegerArrayResult({c.red(), c.green(), c.blue()});
   }
-  else if (opt == "put") {
+  else if (option == "put") {
     if (numArgs < 2)
       return tk_->wrongNumArgs(getName() + " put data ?-option value ...?");
 
@@ -5897,7 +5952,7 @@ run(const Args &args)
       }
     }
   }
-  else if (opt == "read") {
+  else if (option == "read") {
     if (numArgs < 2)
       return tk_->wrongNumArgs(getName() + " read fileName ?-option value ...?");
 
@@ -5954,13 +6009,13 @@ run(const Args &args)
     if (! image->loadFile(filename))
       return false;
   }
-  else if (opt == "redither") {
+  else if (option == "redither") {
     if (numArgs != 1)
       return tk_->wrongNumArgs(getName() + " redither");
 
     tk_->TODO(args);
   }
-  else if (opt == "transparency") {
+  else if (option == "transparency") {
     if (numArgs < 2)
       return tk_->wrongNumArgs(getName() + " transparency option ?arg ...?");
 
@@ -6009,7 +6064,7 @@ run(const Args &args)
     else
       return false;
   }
-  else if (opt == "write") {
+  else if (option == "write") {
     if (numArgs < 2)
       return tk_->wrongNumArgs(getName() + " write fileName ?-option value ...?");
 
@@ -6055,10 +6110,6 @@ run(const Args &args)
     }
 
     tk_->TODO(args);
-  }
-  else {
-    tk_->throwError("bad option \"" + opt + "\": must be "
-      "blank, cget, configure, copy, data, get, put, read, redither, transparency, or write");
   }
 
   return true;
@@ -6195,6 +6246,13 @@ CTkAppCommand(CTkApp *tk, const QString &name) :
 {
 }
 
+CTkAppRoot *
+CTkAppCommand::
+root() const
+{
+  return tk_->root();
+}
+
 bool
 CTkAppCommand::
 proc(int objc, Tcl_Obj * const *objv)
@@ -6220,11 +6278,88 @@ proc(int objc, Tcl_Obj * const *objv)
   return rc;
 }
 
-CTkAppRoot *
-CTkAppCommand::
-root() const
+//---
+
+CTkAppOptsCommand::
+CTkAppOptsCommand(CTkApp *tk, const QString &name) :
+ CTkAppCommand(tk, name), opts_(tk)
 {
-  return tk_->root();
+}
+
+bool
+CTkAppOptsCommand::
+execCGet(const Args &args)
+{
+  uint numArgs = args.size();
+
+  if (numArgs != 2)
+    return tk_->wrongNumArgs(getName() + " cget option");
+
+  auto name = tk_->variantToString(args[1]);
+
+  QVariant value;
+  if (! getOptValue(name, value))
+    return tk_->throwError("unknown cget option \"" + name + "\"");
+
+  setResult(value);
+
+  return true;
+}
+
+bool
+CTkAppOptsCommand::
+execConfigure(const Args &args)
+{
+  uint numArgs = args.size();
+
+  // get all options
+  if      (numArgs == 1) {
+    auto var = opts_.getOptsVar();
+
+    tk_->setResult(var);
+  }
+  // get single option
+  else if (numArgs == 2) {
+    auto name = tk_->variantToString(args[1]);
+
+    auto var = opts_.getOptVar(name);
+
+    tk_->setResult(var);
+  }
+  // set option
+  else {
+    for (uint i = 1; i < numArgs - 1; i += 2) {
+      auto name  = tk_->variantToString(args[i]);
+      auto value = args[i + 1];
+
+      if (! setOptValue(name, value))
+        return tk_->throwError("unknown config option \"" + name + "\"");
+    }
+  }
+
+  return true;
+}
+
+bool
+CTkAppOptsCommand::
+getOptValue(const QString &name, QVariant &value)
+{
+  if (! opts_.getOptValue(name, value))
+    return false;
+
+  return true;
+}
+
+bool
+CTkAppOptsCommand::
+setOptValue(const QString &name, const QVariant &value)
+{
+  const CTkAppOpt *opt;
+
+  if (! opts_.setOptValue(name, value, &opt))
+    return false;
+
+  return true;
 }
 
 //---

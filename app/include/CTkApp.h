@@ -3,6 +3,7 @@
 
 #include <CTkAppOptionValue.h>
 #include <CTkAppEventData.h>
+#include <CTkAppTypes.h>
 
 #include <CTclApp.h>
 #include <CMatrix2D.h>
@@ -32,17 +33,6 @@ class QEvent;
 class QKeyEvent;
 class QMouseEvent;
 class QTimer;
-
-//---
-
-enum class CTkAppCompoundType {
-  NONE,
-  BOTTOM,
-  TOP,
-  LEFT,
-  RIGHT,
-  CENTER
-};
 
 //---
 

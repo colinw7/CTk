@@ -510,17 +510,28 @@ write(std::ostream &os, CGenImage *image, const std::string &base)
   int  bit_no  = 0;
   int  byte_no = 0;
 
+  auto colormap = image->hasColormap();
+
   for (uint i = 0, k = 0; i < image->getHeight(); ++i) {
     for (uint j = 0; j < image->getWidth(); ++j, ++k) {
-      uint pixel = image->getPixel(i, j);
+      uint pixel = 0;
 
-      CGenImage::RGBA rgba;
+      if (! colormap) {
+        pixel = image->getPixel(i, j);
 
-      CGenImage::RGBA::decodeARGB(pixel, rgba);
+        CGenImage::RGBA rgba;
 
-      auto gray = rgba.getGray();
+        CGenImage::RGBA::decodeARGB(pixel, rgba);
 
-      pixel = (gray > 0.5 ? 0 : 1);
+        auto gray = rgba.getGray();
+
+        pixel = (gray > 0.5 ? 0 : 1);
+      }
+      else {
+        auto ind = image->getColorIndex(i, j);
+
+        pixel = (ind == 0 ? 0 : 1);
+      }
 
       byte |= (pixel << bit_no);
 

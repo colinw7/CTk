@@ -34,6 +34,7 @@ CTkAppPlaceLayout.cpp \
 CTkAppLayout.cpp \
 CTkAppLayoutWidget.cpp \
 \
+CTkAppBitmaps.cpp \
 CTkAppUtil.cpp \
 \
 CTclApp.cpp \
@@ -50,7 +51,9 @@ CQSlider.cpp \
 CSVGUtil.cpp \
 CQRotatedText.cpp \
 CQOptEdit.cpp \
+\
 CXBMImage.cpp \
+CGIFImage.cpp \
 
 HEADERS += \
 ../include/CTkApp.h \

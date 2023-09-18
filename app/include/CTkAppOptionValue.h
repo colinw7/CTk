@@ -66,10 +66,21 @@ struct CTkAppOption {
 //---
 
 struct CTkAppOpt {
+  bool isAlias() const { return ! cname; }
+
+  bool isColor() const {
+    if (! cname) return false;
+    auto len = strlen(cname);
+    if (len >= 10 && (strcmp(&cname[len - 10], "Foreground") == 0 ||
+                      strcmp(&cname[len - 10], "Background") == 0))
+      return true;
+    return false;
+  }
+
   const char* name  { nullptr }; // option name
-  const char* dname { nullptr }; // database name
-  const char* cname { nullptr }; // class name
-  const char* def   { nullptr }; // default value
+  const char* dname { nullptr }; // database name (or alias name)
+  const char* cname { nullptr }; // class name    (null if alias)
+  const char* def   { nullptr }; // default value (null if alias)
 };
 
 #endif

@@ -1,0 +1,64 @@
+image create photo my_image
+
+my_image put #8888aa -to 0 0 128 128
+
+set entry "Entry Var"
+
+entry .e
+
+.e config -background white
+.e config -borderwidth 4
+.e config -cursor watch
+.e config -exportselection true
+.e config -font {helvetica 22}
+.e config -foreground black
+.e config -highlightbackground yellow
+.e config -highlightcolor orange
+.e config -highlightthickness 2
+.e config -insertbackground orange
+.e config -insertborderwidth 2
+.e config -insertofftime 10
+.e config -insertontime 10
+.e config -insertwidth 10
+.e config -justify left
+.e config -relief sunken
+.e config -selectbackground pink
+.e config -selectborderwidth 3
+.e config -selectforeground blue
+.e config -takefocus true
+.e config -textvariable entry
+.e config -xscrollcommand { puts "xscroll"; # }
+
+.e config -disabledbackground gray
+.e config -disabledforeground white
+.e config -invalidcommand { puts "invalid"; return 0 }
+.e config -readonlybackground gray
+.e config -show "*"
+.e config -state normal
+.e config -validate all
+.e config -validatecommand { puts "validate"; return 1 }
+.e config -width 32
+
+.e cget -background
+
+.e bbox 0 
+.e delete 0 end
+.e get
+.e icursor 0
+.e index 0 
+.e insert 0 "Test Entry"
+.e scan mark 0
+.e scan dragto 10 
+.e selection adjust 0 
+.e selection clear 
+.e selection from 0
+.e selection present 
+.e selection range 0 5 
+.e selection to 0 
+.e validate 
+.e xview 
+.e xview 0 
+.e xview moveto 0.5 
+.e xview scroll 1 units 
+
+pack .e

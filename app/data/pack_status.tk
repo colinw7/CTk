@@ -1,0 +1,24 @@
+image create photo nullImage
+
+frame .status -bd 0
+
+label .status.blank -image nullImage -width 16 -bd 1 -relief sunken \
+  -background white -foreground black
+
+set statusCurrent "current"
+set statusInfo    "info"
+
+label .status.current -textvariable statusCurrent \
+  -anchor e -width 14 -borderwidth 1 -relief sunken -padx 4 -pady 2 \
+  -background white -foreground black
+
+label .status.label -textvariable statusInfo \
+  -anchor w -width 1 -borderwidth 1 -relief sunken -pady 2 \
+  -background white -foreground black
+
+pack .status.blank -side right -fill y
+
+pack .status.current -side right -fill y -expand n
+pack .status.label -side left -fill both -expand y
+
+pack .status -side bottom -fill x -expand n

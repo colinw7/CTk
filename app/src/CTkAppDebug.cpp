@@ -7,6 +7,7 @@
 #include <CTkAppPlaceLayout.h>
 #include <CTkAppImage.h>
 #include <CTkAppFont.h>
+#include <CTkAppOptData.h>
 
 #include <CQPropertyViewTree.h>
 #include <CQIntegerSpin.h>
@@ -17,6 +18,7 @@
 #include <QFrame>
 #include <QPushButton>
 #include <QLabel>
+#include <QTableWidget>
 #include <QListWidget>
 #include <QCheckBox>
 #include <QComboBox>
@@ -25,6 +27,8 @@
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QRubberBand>
+#include <QPainter>
+#include <QApplication>
 
 CTkAppDebug::
 CTkAppDebug(CTkApp *tk) :
@@ -116,6 +120,16 @@ CTkAppDebug(CTkApp *tk) :
   layoutWidgetLabel_->setObjectName("layoutWidgetLabel");
 
   layoutDataLayout_->addWidget(layoutWidgetLabel_);
+
+  //---
+
+  optionsTable_ = new QTableWidget;
+
+  tab_->addTab(optionsTable_, "Options");
+
+  auto *delegate = new CTkAppOptionTableDelegate(this);
+
+  optionsTable_->setItemDelegate(delegate);
 
   //---
 
@@ -570,11 +584,16 @@ void
 CTkAppDebug::
 parentSlot()
 {
-  currentWidget_ = (currentWidget_ ? currentWidget_->getParent() : nullptr);
+  auto *parentWidget = (currentWidget_ ? currentWidget_->getParent() : nullptr);
+  if (! parentWidget) parentWidget = tk_->root();
+
+  currentWidget_ = parentWidget;
   currentLayout_ = (currentWidget_ ? currentWidget_->getTkLayout() : nullptr);
   currentChild_  = nullptr;
 
   updateChildren();
+
+  updateOptions();
 }
 
 void
@@ -586,6 +605,8 @@ currentSlot()
   currentChild_  = nullptr;
 
   updateChildren();
+
+  updateOptions();
 }
 
 void
@@ -863,6 +884,84 @@ updateLayoutWidgets()
   }
 
   updating_ = false;
+}
+
+void
+CTkAppDebug::
+updateOptions()
+{
+  optionsTable_->clear();
+
+  if (! currentWidget_)
+    return;
+
+  const auto &opts = currentWidget_->getOpts();
+
+  std::vector<QString> names;
+  opts.getNames(names, /*alias*/false);
+
+  optionsTable_->setColumnCount(5);
+  optionsTable_->setRowCount(names.size());
+
+  optionsTable_->setHorizontalHeaderLabels(QStringList() <<
+    "Name" << "Data Name" << "Class Name" << "Default" << "Value");
+
+  int row = 0;
+
+  auto setTableItem = [&](int col, const QString &str) {
+    auto *item = new QTableWidgetItem(str);
+    optionsTable_->setItem(row, col, item);
+  };
+
+  for (const auto &name : names) {
+    auto *nameItem = new QTableWidgetItem(name);
+
+    optionsTable_->setItem(row, 0, nameItem);
+
+    const auto *opt = opts.opt(name);
+
+    QVariant value;
+    opts.getOptValue(opt, value);
+
+    auto valueStr = tk_->variantToString(value);
+
+    setTableItem(1, QString(opt->dname));
+    setTableItem(2, QString(opt->cname));
+    setTableItem(3, QString(opt->def));
+    setTableItem(4, valueStr);
+
+    ++row;
+  }
+}
+
+const CTkAppOpt *
+CTkAppDebug::
+getRowOption(int row) const
+{
+  if (! currentWidget_) return nullptr;
+
+  const auto &opts = currentWidget_->getOpts();
+
+  std::vector<QString> names;
+  opts.getNames(names, /*alias*/false);
+
+  if (row < 0 || row >= int(names.size())) return nullptr;
+
+  return opts.opt(names[row]);
+}
+
+QVariant
+CTkAppDebug::
+getOptValue(const CTkAppOpt *opt)
+{
+  if (! currentWidget_) return QVariant();
+
+  const auto &opts = currentWidget_->getOpts();
+
+  QVariant value;
+  opts.getOptValue(opt, value);
+
+  return value;
 }
 
 void
@@ -1329,4 +1428,79 @@ showWidget(QWidget *widget)
   rubberBand_->setGeometry(rrect);
 
   rubberBand_->show();
+}
+
+//---
+
+CTkAppOptionTableDelegate::
+CTkAppOptionTableDelegate(CTkAppDebug *debug) :
+ debug_(debug)
+{
+}
+
+void
+CTkAppOptionTableDelegate::
+paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
+{
+  auto *opt = debug_->getRowOption(index.row());
+
+  int col = index.column();
+
+  if ((col == 3 || col == 4) && opt->isColor()) {
+    QVariant value;
+
+    if (col == 3)
+      value = QString(opt->def);
+    else
+      value = debug_->getOptValue(opt);
+
+    return drawColor(painter, option, QColor(value.toString()), index);
+  }
+
+  return QItemDelegate::paint(painter, option, index);
+}
+
+void
+CTkAppOptionTableDelegate::
+drawColor(QPainter *painter, const QStyleOptionViewItem &option,
+          const QColor &color, const QModelIndex &index) const
+{
+  QItemDelegate::drawBackground(painter, option, index);
+
+  //---
+
+  int margin = qApp->style()->pixelMetric(QStyle::PM_HeaderMargin);
+
+  //---
+
+  // draw color swatch
+  auto colorRect = option.rect;
+
+  int s = colorRect.height();
+
+  colorRect.setWidth(s);
+
+  colorRect.adjust(0, 1, -3, -2);
+
+  colorRect.setLeft(colorRect.left() + margin);
+
+  painter->save();
+
+  painter->setBrush(QBrush(color));
+  painter->setPen(QColor(Qt::black)); // TODO: contrast border
+
+  painter->drawRect(colorRect);
+
+  painter->restore();
+
+  //---
+
+  // draw label
+  int x = colorRect.right() + margin;
+
+  QRect rect1;
+
+  rect1.setCoords(x, option.rect.top(), option.rect.right(), option.rect.bottom());
+
+  QItemDelegate::drawDisplay(painter, option, rect1, color.name());
 }

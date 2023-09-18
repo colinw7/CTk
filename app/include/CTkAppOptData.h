@@ -17,15 +17,20 @@ class CTkAppOptData {
   explicit CTkAppOptData(CTkApp *tk);
 
   void init(const CTkAppOpt *opts) {
-   opts_ = opts;
+    opts_ = opts;
   }
 
-  QVariant getOpts() const;
-  QVariant getOpt(const QString &name) const;
+  const CTkAppOpt *opts() { return opts_; }
 
-  void getNames(std::vector<QString> &names) const;
+  const CTkAppOpt *opt(const QString &name) const;
 
-  bool getOptValue(const QString &name, QString &value) const;
+  QVariant getOptsVar() const;
+  QVariant getOptVar(const QString &name) const;
+
+  void getNames(std::vector<QString> &names, bool alias=true) const;
+
+  bool getOptValue(const QString &name, QVariant &value) const;
+  bool getOptValue(const CTkAppOpt *opt, QVariant &value) const;
 
   bool getDefValue(const QString &optName, const QString &optClass, QVariant &value) const;
 

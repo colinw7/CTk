@@ -412,6 +412,7 @@ compiler_clean: compiler_moc_predefs_clean
 ../obj/CTkAppTest.o: CTkAppTest.cpp ../include/CTkApp.h \
 		../include/CTkAppOptionValue.h \
 		../include/CTkAppEventData.h \
+		../include/CTkAppTypes.h \
 		../include/CTclApp.h \
 		../../../CMath/include/CMatrix2D.h \
 		../../../CMath/include/CPoint2D.h \

@@ -9,9 +9,23 @@ CTkAppOptData(CTkApp *tk) :
 {
 }
 
+const CTkAppOpt *
+CTkAppOptData::
+opt(const QString &name) const
+{
+  for (uint i = 0; opts_[i].name != nullptr; ++i) {
+    const auto &opt = opts_[i];
+
+    if (opt.name == name)
+      return &opt;
+  }
+
+  return nullptr;
+}
+
 QVariant
 CTkAppOptData::
-getOpts() const
+getOptsVar() const
 {
   QVariantList vars;
 
@@ -23,7 +37,7 @@ getOpts() const
     vars1.push_back(opt.name);
     vars1.push_back(opt.dname);
 
-    if (opt.cname != nullptr) {
+    if (! opt.isAlias()) {
       vars1.push_back(opt.cname);
       vars1.push_back(opt.def);
 
@@ -46,7 +60,7 @@ getOpts() const
 
 QVariant
 CTkAppOptData::
-getOpt(const QString &name) const
+getOptVar(const QString &name) const
 {
   QVariantList vars;
 
@@ -59,7 +73,7 @@ getOpt(const QString &name) const
     vars.push_back(opt.name);
     vars.push_back(opt.dname);
 
-    if (opt.cname != nullptr) {
+    if (! opt.isAlias()) {
       vars.push_back(opt.cname);
       vars.push_back(opt.def);
 
@@ -78,12 +92,16 @@ getOpt(const QString &name) const
   return vars;
 }
 
+
 void
 CTkAppOptData::
-getNames(std::vector<QString> &names) const
+getNames(std::vector<QString> &names, bool alias) const
 {
   for (uint i = 0; opts_[i].name != nullptr; ++i) {
     const auto &opt = opts_[i];
+
+    if (! alias && opt.isAlias())
+      continue;
 
     auto optName = QString(opt.name);
 
@@ -93,7 +111,7 @@ getNames(std::vector<QString> &names) const
 
 bool
 CTkAppOptData::
-getOptValue(const QString &name, QString &value) const
+getOptValue(const QString &name, QVariant &value) const
 {
   for (uint i = 0; opts_[i].name != nullptr; ++i) {
     const auto &opt = opts_[i];
@@ -102,19 +120,32 @@ getOptValue(const QString &name, QString &value) const
 
     if (optName != name) continue;
 
-    if (opt.cname == nullptr)
+    if (opt.isAlias())
       return getOptValue(opt.dname, value);
 
     auto p = values_.find(name);
 
-    if (p != values_.end()) {
-      auto s = (*p).second.getString();
-
-      value = s;
-    }
+    if (p != values_.end())
+      value = (*p).second.getValue();
     else
       value = QString(opt.def);
 
+    return true;
+  }
+
+  return false;
+}
+
+bool
+CTkAppOptData::
+getOptValue(const CTkAppOpt *opt, QVariant &value) const
+{
+  auto optName = QString(opt->name);
+
+  auto p = values_.find(opt->name);
+
+  if (p != values_.end()) {
+    value = (*p).second.getValue();
     return true;
   }
 
@@ -137,7 +168,7 @@ getDefValue(const QString &optName, const QString &optClass, QVariant &value) co
   for (uint i = 0; opts_[i].name != nullptr; ++i) {
     const auto &opt = opts_[i];
 
-    if (opt.cname && opt.cname == optClass.toStdString()) {
+    if (! opt.isAlias() && opt.cname == optClass.toStdString()) {
       value = QString(opt.def);
       return true;
     }
@@ -156,7 +187,7 @@ setOptValue(const QString &name, const QVariant &value, const CTkAppOpt **opt)
 
     if (opt1.name != name) continue;
 
-    if (opt1.cname == nullptr)
+    if (opt1.isAlias())
       return setOptValue(opt1.dname, value, opt);
 
     *opt = &opt1;

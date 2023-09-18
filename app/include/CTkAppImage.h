@@ -20,6 +20,9 @@ class CTkAppImage : public QObject {
   Q_PROPERTY(int     width    READ width    WRITE setWidth)
   Q_PROPERTY(int     height   READ height   WRITE setHeight)
 
+  Q_PROPERTY(QColor background READ background WRITE setBackground)
+  Q_PROPERTY(QColor foreground READ foreground WRITE setForeground)
+
  public:
   explicit CTkAppImage(CTkApp *tk, const QString &name, int width=0, int height=0);
 
@@ -32,6 +35,9 @@ class CTkAppImage : public QObject {
   const QString &filename() const { return filename_; }
   void setFilename(const QString &filename) { filename_ = filename; }
 
+  const QString &maskFilename() const { return maskFilename_; }
+  void setMaskFilename(const QString &filename) { maskFilename_ = filename; }
+
   const QString &type() const { return type_; }
   void setType(const QString &s) { type_ = s; }
 
@@ -43,24 +49,46 @@ class CTkAppImage : public QObject {
   double gamma() const { return gamma_; }
   void setGamma(double r) { gamma_ = r; }
 
-  QImage getQImage() const;
-
-  QPixmap getQPixmap() const;
-
   int width() const;
   void setWidth(int w);
 
   int height() const;
   void setHeight(int h);
 
+  const QColor &background() const { return background_; }
+  void setBackground(const QColor &c) { background_ = c; }
+
+  const QColor &foreground() const { return foreground_; }
+  void setForeground(const QColor &c) { foreground_ = c; }
+
+  void getColorBits(int &r, int &g, int &b) const;
+  void setColorBits(int r, int g, int b);
+
+  //---
+
+  QImage getQImage() const;
+  QPixmap getQPixmap() const;
+
   //---
 
   bool loadFile(const QString &filename);
   bool loadSVG (const QString &filename);
-  bool loadXBM (const QString &name, const std::string &data);
+
+  bool loadXBM    (const QString &name, const std::string &data);
+  bool loadMaskXBM(const QString &name, const std::string &data);
+
+  bool loadEncodedData(const QString &name, const QString &format, const std::string &data);
+
   bool loadData(const QString &name, const QString &format, const std::string &data);
 
   void loadXBMData(int w, int h, const unsigned char *bits);
+
+  QString getEncodedDataStr() const;
+
+  QString getBitmapStr() const;
+  QString getMaskBitmapStr() const;
+
+  //---
 
   void clear();
 
@@ -77,15 +105,28 @@ class CTkAppImage : public QObject {
  private:
   using RefNames = std::set<QString>;
 
-  CTkApp*  tk_     { nullptr };
-  QString  name_;
-  QString  type_;
-  QImage   qimage_;
-  QString  filename_;
-  QString  format_;
-  int      width_  { 0 };
-  int      height_ { 0 };
-  double   gamma_  { 1.0 };
+  CTkApp* tk_ { nullptr };
+
+  QString name_;
+  QString type_;
+
+  QImage  qimage_;
+  QString filename_;
+  int     width_  { 0 };
+  int     height_ { 0 };
+
+  QImage  maskQImage_;
+  QString maskFilename_;
+  int     maskWidth_  { 0 };
+  int     maskHeight_ { 0 };
+
+  QString format_;
+  double  gamma_  { 1.0 };
+  QColor  background_;
+  QColor  foreground_;
+
+  int rbits_ { 8 }, gbits_ { 8 }, bbits_ { 8 };
+
   RefNames refNames_;
 };
 

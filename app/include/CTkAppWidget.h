@@ -3,6 +3,7 @@
 
 #include <CTkAppEventData.h>
 #include <CTkApp.h>
+#include <CTkAppUtil.h>
 
 #include <CQLabelImage.h>
 
@@ -30,6 +31,7 @@ class CTkApp;
 class CTkAppRoot;
 class CTkAppTopLevel;
 class CTkAppWidgetCommand;
+class CTkAppOptData;
 
 class CTkAppLayout;
 class CTkAppPackLayout;
@@ -75,6 +77,9 @@ class CTkAppWidget : public QObject {
 
   Q_PROPERTY(QString relief READ reliefStr WRITE setReliefStr)
 
+  Q_PROPERTY(int repeatDelay    READ repeatDelay    WRITE setRepeatDelay)
+  Q_PROPERTY(int repeatInterval READ repeatInterval WRITE setRepeatInterval)
+
   Q_PROPERTY(QString       anchorStr READ anchorStr WRITE setAnchorStr)
   Q_PROPERTY(Qt::Alignment anchor    READ anchor    WRITE setAnchor)
 
@@ -94,6 +99,11 @@ class CTkAppWidget : public QObject {
   Q_PROPERTY(QString icon     READ getIcon     WRITE setIcon)
   Q_PROPERTY(QString geometry READ getGeometry WRITE setGeometry)
 
+  Q_PROPERTY(int padX READ padX WRITE setPadX)
+  Q_PROPERTY(int padY READ padY WRITE setPadY)
+
+  Q_PROPERTY(Qt::Alignment justify READ justify WRITE setJustify)
+
   Q_PROPERTY(QString command        READ getCommand        WRITE setCommand)
   Q_PROPERTY(QString xScrollCommand READ getXScrollCommand WRITE setXScrollCommand)
   Q_PROPERTY(QString yScrollCommand READ getYScrollCommand WRITE setYScrollCommand)
@@ -104,17 +114,7 @@ class CTkAppWidget : public QObject {
   Q_PROPERTY(QString wmTransientFor  READ wmTransientFor  WRITE setWmTransientFor)
 
  public:
-  enum class Relief {
-    NONE,
-    RAISED,
-    SUNKEN,
-    FLAT,
-    RIDGE,
-    SOLID,
-    GROOVE
-  };
-
- public:
+  using Relief   = CTkAppWidgetRelief;
   using Args     = std::vector<QVariant>;
   using Children = std::vector<CTkAppWidget *>;
 
@@ -157,6 +157,8 @@ class CTkAppWidget : public QObject {
 
   const CTkAppWidgetCommand *getWidgetCommand() const { return widgetCommand_; }
   void setWidgetCommand(CTkAppWidgetCommand *p) { widgetCommand_ = p; }
+
+  const CTkAppOptData &getOpts() const;
 
   //---
 
@@ -320,6 +322,11 @@ class CTkAppWidget : public QObject {
   int padY() const { return pady_; }
   void setPadY(int i);
 
+  //---
+
+  const Qt::Alignment &justify() const { return justify_; }
+  void setJustify(const Qt::Alignment &v) { justify_ = v; }
+
   //--
 
   void setWidgetAnchor(const QString &value);
@@ -350,6 +357,14 @@ class CTkAppWidget : public QObject {
 
   const QString &reliefStr() const { return reliefStr_; }
   bool setReliefStr(const QString &s);
+
+  //---
+
+  int repeatDelay() const { return repeatDelay_; }
+  void setRepeatDelay(int i) { repeatDelay_ = i; }
+
+  int repeatInterval() const { return repeatInterval_; }
+  void setRepeatInterval(int i) { repeatInterval_ = i; }
 
   //---
 
@@ -412,6 +427,8 @@ class CTkAppWidget : public QObject {
   const QString &wmTransientFor() const { return wmTransientFor_; }
   void setWmTransientFor(const QString &name);
 
+  bool setWidgetState(const QString &value);
+
  protected:
   const QString &getCommand() const { return command_; }
   void setCommand(const QString &command) { command_ = command; }
@@ -442,6 +459,9 @@ class CTkAppWidget : public QObject {
   Relief  relief_     { Relief::NONE };
   QString reliefStr_ { };
 
+  int repeatDelay_    { -1 };
+  int repeatInterval_ { -1 };
+
   Qt::Alignment anchor_ { Qt::AlignCenter };
   QString       anchorStr_;
 
@@ -452,6 +472,8 @@ class CTkAppWidget : public QObject {
 
   int padx_ { 0 };
   int pady_ { 0 };
+
+  Qt::Alignment justify_ { Qt::AlignLeft | Qt::AlignTop };
 
   Qt::Alignment gridAnchor_    { Qt::AlignTop | Qt::AlignLeft };
   int           gridColumn1_   { 0 };
@@ -2036,13 +2058,12 @@ class CTkAppCheckButtonWidget;
 class CTkAppCheckButton : public CTkAppWidget {
   Q_OBJECT
 
-  Q_PROPERTY(QString       varName       READ varName         WRITE setVarName)
-  Q_PROPERTY(QString       onValue       READ onValueStr      WRITE setOnValueStr)
-  Q_PROPERTY(QString       offValue      READ offValueStr     WRITE setOffValueStr)
-  Q_PROPERTY(bool          showIndicator READ isShowIndicator WRITE setShowIndicator)
-  Q_PROPERTY(bool          overRaised    READ isOverRaised    WRITE setOverRaised)
-  Q_PROPERTY(Qt::Alignment justify       READ justify         WRITE setJustify)
-  Q_PROPERTY(int           underlinePos  READ underlinePos    WRITE setUnderlinePos)
+  Q_PROPERTY(QString varName       READ varName         WRITE setVarName)
+  Q_PROPERTY(QString onValue       READ onValueStr      WRITE setOnValueStr)
+  Q_PROPERTY(QString offValue      READ offValueStr     WRITE setOffValueStr)
+  Q_PROPERTY(bool    showIndicator READ isShowIndicator WRITE setShowIndicator)
+  Q_PROPERTY(bool    overRaised    READ isOverRaised    WRITE setOverRaised)
+  Q_PROPERTY(int     underlinePos  READ underlinePos    WRITE setUnderlinePos)
 
  public:
   using OptString = std::optional<QString>;
@@ -2081,9 +2102,6 @@ class CTkAppCheckButton : public CTkAppWidget {
   bool isOverRaised() const { return overRaised_; }
   void setOverRaised(bool b) { overRaised_ = b; }
 
-  const Qt::Alignment &justify() const { return justify_; }
-  void setJustify(const Qt::Alignment &v) { justify_ = v; }
-
   int underlinePos() const { return underlinePos_; }
   void setUnderlinePos(int i) { underlinePos_ = i; }
 
@@ -2111,7 +2129,6 @@ class CTkAppCheckButton : public CTkAppWidget {
   QColor                    selectColor_;
   bool                      showIndicator_ { true };
   bool                      overRaised_ { false };
-  Qt::Alignment             justify_ { Qt::AlignLeft | Qt::AlignTop };
   int                       underlinePos_ { -1 };
 };
 
@@ -2995,39 +3012,7 @@ class CTkAppText : public CTkAppWidget {
   Q_OBJECT
 
  public:
-  struct TextInd {
-    enum { END = INT_MAX };
-
-    int lineNum { -1 };
-    int charNum { -1 };
-
-    TextInd() { }
-
-    TextInd(int l, int c) :
-      lineNum(l), charNum(c) {
-    }
-
-    static TextInd end() {
-      return TextInd(END, END);
-    }
-
-    static int cmp(const TextInd &ind1, const TextInd &ind2) {
-      if (ind1.lineNum > ind2.lineNum) return  1;
-      if (ind1.lineNum < ind2.lineNum) return -1;
-      if (ind1.charNum > ind2.charNum) return  1;
-      if (ind1.charNum < ind2.charNum) return -1;
-      return 0;
-    }
-
-    QString toString() const {
-      return QString::number(lineNum) + "." + QString::number(charNum);
-    }
-
-    friend std::ostream &operator<<(std::ostream &os, const TextInd &ind) {
-      os << ind.toString().toStdString();
-      return os;
-    }
-  };
+  using TextInd = CTkAppTextInd;
 
   struct TextIndRange {
     TextIndRange() { }

@@ -6,7 +6,9 @@
 #include <CQImage.h>
 #endif
 #include <CXBMImage.h>
+#include <CGIFImage.h>
 #include <CGenImage.h>
+#include <CEncode64.h>
 
 #include <QSvgRenderer>
 #include <QPainter>
@@ -110,6 +112,33 @@ loadXBM(const QString &name, const std::string &data)
   return true;
 }
 
+bool
+CTkAppImage::
+loadMaskXBM(const QString &name, const std::string &data)
+{
+  auto fs = std::istringstream(data);
+
+  CImageData image;
+
+  if (! CXBMImageInst->read(fs, &image))
+    return tk_->throwError("Failed to read XBM image data '" + name + "'");
+
+  maskWidth_  = image.getWidth();
+  maskHeight_ = image.getHeight();
+
+  maskQImage_ = QImage(maskWidth_, maskHeight_, QImage::Format_ARGB32);
+
+  for (int y = 0; y < maskHeight_; ++y) {
+    for (int x = 0; x < maskWidth_; ++x) {
+      auto ic = image.getColorIndex(x, y);
+
+      maskQImage_.setPixelColor(x, y, (ic == 0 ? Qt::black : Qt::white));
+    }
+  }
+
+  return true;
+}
+
 void
 CTkAppImage::
 loadXBMData(int w, int h, const unsigned char *bits)
@@ -120,6 +149,24 @@ loadXBMData(int w, int h, const unsigned char *bits)
   auto bm = QBitmap::fromData(QSize(w, h), bits);
 
   qimage_ = bm.toImage();
+}
+
+bool
+CTkAppImage::
+loadEncodedData(const QString &name, const QString &format, const std::string &data)
+{
+  std::string decodeStr;
+
+  for (const auto &c : data) {
+    if (std::isspace(c)) continue;
+    decodeStr += c;
+  }
+
+//std::cerr << decodeStr << "\n";
+
+  auto dataStr = CEncode64Inst->decode(decodeStr); // don't use QString
+
+  return loadData(name, format, dataStr);
 }
 
 bool
@@ -167,6 +214,117 @@ loadData(const QString & /*name*/, const QString & /*format*/, const std::string
 
   return true;
 }
+
+QString
+CTkAppImage::
+getEncodedDataStr() const
+{
+  if (qimage_.isNull())
+    return "";
+
+  auto qimage1 = qimage_.convertToFormat(QImage::Format_Indexed8);
+
+  CImageData image;
+
+  image.setDataSize(width_, height_);
+
+  image.setColormap(true);
+
+  for (int i = 0; i < qimage1.colorCount(); ++i) {
+    auto rgba = qimage1.color(i);
+
+    auto c = CGenImage::RGBA(qRed (rgba)/255.0, qGreen(rgba)/255.0,
+                             qBlue(rgba)/255.0, qAlpha(rgba)/255.0);
+
+    image.addColor(c);
+  }
+
+  for (int y = 0; y < height_; ++y) {
+    for (int x = 0; x < width_; ++x) {
+      auto ind = qimage1.pixelIndex(x, y);
+
+      image.setColorIndex(x, y, ind);
+    }
+  }
+
+  std::stringstream ss;
+
+  CGIFImageInst->write(ss, &image);
+
+  auto str = ss.str();
+
+  //---
+
+  auto *data = reinterpret_cast<const uchar *>(str.c_str());
+  auto  len  = str.size();
+
+  auto len1 = CEncode64Inst->calcOutSize(len);
+
+  auto *data1 = new uchar [len1 + 1];
+
+  (void) CEncode64Inst->encode(data, len, data1, len1);
+
+  auto *data2 = reinterpret_cast<char *>(data1);
+
+  auto str2 = std::string(data2, strlen(data2));
+
+  std::string str3;
+
+  int nc = 0;
+
+  for (size_t i = 0; i < str2.size(); ++i, ++nc) {
+    if (nc == 60) {
+      str3 += "\n";
+      nc = 0;
+    }
+
+    str3 += str2[i];
+  }
+
+  return QString::fromStdString(str3);
+}
+
+QString
+CTkAppImage::
+getBitmapStr() const
+{
+  if (qimage_.isNull())
+    return "";
+
+  CImageData image;
+
+  image.setDataSize(width_, height_);
+
+  image.setColormap(true);
+
+  image.addColor(CImageData::RGBA(0.0, 0.0, 0.0));
+  image.addColor(CImageData::RGBA(1.0, 1.0, 1.0));
+
+  for (int y = 0; y < height_; ++y) {
+    for (int x = 0; x < width_; ++x) {
+      auto rgba = qimage_.pixel(x, y);
+
+      auto g = qGray(rgba);
+
+      image.setColorIndex(x, y, (g < 0.5 ? 0 : 1));
+    }
+  }
+
+  std::stringstream ss;
+
+  CXBMImageInst->write(ss, &image);
+
+  return QString::fromStdString(ss.str());
+}
+
+QString
+CTkAppImage::
+getMaskBitmapStr() const
+{
+  return QString();
+}
+
+//---
 
 QImage
 CTkAppImage::
@@ -229,6 +387,26 @@ setHeight(int h)
   else if (width_ > 0)
     qimage_ = QImage(width_, height_, QImage::Format_ARGB32);
 }
+
+void
+CTkAppImage::
+getColorBits(int &r, int &g, int &b) const
+{
+  r = rbits_;
+  g = gbits_;
+  b = bbits_;
+}
+
+void
+CTkAppImage::
+setColorBits(int r, int g, int b)
+{
+  rbits_ = r;
+  gbits_ = g;
+  bbits_ = b;
+}
+
+//---
 
 void
 CTkAppImage::

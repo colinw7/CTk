@@ -1,9 +1,14 @@
 #include <CTkAppUtil.h>
-#include <CTclApp.h>
+#include <CTkApp.h>
 
 #include <CQStrParse.h>
+#include <CSVGUtil.h>
 #include <CScreenUnits.h>
+#include <CMatrix2D.h>
 
+#include <QFrame>
+#include <QLineEdit>
+#include <QTextEdit>
 #include <QVariant>
 #include <set>
 
@@ -412,6 +417,313 @@ variantToString(CTclApp *app, const QVariant &var, bool quote)
   }
 
   return str;
+}
+
+QColor
+grayColor(const QColor &c)
+{
+  auto gray = qGray(c.rgba());
+  return QColor(gray, gray, gray);
+}
+
+bool
+stringToIndex(CTkApp *app, const QVariant &var, int &ind)
+{
+  auto str = app->variantToString(var);
+
+  CQStrParse parse(str);
+
+  parse.skipSpace();
+
+  if (parse.isString("end")) {
+    ind = END_INDEX;
+  }
+  else {
+    if (! parse.readInteger(&ind))
+      return false;
+  }
+
+  return true;
+}
+
+bool
+stringToLineChar(const QString &str, int &lineNum, int &charNum)
+{
+  CQStrParse parse(str);
+
+  parse.skipSpace();
+
+  if (! parse.readInteger(&lineNum))
+    return false;
+
+  if (parse.isChar('.')) {
+    parse.skipChar();
+
+    if (parse.isString("end")) {
+      charNum = CTkAppTextInd::END;
+    }
+    else {
+      if (! parse.readInteger(&charNum))
+        return false;
+    }
+  }
+  else {
+    charNum = CTkAppTextInd::END;
+  }
+
+  return true;
+}
+
+bool
+stringToTextInd(CTkApp *app, const QVariant &var, CTkAppTextInd &ind)
+{
+  auto str = app->variantToString(var);
+
+  if (str == "end") {
+    ind = CTkAppTextInd::end();
+    return true;
+  }
+
+  int lineNum { -1 };
+  int charNum { -1 };
+
+  if (! stringToLineChar(str, lineNum, charNum))
+    return false;
+
+  ind = CTkAppTextInd(lineNum, charNum);
+
+  return true;
+}
+
+bool
+stringToRelief(const QString &str, CTkAppWidgetRelief &relief)
+{
+  if      (str == "raised")
+    relief = CTkAppWidgetRelief::RAISED;
+  else if (str == "sunken")
+    relief = CTkAppWidgetRelief::SUNKEN;
+  else if (str == "flat")
+    relief = CTkAppWidgetRelief::FLAT;
+  else if (str == "ridge")
+    relief = CTkAppWidgetRelief::RIDGE;
+  else if (str == "solid")
+    relief = CTkAppWidgetRelief::SOLID;
+  else if (str == "groove")
+    relief = CTkAppWidgetRelief::GROOVE;
+  else
+    return false;
+
+  return true;
+}
+
+// set relief
+void
+setFrameRelief(QWidget *w, const CTkAppWidgetRelief &relief)
+{
+  auto *frame = qobject_cast<QFrame *>(w);
+  auto *edit  = qobject_cast<QLineEdit *>(w);
+  auto *text  = qobject_cast<QTextEdit *>(w);
+
+  if      (frame) {
+    if      (relief == CTkAppWidgetRelief::RAISED) {
+      frame->setFrameShadow(QFrame::Raised);
+      frame->setFrameShape (QFrame::Panel);
+    }
+    else if (relief == CTkAppWidgetRelief::SUNKEN) {
+      frame->setFrameShadow(QFrame::Sunken);
+      frame->setFrameShape (QFrame::Panel);
+    }
+    else if (relief == CTkAppWidgetRelief::FLAT) {
+      frame->setFrameShadow(QFrame::Plain);
+      frame->setFrameShape (QFrame::NoFrame);
+    }
+    else if (relief == CTkAppWidgetRelief::RIDGE) {
+      frame->setFrameShadow(QFrame::Raised);
+      frame->setFrameShape (QFrame::Box);
+    }
+    else if (relief == CTkAppWidgetRelief::SOLID) {
+      frame->setFrameShadow(QFrame::Plain);
+      frame->setFrameShape (QFrame::Panel);
+    }
+    else if (relief == CTkAppWidgetRelief::GROOVE) {
+      frame->setFrameShadow(QFrame::Sunken);
+      frame->setFrameShape (QFrame::Box);
+    }
+  }
+  else if (edit) {
+    edit->setFrame(true);
+  }
+  else if (text) {
+    if      (relief == CTkAppWidgetRelief::RAISED) {
+      text->setFrameShadow(QFrame::Raised);
+      text->setFrameShape (QFrame::Panel);
+    }
+    else if (relief == CTkAppWidgetRelief::SUNKEN) {
+      text->setFrameShadow(QFrame::Sunken);
+      text->setFrameShape (QFrame::Panel);
+    }
+    else if (relief == CTkAppWidgetRelief::FLAT) {
+      text->setFrameShadow(QFrame::Plain);
+      text->setFrameShape (QFrame::NoFrame);
+    }
+    else if (relief == CTkAppWidgetRelief::RIDGE) {
+      text->setFrameShadow(QFrame::Raised);
+      text->setFrameShape (QFrame::Box);
+    }
+    else if (relief == CTkAppWidgetRelief::SOLID) {
+      text->setFrameShadow(QFrame::Plain);
+      text->setFrameShape (QFrame::Panel);
+    }
+    else if (relief == CTkAppWidgetRelief::GROOVE) {
+      text->setFrameShadow(QFrame::Sunken);
+      text->setFrameShape (QFrame::Box);
+    }
+  }
+}
+
+Qt::Alignment
+stringToJustify(const QString &value)
+{
+  Qt::Alignment align = Qt::AlignCenter;
+
+  if      (value == "left"  ) align = Qt::AlignLeft;
+  else if (value == "right" ) align = Qt::AlignRight;
+  else if (value == "center") align = Qt::AlignHCenter;
+  else std::cerr << "Invalid justify string '" << value.toStdString() << "'\n";
+
+  return align;
+}
+
+QString
+underlineLabel(const QString &label, long pos)
+{
+  auto label1 = label;
+
+  if (pos >= 0 && pos < long(label1.size()))
+    label1 = label1.mid(0, pos) + "&" + label1.mid(pos);
+
+  return label1;
+}
+
+bool
+stringToCompound(const QString &value, CTkAppCompoundType &type)
+{
+  type = CTkAppCompoundType::NONE;
+
+  // none, bottom, top, left, right, or center.
+  if      (value == "none"  ) type = CTkAppCompoundType::NONE;
+  else if (value == "bottom") type = CTkAppCompoundType::BOTTOM;
+  else if (value == "top"   ) type = CTkAppCompoundType::TOP;
+  else if (value == "left"  ) type = CTkAppCompoundType::LEFT;
+  else if (value == "right" ) type = CTkAppCompoundType::RIGHT;
+  else if (value == "center") type = CTkAppCompoundType::CENTER;
+  else return false;
+
+  return true;
+}
+
+bool
+stringToPath(const QString &str, QPainterPath &path)
+{
+  class PathVisitor : public CSVGUtil::PathVisitor {
+   public:
+    PathVisitor() { }
+
+    const QPainterPath &path() const { return path_; }
+
+    void moveTo(double x, double y) override {
+      path_.moveTo(x, y);
+    }
+
+    void lineTo(double x, double y) override {
+      path_.lineTo(x, y);
+    }
+
+    void arcTo(double rx, double ry, double xa, int fa, int fs, double x2, double y2) override {
+      bool unit_circle = false;
+
+      //double cx, cy, rx1, ry1, theta, delta;
+
+      //CSVGUtil::convertArcCoords(lastX(), lastY(), x2, y2, xa, rx, ry, fa, fs, unit_circle,
+      //                           &cx, &cy, &rx1, &ry1, &theta, &delta);
+
+      //path_.arcTo(QRectF(cx - rx1, cy - ry1, 2*rx1, 2*ry1), -theta, -delta);
+
+      //double a1 = CMathUtil::Deg2Rad(theta);
+      //double a2 = CMathUtil::Deg2Rad(theta + delta);
+
+      CSVGUtil::BezierList beziers;
+
+      CSVGUtil::arcToBeziers(lastX(), lastY(), x2, y2, xa, rx, ry, fa, fs, unit_circle, beziers);
+
+      auto qpoint = [](const CPoint2D &p) { return QPointF(p.x, p.y); };
+
+      if (! beziers.empty())
+        path_.lineTo(qpoint(beziers[0].getFirstPoint()));
+
+      for (const auto &bezier : beziers)
+        path_.cubicTo(qpoint(bezier.getControlPoint1()),
+                      qpoint(bezier.getControlPoint2()),
+                      qpoint(bezier.getLastPoint    ()));
+    }
+
+    void bezier2To(double x1, double y1, double x2, double y2) override {
+      path_.quadTo(QPointF(x1, y1), QPointF(x2, y2));
+    }
+
+    void bezier3To(double x1, double y1, double x2, double y2, double x3, double y3) override {
+      path_.cubicTo(QPointF(x1, y1), QPointF(x2, y2), QPointF(x3, y3));
+    }
+
+    void closePath(bool /*relative*/) override {
+      path_.closeSubpath();
+    }
+
+   private:
+    QPainterPath path_;
+  };
+
+  PathVisitor visitor;
+
+  if (! CSVGUtil::visitPath(str.toStdString(), visitor)) {
+    //std::cerr << "Invalid path: " << str.toStdString() << "\n";
+    return false;
+  }
+
+  path = visitor.path();
+
+  return true;
+}
+
+bool
+stringToMatrix(CTkApp *tk, const QString &str, QTransform &t)
+{
+  std::vector<QPointF> points;
+
+  std::vector<QString> strs;
+  if (! tk->splitList(str, strs) || strs.size() != 3)
+    return false;
+
+  for (uint j = 0; j < 3; ++j) {
+    std::vector<QString> strs1;
+    if (! tk->splitList(strs[j], strs1) || strs1.size() != 2)
+      return false;
+
+    double x, y;
+    if (! CTkAppUtil::stringToReal(strs1[0], x) ||
+        ! CTkAppUtil::stringToReal(strs1[1], y))
+      return false;
+
+    points.push_back(QPointF(x, y));
+  }
+
+  CMatrix2D m(points[0].x(), points[1].x(),
+              points[0].y(), points[1].y(),
+              points[2].x(), points[2].y());
+
+  t = tk->toQTransform(m);
+
+  return true;
 }
 
 }

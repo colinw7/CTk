@@ -1,0 +1,57 @@
+image create photo my_image
+
+my_image put #8888aa -to 0 0 128 128
+
+set check "Check Var"
+
+checkbutton .c
+
+.c config -activebackground red
+.c config -activeforeground green
+.c config -anchor n
+.c config -background white
+.c config -bitmap info
+.c config -borderwidth 4
+.c config -compound left
+.c config -cursor watch
+.c config -disabledforeground gray
+.c config -font {helvetica 22}
+.c config -foreground black
+.c config -highlightbackground yellow
+.c config -highlightcolor orange
+.c config -highlightthickness 2
+.c config -image my_image
+.c config -justify left
+.c config -padx 2
+.c config -pady 2
+.c config -relief sunken
+.c config -takefocus true
+.c config -text "Button"
+.c config -textvariable button
+.c config -underline 2
+.c config -wraplength 200
+
+.c config -command {puts "Check Press"}
+.c config -height 128
+.c config -indicatoron true
+.c config -offrelief flat
+.c config -offvalue off
+.c config -onvalue on
+.c config -overrelief raised
+.c config -selectcolor red
+.c config -selectimage my_image
+.c config -state normal
+.c config -tristateimage my_image
+.c config -tristatevalue maybe
+.c config -variable check
+.c config -width 256
+
+.c cget -activebackground
+
+.c deselect
+.c flash 
+.c invoke 
+.c select 
+.c toggle 
+
+pack .c

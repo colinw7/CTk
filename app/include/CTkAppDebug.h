@@ -12,12 +12,15 @@ class CTkAppGridLayout;
 class CTkAppPlaceLayout;
 class CTkAppLayoutWidget;
 
+class CTkAppOpt;
+
 class CQPropertyViewTree;
 class CQIntegerSpin;
 class CQRealSpin;
 class CQOptEdit;
 
 class QTabWidget;
+class QTableWidget;
 class QListWidget;
 class QCheckBox;
 class QGroupBox;
@@ -34,8 +37,13 @@ class CTkAppDebug : public QFrame {
  public:
   CTkAppDebug(CTkApp *tk);
 
+  const CTkAppOpt *getRowOption(int row) const;
+  QVariant getOptValue(const CTkAppOpt *opt);
+
  private:
   void updateChildren();
+
+  void updateOptions();
 
   void createLayoutWidgets();
   void updateLayoutWidgets();
@@ -139,6 +147,8 @@ class CTkAppDebug : public QFrame {
 
   LayoutWidgets layoutWidgets_;
 
+  QTableWidget* optionsTable_ { nullptr };
+
   // properties
   CQPropertyViewTree *propertyView_ { nullptr };
 
@@ -155,6 +165,24 @@ class CTkAppDebug : public QFrame {
   CQPropertyViewTree* fontProperties_ { nullptr };
 
   QRubberBand* rubberBand_ { nullptr };
+};
+
+//---
+
+#include <QItemDelegate>
+
+class CTkAppOptionTableDelegate : public QItemDelegate {
+ public:
+  CTkAppOptionTableDelegate(CTkAppDebug *debug);
+
+  void paint(QPainter *painter, const QStyleOptionViewItem &option,
+             const QModelIndex &index) const override;
+
+  void drawColor(QPainter *painter, const QStyleOptionViewItem &option,
+                 const QColor &c, const QModelIndex &index) const;
+
+ private:
+  CTkAppDebug *debug_ { nullptr };
 };
 
 #endif
