@@ -189,6 +189,8 @@ class CTkAppWidget : public QObject {
   const QColor &insertBackground() const { return insertBackground_; }
   void setInsertBackground(const QColor &c);
 
+  void updatePalette();
+
   //---
 
   double highlightThickness() const { return highlightThickness_; }
@@ -317,15 +319,15 @@ class CTkAppWidget : public QObject {
   //---
 
   int padX() const { return padx_; }
-  void setPadX(int i);
+  virtual void setPadX(int i);
 
   int padY() const { return pady_; }
-  void setPadY(int i);
+  virtual void setPadY(int i);
 
   //---
 
   const Qt::Alignment &justify() const { return justify_; }
-  void setJustify(const Qt::Alignment &v) { justify_ = v; }
+  virtual void setJustify(const Qt::Alignment &a) { justify_ = a; }
 
   //--
 
@@ -355,8 +357,10 @@ class CTkAppWidget : public QObject {
   const Relief &relief() const { return relief_; }
   void setRelief(const Relief &v) { relief_ = v; }
 
-  const QString &reliefStr() const { return reliefStr_; }
+  QString reliefStr() const { return reliefVar_.toString(); }
   bool setReliefStr(const QString &s);
+
+  bool setReliefFromVar(const QVariant &s);
 
   //---
 
@@ -369,9 +373,10 @@ class CTkAppWidget : public QObject {
   //---
 
   const Qt::Alignment &anchor() const { return anchor_; }
-  void setAnchor(const Qt::Alignment &v) { anchor_ = v; }
+  virtual void setAnchor(const Qt::Alignment &a) { anchor_ = a; }
 
   const QString &anchorStr() const { return anchorStr_; }
+  bool setAnchorVar(const QVariant &var);
   bool setAnchorStr(const QString &s);
 
   bool isGridWidget() const { return gridWidget_; }
@@ -436,7 +441,9 @@ class CTkAppWidget : public QObject {
   void runCommand(const Args &args=Args());
 
  protected:
-  using WidgetMap  = std::map<QString, CTkAppWidget *>;
+  using WidgetP    = QPointer<QWidget>;
+  using AppWidgetP = QPointer<CTkAppWidget>;
+  using WidgetMap  = std::map<QString, AppWidgetP>;
   using EventDatas = std::vector<CTkAppEventData>;
   using WmAtoms    = std::map<QString, QString>;
 
@@ -449,15 +456,15 @@ class CTkAppWidget : public QObject {
   int        w_       { 0 };
   int        h_       { 0 };
   bool       deleted_ { false };
-  QWidget*   qwidget_ { nullptr };
+  WidgetP    qwidget_;
   WidgetMap  children_;
   EventDatas eventDatas_;
 
   QString xScrollCommand_;
   QString yScrollCommand_;
 
-  Relief  relief_     { Relief::NONE };
-  QString reliefStr_ { };
+  Relief   relief_ { Relief::NONE };
+  QVariant reliefVar_;
 
   int repeatDelay_    { -1 };
   int repeatInterval_ { -1 };
@@ -614,7 +621,12 @@ class CTkAppButton : public CTkAppWidget {
 
   void setImageRef(const CTkAppImageRef &i) override;
 
+  void setJustify(const Qt::Alignment &a) override;
+
   void flash();
+
+  void setPadX(int i) override;
+  void setPadY(int i) override;
 
   void appearanceChanged() override;
 
@@ -1373,10 +1385,24 @@ class CTkAppCanvasArcShape : public CTkAppCanvasShape {
   void updatePath() {
     qpath_.clear();
     assert(points_.size() == 2);
+
     QRectF r(points_[0].x, points_[0].y,
              points_[1].x - points_[0].x, points_[1].y - points_[0].y);
-    qpath_.arcMoveTo(r, start());
-    qpath_.arcTo(r, start(), extent());
+
+    if      (arcType_ == ArcType::PIE) {
+      qpath_.moveTo(r.center());
+      qpath_.arcTo(r, start(), extent());
+      qpath_.closeSubpath();
+    }
+    else if (arcType_ == ArcType::CHORD) {
+      qpath_.arcMoveTo(r, start());
+      qpath_.arcTo(r, start(), extent());
+      qpath_.closeSubpath();
+    }
+    else {
+      qpath_.arcMoveTo(r, start());
+      qpath_.arcTo(r, start(), extent());
+    }
   }
 
  protected:
@@ -2138,12 +2164,24 @@ class CTkAppCheckButtonWidget : public QCheckBox {
  public:
   explicit CTkAppCheckButtonWidget(CTkAppCheckButton *check);
 
+  const QString &getLabel() const { return text_; }
+  void setLabel(const QString &s) { text_ = s; updateText(); }
+
   bool isReadOnly() const { return readOnly_; }
   void setReadOnly(bool b) { readOnly_ = b; }
 
+  double wrapLength() const { return wrapLength_; }
+  void setWrapLength(double r) { wrapLength_ = r; updateText(); }
+
  private:
-  CTkAppCheckButton *check_    { nullptr };
-  bool               readOnly_ { false };
+  void updateText();
+
+ private:
+  CTkAppCheckButton *check_ { nullptr };
+
+  QString text_;
+  bool    readOnly_   { false };
+  double  wrapLength_ { -1 };
 };
 
 //---
@@ -2281,6 +2319,8 @@ class CTkAppEntryWidget : public QLineEdit {
 
 //---
 
+class CTkAppFrameWidget;
+
 class CTkAppFrame : public CTkAppWidget {
   Q_OBJECT
 
@@ -2294,7 +2334,17 @@ class CTkAppFrame : public CTkAppWidget {
   bool execOp(const Args &args) override;
 
  private:
-  QFrame* qframe_ { nullptr };
+  CTkAppFrameWidget* qframe_ { nullptr };
+};
+
+class CTkAppFrameWidget : public QFrame {
+ public:
+  explicit CTkAppFrameWidget(CTkAppFrame *frame);
+
+  QSize sizeHint() const override;
+
+ private:
+  CTkAppFrame *frame_;
 };
 
 //---
@@ -2327,6 +2377,8 @@ class CTkAppLabel : public CTkAppWidget {
 
   void setImageRef(const CTkAppImageRef &i) override;
 
+  void setJustify(const Qt::Alignment &a) override;
+
   void updateFromVar();
 
  private:
@@ -2342,21 +2394,34 @@ class CTkAppLabelWidget : public CQLabelImage {
   using OptReal = std::optional<double>;
 
  public:
-  CTkAppLabelWidget(CTkAppLabel *label);
+  explicit CTkAppLabelWidget(CTkAppLabel *label);
+
+  const QString &getLabel() const { return text_; }
+  void setLabel(const QString &s) { text_ = s; updateText(); }
 
   const OptReal &width() const { return width_; }
-  void setWidth(const OptReal &w) { width_ = w; }
+  void setWidth(const OptReal &w) { width_ = w; updateText(); }
 
   const OptReal &height() const { return height_; }
-  void setHeight(const OptReal &h) { height_ = h; }
+  void setHeight(const OptReal &h) { height_ = h; updateText(); }
+
+  double wrapLength() const { return wrapLength_; }
+  void setWrapLength(double r) { wrapLength_ = r; updateText(); }
 
   QSize sizeHint() const override;
 
  private:
+  void updateText();
+
+ private:
   CTkAppLabel* label_ { nullptr };
+
+  QString text_;
 
   OptReal width_;
   OptReal height_;
+
+  double wrapLength_ { -1 };
 };
 
 //---
@@ -2592,7 +2657,8 @@ class CTkAppMenu : public CTkAppWidget {
   void radioToggledSlot(bool);
 
  private:
-  QMenu* qmenu_ { nullptr };
+  QMenu* qmenu_   { nullptr };
+  bool   tearOff_ { true };
 };
 
 //---
@@ -2841,6 +2907,9 @@ class CTkAppRadioButtonWidget : public QRadioButton {
  public:
   explicit CTkAppRadioButtonWidget(CTkAppRadioButton *radio);
 
+  const QString &getText() const { return text_; }
+  void setText(const QString &s) { text_ = s; updateText(); }
+
   //! get/set image
   const QImage &image() const { return image_; }
   void setImage(const QImage &i) { image_ = i; update(); }
@@ -2848,14 +2917,24 @@ class CTkAppRadioButtonWidget : public QRadioButton {
   bool isReadOnly() const { return readOnly_; }
   void setReadOnly(bool b) { readOnly_ = b; }
 
+  double wrapLength() const { return wrapLength_; }
+  void setWrapLength(double r) { wrapLength_ = r; updateText(); }
+
   void paintEvent(QPaintEvent *) override;
 
   QSize sizeHint() const override;
 
  private:
-  CTkAppRadioButton *radio_     { nullptr };
-  QImage             image_;
-  bool               readOnly_  { false };
+  void updateText();
+
+ private:
+  CTkAppRadioButton *radio_ { nullptr };
+
+  QString text_;
+  QImage  image_;
+  bool    readOnly_ { false };
+
+  double wrapLength_ { -1 };
 };
 
 //---

@@ -7,7 +7,7 @@
 *****************************************************************************/
 
 #include <memory>
-#include "../CQLabelImage.h"
+#include "../../include/CQLabelImage.h"
 #include <QtCore/qbytearray.h>
 #include <QtCore/qmetatype.h>
 #if !defined(Q_MOC_OUTPUT_REVISION)
@@ -22,8 +22,8 @@ QT_BEGIN_MOC_NAMESPACE
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
 struct qt_meta_stringdata_CQLabelImage_t {
-    QByteArrayData data[11];
-    char stringdata0[69];
+    QByteArrayData data[13];
+    char stringdata0[91];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -37,16 +37,19 @@ QT_MOC_LITERAL(1, 13, 4), // "type"
 QT_MOC_LITERAL(2, 18, 4), // "Type"
 QT_MOC_LITERAL(3, 23, 5), // "label"
 QT_MOC_LITERAL(4, 29, 5), // "image"
-QT_MOC_LITERAL(5, 35, 4), // "NONE"
-QT_MOC_LITERAL(6, 40, 6), // "BOTTOM"
-QT_MOC_LITERAL(7, 47, 3), // "TOP"
-QT_MOC_LITERAL(8, 51, 4), // "LEFT"
-QT_MOC_LITERAL(9, 56, 5), // "RIGHT"
-QT_MOC_LITERAL(10, 62, 6) // "CENTER"
+QT_MOC_LITERAL(5, 35, 7), // "justify"
+QT_MOC_LITERAL(6, 43, 13), // "Qt::Alignment"
+QT_MOC_LITERAL(7, 57, 4), // "NONE"
+QT_MOC_LITERAL(8, 62, 6), // "BOTTOM"
+QT_MOC_LITERAL(9, 69, 3), // "TOP"
+QT_MOC_LITERAL(10, 73, 4), // "LEFT"
+QT_MOC_LITERAL(11, 78, 5), // "RIGHT"
+QT_MOC_LITERAL(12, 84, 6) // "CENTER"
 
     },
     "CQLabelImage\0type\0Type\0label\0image\0"
-    "NONE\0BOTTOM\0TOP\0LEFT\0RIGHT\0CENTER"
+    "justify\0Qt::Alignment\0NONE\0BOTTOM\0TOP\0"
+    "LEFT\0RIGHT\0CENTER"
 };
 #undef QT_MOC_LITERAL
 
@@ -57,8 +60,8 @@ static const uint qt_meta_data_CQLabelImage[] = {
        0,       // classname
        0,    0, // classinfo
        0,    0, // methods
-       3,   14, // properties
-       1,   23, // enums/sets
+       4,   14, // properties
+       1,   26, // enums/sets
        0,    0, // constructors
        0,       // flags
        0,       // signalCount
@@ -67,17 +70,18 @@ static const uint qt_meta_data_CQLabelImage[] = {
        1, 0x80000000 | 2, 0x0009510b,
        3, QMetaType::QString, 0x00095103,
        4, QMetaType::QImage, 0x00095103,
+       5, 0x80000000 | 6, 0x0009510b,
 
  // enums: name, alias, flags, count, data
-       2,    2, 0x2,    6,   28,
+       2,    2, 0x2,    6,   31,
 
  // enum data: key, value
-       5, uint(CQLabelImage::Type::NONE),
-       6, uint(CQLabelImage::Type::BOTTOM),
-       7, uint(CQLabelImage::Type::TOP),
-       8, uint(CQLabelImage::Type::LEFT),
-       9, uint(CQLabelImage::Type::RIGHT),
-      10, uint(CQLabelImage::Type::CENTER),
+       7, uint(CQLabelImage::Type::NONE),
+       8, uint(CQLabelImage::Type::BOTTOM),
+       9, uint(CQLabelImage::Type::TOP),
+      10, uint(CQLabelImage::Type::LEFT),
+      11, uint(CQLabelImage::Type::RIGHT),
+      12, uint(CQLabelImage::Type::CENTER),
 
        0        // eod
 };
@@ -94,6 +98,7 @@ void CQLabelImage::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id
         case 0: *reinterpret_cast< Type*>(_v) = _t->type(); break;
         case 1: *reinterpret_cast< QString*>(_v) = _t->label(); break;
         case 2: *reinterpret_cast< QImage*>(_v) = _t->image(); break;
+        case 3: *reinterpret_cast< Qt::Alignment*>(_v) = _t->justify(); break;
         default: break;
         }
     } else if (_c == QMetaObject::WriteProperty) {
@@ -104,6 +109,7 @@ void CQLabelImage::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id
         case 0: _t->setType(*reinterpret_cast< Type*>(_v)); break;
         case 1: _t->setLabel(*reinterpret_cast< QString*>(_v)); break;
         case 2: _t->setImage(*reinterpret_cast< QImage*>(_v)); break;
+        case 3: _t->setJustify(*reinterpret_cast< Qt::Alignment*>(_v)); break;
         default: break;
         }
     } else if (_c == QMetaObject::ResetProperty) {
@@ -148,17 +154,17 @@ int CQLabelImage::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_c == QMetaObject::ReadProperty || _c == QMetaObject::WriteProperty
             || _c == QMetaObject::ResetProperty || _c == QMetaObject::RegisterPropertyMetaType) {
         qt_static_metacall(this, _c, _id, _a);
-        _id -= 3;
+        _id -= 4;
     } else if (_c == QMetaObject::QueryPropertyDesignable) {
-        _id -= 3;
+        _id -= 4;
     } else if (_c == QMetaObject::QueryPropertyScriptable) {
-        _id -= 3;
+        _id -= 4;
     } else if (_c == QMetaObject::QueryPropertyStored) {
-        _id -= 3;
+        _id -= 4;
     } else if (_c == QMetaObject::QueryPropertyEditable) {
-        _id -= 3;
+        _id -= 4;
     } else if (_c == QMetaObject::QueryPropertyUser) {
-        _id -= 3;
+        _id -= 4;
     }
 #endif // QT_NO_PROPERTIES
     return _id;

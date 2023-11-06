@@ -47,7 +47,6 @@ CQLabelImage.cpp \
 CQButtonImage.cpp \
 CQTextWidget.cpp \
 CQSpinList.cpp \
-CQSlider.cpp \
 CSVGUtil.cpp \
 CQRotatedText.cpp \
 CQOptEdit.cpp \
@@ -87,7 +86,6 @@ HEADERS += \
 ../include/CQButtonImage.h \
 ../include/CQTextWidget.h \
 ../include/CQSpinList.h \
-../include/CQSlider.h \
 ../include/CSVGUtil.h \
 ../include/CQRotatedText.h \
 \

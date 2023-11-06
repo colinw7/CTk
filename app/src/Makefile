@@ -70,7 +70,6 @@ SOURCES       = CTkApp.cpp \
 		CQButtonImage.cpp \
 		CQTextWidget.cpp \
 		CQSpinList.cpp \
-		CQSlider.cpp \
 		CSVGUtil.cpp \
 		CQRotatedText.cpp \
 		CQOptEdit.cpp \
@@ -94,7 +93,6 @@ SOURCES       = CTkApp.cpp \
 		.moc/moc_CQButtonImage.cpp \
 		.moc/moc_CQTextWidget.cpp \
 		.moc/moc_CQSpinList.cpp \
-		.moc/moc_CQSlider.cpp \
 		.moc/moc_CQOptEdit.cpp
 OBJECTS       = ../obj/CTkApp.o \
 		../obj/CTkAppCommands.o \
@@ -117,7 +115,6 @@ OBJECTS       = ../obj/CTkApp.o \
 		../obj/CQButtonImage.o \
 		../obj/CQTextWidget.o \
 		../obj/CQSpinList.o \
-		../obj/CQSlider.o \
 		../obj/CSVGUtil.o \
 		../obj/CQRotatedText.o \
 		../obj/CQOptEdit.o \
@@ -142,7 +139,6 @@ OBJECTS       = ../obj/CTkApp.o \
 		../obj/moc_CQButtonImage.o \
 		../obj/moc_CQTextWidget.o \
 		../obj/moc_CQSpinList.o \
-		../obj/moc_CQSlider.o \
 		../obj/moc_CQOptEdit.o
 DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/common/unix.conf \
@@ -259,7 +255,6 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		../include/CQButtonImage.h \
 		../include/CQTextWidget.h \
 		../include/CQSpinList.h \
-		../include/CQSlider.h \
 		../include/CSVGUtil.h \
 		../include/CQRotatedText.h \
 		CQOptEdit.h CTkApp.cpp \
@@ -283,7 +278,6 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		CQButtonImage.cpp \
 		CQTextWidget.cpp \
 		CQSpinList.cpp \
-		CQSlider.cpp \
 		CSVGUtil.cpp \
 		CQRotatedText.cpp \
 		CQOptEdit.cpp \
@@ -503,8 +497,8 @@ distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents ../include/CTkApp.h ../include/CTkAppCommands.h ../include/CTkAppEventData.h ../include/CTkAppImage.h ../include/CTkAppFont.h ../include/CTkAppOptData.h ../include/CTkAppOptionValue.h ../include/CTkAppWidget.h ../include/CTkAppGridLayout.h ../include/CTkAppPackLayout.h ../include/CTkAppPlaceLayout.h ../include/CTkAppLayout.h ../include/CTkAppLayoutWidget.h ../include/CTkAppUtil.h ../include/CTclApp.h ../include/CTclAppCommand.h ../include/CTkWidget.h ../include/CTkAppDebug.h ../include/CTkAppButtonWidget.h ../include/CTkAppSpinBoxWidget.h ../include/CTkAppTextWidget.h ../include/CQLabelImage.h ../include/CQButtonImage.h ../include/CQTextWidget.h ../include/CQSpinList.h ../include/CQSlider.h ../include/CSVGUtil.h ../include/CQRotatedText.h CQOptEdit.h $(DISTDIR)/
-	$(COPY_FILE) --parents CTkApp.cpp CTkAppCommands.cpp CTkAppImage.cpp CTkAppFont.cpp CTkAppOptData.cpp CTkAppWidget.cpp CTkAppGridLayout.cpp CTkAppPackLayout.cpp CTkAppPlaceLayout.cpp CTkAppLayout.cpp CTkAppLayoutWidget.cpp CTkAppBitmaps.cpp CTkAppUtil.cpp CTclApp.cpp CTclAppCommand.cpp CTkWidget.cpp CTkAppDebug.cpp CQLabelImage.cpp CQButtonImage.cpp CQTextWidget.cpp CQSpinList.cpp CQSlider.cpp CSVGUtil.cpp CQRotatedText.cpp CQOptEdit.cpp CXBMImage.cpp CGIFImage.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents ../include/CTkApp.h ../include/CTkAppCommands.h ../include/CTkAppEventData.h ../include/CTkAppImage.h ../include/CTkAppFont.h ../include/CTkAppOptData.h ../include/CTkAppOptionValue.h ../include/CTkAppWidget.h ../include/CTkAppGridLayout.h ../include/CTkAppPackLayout.h ../include/CTkAppPlaceLayout.h ../include/CTkAppLayout.h ../include/CTkAppLayoutWidget.h ../include/CTkAppUtil.h ../include/CTclApp.h ../include/CTclAppCommand.h ../include/CTkWidget.h ../include/CTkAppDebug.h ../include/CTkAppButtonWidget.h ../include/CTkAppSpinBoxWidget.h ../include/CTkAppTextWidget.h ../include/CQLabelImage.h ../include/CQButtonImage.h ../include/CQTextWidget.h ../include/CQSpinList.h ../include/CSVGUtil.h ../include/CQRotatedText.h CQOptEdit.h $(DISTDIR)/
+	$(COPY_FILE) --parents CTkApp.cpp CTkAppCommands.cpp CTkAppImage.cpp CTkAppFont.cpp CTkAppOptData.cpp CTkAppWidget.cpp CTkAppGridLayout.cpp CTkAppPackLayout.cpp CTkAppPlaceLayout.cpp CTkAppLayout.cpp CTkAppLayoutWidget.cpp CTkAppBitmaps.cpp CTkAppUtil.cpp CTclApp.cpp CTclAppCommand.cpp CTkWidget.cpp CTkAppDebug.cpp CQLabelImage.cpp CQButtonImage.cpp CQTextWidget.cpp CQSpinList.cpp CSVGUtil.cpp CQRotatedText.cpp CQOptEdit.cpp CXBMImage.cpp CGIFImage.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -536,9 +530,9 @@ compiler_moc_predefs_clean:
 .moc/moc_predefs.h: /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp
 	g++ -pipe -std=c++17 -DCQUTIL_PEN -DCQUTIL_BRUSH -DCQUTIL_FONT -DCQUTIL_IMAGE -DCBRUSH_IMAGE -g -fPIC -Wall -Wextra -dM -E -o .moc/moc_predefs.h /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp
 
-compiler_moc_header_make_all: .moc/moc_CTkApp.cpp .moc/moc_CTkAppCommands.cpp .moc/moc_CTkAppImage.cpp .moc/moc_CTkAppFont.cpp .moc/moc_CTkAppWidget.cpp .moc/moc_CTkAppGridLayout.cpp .moc/moc_CTkAppPackLayout.cpp .moc/moc_CTkAppPlaceLayout.cpp .moc/moc_CTkAppLayout.cpp .moc/moc_CTkAppLayoutWidget.cpp .moc/moc_CTkWidget.cpp .moc/moc_CTkAppDebug.cpp .moc/moc_CTkAppButtonWidget.cpp .moc/moc_CTkAppSpinBoxWidget.cpp .moc/moc_CTkAppTextWidget.cpp .moc/moc_CQLabelImage.cpp .moc/moc_CQButtonImage.cpp .moc/moc_CQTextWidget.cpp .moc/moc_CQSpinList.cpp .moc/moc_CQSlider.cpp .moc/moc_CQOptEdit.cpp
+compiler_moc_header_make_all: .moc/moc_CTkApp.cpp .moc/moc_CTkAppCommands.cpp .moc/moc_CTkAppImage.cpp .moc/moc_CTkAppFont.cpp .moc/moc_CTkAppWidget.cpp .moc/moc_CTkAppGridLayout.cpp .moc/moc_CTkAppPackLayout.cpp .moc/moc_CTkAppPlaceLayout.cpp .moc/moc_CTkAppLayout.cpp .moc/moc_CTkAppLayoutWidget.cpp .moc/moc_CTkWidget.cpp .moc/moc_CTkAppDebug.cpp .moc/moc_CTkAppButtonWidget.cpp .moc/moc_CTkAppSpinBoxWidget.cpp .moc/moc_CTkAppTextWidget.cpp .moc/moc_CQLabelImage.cpp .moc/moc_CQButtonImage.cpp .moc/moc_CQTextWidget.cpp .moc/moc_CQSpinList.cpp .moc/moc_CQOptEdit.cpp
 compiler_moc_header_clean:
-	-$(DEL_FILE) .moc/moc_CTkApp.cpp .moc/moc_CTkAppCommands.cpp .moc/moc_CTkAppImage.cpp .moc/moc_CTkAppFont.cpp .moc/moc_CTkAppWidget.cpp .moc/moc_CTkAppGridLayout.cpp .moc/moc_CTkAppPackLayout.cpp .moc/moc_CTkAppPlaceLayout.cpp .moc/moc_CTkAppLayout.cpp .moc/moc_CTkAppLayoutWidget.cpp .moc/moc_CTkWidget.cpp .moc/moc_CTkAppDebug.cpp .moc/moc_CTkAppButtonWidget.cpp .moc/moc_CTkAppSpinBoxWidget.cpp .moc/moc_CTkAppTextWidget.cpp .moc/moc_CQLabelImage.cpp .moc/moc_CQButtonImage.cpp .moc/moc_CQTextWidget.cpp .moc/moc_CQSpinList.cpp .moc/moc_CQSlider.cpp .moc/moc_CQOptEdit.cpp
+	-$(DEL_FILE) .moc/moc_CTkApp.cpp .moc/moc_CTkAppCommands.cpp .moc/moc_CTkAppImage.cpp .moc/moc_CTkAppFont.cpp .moc/moc_CTkAppWidget.cpp .moc/moc_CTkAppGridLayout.cpp .moc/moc_CTkAppPackLayout.cpp .moc/moc_CTkAppPlaceLayout.cpp .moc/moc_CTkAppLayout.cpp .moc/moc_CTkAppLayoutWidget.cpp .moc/moc_CTkWidget.cpp .moc/moc_CTkAppDebug.cpp .moc/moc_CTkAppButtonWidget.cpp .moc/moc_CTkAppSpinBoxWidget.cpp .moc/moc_CTkAppTextWidget.cpp .moc/moc_CQLabelImage.cpp .moc/moc_CQButtonImage.cpp .moc/moc_CQTextWidget.cpp .moc/moc_CQSpinList.cpp .moc/moc_CQOptEdit.cpp
 .moc/moc_CTkApp.cpp: ../include/CTkApp.h \
 		../include/CTkAppOptionValue.h \
 		../include/CTkAppEventData.h \
@@ -686,11 +680,6 @@ compiler_moc_header_clean:
 		/usr/lib/qt5/bin/moc
 	/usr/lib/qt5/bin/moc $(DEFINES) --include /home/colinw/git/CTk/app/src/.moc/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I/home/colinw/git/CTk/app/src -I/home/colinw/git/CTk/app/include -I/home/colinw/git/CQUtil/include -I/home/colinw/git/CTclApp/include -I/home/colinw/git/CQPropertyView/include -I/home/colinw/git/CXLib/include -I/home/colinw/git/CReadLine/include -I/home/colinw/git/CImageLib/include -I/home/colinw/git/CRGBName/include -I/home/colinw/git/CFont/include -I/home/colinw/git/CFile/include -I/home/colinw/git/CMath/include -I/home/colinw/git/CStrUtil/include -I/home/colinw/git/CGlob/include -I/home/colinw/git/CUtil/include -I/home/colinw/git/COS/include -I/usr/include/tcl -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtSvg -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -I/usr/include/c++/11/backward -I/usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include ../include/CQSpinList.h -o .moc/moc_CQSpinList.cpp
 
-.moc/moc_CQSlider.cpp: ../include/CQSlider.h \
-		.moc/moc_predefs.h \
-		/usr/lib/qt5/bin/moc
-	/usr/lib/qt5/bin/moc $(DEFINES) --include /home/colinw/git/CTk/app/src/.moc/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I/home/colinw/git/CTk/app/src -I/home/colinw/git/CTk/app/include -I/home/colinw/git/CQUtil/include -I/home/colinw/git/CTclApp/include -I/home/colinw/git/CQPropertyView/include -I/home/colinw/git/CXLib/include -I/home/colinw/git/CReadLine/include -I/home/colinw/git/CImageLib/include -I/home/colinw/git/CRGBName/include -I/home/colinw/git/CFont/include -I/home/colinw/git/CFile/include -I/home/colinw/git/CMath/include -I/home/colinw/git/CStrUtil/include -I/home/colinw/git/CGlob/include -I/home/colinw/git/CUtil/include -I/home/colinw/git/COS/include -I/usr/include/tcl -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtSvg -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -I/usr/include/c++/11/backward -I/usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include ../include/CQSlider.h -o .moc/moc_CQSlider.cpp
-
 .moc/moc_CQOptEdit.cpp: CQOptEdit.h \
 		.moc/moc_predefs.h \
 		/usr/lib/qt5/bin/moc
@@ -802,7 +791,6 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../../../CImageLib/include/CImageMgr.h \
 		../../../CFile/include/CFile.h \
 		../../../CFile/include/CFileBase.h \
-		../../../CStrUtil/include/CStrUtil.h \
 		../../../CImageLib/include/CImageAnim.h \
 		../../../CImageLib/include/CImageFile.h \
 		../../../CQUtil/include/CQImage.h \
@@ -1021,7 +1009,10 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../../../CMath/include/CBBox2D.h \
 		../../../CMath/include/CSize2D.h \
 		../../../CMath/include/CISize2D.h \
-		../../../CUtil/include/CScreenUnits.h
+		../../../CUtil/include/CScreenUnits.h \
+		../../../CRGBName/include/CRGBName.h \
+		../../../CUtil/include/CRGBA.h \
+		../../../CUtil/include/CRGB.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTkAppUtil.o CTkAppUtil.cpp
 
 ../obj/CTclApp.o: CTclApp.cpp ../include/CTclApp.h \
@@ -1097,10 +1088,6 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 ../obj/CQSpinList.o: CQSpinList.cpp ../include/CQSpinList.h \
 		../../../CQUtil/include/CQStrUtil.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CQSpinList.o CQSpinList.cpp
-
-../obj/CQSlider.o: CQSlider.cpp ../include/CQSlider.h \
-		../include/CQRotatedText.h
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CQSlider.o CQSlider.cpp
 
 ../obj/CSVGUtil.o: CSVGUtil.cpp ../include/CSVGUtil.h \
 		../../../CMath/include/C3Bezier2D.h \
@@ -1189,9 +1176,6 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 
 ../obj/moc_CQSpinList.o: .moc/moc_CQSpinList.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/moc_CQSpinList.o .moc/moc_CQSpinList.cpp
-
-../obj/moc_CQSlider.o: .moc/moc_CQSlider.cpp 
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/moc_CQSlider.o .moc/moc_CQSlider.cpp
 
 ../obj/moc_CQOptEdit.o: .moc/moc_CQOptEdit.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/moc_CQOptEdit.o .moc/moc_CQOptEdit.cpp

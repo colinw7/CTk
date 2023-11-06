@@ -50,7 +50,7 @@ class CTclTraceProc {
 
 class CTclApp {
  public:
-  Tcl_Interp *getInterp() { return interp_; }
+  Tcl_Interp *getInterp() const { return interp_; }
   void setInterp(Tcl_Interp *interp) { interp_ = interp; }
 
   Display *getDisplay();

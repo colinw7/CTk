@@ -126,7 +126,7 @@ class CTkApp : public QObject, public CTclApp {
 
   void getImageNames(std::vector<QString> &names) const;
 
-  CTkAppImageRef getBitmap(const QString &name) const;
+  CTkAppImageRef getBitmap(const QString &name, bool create=false) const;
   void addBitmap(const QString &name, CTkAppImageRef &image);
 
   void getBitmapNames(std::vector<QString> &names) const;

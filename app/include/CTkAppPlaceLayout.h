@@ -72,7 +72,7 @@ class CTkAppPlaceLayoutInfo {
   void   setRelHeight    (double relHeight) { relHeight_ = relHeight; }
   void   unsetRelHeight  () { relHeight_ = OptReal(); }
 
-  const QString &in() const { return in_; }
+  const QString &getIn() const { return in_; }
   void setIn(const QString &s) { in_ = s; }
 
   void update(const CTkAppPlaceLayoutInfo &info) {

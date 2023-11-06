@@ -5,6 +5,7 @@
 #include <CSVGUtil.h>
 #include <CScreenUnits.h>
 #include <CMatrix2D.h>
+#include <CRGBName.h>
 
 #include <QFrame>
 #include <QLineEdit>
@@ -60,7 +61,11 @@ variantToQColor(CTclApp *app, const QVariant &var, QColor &c)
 {
   auto str = variantToString(app, var);
 
-  c = QColor(str);
+  double r, g, b, a;
+  if (CRGBName::lookup(str.toStdString(), &r, &g, &b, &a))
+    c = QColor(255*r, 255*g, 255*b, 255*a);
+  else
+    c = QColor(str);
 
   return true;
 }
@@ -174,18 +179,19 @@ variantToDistance(CTclApp *app, const QVariant &var, double &r)
 
   double f = 1.0;
 
-  if      (c == 'c') // centimeters
+  if      (c == 'm') // millimeters
+    f = 1.0/25.4;
+  else if (c == 'c') // centimeters
     f = 1.0/2.54;
   else if (c == 'i') // inches
     f = 1.0;
-  else if (c == 'm') // millimeters
-    f = 1.0/25.4;
   else if (c == 'p') // points
     f = 1.0/72.0;
   else
     return false;
 
   auto dpi = CScreenUnitsMgrInst->dpi();
+//double dpi = 72.0;
 
   r = r1*dpi*f;
 
@@ -496,19 +502,28 @@ stringToTextInd(CTkApp *app, const QVariant &var, CTkAppTextInd &ind)
 }
 
 bool
-stringToRelief(const QString &str, CTkAppWidgetRelief &relief)
+variantToRelief(CTkApp *app, const QVariant &var, CTkAppWidgetRelief &relief)
 {
-  if      (str == "raised")
+  static auto names = std::vector<QString>({
+    "flat", "groove", "raised", "ridge", "solid", "sunken"});
+
+  auto str = variantToString(app, var);
+
+  QString match;
+  if (! uniqueMatch(names, str, match))
+    return false;
+
+  if      (match == "raised")
     relief = CTkAppWidgetRelief::RAISED;
-  else if (str == "sunken")
+  else if (match == "sunken")
     relief = CTkAppWidgetRelief::SUNKEN;
-  else if (str == "flat")
+  else if (match == "flat")
     relief = CTkAppWidgetRelief::FLAT;
-  else if (str == "ridge")
+  else if (match == "ridge")
     relief = CTkAppWidgetRelief::RIDGE;
-  else if (str == "solid")
+  else if (match == "solid")
     relief = CTkAppWidgetRelief::SOLID;
-  else if (str == "groove")
+  else if (match == "groove")
     relief = CTkAppWidgetRelief::GROOVE;
   else
     return false;
@@ -724,6 +739,100 @@ stringToMatrix(CTkApp *tk, const QString &str, QTransform &t)
   t = tk->toQTransform(m);
 
   return true;
+}
+
+QString
+formatStringInWidth(const QString &text, int wrapWidth, const QFont &font)
+{
+  assert(wrapWidth > 0);
+
+  QFontMetrics fm(font);
+
+  auto tw = fm.horizontalAdvance(text);
+
+  if (tw < wrapWidth)
+    return text;
+
+  QStringList lines;
+
+  QString line;
+  int     lineWidth = 0;
+
+  int pos = 0;
+  int len = text.length();
+
+  //---
+
+  auto isSplitter = [&]() {
+    auto c = text[pos];
+
+    // Space is splitter
+    if (c.isSpace())
+      return true;
+
+    auto c1 = c.toLatin1();
+
+    // Punctuation Characters followed by an End of String or a Space are splitters
+    if (ispunct(c1) && (pos == len - 1 || text[pos + 1].isSpace()))
+      return true;
+
+    // Comma, Colon, Semi Colon, Question Mark and Exclamation Mark followed by an
+    // End of String or a non-Punctuation Character is a Splitter
+
+    if (strchr(",:;?!", c1) != nullptr &&
+        (pos == len - 1 || ! ispunct(text[pos + 1].toLatin1())))
+      return true;
+
+    // Any other characters are not Splitters
+    return false;
+  };
+
+  //---
+
+  while (pos < len) {
+    // get next word
+    QString word;
+
+    word += text[pos++];
+
+    while (pos < len) {
+      if (isSplitter())
+        break;
+
+      word += text[pos++];
+    }
+
+    int wordWidth = fm.horizontalAdvance(word);
+
+    if (lineWidth > 0 && lineWidth + wordWidth > wrapWidth) {
+      lines += line;
+
+      line      = word;
+      lineWidth = wordWidth;
+    }
+    else {
+      line      += word;
+      lineWidth += wordWidth;
+
+      while (pos < len && isSplitter()) {
+        auto splitChar = text.mid(pos, 1);
+
+        int tw1 = fm.horizontalAdvance(splitChar);
+        if (lineWidth + tw1 > wrapWidth)
+          break;
+
+        line      += splitChar;
+        lineWidth += tw1;
+
+        ++pos;
+      }
+    }
+  }
+
+  if (line != "")
+    lines += line;
+
+  return lines.join("\n");
 }
 
 }

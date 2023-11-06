@@ -920,10 +920,10 @@ updateOptions()
 
     const auto *opt = opts.opt(name);
 
-    QVariant value;
-    opts.getOptValue(opt, value);
+    QVariant var;
+    opts.getOptValue(opt, var);
 
-    auto valueStr = tk_->variantToString(value);
+    auto valueStr = tk_->variantToString(var);
 
     setTableItem(1, QString(opt->dname));
     setTableItem(2, QString(opt->cname));

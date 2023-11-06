@@ -87,7 +87,7 @@ bool stringToLineChar(const QString &str, int &lineNum, int &charNum);
 
 bool stringToTextInd(CTkApp *app, const QVariant &var, CTkAppTextInd &ind);
 
-bool stringToRelief(const QString &str, CTkAppWidgetRelief &relief);
+bool variantToRelief(CTkApp *app, const QVariant &var, CTkAppWidgetRelief &relief);
 void setFrameRelief(QWidget *w, const CTkAppWidgetRelief &relief);
 
 Qt::Alignment stringToJustify(const QString &value);
@@ -101,6 +101,8 @@ bool stringToPath(const QString &str, QPainterPath &path);
 bool stringToMatrix(CTkApp *tk, const QString &str, QTransform &t);
 
 QColor grayColor(const QColor &c);
+
+QString formatStringInWidth(const QString &text, int width, const QFont &font);
 
 }
 

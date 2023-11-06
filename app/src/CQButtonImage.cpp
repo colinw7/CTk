@@ -7,14 +7,38 @@ CQButtonImage::
 CQButtonImage(QWidget *parent) :
  QAbstractButton(parent)
 {
-  setObjectName("qlabel");
+  setObjectName("qbutton");
+}
+
+void
+CQButtonImage::
+updateLines()
+{
+  lines_.clear();
+
+  auto label = this->label();
+
+  auto pos = label.indexOf('\n');
+
+  while (pos != -1) {
+    auto lhs = label.mid(0, pos);
+
+    lines_.push_back(lhs);
+
+    label = label.mid(pos + 1);
+
+    pos = label.indexOf('\n');
+  }
+
+  if (label != "")
+    lines_.push_back(label);
 }
 
 void
 CQButtonImage::
 paintEvent(QPaintEvent *)
 {
-  QStylePainter p(this);
+  QStylePainter painter(this);
 
   QStyleOptionButton opt;
 
@@ -23,7 +47,7 @@ paintEvent(QPaintEvent *)
   if (  isDown()) opt.state |= QStyle::State_Sunken;
   if (! isDown()) opt.state |= QStyle::State_Raised;
 
-  p.drawControl(QStyle::CE_PushButton, opt);
+  painter.drawControl(QStyle::CE_PushButton, opt);
 
   //---
 
@@ -50,56 +74,71 @@ paintEvent(QPaintEvent *)
     ih = image_.height();
   }
 
-  int b  = 2;
-  int bw = 2;
+  int b = 2;
 
   //---
 
-  p.setPen(palette().windowText().color());
+  painter.setPen(palette().windowText().color());
 
-  int x = bw;
-  int y = bw;
+  auto rect = contentsRect();
+
+  int x = rect.left() + borderX_;
+  int y = rect.top () + borderY_;
+  int w = rect.width () - 2*borderX_;
+  int h = rect.height() - 2*borderY_;
+
+  int xc = x + w/2;
+  int yc = y + h/2;
 
   if      (! hasImage) {
-    p.drawText(x, y + height()/2 + (ta - td)/2, label());
+    int yc = (rect.height() - lines_.size()*(ta + td))/2 + (ta + td)/2;
+
+    for (const auto &line : lines_) {
+      auto tw = fm.horizontalAdvance(line);
+
+      if      (justify() & Qt::AlignLeft)
+        painter.drawText(x, yc + (ta - td)/2, line);
+      else if (justify() & Qt::AlignHCenter)
+        painter.drawText(xc - tw/2, yc + (ta - td)/2, line);
+      else if (justify() & Qt::AlignRight)
+        painter.drawText(x + w - tw, yc + (ta - td)/2, line);
+      else
+        painter.drawText(x, yc + (ta - td)/2, line);
+
+      yc += ta + td;
+    }
   }
   else if (! hasLabel) {
-    p.drawImage(x + (width() - iw)/2.0, y + (height() - ih)/2, image());
+    painter.drawImage(xc - iw/2, y + (h - ih)/2, image());
   }
   else {
     if      (type_ == Type::LEFT) {
-      p.drawImage(x, y + (height() - ih)/2, image()); x += iw + b;
+      painter.drawImage(x, yc - ih/2, image()); x += iw + b;
 
-      p.drawText(x, y + height()/2 + (ta - td)/2, label());
+      painter.drawText(x, yc + (ta - td)/2, label());
     }
     else if (type_ == Type::RIGHT) {
-      p.drawText(x, y + height()/2 + (ta - td)/2, label()); x += tw + b;
+      painter.drawText(x, yc + (ta - td)/2, label()); x += tw + b;
 
-      p.drawImage(x, y + (height() - ih)/2, image());
+      painter.drawImage(x, yc - ih/2, image());
     }
     else if (type_ == Type::BOTTOM) {
-      p.drawText(x + (width() - tw)/2.0, y + ta, label());
+      painter.drawText(xc - tw/2, y + ta, label()); y += ta + td;
 
-      y += ta + td;
-
-      p.drawImage(x + (width() - iw)/2.0, y, image());
+      painter.drawImage(xc - iw/2, y, image());
     }
     else if (type_ == Type::TOP) {
-      p.drawImage(x + (width() - iw)/2.0, y, image());
+      painter.drawImage(xc - iw/2, y, image()); y += ih + b;
 
-      y += ih + b;
-
-      p.drawText(x + (width() - tw)/2.0, y + ta, label());
+      painter.drawText(xc - tw/2, y + ta, label());
     }
     else if (type_ == Type::CENTER) {
-      p.drawImage(x + (width() - iw)/2.0, y + (height() - ih)/2, image());
-      p.drawText (x + (width() - tw)/2.0, y + height()/2 + (ta - td)/2, label());
+      painter.drawImage(xc - iw/2, yc - ih/2, image());
+      painter.drawText (xc - tw/2, yc + (ta - td)/2, label());
     }
     else {
-      if (! image().isNull())
-        p.drawImage(x + (width() - iw)/2.0, y + (height() - ih)/2, image());
-      else
-        p.drawText (x + (width() - tw)/2.0, y + height()/2 + (ta - td)/2, label());
+      painter.drawImage(xc - iw/2, yc - ih/2, image());
+      painter.drawText (xc - tw/2, yc + (ta - td)/2, label());
     }
   }
 }
@@ -130,16 +169,21 @@ sizeHint() const
     ih = image_.height();
   }
 
-  int b  = 2;
-  int bw = 2;
+  int b = 2;
 
   //---
 
   if      (! hasImage) {
+    int tw = 0;
+
     if (userWidth() >= 0)
       tw = userWidth()*fm.horizontalAdvance("0");
+    else {
+      for (auto &line : lines_)
+        tw = std::max(tw, fm.horizontalAdvance(line));
+    }
 
-    return QSize(tw + 2*bw, th + 2*bw);
+    return QSize(tw + 2*borderX_, lines_.size()*th + 2*borderY_);
   }
   else if (! hasLabel) {
     if (userWidth() >= 0)
@@ -148,7 +192,7 @@ sizeHint() const
     if (userHeight() >= 0)
       ih = userHeight();
 
-    return QSize(iw + 2*bw, ih + 2*bw);
+    return QSize(iw + 2*borderX_, ih + 2*borderY_);
   }
   else {
     int w = 0, h = 0;
@@ -176,6 +220,6 @@ sizeHint() const
     if (userHeight() >= 0)
       h = userHeight();
 
-    return QSize(w + 2*bw, h + 2*bw);
+    return QSize(w + 2*borderX_, h + 2*borderY_);
   }
 }

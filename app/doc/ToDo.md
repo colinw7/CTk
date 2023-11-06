@@ -1,3 +1,5 @@
++ init widget from default
+
 + use QString instead of std::string
 + CStrParse to CQStrParse
 + QTransform to replace CMatrix2D

@@ -525,12 +525,15 @@ getImageNames(std::vector<QString> &names) const
 
 CTkAppImageRef
 CTkApp::
-getBitmap(const QString &name) const
+getBitmap(const QString &name, bool create) const
 {
   auto pm = bitmaps_.find(name);
 
   if (pm != bitmaps_.end())
     return (*pm).second;
+
+  if (! create)
+    return CTkAppImageRef();
 
   //---
 
@@ -1795,10 +1798,10 @@ lookupName(const QString &msg, const std::vector<QString> &names,
 
 bool
 CTkApp::
-getOptionInt(const QString &name, const QVariant &value, long &i) const
+getOptionInt(const QString &name, const QVariant &var, long &i) const
 {
-  if (! variantToInt(value, i)) {
-    auto str = variantToString(value);
+  if (! variantToInt(var, i)) {
+    auto str = variantToString(var);
     throwError("Invalid value \"" + str + "\" for \"" + name + "\"");
     return false;
   }
@@ -1808,10 +1811,10 @@ getOptionInt(const QString &name, const QVariant &value, long &i) const
 
 bool
 CTkApp::
-getOptionReal(const QString &name, const QVariant &value, double &r) const
+getOptionReal(const QString &name, const QVariant &var, double &r) const
 {
-  if (! variantToReal(value, r)) {
-    auto str = variantToString(value);
+  if (! variantToReal(var, r)) {
+    auto str = variantToString(var);
     throwError("Invalid value \"" + str + "\" for \"" + name + "\"");
     return false;
   }
@@ -1926,7 +1929,12 @@ bool
 CTkApp::
 wrongNumArgs(const QString &msg) const
 {
-  std::cerr << "wrong # args: should be \"" << msg.toStdString() << "\"\n";
+  auto cmsg = "wrong # args: should be \"" + msg.toStdString() + "\"";
+//std::cerr << cmsg << "\n";
+
+  auto *sobj = Tcl_NewStringObj(cmsg.c_str(), int(cmsg.size()));
+  Tcl_SetErrorCode(getInterp(), "TCL", "WRONGARGS", nullptr);
+  Tcl_SetObjResult(getInterp(), sobj);
 
   return false;
 }
@@ -1942,7 +1950,13 @@ bool
 CTkApp::
 throwError(const QString &msg) const
 {
-  std::cerr << "Error: " << currentCommand().toStdString() << " " << msg.toStdString() << "\n";
+  auto cmsg = msg.toStdString();
+
+//std::cerr << "Error: " << currentCommand().toStdString() << cmsg << "\n";
+
+  auto *sobj = Tcl_NewStringObj(cmsg.c_str(), int(cmsg.size()));
+  Tcl_SetErrorCode(getInterp(), "TCL", "", nullptr);
+  Tcl_SetObjResult(getInterp(), sobj);
 
   return false;
 }
