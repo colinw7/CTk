@@ -30,6 +30,13 @@ init()
   setObjectName(name);
 }
 
+CTkAppWidget *
+CTkAppLayoutWidget::
+getTkWidget() const
+{
+  return widget_.data();
+}
+
 Qt::Orientations
 CTkAppLayoutWidget::
 expandingDirections() const
@@ -41,10 +48,14 @@ QRect
 CTkAppLayoutWidget::
 geometry() const
 {
+  QRect rect;
+
   if (widget_)
-    return widget_->getQWidget()->geometry();
-  else
-    return layout_->geometry();
+    rect = widget_->getQWidget()->geometry();
+  else if (layout_)
+    rect = layout_->geometry();
+
+  return rect;
 }
 
 bool
@@ -73,29 +84,37 @@ QSize
 CTkAppLayoutWidget::
 maximumSize() const
 {
-  if (widget_)
-    return widget_->getQWidget()->maximumSize();
-  else
-    return layout_->maximumSize();
+  QSize s;
+
+  if      (widget_)
+    s = widget_->getQWidget()->maximumSize();
+  else if (layout_)
+    s = layout_->maximumSize();
+
+  return s;
 }
 
 QSize
 CTkAppLayoutWidget::
 minimumSize() const
 {
-  if (widget_)
-    return widget_->getQWidget()->minimumSize();
-  else
-    return layout_->minimumSize();
+  QSize s;
+
+  if      (widget_)
+    s = widget_->getQWidget()->minimumSize();
+  else if (layout_)
+    s = layout_->minimumSize();
+
+  return s;
 }
 
 void
 CTkAppLayoutWidget::
 setGeometry(const QRect &rect)
 {
-  if (widget_)
+  if      (widget_)
     widget_->getQWidget()->setGeometry(rect);
-  else
+  else if (layout_)
     layout_->setGeometry(rect);
 }
 
@@ -111,10 +130,14 @@ QMargins
 CTkAppLayoutWidget::
 contentsMargins() const
 {
-  if (widget_)
-    return widget_->contentsMargins();
-  else
-    return layout_->contentsMargins();
+  QMargins m;
+
+  if      (widget_)
+    m = widget_->contentsMargins();
+  else if (layout_)
+    m = layout_->contentsMargins();
+
+  return m;
 }
 
 QSize
@@ -123,9 +146,9 @@ sizeHint() const
 {
   QSize s;
 
-  if (widget_)
+  if      (widget_)
     s = widget_->sizeHint();
-  else
+  else if (layout_)
     s = layout_->sizeHint();
 
   s = s.expandedTo(QApplication::globalStrut());
@@ -139,9 +162,9 @@ minimumSizeHint() const
 {
   QSize s;
 
-  if (widget_)
+  if      (widget_)
     s = widget_->minimumSizeHint();
-  else
+  else if (layout_)
     s = layout_->sizeHint();
 
   s = s.expandedTo(QApplication::globalStrut());
@@ -153,20 +176,24 @@ QWidget *
 CTkAppLayoutWidget::
 widget()
 {
-  if (widget_)
+  if      (widget_)
     return widget_->getQWidget();
-  else
+  else if (layout_)
     return layout_->widget();
+  else
+    return nullptr;
 }
 
 QWidget *
 CTkAppLayoutWidget::
 getQWidget() const
 {
-  if (widget_)
+  if      (widget_)
     return widget_->getQWidget();
-  else
+  else if (layout_)
     return layout_->widget();
+  else
+    return nullptr;
 }
 
 QString

@@ -67,7 +67,7 @@ variantToQColor(CTclApp *app, const QVariant &var, QColor &c)
   else
     c = QColor(str);
 
-  return true;
+  return c.isValid();
 }
 
 bool
@@ -218,7 +218,7 @@ variantToOrient(CTclApp *app, const QVariant &var, Qt::Orientation &orient)
 }
 
 bool
-variantToAlign(CTclApp *app, const QVariant &var, Qt::Alignment &align, bool quiet)
+variantToAlign(CTclApp *app, const QVariant &var, Qt::Alignment &align)
 {
   auto value = variantToString(app, var);
 
@@ -235,11 +235,7 @@ variantToAlign(CTclApp *app, const QVariant &var, Qt::Alignment &align, bool qui
   else if (value == "center") align = Qt::AlignCenter;
   else if (value == "c"     ) align = Qt::AlignCenter;
   else if (value == "middle") align = Qt::AlignCenter;
-  else {
-    if (! quiet)
-      std::cerr << "Invalid align string '" << value.toStdString() << "'\n";
-    return false;
-  }
+  else return false;
 
   return true;
 }
@@ -513,20 +509,34 @@ variantToRelief(CTkApp *app, const QVariant &var, CTkAppWidgetRelief &relief)
   if (! uniqueMatch(names, str, match))
     return false;
 
-  if      (match == "raised")
-    relief = CTkAppWidgetRelief::RAISED;
-  else if (match == "sunken")
-    relief = CTkAppWidgetRelief::SUNKEN;
-  else if (match == "flat")
-    relief = CTkAppWidgetRelief::FLAT;
-  else if (match == "ridge")
-    relief = CTkAppWidgetRelief::RIDGE;
-  else if (match == "solid")
-    relief = CTkAppWidgetRelief::SOLID;
-  else if (match == "groove")
-    relief = CTkAppWidgetRelief::GROOVE;
-  else
+  if      (match == "raised") relief = CTkAppWidgetRelief::RAISED;
+  else if (match == "sunken") relief = CTkAppWidgetRelief::SUNKEN;
+  else if (match == "flat"  ) relief = CTkAppWidgetRelief::FLAT;
+  else if (match == "ridge" ) relief = CTkAppWidgetRelief::RIDGE;
+  else if (match == "solid" ) relief = CTkAppWidgetRelief::SOLID;
+  else if (match == "groove") relief = CTkAppWidgetRelief::GROOVE;
+  else return false;
+
+  return true;
+}
+
+bool
+variantToState(CTkApp *app, const QVariant &var, CTkAppWidgetState &state)
+{
+  static auto names = std::vector<QString>({
+    "active", "disabled", "hidden", "normal"});
+
+  auto str = variantToString(app, var);
+
+  QString match;
+  if (! uniqueMatch(names, str, match))
     return false;
+
+  if      (match == "active"  ) state = CTkAppWidgetState::ACTIVE;
+  else if (match == "disabled") state = CTkAppWidgetState::DISABLED;
+  else if (match == "hidden"  ) state = CTkAppWidgetState::HIDDEN;
+  else if (match == "normal"  ) state = CTkAppWidgetState::NORMAL;
+  else return false;
 
   return true;
 }
@@ -596,17 +606,17 @@ setFrameRelief(QWidget *w, const CTkAppWidgetRelief &relief)
   }
 }
 
-Qt::Alignment
-stringToJustify(const QString &value)
+bool
+stringToJustify(const QString &value, Qt::Alignment &align)
 {
-  Qt::Alignment align = Qt::AlignCenter;
+  align = Qt::AlignCenter;
 
   if      (value == "left"  ) align = Qt::AlignLeft;
   else if (value == "right" ) align = Qt::AlignRight;
   else if (value == "center") align = Qt::AlignHCenter;
-  else std::cerr << "Invalid justify string '" << value.toStdString() << "'\n";
+  else return false;
 
-  return align;
+  return true;
 }
 
 QString
@@ -621,17 +631,26 @@ underlineLabel(const QString &label, long pos)
 }
 
 bool
-stringToCompound(const QString &value, CTkAppCompoundType &type)
+variantToCompound(CTkApp *app, const QVariant &var, CTkAppCompoundType &type)
 {
+  static auto optionNames = std::vector<QString>({
+    "bottom", "center", "left", "none", "right", "top"});
+
+  auto str = var.toString();
+
+  QString option;
+  if (! app->lookupOptionName(optionNames, str, option))
+    return false;
+
   type = CTkAppCompoundType::NONE;
 
   // none, bottom, top, left, right, or center.
-  if      (value == "none"  ) type = CTkAppCompoundType::NONE;
-  else if (value == "bottom") type = CTkAppCompoundType::BOTTOM;
-  else if (value == "top"   ) type = CTkAppCompoundType::TOP;
-  else if (value == "left"  ) type = CTkAppCompoundType::LEFT;
-  else if (value == "right" ) type = CTkAppCompoundType::RIGHT;
-  else if (value == "center") type = CTkAppCompoundType::CENTER;
+  if      (option == "bottom") type = CTkAppCompoundType::BOTTOM;
+  else if (option == "center") type = CTkAppCompoundType::CENTER;
+  else if (option == "left"  ) type = CTkAppCompoundType::LEFT;
+  else if (option == "none"  ) type = CTkAppCompoundType::NONE;
+  else if (option == "right" ) type = CTkAppCompoundType::RIGHT;
+  else if (option == "top"   ) type = CTkAppCompoundType::TOP;
   else return false;
 
   return true;

@@ -24,6 +24,8 @@ class CTclAppCommand {
 
   virtual bool proc(int objc, Tcl_Obj* const *objv) = 0;
 
+  void deleteCommand();
+
   //---
 
   void setIntegerResult(int value);
@@ -59,6 +61,7 @@ class CTclAppCommand {
  protected:
   CTclApp* app_ { nullptr };
   QString  name_;
+  bool     cmdDeleted_ { false };
 };
 
 #endif

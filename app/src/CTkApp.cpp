@@ -7,6 +7,7 @@
 #include <CTkAppUtil.h>
 #include <CTkAppDebug.h>
 #include <CTkAppBitmaps.h>
+#include <CTkAppCursor.h>
 
 #include <CQStrParse.h>
 #include <CScreenUnits.h>
@@ -251,6 +252,10 @@ construct(int argc, const char **argv)
   //---
 
   createAlias("echo", "puts");
+
+  //---
+
+  cursorMgr_ = new CTkAppCursorMgr(this);
 }
 
 int
@@ -697,6 +702,15 @@ showFontDialog(bool b)
     if (dialog)
       dialog->hide();
   }
+}
+
+//---
+
+CTkAppCursor *
+CTkApp::
+getCursor(const QString &name)
+{
+  return cursorMgr_->getCursor(name);
 }
 
 //---
@@ -1775,7 +1789,7 @@ lookupName(const QString &msg, const std::vector<QString> &names,
     for (uint i = 0; i < n; ++i) {
       if (i > 0) {
         if (i == n - 1)
-          str += " or ";
+          str += ", or ";
         else
           str += ", ";
       }
@@ -1798,26 +1812,20 @@ lookupName(const QString &msg, const std::vector<QString> &names,
 
 bool
 CTkApp::
-getOptionInt(const QString &name, const QVariant &var, long &i) const
+getOptionInt(const QString &, const QVariant &var, long &i) const
 {
-  if (! variantToInt(var, i)) {
-    auto str = variantToString(var);
-    throwError("Invalid value \"" + str + "\" for \"" + name + "\"");
-    return false;
-  }
+  if (! variantToInt(var, i))
+    return throwError(msg() + "expected integer but got \"" + var + "\"");
 
   return true;
 }
 
 bool
 CTkApp::
-getOptionReal(const QString &name, const QVariant &var, double &r) const
+getOptionReal(const QString &, const QVariant &var, double &r) const
 {
-  if (! variantToReal(var, r)) {
-    auto str = variantToString(var);
-    throwError("Invalid value \"" + str + "\" for \"" + name + "\"");
-    return false;
-  }
+  if (! variantToReal(var, r))
+    return throwError(msg() + "expected floating-point number but got \"" + var + "\"");
 
   return true;
 }

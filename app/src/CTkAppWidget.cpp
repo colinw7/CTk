@@ -70,10 +70,8 @@ bool
 CTkAppRoot::
 execConfig(const QString &name, const QVariant &var)
 {
-  auto value = tk_->variantToString(var);
-
   if (name == "-menu") {
-    menuName_ = value;
+    menuName_ = tk_->variantToString(var);
 
     auto *w = tk_->lookupWidgetByName(menuName_, /*quiet*/true);
 
@@ -256,25 +254,30 @@ execConfig(const QString &name, const QVariant &var)
     setCommand(value);
   }
   else if (name == "-default") {
-    if      (value == "active"  ) qbutton_->setDown(true);
-    else if (value == "disabled") qbutton_->setEnabled(false);
-    else if (value == "normal"  ) qbutton_->setEnabled(true);
-    else return false;
+    CTkAppWidgetState state;
+    if (! CTkAppUtil::variantToState(tk_, var, state))
+      return tk_->throwError(tk_->msg() + "bad state \"" + var + "\": must be "
+                             "active, disabled, or normal");
+
+    if      (state == CTkAppWidgetState::ACTIVE  ) qbutton_->setDown(true);
+    else if (state == CTkAppWidgetState::DISABLED) qbutton_->setEnabled(false);
+    else if (state == CTkAppWidgetState::NORMAL  ) qbutton_->setEnabled(true);
   }
   else if (name == "-height") {
     // height of image (pixels) or text (chars)
     double h;
     if (! CTkAppUtil::variantToDistance(tk_, var, h))
-      return tk_->throwError("Invalid height \"" + value + "\"");
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
 
     qbutton_->setUserHeight(h);
   }
   else if (name == "-overrelief") {
-    if (value == "raised")
-      setOverRaised(true);
-    else
-      setOverRaised(false);
+    Relief relief { Relief::NONE };
+    if (! CTkAppUtil::variantToRelief(tk_, var, relief))
+      return tk_->throwError(tk_->msg() + "bad relief \"" + var + "\": must be "
+                             "flat, groove, raised, ridge, solid, or sunken");
 
+    setOverRaised(relief == Relief::RAISED);
     appearanceChanged();
   }
   else if (name == "-state") {
@@ -282,12 +285,13 @@ execConfig(const QString &name, const QVariant &var)
       qbutton_->setReadOnly(true);
     else {
       if (! setWidgetState(value))
-        return false;
+        return tk_->throwError(tk_->msg() + "bad state \"" + value + "\": must be "
+                               "active, disabled, or normal");
     }
   }
   else if (name == "-underline") {
     if (! tk_->getOptionInt(name, var, underlinePos))
-      return false;
+      return tk_->throwError(tk_->msg() + "expected integer but got \"" + var + "\"");
   }
   else if (name == "-textvariable") {
     tk_->TODO(name);
@@ -296,14 +300,14 @@ execConfig(const QString &name, const QVariant &var)
     // width of image (pixels) or text (chars)
     double w;
     if (! CTkAppUtil::variantToDistance(tk_, var, w))
-      return tk_->throwError("Invalid width \"" + value + "\"");
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
 
     qbutton_->setUserWidth(w);
   }
   else if (name == "-wraplength") {
     double length;
     if (! CTkAppUtil::variantToDistance(tk_, var, length))
-      return tk_->throwError("Invalid width \"" + value + "\"");
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
     qbutton_->setWrapLength(length);
   }
   else
@@ -461,19 +465,20 @@ execConfig(const QString &name, const QVariant &var)
   if      (name == "-closeenough") {
     double r;
     if (! tk_->variantToReal(var, r))
-      return false;
+      return tk_->throwError(tk_->msg() + "expected floating-point number but "
+                             "got \"" + var + "\"");
     qcanvas_->setCloseEnough(r);
   }
   else if (name == "-confine") {
     bool b;
     if (! tk_->variantToBool(var, b))
-      return false;
+      return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
     qcanvas_->setConfine(b);
   }
   else if (name == "-height") {
     double height;
     if (! CTkAppUtil::variantToDistance(tk_, var, height))
-      return tk_->throwError("Invalid height \"" + value + "\"");
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
     setHeight(height);
   }
   else if (name == "-scrollregion") {
@@ -486,31 +491,32 @@ execConfig(const QString &name, const QVariant &var)
         ! CTkAppUtil::variantToDistance(tk_, strs[1], y1) ||
         ! CTkAppUtil::variantToDistance(tk_, strs[2], x2) ||
         ! CTkAppUtil::variantToDistance(tk_, strs[3], y2))
-      return false;
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + strs[0] + "\"");
 
     qcanvas_->setScrollRegion(QRectF(x1, y1, x2 - x1, y2 - y1));
   }
   else if (name == "-state") {
     if (! setWidgetState(value))
-      return false;
+      return tk_->throwError(tk_->msg() + "bad state \"" + value + "\": must be "
+                             "active, disabled, or normal");
   }
   else if (name == "-width") {
     double width;
     if (! CTkAppUtil::variantToDistance(tk_, var, width))
-      return tk_->throwError("Invalid width \"" + value + "\"");
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
     setWidth(width);
   }
   else if (name == "-xscrollincrement") {
     double xs;
     if (! CTkAppUtil::variantToDistance(tk_, var, xs))
-      return false;
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
 
     qcanvas_->setXScrollIncrement(xs);
   }
   else if (name == "-yscrollincrement") {
     double ys;
     if (! CTkAppUtil::variantToDistance(tk_, var, ys))
-      return false;
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
 
     qcanvas_->setYScrollIncrement(ys);
   }
@@ -577,7 +583,7 @@ execOp(const Args &args)
     else {
       QColor c;
       if (! CTkAppUtil::variantToQColor(tk_, var, c))
-        return false;
+        return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
       stroke.setColor(c);
     }
     return true;
@@ -594,27 +600,37 @@ execOp(const Args &args)
       fill = QBrush(*g);
     else {
       QColor c;
-      if (CTkAppUtil::variantToQColor(tk_, var, c)) {
-        fill.setStyle(Qt::SolidPattern);
-        fill.setColor(c);
-      }
+      if (! CTkAppUtil::variantToQColor(tk_, var, c))
+        return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+
+      fill.setStyle(Qt::SolidPattern);
+      fill.setColor(c);
     }
     return true;
   };
 
   auto setShapeOpt = [&](CTkAppCanvasWidget::Shape *shape, const QString &name,
-                         const QVariant &var) {
+                         const QVariant &var, bool &rc) {
+    rc = true;
+
     auto value = var.toString();
 
     if      (name == "-anchor") {
       Qt::Alignment align;
-      if (CTkAppUtil::variantToAlign(tk_, var, align))
-        shape->setAnchor(align);
+      if (! CTkAppUtil::variantToAlign(tk_, var, align)) {
+        rc = tk_->throwError(tk_->msg() + "bad anchor position \"" + var + "\": must be "
+                             "n, ne, e, se, s, sw, w, nw, or center");
+        return true;
+      }
+
+      shape->setAnchor(align);
     }
     else if (name == "-dash") {
       QVector<qreal> dashes;
-      if (! stringToDashes(value, dashes))
-        return tk_->throwError("Invalid dash \"" + value + "\"");
+      if (! stringToDashes(value, dashes)) {
+        rc = tk_->throwError(tk_->msg() + "Invalid dash \"" + var + "\"");
+        return true;
+      }
 
       auto p = shape->pen();
       p.setDashPattern(dashes);
@@ -622,8 +638,10 @@ execOp(const Args &args)
     }
     else if (name == "-activedash") {
       QVector<qreal> dashes;
-      if (! stringToDashes(value, dashes))
-        return tk_->throwError("Invalid dash \"" + value + "\"");
+      if (! stringToDashes(value, dashes)) {
+        rc = tk_->throwError(tk_->msg() + "Invalid dash \"" + var + "\"");
+        return true;
+      }
 
       auto p = shape->activePen();
       p.setDashPattern(dashes);
@@ -631,8 +649,10 @@ execOp(const Args &args)
     }
     else if (name == "-disableddash") {
       QVector<qreal> dashes;
-      if (! stringToDashes(value, dashes))
-        return tk_->throwError("Invalid dash \"" + value + "\"");
+      if (! stringToDashes(value, dashes)) {
+        rc = tk_->throwError(tk_->msg() + "Invalid dash \"" + var + "\"");
+        return true;
+      }
 
       auto p = shape->disabledPen();
       p.setDashPattern(dashes);
@@ -640,8 +660,10 @@ execOp(const Args &args)
     }
     else if (name == "-dashoffset") {
       double l;
-      if (! CTkAppUtil::variantToDistance(tk_, var, l))
-        return tk_->throwError("Invalid dashoffset \"" + value + "\"");
+      if (! CTkAppUtil::variantToDistance(tk_, var, l)) {
+        rc = tk_->throwError(tk_->msg() + "Invalid distance \"" + var + "\"");
+        return true;
+      }
 
       auto p = shape->pen();
       p.setDashOffset(l);
@@ -649,63 +671,86 @@ execOp(const Args &args)
     }
     else if (name == "-fill") {
       auto b = shape->brush();
-      if (! variantToFill(var, b))
-        return false;
+      if (! variantToFill(var, b)) {
+        rc = tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+        return true;
+      }
+
       shape->setBrush(b);
     }
     else if (name == "-fillrule") { // tkpath
       Qt::FillRule fillRule;
-      if (! CTkAppUtil::variantToFillRule(tk_, var, fillRule))
-        return false;
+      if (! CTkAppUtil::variantToFillRule(tk_, var, fillRule)) {
+        rc = tk_->throwError(tk_->msg() + "Invalid fill rule \"" + var + "\"");
+        return true;
+      }
+
       shape->setFillRule(fillRule);
     }
     else if (name == "-fillopacity") {
       double a;
-      if (! CTkAppUtil::stringToReal(value, a))
-        return false;
+      if (! CTkAppUtil::variantToReal(tk_, var, a)) {
+        rc = tk_->throwError(tk_->msg() + "expected floating-point number but "
+                             "got \"" + var + "\"");
+        return true;
+      }
 
       shape->setFillAlpha(a);
     }
     else if (name == "-activefill") {
       auto b = shape->activeBrush();
-      if (! variantToFill(var, b))
-        return false;
+      if (! variantToFill(var, b)) {
+        rc = tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+        return true;
+      }
       shape->setActiveBrush(b);
     }
     else if (name == "-disabledfill") {
       auto b = shape->disabledBrush();
-      if (! variantToFill(var, b))
-        return false;
+      if (! variantToFill(var, b)) {
+        rc = tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+        return true;
+      }
       shape->setDisabledBrush(b);
     }
     else if (name == "-filloverstroke") { // tkpath
       auto p = shape->fillOverPen();
-      if (! variantToStroke(var, p))
-        return false;
+      if (! variantToStroke(var, p)) {
+        rc = tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+        return true;
+      }
       shape->setFillOverPen(p);
     }
     else if (name == "-outline" || name == "-stroke") {
       auto p = shape->pen();
-      if (! variantToStroke(var, p))
-        return false;
+      if (! variantToStroke(var, p)) {
+        rc = tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+        return true;
+      }
       shape->setPen(p);
     }
     else if (name == "-activeoutline") {
       auto p = shape->activePen();
-      if (! variantToStroke(var, p))
-        return false;
+      if (! variantToStroke(var, p)) {
+        rc = tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+        return true;
+      }
       shape->setActivePen(p);
     }
     else if (name == "-disabledoutline") {
       auto p = shape->disabledPen();
-      if (! variantToStroke(var, p))
-        return false;
+      if (! variantToStroke(var, p)) {
+        rc = tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+        return true;
+      }
       shape->setDisabledPen(p);
     }
     else if (name == "-offset") {
       CTkAppCanvasShape::OffsetData offsetData;
-      if (! shape->stringToOffsetData(tk_, value, offsetData))
-        return false;
+      if (! shape->stringToOffsetData(tk_, value, offsetData)) {
+        rc = tk_->throwError(tk_->msg() + "Invalid offset \"" + var + "\"");
+        return true;
+      }
 
       shape->setStippleOffset(offsetData);
     }
@@ -714,8 +759,10 @@ execOp(const Args &args)
     }
     else if (name == "-activeoutlinestipple") {
       auto image = tk_->getBitmap(value);
-      if (! image)
-        return false;
+      if (! image) {
+        rc = tk_->throwError(tk_->msg() + "Invalid image \"" + var + "\"");
+        return true;
+      }
 
       auto b = shape->activeOutlineBrush();
       b.setTexture(image->getQPixmap());
@@ -723,8 +770,10 @@ execOp(const Args &args)
     }
     else if (name == "-disabledoutlinestipple") {
       auto image = tk_->getBitmap(value);
-      if (! image)
-        return false;
+      if (! image) {
+        rc = tk_->throwError(tk_->msg() + "Invalid image \"" + var + "\"");
+        return true;
+      }
 
       auto b = shape->disabledOutlineBrush();
       b.setTexture(image->getQPixmap());
@@ -732,8 +781,10 @@ execOp(const Args &args)
     }
     else if (name == "-outlineoffset") {
       CTkAppCanvasShape::OffsetData offsetData;
-      if (! shape->stringToOffsetData(tk_, value, offsetData))
-        return false;
+      if (! shape->stringToOffsetData(tk_, value, offsetData)) {
+        rc = tk_->throwError(tk_->msg() + "Invalid offset \"" + var + "\"");
+        return true;
+      }
 
       shape->setStippleOutlineOffset(offsetData);
     }
@@ -742,8 +793,10 @@ execOp(const Args &args)
     }
     else if (name == "-activestipple") {
       auto image = tk_->getBitmap(value);
-      if (! image)
-        return false;
+      if (! image) {
+        rc = tk_->throwError(tk_->msg() + "Invalid image \"" + var + "\"");
+        return true;
+      }
 
       auto b = shape->activeBrush();
       b.setTexture(image->getQPixmap());
@@ -751,63 +804,81 @@ execOp(const Args &args)
     }
     else if (name == "-disabledstipple") {
       auto image = tk_->getBitmap(value);
-      if (! image)
-        return false;
+      if (! image) {
+        rc = tk_->throwError(tk_->msg() + "Invalid image \"" + var + "\"");
+        return true;
+      }
 
       auto b = shape->disabledBrush();
       b.setTexture(image->getQPixmap());
       shape->setDisabledBrush(b);
     }
     else if (name == "-state") {
-      if      (value == "normal") {
+      CTkAppWidgetState state;
+      if (! CTkAppUtil::variantToState(tk_, var, state)) {
+        rc = tk_->throwError(tk_->msg() + "bad state \"" + var + "\": must be "
+                             "active, disabled, or normal");
+        return true;
+      }
+
+      if      (state == CTkAppWidgetState::NORMAL) {
         shape->setEnabled(true); shape->setVisible(true);
       }
-      else if (value == "disabled")
-        shape->setEnabled(false);
-      else if (value == "hidden")
-        shape->setVisible(false);
-      else
-        return tk_->throwError("Invalid state \"" + value + "\"");
+      else if (state == CTkAppWidgetState::DISABLED) shape->setEnabled(false);
+      else if (state == CTkAppWidgetState::HIDDEN  ) shape->setVisible(false);
     }
     else if (name == "-fontfamily") {
       shape->setFontFamily(value);
     }
     else if (name == "-fontsize") {
       long s;
-      if (! CTkAppUtil::stringToInt(value, s))
-        return false;
+      if (! CTkAppUtil::stringToInt(value, s)) {
+        rc = tk_->throwError(tk_->msg() + "Invalid integer \"" + var + "\"");
+        return true;
+      }
 
       shape->setFontSize(s);
     }
     else if (name == "-tags" || name == "-tag") {
-      if (! shape->setTagsStr(value))
-        return tk_->throwError("Invalid tags \"" + value + "\"");
+      if (! shape->setTagsStr(value)) {
+        rc = tk_->throwError(tk_->msg() + "Invalid tags \"" + var + "\"");
+        return true;
+      }
     }
     else if (name == "-width" || name == "-strokewidth") {
       double width;
-      if (! CTkAppUtil::variantToDistance(tk_, var, width))
-        return tk_->throwError("Invalid width \"" + value + "\"");
+      if (! CTkAppUtil::variantToDistance(tk_, var, width)) {
+        rc = tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+        return true;
+      }
 
       shape->setStrokeWidth(width);
     }
     else if (name == "-strokelinecap") {
       Qt::PenCapStyle capStyle;
-      if (! CTkAppUtil::variantToCapStyle(tk_, var, capStyle))
-        return false;
+      if (! CTkAppUtil::variantToCapStyle(tk_, var, capStyle)) {
+        rc = tk_->throwError(tk_->msg() + "Invalid cap style \"" + var + "\"");
+        return true;
+      }
 
       shape->setStrokeCap(capStyle);
     }
     else if (name == "-strokeopacity") {
       double a;
-      if (! CTkAppUtil::stringToReal(value, a))
-        return false;
+      if (! CTkAppUtil::variantToReal(tk_, var, a)) {
+        rc = tk_->throwError(tk_->msg() + "expected floating-point number but "
+                             "got \"" + var + "\"");
+        return true;
+      }
 
       shape->setStrokeAlpha(a);
     }
     else if (name == "-activewidth") {
       double width;
-      if (! CTkAppUtil::variantToDistance(tk_, var, width))
-        return tk_->throwError("Invalid width \"" + value + "\"");
+      if (! CTkAppUtil::variantToDistance(tk_, var, width)) {
+        rc = tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+        return true;
+      }
 
       auto p = shape->activePen();
       p.setWidthF(width);
@@ -815,8 +886,10 @@ execOp(const Args &args)
     }
     else if (name == "-disabledwidth") {
       double width;
-      if (! CTkAppUtil::variantToDistance(tk_, var, width))
-        return tk_->throwError("Invalid width \"" + value + "\"");
+      if (! CTkAppUtil::variantToDistance(tk_, var, width)) {
+        rc = tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+        return true;
+      }
 
       auto p = shape->disabledPen();
       p.setWidthF(width);
@@ -831,8 +904,10 @@ execOp(const Args &args)
       }
       else {
         QTransform t;
-        if (! CTkAppUtil::stringToMatrix(tk_, value, t))
-          return tk_->throwError("Invalid matrix \"" + value + "\"");
+        if (! CTkAppUtil::stringToMatrix(tk_, value, t)) {
+          rc = tk_->throwError(tk_->msg() + "Invalid matrix \"" + var + "\"");
+          return true;
+        }
       }
     }
 #endif
@@ -922,12 +997,9 @@ execOp(const Args &args)
       tk_->TODO(name, args);
     }
     else if (name == "-state") {
-      if      (! shape->isVisible())
-        value = "hidden";
-      else if (! shape->isEnabled())
-        value = "disabled";
-      else
-        value = "normal";
+      if      (! shape->isVisible()) value = "hidden";
+      else if (! shape->isEnabled()) value = "disabled";
+      else                           value = "normal";
     }
     else if (name == "-fontfamily") {
       value = shape->fontFamily();
@@ -993,6 +1065,12 @@ execOp(const Args &args)
   QString option;
   if (! tk_->lookupOptionName(optionNames, args[0], option))
     return false;
+
+  auto variantToDistance = [&](const QVariant &var, double &r) {
+    if (! tk_->variantToDistance(var, r))
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+    return true;
+  };
 
   if      (option == "addtag") {
     if (numArgs < 3)
@@ -1116,9 +1194,8 @@ execOp(const Args &args)
         auto yarg = args[i + 1].toString();
 
         double x, y;
-        if (! CTkAppUtil::variantToDistance(tk_, xarg, x) ||
-            ! CTkAppUtil::variantToDistance(tk_, yarg, y))
-          return tk_->throwError("Invalid coord \"" + xarg + " " + yarg + "\"");
+        if (! variantToDistance(xarg, x) || ! variantToDistance(yarg, y))
+          return false;
 
         points.push_back(CTkAppCanvasWidget::Point(x, y));
       }
@@ -1169,10 +1246,12 @@ execOp(const Args &args)
       uint i = 2;
 
       for (int ip = 0; ip < 2; ++ip) {
+        if (i + 1 >= numArgs)
+          break;
+
         double x, y;
-        if (! tk_->variantToDistance(args[i], x) || ! tk_->variantToDistance(args[i + 1], y))
-          return tk_->throwError(tk_->msg() + "Invalid coord \"" + args[i] + " " +
-                                 args[i + 1] + "\"");
+        if (! variantToDistance(args[i], x) || ! variantToDistance(args[i + 1], y))
+          return false;
 
         points.push_back(CTkAppCanvasWidget::Point(x, y));
 
@@ -1196,8 +1275,11 @@ execOp(const Args &args)
           auto name = args[i].toString();
           auto var  = args[i + 1];
 
-          if (setShapeOpt(arc, name, var))
+          bool rc;
+          if (setShapeOpt(arc, name, var, rc)) {
+            if (! rc) return false;
             continue;
+          }
 
           auto value = var.toString();
 
@@ -1237,10 +1319,12 @@ execOp(const Args &args)
     else if (type == "bitmap") {
       uint i = 2;
 
+      if (i + 1 >= numArgs)
+        return tk_->wrongNumArgs(getName() + " create bitmap coords ?arg ...?");
+
       double x, y;
-      if (! tk_->variantToDistance(args[i], x) || ! tk_->variantToDistance(args[i + 1], y))
-        return tk_->throwError(tk_->msg() + "Invalid coord \"" + args[i] + " " +
-                               args[i + 1] + "\"");
+      if (! variantToDistance(args[i], x) || ! variantToDistance(args[i + 1], y))
+        return false;
 
       auto *bitmap = qcanvas_->addBitmap(CTkAppCanvasWidget::Point(x, y));
 
@@ -1253,39 +1337,46 @@ execOp(const Args &args)
           auto name = args[i].toString();
           auto var  = args[i + 1];
 
-          if (setShapeOpt(bitmap, name, var))
+          bool rc;
+          if (setShapeOpt(bitmap, name, var, rc)) {
+            if (! rc) return false;
             continue;
+          }
 
           auto value = var.toString();
 
           if      (name == "-background") {
             QColor c;
             if (! CTkAppUtil::variantToQColor(tk_, var, c))
-              return false;
+              return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+
             bitmap->setBackground(c);
           }
           else if (name == "-activebackground") {
             QColor c;
             if (! CTkAppUtil::variantToQColor(tk_, var, c))
-              return false;
+              return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+
             bitmap->setActiveBackground(c);
           }
           else if (name == "-activeforeground") {
             QColor c;
             if (! CTkAppUtil::variantToQColor(tk_, var, c))
-              return false;
+              return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+
             bitmap->setActiveForeground(c);
           }
           else if (name == "-disabledbackground") {
             QColor c;
             if (! CTkAppUtil::variantToQColor(tk_, var, c))
-              return false;
+              return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+
             bitmap->setDisabledBackground(c);
           }
           else if (name == "-disabledforeground") {
             QColor c;
             if (! CTkAppUtil::variantToQColor(tk_, var, c))
-              return false;
+              return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
             bitmap->setDisabledForeground(c);
           }
           else if (name == "-bitmap") {
@@ -1303,7 +1394,7 @@ execOp(const Args &args)
           else if (name == "-foreground") {
             QColor c;
             if (! CTkAppUtil::variantToQColor(tk_, var, c))
-              return false;
+              return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
             bitmap->setForeground(c);
           }
           else
@@ -1322,10 +1413,13 @@ execOp(const Args &args)
             ) {
       uint i = 2;
 
+      if (i + 1 >= numArgs)
+        return tk_->throwError(tk_->msg() + "wrong # coordinates: expected 2, got " +
+                               QString::number(i - 1));
+
       double x, y;
-      if (! tk_->variantToDistance(args[i], x) || ! tk_->variantToDistance(args[i + 1], y))
-        return tk_->throwError(tk_->msg() + "Invalid coord \"" + args[i] + " " +
-                               args[i + 1] + "\"");
+      if (! variantToDistance(args[i], x) || ! variantToDistance(args[i + 1], y))
+        return false;
 
       auto *image = qcanvas_->addImage(CTkAppCanvasWidget::Point(x, y));
 
@@ -1338,16 +1432,18 @@ execOp(const Args &args)
           auto name = args[i].toString();
           auto var  = args[i + 1];
 
-          if (setShapeOpt(image, name, var))
+          bool rc;
+          if (setShapeOpt(image, name, var, rc)) {
+            if (! rc) return false;
             continue;
+          }
 
           auto value = var.toString();
 
           if      (name == "-image") {
             auto appImage = tk_->getImage(value);
-
             if (! appImage)
-              return tk_->throwError("Failed to get image '" + value + "'");
+              return tk_->throwError(tk_->msg() + "image \"" + var + "\" doesn't exist");
 
             image->setImage(appImage);
           }
@@ -1358,10 +1454,10 @@ execOp(const Args &args)
             tk_->TODO(name, args);
           }
           else
-            return false;
+            return tk_->throwError(tk_->msg() + "unknown option \"" + var + "\"");
         }
         else
-          return false;
+          return tk_->throwError(tk_->msg() + "unknown option \"" + argi + "\"");
       }
 
       tk_->setIntegerResult(image->id());
@@ -1381,10 +1477,12 @@ execOp(const Args &args)
         if (argi[0] == '-')
           break;
 
+        if (i + 1 >= numArgs)
+          break;
+
         double x, y;
-        if (! tk_->variantToDistance(args[i], x) || ! tk_->variantToDistance(args[i + 1], y))
-          return tk_->throwError(tk_->msg() + "Invalid coord \"" + args[i] + " " +
-                                 args[i + 1] + "\"");
+        if (! variantToDistance(args[i], x) || ! variantToDistance(args[i + 1], y))
+          return false;
 
         points.push_back(CTkAppCanvasWidget::Point(x, y));
       }
@@ -1401,8 +1499,11 @@ execOp(const Args &args)
           auto name = args[i].toString();
           auto var  = args[i + 1];
 
-          if (setShapeOpt(line, name, var))
+          bool rc;
+          if (setShapeOpt(line, name, var, rc)) {
+            if (! rc) return false;
             continue;
+          }
 
           auto value = var.toString();
 
@@ -1451,10 +1552,9 @@ execOp(const Args &args)
         return tk_->wrongNumArgs(getName() + " create oval coords ?arg ...?");
 
       double x1, y1, x2, y2;
-      if (! tk_->variantToDistance(args[2], x1) || ! tk_->variantToDistance(args[3], y1) ||
-          ! tk_->variantToDistance(args[4], x2) || ! tk_->variantToDistance(args[5], y2))
-        return tk_->throwError(tk_->msg() + "Invalid coords \"" + args[2] + " " +
-                               args[3] + " " + args[4] + " " + args[5] + "\"");
+      if (! variantToDistance(args[2], x1) || ! variantToDistance(args[3], y1) ||
+          ! variantToDistance(args[4], x2) || ! variantToDistance(args[5], y2))
+        return false;
 
       auto *oval = qcanvas_->addOval(x1, y1, x2, y2);
 
@@ -1465,8 +1565,11 @@ execOp(const Args &args)
           auto name = args[i].toString();
           auto var  = args[i + 1];
 
-          if (setShapeOpt(oval, name, var))
+          bool rc;
+          if (setShapeOpt(oval, name, var, rc)) {
+            if (! rc) return false;
             continue;
+          }
 
           //auto value = var.toString();
 
@@ -1486,7 +1589,8 @@ execOp(const Args &args)
       double xc, yc;
       if (! tk_->variantToReal(args[2], xc) ||
           ! tk_->variantToReal(args[3], yc))
-        return false;
+        return tk_->throwError(tk_->msg() + "expected floating-point number but "
+                               "got \"" + args[2] + "\"");
 
       auto *circle = qcanvas_->addCircle(xc, yc);
 
@@ -1499,8 +1603,11 @@ execOp(const Args &args)
           auto name = args[i].toString();
           auto var  = args[i + 1];
 
-          if (setShapeOpt(circle, name, var))
+          bool rc;
+          if (setShapeOpt(circle, name, var, rc)) {
+            if (! rc) return false;
             continue;
+          }
 
           auto value = var.toString();
 
@@ -1528,7 +1635,8 @@ execOp(const Args &args)
       double xc, yc;
       if (! tk_->variantToReal(args[2], xc) ||
           ! tk_->variantToReal(args[3], yc))
-        return false;
+        return tk_->throwError(tk_->msg() + "expected floating-point number but "
+                               "got \"" + args[2] + "\"");
 
       auto *ellipse = qcanvas_->addEllipse(xc, yc);
 
@@ -1541,8 +1649,11 @@ execOp(const Args &args)
           auto name = args[i].toString();
           auto var  = args[i + 1];
 
-          if (setShapeOpt(ellipse, name, var))
+          bool rc;
+          if (setShapeOpt(ellipse, name, var, rc)) {
+            if (! rc) return false;
             continue;
+          }
 
           auto value = var.toString();
 
@@ -1594,15 +1705,18 @@ execOp(const Args &args)
           auto name = args[i].toString();
           auto var  = args[i + 1];
 
-          if (setShapeOpt(path, name, var))
+          bool rc;
+          if (setShapeOpt(path, name, var, rc)) {
+            if (! rc) return false;
             continue;
+          }
 
           auto value = var.toString();
 
           if (name == "-matrix") {
             QTransform t;
             if (! CTkAppUtil::stringToMatrix(tk_, value, t))
-              return tk_->throwError("Invalid matrix \"" + value + "\"");
+              return tk_->throwError(tk_->msg() + "Invalid matrix \"" + var + "\"");
 
             path->setTransform(t);
           }
@@ -1628,10 +1742,12 @@ execOp(const Args &args)
         if (argi[0] == '-')
           break;
 
+        if (i + 1 >= numArgs)
+          break;
+
         double x, y;
-        if (! tk_->variantToDistance(args[i], x) || ! tk_->variantToDistance(args[i + 1], y))
-          return tk_->throwError(tk_->msg() + "Invalid coord \"" + args[i] + " " +
-                                 args[i + 1] + "\"");
+        if (! variantToDistance(args[i], x) || ! variantToDistance(args[i + 1], y))
+          return false;
 
         points.push_back(CTkAppCanvasWidget::Point(x, y));
       }
@@ -1648,8 +1764,11 @@ execOp(const Args &args)
           auto name = args[i].toString();
           auto var  = args[i + 1];
 
-          if (setShapeOpt(polygon, name, var))
+          bool rc;
+          if (setShapeOpt(polygon, name, var, rc)) {
+            if (! rc) return false;
             continue;
+          }
 
         //auto value = var.toString();
 
@@ -1670,10 +1789,9 @@ execOp(const Args &args)
         return tk_->wrongNumArgs(getName() + " create rectangle coords ?arg ...?");
 
       double x1, y1, x2, y2;
-      if (! tk_->variantToDistance(args[2], x1) || ! tk_->variantToDistance(args[3], y1) ||
-          ! tk_->variantToDistance(args[4], x2) || ! tk_->variantToDistance(args[5], y2))
-        return tk_->throwError(tk_->msg() + "Invalid coords \"" + args[2] + " " +
-                               args[3] + " " + args[4] + " " + args[5] + "\"");
+      if (! variantToDistance(args[2], x1) || ! variantToDistance(args[3], y1) ||
+          ! variantToDistance(args[4], x2) || ! variantToDistance(args[5], y2))
+        return false;
 
       auto *rectangle = qcanvas_->addRectangle(x1, y1, x2, y2);
 
@@ -1684,8 +1802,11 @@ execOp(const Args &args)
           auto name = args[i].toString();
           auto var  = args[i + 1];
 
-          if (setShapeOpt(rectangle, name, var))
+          bool rc;
+          if (setShapeOpt(rectangle, name, var, rc)) {
+            if (! rc) return false;
             continue;
+          }
 
         //auto value = var.toString();
 
@@ -1719,9 +1840,8 @@ execOp(const Args &args)
         return tk_->wrongNumArgs(getName() + " create text coord ?arg ...?");
 
       double x, y;
-      if (! tk_->variantToDistance(args[2], x) || ! tk_->variantToDistance(args[3], y))
-        return tk_->throwError(tk_->msg() + "Invalid coord \"" + args[2] + " " +
-                               args[3] + "\"");
+      if (! variantToDistance(args[2], x) || ! variantToDistance(args[3], y))
+        return false;
 
       CTkAppCanvasWidget::Point pos(x, y);
 
@@ -1736,8 +1856,11 @@ execOp(const Args &args)
           auto name = args[i].toString();
           auto var  = args[i + 1];
 
-          if (setShapeOpt(text, name, var))
+          bool rc;
+          if (setShapeOpt(text, name, var, rc)) {
+            if (! rc) return false;
             continue;
+          }
 
           auto value = var.toString();
 
@@ -1745,12 +1868,18 @@ execOp(const Args &args)
             tk_->TODO(name, args);
           }
           else if (name == "-font") {
+            if (value == "")
+              return tk_->throwError(tk_->msg() + "font \"" + var + "\" doesn't exist");
+
             auto f = tk_->getQFont(value);
 
             text->setFont(f);
           }
           else if (name == "-justify") {
-            auto align = CTkAppUtil::stringToJustify(value);
+            Qt::Alignment align;
+            if (! CTkAppUtil::stringToJustify(value, align))
+              return tk_->throwError("bad justification \"" + value + "\": must be "
+                                     "left, right, or center");
 
             text->setJustify(align);
           }
@@ -1760,13 +1889,16 @@ execOp(const Args &args)
 #ifdef CTK_APP_TKPATH
           else if (name == "-textanchor") {
             Qt::Alignment align;
-            if (CTkAppUtil::variantToAlign(tk_, var, align))
-              text->setTextAnchor(align);
+            if (! CTkAppUtil::variantToAlign(tk_, var, align))
+              return tk_->throwError("bad anchor position \"" + value + "\": must be "
+                                     "n, ne, e, se, s, sw, w, nw, or center");
+
+            text->setTextAnchor(align);
           }
 #endif
           else if (name == "-underline") {
             if (! tk_->getOptionInt(name, value, underlinePos))
-              return false;
+              return tk_->throwError(tk_->msg() + "expected integer but got \"" + var + "\"");
           }
           else if (name == "-width") {
             tk_->TODO(name, args);
@@ -1944,12 +2076,14 @@ execOp(const Args &args)
                 return tk_->throwError("Invalid -stops \"" + value + "\"");
 
               double r;
-              if (! CTkAppUtil::stringToReal(strs1[0], r))
-                return tk_->throwError("Invalid -stops \"" + value + "\"");
+              if (! CTkAppUtil::variantToReal(tk_, strs1[0], r))
+                return tk_->throwError(tk_->msg() + "expected floating-point number but "
+                                       "got \"" + strs1[0] + "\"");
 
               QColor c;
-              if (CTkAppUtil::variantToQColor(tk_, strs1[1], c))
-                stops[r] = c;
+              if (! CTkAppUtil::variantToQColor(tk_, strs1[1], c))
+                return tk_->throwError(tk_->msg() + "unknown color name \"" + strs1[1] + "\"");
+              stops[r] = c;
             }
           }
           else if (name == "-lineartransition") {
@@ -1964,11 +2098,12 @@ execOp(const Args &args)
             if (strs.size() != 4)
               return tk_->throwError("Invalid -lineartransition \"" + value + "\"");
 
-            if (! CTkAppUtil::stringToReal(strs[0], x1) ||
-                ! CTkAppUtil::stringToReal(strs[1], y1) ||
-                ! CTkAppUtil::stringToReal(strs[2], x2) ||
-                ! CTkAppUtil::stringToReal(strs[3], y2))
-              return tk_->throwError("Invalid -lineartransition \"" + value + "\"");
+            if (! CTkAppUtil::variantToReal(tk_, strs[0], x1) ||
+                ! CTkAppUtil::variantToReal(tk_, strs[1], y1) ||
+                ! CTkAppUtil::variantToReal(tk_, strs[2], x2) ||
+                ! CTkAppUtil::variantToReal(tk_, strs[3], y2))
+              return tk_->throwError(tk_->msg() + "expected floating-point number but "
+                                     "got \"" + strs[0] + "\"");
           }
           else if (name == "-units") {
             ++i;
@@ -2018,12 +2153,14 @@ execOp(const Args &args)
                 return tk_->throwError("Invalid -stops \"" + value + "\"");
 
               double r;
-              if (! CTkAppUtil::stringToReal(strs1[0], r))
-                return tk_->throwError("Invalid -stops \"" + value + "\"");
+              if (! CTkAppUtil::variantToReal(tk_, strs1[0], r))
+                return tk_->throwError(tk_->msg() + "expected floating-point number but "
+                                       "got \"" + strs1[0] + "\"");
 
               QColor c;
-              if (CTkAppUtil::variantToQColor(tk_, strs1[1], c))
-                stops[r] = c;
+              if (! CTkAppUtil::variantToQColor(tk_, strs1[1], c))
+                return tk_->throwError(tk_->msg() + "unknown color name \"" + strs1[1] + "\"");
+              stops[r] = c;
             }
           }
           else if (name == "-units") {
@@ -2166,8 +2303,11 @@ execOp(const Args &args)
         bool rc = false;
 
         for (auto *shape : shapes) {
-          if (setShapeOpt(shape, name, value))
+          bool rc;
+          if (setShapeOpt(shape, name, value, rc)) {
+            if (! rc) return false;
             rc = true;
+          }
         }
 
         if (! rc)
@@ -2193,9 +2333,8 @@ execOp(const Args &args)
     auto id = args[1].toString();
 
     double dx, dy;
-    if (! tk_->variantToDistance(args[2], dx) || ! tk_->variantToDistance(args[3], dy))
-      return tk_->throwError(tk_->msg() + "Invalid coord \"" + args[2] + " " +
-                             args[3] + "\"");
+    if (! variantToDistance(args[2], dx) || ! variantToDistance(args[3], dy))
+      return false;
 
     if (! qcanvas_->moveShapeBy(id, dx, dy))
       return tk_->throwError("No shape \"" + id + "\"");
@@ -2207,7 +2346,7 @@ execOp(const Args &args)
     auto id = args[1].toString();
 
     double x, y;
-    if (! tk_->variantToDistance(args[2], x) || ! tk_->variantToDistance(args[3], y))
+    if (! variantToDistance(args[2], x) || ! variantToDistance(args[3], y))
       return false;
 
     if (! qcanvas_->moveShapeTo(id, x, y))
@@ -2231,6 +2370,12 @@ execOp(const Args &args)
 
     tk_->TODO(option, args);
   }
+  else if (option == "rotate") {
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getName() + " rotate tagOrId x y angle");
+
+    tk_->TODO(option, args);
+  }
   else if (option == "scale") {
     if (numArgs < 6)
       return tk_->wrongNumArgs(getName() + " scale tagOrId xOrigin yOrigin xScale yScale");
@@ -2240,7 +2385,8 @@ execOp(const Args &args)
     double xc, yc, sx, sy;
     if (! tk_->variantToReal(args[2], xc) || ! tk_->variantToReal(args[3], yc) ||
         ! tk_->variantToReal(args[4], sx) || ! tk_->variantToReal(args[5], sy))
-      return false;
+      return tk_->throwError(tk_->msg() + "expected floating-point number but "
+                             "got \"" + args[3] + "\"");
 
     if (! qcanvas_->scaleShape(name, xc, yc, sx, sy))
       return false;
@@ -2278,7 +2424,8 @@ execOp(const Args &args)
 
       double f;
       if (! tk_->variantToReal(args[2], f))
-        return false;
+        return tk_->throwError(tk_->msg() + "expected floating-point number but "
+                               "got \"" + args[2] + "\"");
 
       tk_->TODO(args);
     }
@@ -2286,6 +2433,22 @@ execOp(const Args &args)
       if (numArgs != 4)
         return tk_->wrongNumArgs(getName() + " xview scroll number what");
 
+      long i;
+      if (! tk_->variantToInt(args[2], i))
+        return false;
+
+      static auto names = std::vector<QString>({"pages", "units"});
+
+      QString name;
+      if (! tk_->lookupName("what", names, args[3], name))
+        return tk_->throwError(tk_->msg() + "bad argument \"" + args[3] +
+                               "\": must be pages or units");
+
+      int value = 1;
+      if (name == "pages")
+        value = i*1000;
+
+      tk_->TODO("xview scroll " + QString::number(value));
       tk_->TODO(args);
     }
     else
@@ -2301,14 +2464,31 @@ execOp(const Args &args)
 
       double f;
       if (! tk_->variantToReal(args[2], f))
-        return false;
+        return tk_->throwError(tk_->msg() + "expected floating-point number but "
+                               "got \"" + args[2] + "\"");
 
       tk_->TODO(args);
     }
     else if (args[1] == "scroll") {
-      if (numArgs != 3)
+      if (numArgs != 4)
         return tk_->wrongNumArgs(getName() + " yview scroll number what");
 
+      long i;
+      if (! tk_->variantToInt(args[2], i))
+        return false;
+
+      static auto names = std::vector<QString>({"pages", "units"});
+
+      QString name;
+      if (! tk_->lookupName("what", names, args[3], name))
+        return tk_->throwError(tk_->msg() + "bad argument \"" + args[3] +
+                               "\": must be pages or units");
+
+      int value = 1;
+      if (name == "pages")
+        value = i*1000;
+
+      tk_->TODO("yview scroll " + QString::number(value));
       tk_->TODO(args);
     }
     else
@@ -2860,7 +3040,7 @@ stringToOffsetData(CTclApp *app, const QString &str, OffsetData &offsetData)
 {
   offsetData = OffsetData();
 
-  if (CTkAppUtil::variantToAlign(app, str, offsetData.align, /*quiet*/true)) {
+  if (CTkAppUtil::variantToAlign(app, str, offsetData.align)) {
     offsetData.isAlign = true;
     return true;
   }
@@ -2910,11 +3090,14 @@ class CTkAppCheckButtonVarProc : public CTclTraceProc {
   }
 
   void handleWrite(const char *) override {
-    check_->updateFromVar();
+    if (check_)
+      check_->updateFromVar();
   }
 
  private:
-  CTkAppCheckButton *check_ { nullptr };
+  using CheckButtonP = QPointer<CTkAppCheckButton>;
+
+  CheckButtonP check_;
 };
 
 //---
@@ -2952,7 +3135,7 @@ execConfig(const QString &name, const QVariant &var)
     // height of image (pixels) or text (chars)
     double h;
     if (! CTkAppUtil::variantToDistance(tk_, var, h))
-      return tk_->throwError("Invalid height \"" + value + "\"");
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
 
     qcheck_->setHeight(h);
   }
@@ -2960,11 +3143,16 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-indicatoron") {
     bool b;
     if (! tk_->variantToBool(var, b))
-      return tk_->throwError("Invalid " + name + " \"" + value + "\"");
+      return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
 
     setShowIndicator(b);
   }
   else if (name == "-offrelief") {
+    Relief relief { Relief::NONE };
+    if (! CTkAppUtil::variantToRelief(tk_, var, relief))
+      return tk_->throwError(tk_->msg() + "bad relief \"" + var + "\": must be "
+                             "flat, groove, raised, ridge, solid, or sunken");
+
     tk_->TODO(name);
   }
   else if (name == "-offvalue") {
@@ -2973,6 +3161,11 @@ execConfig(const QString &name, const QVariant &var)
     updateToVar();
   }
   else if (name == "-onrelief") {
+    Relief relief { Relief::NONE };
+    if (! CTkAppUtil::variantToRelief(tk_, var, relief))
+      return tk_->throwError(tk_->msg() + "bad relief \"" + var + "\": must be "
+                             "flat, groove, raised, ridge, solid, or sunken");
+
     tk_->TODO(name);
   }
   else if (name == "-onvalue") {
@@ -2981,14 +3174,19 @@ execConfig(const QString &name, const QVariant &var)
     updateToVar();
   }
   else if (name == "-overrelief") {
-    setOverRaised(value == "raised");
+    Relief relief { Relief::NONE };
+    if (! CTkAppUtil::variantToRelief(tk_, var, relief))
+      return tk_->throwError(tk_->msg() + "bad relief \"" + var + "\": must be "
+                             "flat, groove, raised, ridge, solid, or sunken");
 
+    setOverRaised(relief == Relief::RAISED);
     appearanceChanged();
   }
   else if (name == "-selectcolor") {
     QColor c;
-    if (CTkAppUtil::variantToQColor(tk_, var, c))
-      selectColor_ = c;
+    if (! CTkAppUtil::variantToQColor(tk_, var, c))
+      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+    selectColor_ = c;
   }
   else if (name == "-selectimage") {
     tk_->TODO(name);
@@ -2998,13 +3196,18 @@ execConfig(const QString &name, const QVariant &var)
       qcheck_->setReadOnly(true);
     else {
       if (! setWidgetState(value))
-        return false;
+        return tk_->throwError(tk_->msg() + "bad state \"" + value + "\": must be "
+                               "active, disabled, or normal");
     }
   }
   else if (name == "-textvariable") {
     tk_->TODO(name);
   }
   else if (name == "-tristateimage") {
+    auto appImage = tk_->getImage(value);
+    if (! appImage)
+      return tk_->throwError(tk_->msg() + "image \"" + var + "\" doesn't exist");
+
     tk_->TODO(name);
   }
   else if (name == "-variable") {
@@ -3024,7 +3227,7 @@ execConfig(const QString &name, const QVariant &var)
     // width of image (pixels) or text (chars)
     double w;
     if (! CTkAppUtil::variantToDistance(tk_, var, w))
-      return tk_->throwError("Invalid width \"" + value + "\"");
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
 
     qcheck_->setWidth(w);
   }
@@ -3032,7 +3235,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-value") {
     bool b;
     if (! tk_->variantToBool(var, b))
-      return tk_->throwError("Invalid " + name + " \"" + value + "\"");
+      return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
 
     setChecked(b);
   }
@@ -3042,14 +3245,15 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-underline") {
     long pos;
     if (! tk_->getOptionInt(name, var, pos))
-      return false;
+      return tk_->throwError(tk_->msg() + "expected integer but got \"" + var + "\"");
 
     setUnderlinePos(pos);
   }
   else if (name == "-wraplength") {
     double length;
     if (! CTkAppUtil::variantToDistance(tk_, var, length))
-      return tk_->throwError("Invalid width \"" + value + "\"");
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+
     qcheck_->setWrapLength(length);
   }
   else
@@ -3207,11 +3411,14 @@ class CTkAppComboBoxVarProc : public CTclTraceProc {
   }
 
   void handleWrite(const char *) override {
-    combo_->updateFromVar();
+    if (combo_)
+      combo_->updateFromVar();
   }
 
  private:
-  CTkAppComboBox *combo_ { nullptr };
+  using ComboBoxP = QPointer<CTkAppComboBox>;
+
+  ComboBoxP combo_;
 };
 
 //---
@@ -3255,7 +3462,8 @@ execConfig(const QString &name, const QVariant &var)
       qcombo_->setReadOnly(true);
     else {
       if (! setWidgetState(value))
-        return false;
+        return tk_->throwError(tk_->msg() + "bad state \"" + value + "\": must be "
+                               "active, disabled, or normal");
     }
   }
   else if (name == "-textvariable") {
@@ -3287,7 +3495,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-width") {
     long w;
     if (! CTkAppUtil::stringToInt(value, w))
-      return tk_->throwError("Invalid width \"" + value + "\"");
+      return tk_->throwError("bad integer \"" + value + "\"");
     qcombo_->setWidth(w);
   }
   else
@@ -3316,7 +3524,7 @@ execOp(const Args &args)
       l = qcombo_->count() - 1;
     else {
       if (! CTkAppUtil::stringToInt(str, l))
-        return tk_->throwError("bad entry index \"" + str + "\"");
+        return tk_->throwError("bad integer \"" + str + "\"");
     }
 
     if (l < 0 || l >= qcombo_->count()) {
@@ -3522,7 +3730,8 @@ execOp(const Args &args)
 
       double f;
       if (! tk_->variantToReal(args[2], f))
-        return false;
+        return tk_->throwError(tk_->msg() + "expected floating-point number but "
+                               "got \"" + args[2] + "\"");
 
       int len = qcombo_->currentText().length();
       int pos = std::min(std::max(int(len*f), 0), len);
@@ -3533,6 +3742,22 @@ execOp(const Args &args)
       if (numArgs != 4)
         return tk_->wrongNumArgs(getName() + " xview scroll number what");
 
+      long i;
+      if (! tk_->variantToInt(args[2], i))
+        return false;
+
+      static auto names = std::vector<QString>({"pages", "units"});
+
+      QString name;
+      if (! tk_->lookupName("what", names, args[3], name))
+        return tk_->throwError(tk_->msg() + "bad argument \"" + args[3] +
+                               "\": must be pages or units");
+
+      int value = 1;
+      if (name == "pages")
+        value = i*1000;
+
+      tk_->TODO("xview scroll " + QString::number(value));
       tk_->TODO(args);
     }
     else {
@@ -3607,11 +3832,14 @@ class CTkAppEntryVarProc : public CTclTraceProc {
   }
 
   void handleWrite(const char *) override {
-    entry_->updateFromVar();
+    if (entry_)
+      entry_->updateFromVar();
   }
 
  private:
-  CTkAppEntry *entry_ { nullptr };
+  using EntryP = QPointer<CTkAppEntry>;
+
+  EntryP entry_;
 };
 
 //---
@@ -3622,7 +3850,13 @@ class CTkAppEntryValidator : public QValidator {
    QValidator(entry), tk_(tk), entry_(entry) {
   }
 
+  bool isEnabled() const { return enabled_; }
+  void setEnabled(bool b) { enabled_ = b; }
+
   State validate(QString &input, int & /*pos*/) const override {
+    if (! enabled_)
+      return Acceptable;
+
     if (entry_->validate(input))
       return Acceptable;
 
@@ -3630,8 +3864,11 @@ class CTkAppEntryValidator : public QValidator {
   }
 
  private:
-  CTkApp*      tk_    { nullptr };
-  CTkAppEntry* entry_ { nullptr };
+  using EntryP = QPointer<CTkAppEntry>;
+
+  CTkApp* tk_ { nullptr };
+  EntryP  entry_;
+  bool    enabled_ { false };
 };
 
 //---
@@ -3669,10 +3906,21 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-invalidcommand") {
     tk_->TODO(name);
   }
+  else if (name == "-placeholder") {
+    tk_->TODO(name);
+  }
+  else if (name == "-placeholderforeground") {
+    QColor c;
+    if (! CTkAppUtil::variantToQColor(tk_, var, c))
+      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+
+    tk_->TODO(name);
+  }
   else if (name == "-readonlybackground") {
     QColor c;
     if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return false;
+      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+
     tk_->TODO(name);
   }
   else if (name == "-show") {
@@ -3683,7 +3931,8 @@ execConfig(const QString &name, const QVariant &var)
       qedit_->setReadOnly(true);
     else {
       if (! setWidgetState(value))
-        return false;
+        return tk_->throwError(tk_->msg() + "bad state \"" + value + "\": must be "
+                               "active, disabled, or normal");
     }
   }
   else if (name == "-textvariable") {
@@ -3725,7 +3974,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-width") {
     long w;
     if (! CTkAppUtil::stringToInt(value, w))
-      return tk_->throwError("Invalid width \"" + value + "\"");
+      return tk_->throwError("bad integer \"" + value + "\"");
     qedit_->setWidth(w);
   }
   else
@@ -3888,7 +4137,8 @@ execOp(const Args &args)
 
       double f;
       if (! tk_->variantToReal(args[2], f))
-        return false;
+        return tk_->throwError(tk_->msg() + "expected floating-point number but "
+                               "got \"" + args[2] + "\"");
 
       int len = qedit_->text().length();
       int pos = std::min(std::max(int(len*f), 0), len);
@@ -3907,8 +4157,8 @@ execOp(const Args &args)
 
       QString name;
       if (! tk_->lookupName("what", names, args[3], name))
-        return tk_->throwError(tk_->msg() + "bad argument '" + args[3] +
-                               "' must be pages or units");
+        return tk_->throwError(tk_->msg() + "bad argument \"" + args[3] +
+                               "\": must be pages or units");
 
       int value = 1;
       if (name == "pages")
@@ -3965,6 +4215,11 @@ bool
 CTkAppEntry::
 validate(const QString &s) const
 {
+  if (validateProc_)
+    validateProc_->setEnabled(false);
+
+  bool b = true;
+
   if (validateCmd_ != "") {
     // %d Type of action: 1 for insert, 0 for delete, or -1 for focus,
     //    forced or textvariable validation.
@@ -3985,18 +4240,19 @@ validate(const QString &s) const
       cmd = cmd.mid(0, pos) + "{" + s + "}" + cmd.mid(pos + 2);
 
     if (! tk_->eval(cmd))
-      return false;
+      return true;
 
-    bool b = false;
     QVariant res;
     if (tk_->getResult(res)) {
       if (! tk_->variantToBool(res, b))
-        return false;
+        return true;
     }
-    return b;
   }
 
-  return true;
+  if (validateProc_)
+    validateProc_->setEnabled(true);
+
+  return b;
 }
 
 void
@@ -4045,10 +4301,17 @@ bool
 CTkAppFrame::
 execConfig(const QString &name, const QVariant &var)
 {
-  auto value = tk_->variantToString(var);
-
   if      (name == "-class") {
+    auto value = tk_->variantToString(var);
+
     setOptionClass(value);
+  }
+  else if (name == "-container") {
+    bool b;
+    if (! tk_->variantToBool(var, b))
+      return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
+
+    setContainer(b);
   }
   else
     return CTkAppWidget::execConfig(name, var);
@@ -4092,11 +4355,14 @@ class CTkAppLabelVarProc : public CTclTraceProc {
   }
 
   void handleWrite(const char *) override {
-    label_->updateFromVar();
+    if (label_)
+      label_->updateFromVar();
   }
 
  private:
-  CTkAppLabel *label_ { nullptr };
+  using LabelP = QPointer<CTkAppLabel>;
+
+  LabelP label_;
 };
 
 //---
@@ -4119,22 +4385,28 @@ execConfig(const QString &name, const QVariant &var)
   long underlinePos = -1;
 
   if      (name == "-compound") {
-    // none, bottom, top, left, right, or center.
-    auto type = CQLabelImage::Type::NONE;
+    CTkAppCompoundType compoundType;
+    if (! CTkAppUtil::variantToCompound(tk_, var, compoundType))
+      return tk_->throwError("bad compound \"" + value + "\": must be "
+                             "bottom, center, left, none, right, or top");
 
-    if      (value == "bottom") type = CQLabelImage::Type::BOTTOM;
-    else if (value == "center") type = CQLabelImage::Type::CENTER;
-    else if (value == "left"  ) type = CQLabelImage::Type::LEFT;
-    else if (value == "none"  ) type = CQLabelImage::Type::NONE;
-    else if (value == "right" ) type = CQLabelImage::Type::RIGHT;
-    else if (value == "top"   ) type = CQLabelImage::Type::TOP;
+    setCompoundType(compoundType);
+
+    auto type = CQLabelImage::Type::NONE;
+    if      (compoundType == CTkAppCompoundType::BOTTOM) type = CQLabelImage::Type::BOTTOM;
+    else if (compoundType == CTkAppCompoundType::CENTER) type = CQLabelImage::Type::CENTER;
+    else if (compoundType == CTkAppCompoundType::LEFT  ) type = CQLabelImage::Type::LEFT;
+    else if (compoundType == CTkAppCompoundType::NONE  ) type = CQLabelImage::Type::NONE;
+    else if (compoundType == CTkAppCompoundType::RIGHT ) type = CQLabelImage::Type::RIGHT;
+    else if (compoundType == CTkAppCompoundType::TOP   ) type = CQLabelImage::Type::TOP;
 
     qlabel_->setType(type);
   }
   else if (name == "-height") {
     double height;
     if (! CTkAppUtil::variantToDistance(tk_, var, height))
-      return tk_->throwError("Invalid height \"" + value + "\"");
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+
     qlabel_->setHeight(height);
   }
   else if (name == "-state") {
@@ -4143,7 +4415,8 @@ execConfig(const QString &name, const QVariant &var)
     }
     else {
       if (! setWidgetState(value))
-        return false;
+        return tk_->throwError(tk_->msg() + "bad state \"" + value + "\": must be "
+                               "active, disabled, or normal");
     }
   }
   else if (name == "-textvariable") {
@@ -4161,18 +4434,20 @@ execConfig(const QString &name, const QVariant &var)
   }
   else if (name == "-underline") {
     if (! tk_->getOptionInt(name, var, underlinePos))
-      return false;
+      return tk_->throwError(tk_->msg() + "expected integer but got \"" + var + "\"");
   }
   else if (name == "-width") {
     double width;
     if (! CTkAppUtil::variantToDistance(tk_, var, width))
-      return tk_->throwError("Invalid width \"" + value + "\"");
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+
     qlabel_->setWidth(width);
   }
   else if (name == "-wraplength") {
     double length;
     if (! CTkAppUtil::variantToDistance(tk_, var, length))
-      return tk_->throwError("Invalid width \"" + value + "\"");
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+
     qlabel_->setWrapLength(length);
   }
   else
@@ -4297,13 +4572,37 @@ bool
 CTkAppLabelFrame::
 execConfig(const QString &name, const QVariant &var)
 {
-  return CTkAppWidget::execConfig(name, var);
+  if      (name == "-class") {
+    tk_->TODO(name);
+  }
+  else if (name == "-labelanchor") {
+    tk_->TODO(name);
+  }
+  else if (name == "-labelwidget") {
+    tk_->TODO(name);
+  }
+  else
+    return CTkAppWidget::execConfig(name, var);
+
+  return true;
+
 }
 
 bool
 CTkAppLabelFrame::
 execOp(const Args &args)
 {
+  uint numArgs = args.size();
+
+  if (numArgs == 0)
+    return tk_->wrongNumArgs(getName() + " option ?arg ...?");
+
+  static auto optionNames = std::vector<QString>({ "cget", "configure" });
+
+  QString option;
+  if (! tk_->lookupOptionName(optionNames, args[0], option))
+    return false;
+
   return CTkAppWidget::execOp(args);
 }
 
@@ -4325,11 +4624,14 @@ class CTkAppListBoxVarProc : public CTclTraceProc {
   }
 
   void handleWrite(const char *) override {
-    listBox_->updateFromVar();
+    if (listBox_)
+      listBox_->updateFromVar();
   }
 
  private:
-  CTkAppListBox *listBox_ { nullptr };
+  using ListBoxP = QPointer<CTkAppListBox>;
+
+  ListBoxP listBox_;
 };
 
 //---
@@ -4364,24 +4666,31 @@ bool
 CTkAppListBox::
 execConfig(const QString &name, const QVariant &var)
 {
-  auto value = tk_->variantToString(var);
-
   if      (name == "-activestyle") {
+    static auto names = std::vector<QString>({"dotbox", "none", "underline"});
+    QString value;
+    if (! tk_->lookupName("activestyle", names, var.toString(), value))
+      return false;
+
     tk_->TODO(name);
   }
   else if (name == "-exportselection") {
     bool b;
     if (! tk_->variantToBool(var, b))
-      return false;
+      return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
+
     exportSelection_ = b;
   }
   else if (name == "-height") {
     double h;
     if (! CTkAppUtil::variantToDistance(tk_, var, h))
-      return tk_->throwError("Invalid height \"" + value + "\"");
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+
     qlist_->setHeight(CTkAppListBoxWidget::OptReal(h));
   }
   else if (name == "-listvariable") {
+    auto value = tk_->variantToString(var);
+
     setVarName(value);
 
     updateFromVar();
@@ -4391,6 +4700,8 @@ execConfig(const QString &name, const QVariant &var)
     tk_->traceGlobalVar(varName(), varProc_);
   }
   else if (name == "-selectmode") {
+    auto value = tk_->variantToString(var);
+
     if      (value == "single") {
       qlist_->setSelectionMode(QAbstractItemView::SingleSelection);
     }
@@ -4403,21 +4714,26 @@ execConfig(const QString &name, const QVariant &var)
     else if (value == "extended") {
       qlist_->setSelectionMode(QAbstractItemView::ExtendedSelection);
     }
-    else
-      return false;
+    else {
+      tk_->TODO(name + " " + value);
+      return true; // arbitrary value allowed
+    }
   }
   else if (name == "-state") {
+    auto value = tk_->variantToString(var);
+
     if (value == "readonly")
       qlist_->setReadOnly(true);
     else {
       if (! setWidgetState(value))
-        return false;
+        return tk_->throwError(tk_->msg() + "bad state \"" + var + "\": must be "
+                               "active, disabled, or normal");
     }
   }
   else if (name == "-width") {
     double w;
     if (! CTkAppUtil::variantToDistance(tk_, var, w))
-      return tk_->throwError("Invalid width \"" + value + "\"");
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
 
     qlist_->setWidth(CTkAppListBoxWidget::OptReal(w));
   }
@@ -4438,7 +4754,12 @@ execOp(const Args &args)
 
   //---
 
-  auto stringToIndex = [&](const QVariant &var, int &ind, bool atEnd=false,
+  enum class IndexPosition {
+    NONE,
+    END
+  };
+
+  auto stringToIndex = [&](const QVariant &var, int &ind, IndexPosition pos=IndexPosition::NONE,
                            bool rangeCheck=true) {
     auto str = tk_->variantToString(var);
 
@@ -4448,7 +4769,7 @@ execOp(const Args &args)
     if (str == "anchor") return false;
 
     if (str == "end") {
-      if (rangeCheck && ! atEnd) {
+      if (rangeCheck && pos != IndexPosition::END) {
         if (qlist_->count() == 0)
           return false;
       }
@@ -4467,8 +4788,10 @@ execOp(const Args &args)
       return false;
 
     if (rangeCheck) {
-      if (i < 0 || i >= qlist_->count())
-        return false;
+      if (i < 0 || i >= qlist_->count()) {
+        if (i != 0 || pos != IndexPosition::END)
+          return false;
+      }
     }
 
     ind = int(i);
@@ -4530,12 +4853,12 @@ execOp(const Args &args)
       return tk_->wrongNumArgs(getName() + " delete firstIndex ?lastIndex?");
 
     int startIndex;
-    if (! stringToIndex(args[1], startIndex, /*atEnd*/false, /*rangeCheck*/false))
+    if (! stringToIndex(args[1], startIndex, IndexPosition::NONE, /*rangeCheck*/false))
       return false;
 
     int endIndex = startIndex;
     if (numArgs == 3) {
-      if (! stringToIndex(args[2], endIndex, /*atEnd*/false, /*rangeCheck*/false))
+      if (! stringToIndex(args[2], endIndex, IndexPosition::NONE, /*rangeCheck*/false))
         return false;
     }
 
@@ -4549,12 +4872,12 @@ execOp(const Args &args)
       return tk_->wrongNumArgs(getName() + " get firstIndex ?lastIndex?");
 
     int startIndex;
-    if (! stringToIndex(args[1], startIndex, /*atEnd*/false, /*rangeCheck*/false))
+    if (! stringToIndex(args[1], startIndex, IndexPosition::NONE, /*rangeCheck*/false))
       return false;
 
     int endIndex = startIndex;
     if (numArgs == 3) {
-      if (! stringToIndex(args[2], endIndex, /*atEnd*/false, /*rangeCheck*/false))
+      if (! stringToIndex(args[2], endIndex, IndexPosition::NONE, /*rangeCheck*/false))
         return false;
     }
     else
@@ -4562,7 +4885,7 @@ execOp(const Args &args)
 
     std::vector<QString> strs;
 
-    for (int i = endIndex; i >= startIndex; --i) {
+    for (int i = startIndex; i <= endIndex; ++i) {
       if (i >= 0 && i < qlist_->count())
         strs.push_back(qlist_->item(i)->text());
     }
@@ -4580,7 +4903,7 @@ execOp(const Args &args)
       return tk_->wrongNumArgs(getName() + " insert index ?element ...?");
 
     int ind;
-    if (! stringToIndex(args[1], ind, /*atEnd*/true))
+    if (! stringToIndex(args[1], ind, IndexPosition::END))
       return false;
 
     uint i = 2;
@@ -4602,15 +4925,31 @@ execOp(const Args &args)
     auto opt = tk_->variantToString(args[2]);
 
     if      (opt == "-background") {
+      QColor c;
+      if (! CTkAppUtil::variantToQColor(tk_, args[2], c))
+        return tk_->throwError(tk_->msg() + "unknown color name \"" + args[2] + "\"");
+
       tk_->TODO(option + " " + opt);
     }
     else if (opt == "-foreground") {
+      QColor c;
+      if (! CTkAppUtil::variantToQColor(tk_, args[2], c))
+        return tk_->throwError(tk_->msg() + "unknown color name \"" + args[2] + "\"");
+
       tk_->TODO(option + " " + opt);
     }
     else if (opt == "-selectbackground") {
+      QColor c;
+      if (! CTkAppUtil::variantToQColor(tk_, args[2], c))
+        return tk_->throwError(tk_->msg() + "unknown color name \"" + args[2] + "\"");
+
       tk_->TODO(option + " " + opt);
     }
     else if (opt == "-selectforeground") {
+      QColor c;
+      if (! CTkAppUtil::variantToQColor(tk_, args[2], c))
+        return tk_->throwError(tk_->msg() + "unknown color name \"" + args[2] + "\"");
+
       tk_->TODO(option + " " + opt);
     }
     else
@@ -4639,25 +4978,27 @@ execOp(const Args &args)
         if      (name == "-background") {
           QColor c;
           if (i >= numArgs - 1 || ! CTkAppUtil::variantToQColor(tk_, args[++i], c))
-            return false;
+            return tk_->throwError(tk_->msg() + "unknown color name \"" + args[i] + "\"");
+
           tk_->TODO(args);
         }
         else if (name == "-foreground") {
           QColor c;
           if (i >= numArgs - 1 || ! CTkAppUtil::variantToQColor(tk_, args[++i], c))
-            return false;
+            return tk_->throwError(tk_->msg() + "unknown color name \"" + args[i] + "\"");
           tk_->TODO(args);
         }
         else if (name == "-selectbackground") {
           QColor c;
           if (i >= numArgs - 1 || ! CTkAppUtil::variantToQColor(tk_, args[++i], c))
-            return false;
+            return tk_->throwError(tk_->msg() + "unknown color name \"" + args[i] + "\"");
+
           tk_->TODO(args);
         }
         else if (name == "-selectforeground") {
           QColor c;
           if (i >= numArgs - 1 || ! CTkAppUtil::variantToQColor(tk_, args[++i], c))
-            return false;
+            return tk_->throwError(tk_->msg() + "unknown color name \"" + args[i] + "\"");
           tk_->TODO(args);
         }
         else
@@ -4701,23 +5042,23 @@ execOp(const Args &args)
     }
     else if (option == "clear") {
       int startIndex;
-      if (! stringToIndex(args[2], startIndex, /*atEnd*/false, /*rangeCheck*/false))
+      if (! stringToIndex(args[2], startIndex, IndexPosition::NONE, /*rangeCheck*/false))
         return false;
 
       int endIndex = startIndex;
       if (numArgs == 4) {
-        if (! stringToIndex(args[3], endIndex, /*atEnd*/false, /*rangeCheck*/false))
+        if (! stringToIndex(args[3], endIndex, IndexPosition::NONE, /*rangeCheck*/false))
           return false;
       }
 
-      for (int i = endIndex; i >= startIndex; --i) {
+      for (int i = startIndex; i <= endIndex; ++i) {
         if (i >= 0 && i < qlist_->count())
           qlist_->setCurrentItem(qlist_->item(i), QItemSelectionModel::Deselect);
       }
     }
     else if (option == "includes") {
       int ind;
-      if (! stringToIndex(args[2], ind, /*atEnd*/false, /*rangeCheck*/false))
+      if (! stringToIndex(args[2], ind, IndexPosition::NONE, /*rangeCheck*/false))
         return false;
 
       bool includes = false;
@@ -4736,16 +5077,16 @@ execOp(const Args &args)
     }
     else if (option == "set") {
       int startIndex;
-      if (! stringToIndex(args[2], startIndex, /*atEnd*/false, /*rangeCheck*/false))
+      if (! stringToIndex(args[2], startIndex, IndexPosition::NONE, /*rangeCheck*/false))
         return false;
 
       int endIndex = startIndex;
       if (numArgs == 4) {
-        if (! stringToIndex(args[3], endIndex, /*atEnd*/false, /*rangeCheck*/false))
+        if (! stringToIndex(args[3], endIndex, IndexPosition::NONE, /*rangeCheck*/false))
           return false;
       }
 
-      for (int i = endIndex; i >= startIndex; --i) {
+      for (int i = startIndex; i <= endIndex; ++i) {
         if (i >= 0 && i < qlist_->count())
           qlist_->setCurrentItem(qlist_->item(i), QItemSelectionModel::Select);
       }
@@ -4788,7 +5129,7 @@ execOp(const Args &args)
         qlist_->horizontalScrollBar()->setValue(min + (max - min)*x);
       }
       else if (opt == "scroll") {
-        if (numArgs < 4)
+        if (numArgs != 4)
           return tk_->wrongNumArgs(getName() + " xview scroll number pages|units");
 
         double x;
@@ -4800,15 +5141,15 @@ execOp(const Args &args)
         else if (args[3] == "units")
           value += x*1000;
         else
-          return tk_->throwError(tk_->msg() + "bad argument '" + args[3] +
-                                 "' must be pages or units");
+          return tk_->throwError(tk_->msg() + "bad argument \"" + args[3] +
+                                 "\": must be pages or units");
 
         qlist_->horizontalScrollBar()->setValue(min + (max - min)*x);
       }
       else {
         double x;
         if (! CTkAppUtil::stringToReal(opt, x))
-          return tk_->throwError("Invalid xview value '" + opt + "'");
+          return tk_->throwError("unknown option \"" + opt + "\": must be moveto or scroll");
 
         qlist_->horizontalScrollBar()->setValue(min + (max - min)*x);
       }
@@ -4832,8 +5173,8 @@ execOp(const Args &args)
       auto opt = tk_->variantToString(args[1]);
 
       if      (opt == "moveto") {
-        if (numArgs < 3)
-          return tk_->wrongNumArgs(getName() + " yview moveto number");
+        if (numArgs != 3)
+          return tk_->wrongNumArgs(getName() + " yview moveto fraction");
 
         double y;
 
@@ -4843,7 +5184,7 @@ execOp(const Args &args)
         qlist_->verticalScrollBar()->setValue(min + (max - min)*y);
       }
       else if (opt == "scroll") {
-        if (numArgs < 4)
+        if (numArgs != 4)
           return tk_->wrongNumArgs(getName() + " yview scroll number pages|units");
 
         double y;
@@ -4856,15 +5197,15 @@ execOp(const Args &args)
         else if (args[3] == "units")
           value += y*1000;
         else
-          return tk_->throwError(tk_->msg() + "bad argument '" + args[3] +
-                                 "' must be pages or units");
+          return tk_->throwError(tk_->msg() + "bad argument \"" + args[3] +
+                                 "\": must be pages or units");
 
         qlist_->verticalScrollBar()->setValue(min + (max - min)*y);
       }
       else {
         double y;
         if (! CTkAppUtil::stringToReal(opt, y))
-          return tk_->throwError("Invalid yview value '" + opt + "'");
+          return tk_->throwError("unknown option \"" + opt + "\": must be moveto or scroll");
 
         qlist_->verticalScrollBar()->setValue(min + (max - min)*y);
       }
@@ -5003,12 +5344,10 @@ bool
 CTkAppMenu::
 execConfig(const QString &name, const QVariant &var)
 {
-  auto value = tk_->variantToString(var);
-
   if (name == "-tearoff") {
     bool b;
     if (! tk_->variantToBool(var, b))
-      return false;
+      return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
     tearOff_ = b;
   }
   else
@@ -5051,8 +5390,10 @@ execOp(const Args &args)
       long    underlinePos = -1;
 
       for (uint i = 2; i < numArgs - 1; i += 2) {
-        auto name  = args[i    ].toString();
-        auto value = args[i + 1].toString();
+        auto name = args[i].toString();
+        auto var  = args[i + 1];
+
+        auto value = var.toString();
 
         if      (name == "-label") {
           label = value;
@@ -5062,7 +5403,7 @@ execOp(const Args &args)
         }
         else if (name == "-underline") {
           if (! tk_->getOptionInt(name, value, underlinePos))
-            return false;
+            return tk_->throwError(tk_->msg() + "expected integer but got \"" + var + "\"");
         }
         else
           tk_->throwError("Invalid menu cascade option \"" + name + "\"");
@@ -5082,8 +5423,10 @@ execOp(const Args &args)
       long underlinePos = -1;
 
       for (uint i = 2; i < numArgs - 1; i += 2) {
-        auto name  = args[i    ].toString();
-        auto value = args[i + 1].toString();
+        auto name = args[i].toString();
+        auto var  = args[i + 1];
+
+        auto value = var.toString();
 
         if      (name == "-label") {
           check->setText(value);
@@ -5098,7 +5441,7 @@ execOp(const Args &args)
         }
         else if (name == "-underline") {
           if (! tk_->getOptionInt(name, value, underlinePos))
-            return false;
+            return tk_->throwError(tk_->msg() + "expected integer but got \"" + var + "\"");
         }
         else
           tk_->throwError("Invalid menu check option \"" + name + "\"");
@@ -5115,8 +5458,10 @@ execOp(const Args &args)
       QString accelerator;
 
       for (uint i = 2; i < numArgs - 1; i += 2) {
-        auto name  = args[i    ].toString();
-        auto value = args[i + 1].toString();
+        auto name = args[i].toString();
+        auto var  = args[i + 1];
+
+        auto value = var.toString();
 
         if      (name == "-label") {
           action->setText(value);
@@ -5131,7 +5476,7 @@ execOp(const Args &args)
         }
         else if (name == "-underline") {
           if (! tk_->getOptionInt(name, value, underlinePos))
-            return false;
+            return tk_->throwError(tk_->msg() + "expected integer but got \"" + var + "\"");
         }
         else if (name == "-accelerator") {
           accelerator = name;
@@ -5146,8 +5491,10 @@ execOp(const Args &args)
       auto *radio = new CTkAppRadioAction(tk_);
 
       for (uint i = 2; i < numArgs - 1; i += 2) {
-        auto name  = args[i    ].toString();
-        auto value = args[i + 1].toString();
+        auto name = args[i].toString();
+        auto var  = args[i + 1];
+
+        auto value = var.toString();
 
         if      (name == "-label") {
           radio->setText(value);
@@ -5325,11 +5672,14 @@ class CTkAppMenuButtonVarProc : public CTclTraceProc {
   }
 
   void handleWrite(const char *) override {
-    menuButton_->updateFromVar();
+    if (menuButton_)
+      menuButton_->updateFromVar();
   }
 
  private:
-  CTkAppMenuButton *menuButton_ { nullptr };
+  using MenuButtonP = QPointer<CTkAppMenuButton>;
+
+  MenuButtonP menuButton_;
 };
 
 //---
@@ -5357,14 +5707,16 @@ bool
 CTkAppMenuButton::
 execConfig(const QString &name, const QVariant &var)
 {
-  auto value = tk_->variantToString(var);
-
   long underlinePos = -1;
 
   if      (name == "-command") {
+    auto value = tk_->variantToString(var);
+
     setCommand(value);
   }
   else if (name == "-textvariable") {
+    auto value = tk_->variantToString(var);
+
     setVarName(value);
 
     if (! isInitNotify() && ! tk_->hasGlobalVar(varName()))
@@ -5382,27 +5734,32 @@ execConfig(const QString &name, const QVariant &var)
     tk_->TODO(name);
   }
   else if (name == "-menu") {
+    auto value = tk_->variantToString(var);
+
     menuName_ = value;
 
     updateMenu();
   }
   else if (name == "-underline") {
     if (! tk_->getOptionInt(name, var, underlinePos))
-      return false;
+      return tk_->throwError(tk_->msg() + "expected integer but got \"" + var + "\"");
   }
   else if (name == "-indicatoron") {
     bool b;
     if (! tk_->variantToBool(var, b))
-      return tk_->throwError("Invalid " + name + " \"" + value + "\"");
+      return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
 
     showIndicator_ = b;
   }
   else if (name == "-state") {
+    auto value = tk_->variantToString(var);
+
     if (value == "readonly")
       qbutton_->setReadOnly(true);
     else {
       if (! setWidgetState(value))
-        return false;
+        return tk_->throwError(tk_->msg() + "bad state \"" + value + "\": must be "
+                               "active, disabled, or normal");
     }
   }
   else
@@ -5513,11 +5870,14 @@ class CTkAppMessageVarProc : public CTclTraceProc {
   }
 
   void handleWrite(const char *) override {
-    message_->updateFromVar();
+    if (message_)
+      message_->updateFromVar();
   }
 
  private:
-  CTkAppMessage *message_ { nullptr };
+  using MessageP = QPointer<CTkAppMessage>;
+
+  MessageP message_;
 };
 
 //---
@@ -5538,9 +5898,9 @@ bool
 CTkAppMessage::
 execConfig(const QString &name, const QVariant &var)
 {
-  auto value = tk_->variantToString(var);
-
   if      (name == "-textvariable") {
+    auto value = tk_->variantToString(var);
+
     setVarName(value);
 
     if (! isInitNotify() && ! tk_->hasGlobalVar(varName()))
@@ -5755,7 +6115,8 @@ execConfig(const QString &name, const QVariant &var)
   if      (name == "-orient") {
     Qt::Orientation orient;
     if (! CTkAppUtil::variantToOrient(tk_, var, orient))
-      return false;
+      return tk_->throwError(tk_->msg() + "bad orient \"" + var + "\": must be "
+                             "horizontal or vertical");
 
     qpane_->setOrientation(orient);
   }
@@ -5795,7 +6156,8 @@ execOp(const Args &args)
     int pady     = -1;
 
     for (uint i = 1; i < numArgs; ++i) {
-      auto name = args[i].toString();
+      auto var  = args[i];
+      auto name = var.toString();
 
       if (name.size() > 0 && name[0] == '-') {
         if      (name == "-minsize") {
@@ -5806,7 +6168,7 @@ execOp(const Args &args)
 
           long i;
           if (! tk_->getOptionInt(name, args[i], i))
-            return false;
+            return tk_->throwError(tk_->msg() + "expected integer but got \"" + var + "\"");
 
           min_size = i;
         }
@@ -5818,7 +6180,7 @@ execOp(const Args &args)
 
           long pad;
           if (! tk_->getOptionInt(name, args[i], pad))
-            return false;
+            return tk_->throwError(tk_->msg() + "expected integer but got \"" + var + "\"");
 
           padx = pad;
 
@@ -5832,7 +6194,7 @@ execOp(const Args &args)
 
           long pad;
           if (! tk_->getOptionInt(name, args[i], pad))
-            return false;
+            return tk_->throwError(tk_->msg() + "expected integer but got \"" + var + "\"");
 
           pady = pad;
 
@@ -5900,11 +6262,14 @@ class CTkAppRadioButtonVarProc : public CTclTraceProc {
   }
 
   void handleWrite(const char *) override {
-    radio_->updateFromVar();
+    if (radio_)
+      radio_->updateFromVar();
   }
 
  private:
-  CTkAppRadioButton *radio_ { nullptr };
+  using RadioButtonP = QPointer<CTkAppRadioButton>;
+
+  RadioButtonP radio_;
 };
 
 //---
@@ -5944,32 +6309,73 @@ bool
 CTkAppRadioButton::
 execConfig(const QString &name, const QVariant &var)
 {
-  auto value = tk_->variantToString(var);
-
   if      (name == "-command") {
+    auto value = tk_->variantToString(var);
+
     setCommand(value);
+  }
+  else if (name == "-height") {
+    // height of image (pixels) or text (chars)
+    double h;
+    if (! CTkAppUtil::variantToDistance(tk_, var, h))
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+
+    setUserHeight(h);
   }
   else if (name == "-indicatoron") {
     bool b;
     if (! tk_->variantToBool(var, b))
-      return tk_->throwError("Invalid " + name + " \"" + value + "\"");
+      return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
 
     setShowIndicator(b);
+  }
+  else if (name == "-offrelief") {
+    Relief relief { Relief::NONE };
+    if (! CTkAppUtil::variantToRelief(tk_, var, relief))
+      return tk_->throwError(tk_->msg() + "bad relief \"" + var + "\": must be "
+                             "flat, groove, raised, ridge, solid, or sunken");
+
+    tk_->TODO(name);
+  }
+  else if (name == "-onrelief") {
+    Relief relief { Relief::NONE };
+    if (! CTkAppUtil::variantToRelief(tk_, var, relief))
+      return tk_->throwError(tk_->msg() + "bad relief \"" + var + "\": must be "
+                             "flat, groove, raised, ridge, solid, or sunken");
+
+    tk_->TODO(name);
+  }
+  else if (name == "-overrelief") {
+    Relief relief { Relief::NONE };
+    if (! CTkAppUtil::variantToRelief(tk_, var, relief))
+      return tk_->throwError(tk_->msg() + "bad relief \"" + var + "\": must be "
+                             "flat, groove, raised, ridge, solid, or sunken");
+
+    tk_->TODO(name);
   }
   else if (name == "-selectcolor") {
     QColor c;
     if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return false;
+      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
 
     setSelectColor(c);
   }
+  else if (name == "-selectimage") {
+    tk_->TODO(name);
+  }
   else if (name == "-state") {
+    auto value = tk_->variantToString(var);
+
     if (value == "readonly")
       qradio_->setReadOnly(true);
     else {
       if (! setWidgetState(value))
-        return false;
+        return tk_->throwError(tk_->msg() + "bad state \"" + value + "\": must be "
+                               "active, disabled, or normal");
     }
+  }
+  else if (name == "-textvariable") {
+    tk_->TODO(name);
   }
   else if (name == "-tristatevalue") {
     tk_->TODO(name);
@@ -5977,34 +6383,30 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-underline") {
     long pos = -1;
     if (! tk_->getOptionInt(name, var, pos))
-      return false;
+      return tk_->throwError(tk_->msg() + "expected integer but got \"" + var + "\"");
   }
   else if (name == "-value") {
+    auto value = tk_->variantToString(var);
+
     setValue(value);
   }
   else if (name == "-variable") {
+    auto value = tk_->variantToString(var);
+
     setVarName(value);
   }
   else if (name == "-width") {
     // width of image (pixels) or text (chars)
     double w;
     if (! CTkAppUtil::variantToDistance(tk_, var, w))
-      return tk_->throwError("Invalid width \"" + value + "\"");
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
 
     setUserWidth(w);
-  }
-  else if (name == "-height") {
-    // height of image (pixels) or text (chars)
-    double h;
-    if (! CTkAppUtil::variantToDistance(tk_, var, h))
-      return tk_->throwError("Invalid width \"" + value + "\"");
-
-    setUserHeight(h);
   }
   else if (name == "-wraplength") {
     double length;
     if (! CTkAppUtil::variantToDistance(tk_, var, length))
-      return tk_->throwError("Invalid width \"" + value + "\"");
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
     qradio_->setWrapLength(length);
   }
   else
@@ -6287,11 +6689,14 @@ class CTkAppScaleVarProc : public CTclTraceProc {
   }
 
   void handleWrite(const char *) override {
-    scale_->updateFromVar();
+    if (scale_)
+      scale_->updateFromVar();
   }
 
  private:
-  CTkAppScale *scale_ { nullptr };
+  using ScaleP = QPointer<CTkAppScale>;
+
+  ScaleP scale_;
 };
 
 //---
@@ -6321,36 +6726,44 @@ bool
 CTkAppScale::
 execConfig(const QString &name, const QVariant &var)
 {
-  auto value = tk_->variantToString(var);
-
   // widget specific options
   if      (name == "-bigincrement") {
+    double r;
+    if (! tk_->variantToReal(var, r))
+      return tk_->throwError(tk_->msg() + "expected floating-point number but "
+                             "got \"" + var + "\"");
+
     tk_->TODO(name);
   }
   else if (name == "-command") {
+    auto value = tk_->variantToString(var);
+
     setCommand(value);
   }
   else if (name == "-digits") {
     long n;
     if (! tk_->getOptionInt(name, var, n))
-      return false;
+      return tk_->throwError(tk_->msg() + "expected integer but got \"" + var + "\"");
 
     qscale_->setPrecision(n);
   }
   else if (name == "-from") {
-    long from;
-    if (! tk_->getOptionInt(name, var, from))
-      return false;
+    double from;
+    if (! tk_->variantToReal(var, from))
+      return tk_->throwError(tk_->msg() + "expected floating-point number but "
+                             "got \"" + var + "\"");
 
     qscale_->setMinimum(from);
   }
   else if (name == "-label") {
+    auto value = tk_->variantToString(var);
+
     qscale_->setLabel(value);
   }
   else if (name == "-length") {
     long l;
     if (! CTkAppUtil::variantToDistanceI(tk_, var, l))
-      return tk_->throwError("Invalid length \"" + value + "\"");
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
 
     length_ = l;
 
@@ -6359,7 +6772,8 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-orient") {
     Qt::Orientation orient;
     if (! CTkAppUtil::variantToOrient(tk_, var, orient))
-      return false;
+      return tk_->throwError(tk_->msg() + "bad orient \"" + var + "\": must be "
+                             "horizontal or vertical");
 
     qscale_->setOrientation(orient);
 
@@ -6379,7 +6793,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-showvalue") {
     bool b;
     if (! tk_->variantToBool(var, b))
-      return tk_->throwError("Invalid " + name + " \"" + value + "\"");
+      return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
 
     if (b)
       qscale_->setValuePosition(CQSliderBase::ValuePosition::ABOVE);
@@ -6387,14 +6801,26 @@ execConfig(const QString &name, const QVariant &var)
       qscale_->setValuePosition(CQSliderBase::ValuePosition::NONE);
   }
   else if (name == "-sliderlength") {
+    long w;
+    if (! CTkAppUtil::variantToDistanceI(tk_, var, w))
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+
     tk_->TODO(name);
   }
   else if (name == "-sliderrelief") {
+    Relief relief { Relief::NONE };
+    if (! CTkAppUtil::variantToRelief(tk_, var, relief))
+      return tk_->throwError(tk_->msg() + "bad relief \"" + var + "\": must be "
+                             "flat, groove, raised, ridge, solid, or sunken");
+
     tk_->TODO(name);
   }
   else if (name == "-state") {
+    auto value = tk_->variantToString(var);
+
     if (! setWidgetState(value))
-      return false;
+      return tk_->throwError(tk_->msg() + "bad state \"" + value + "\": must be "
+                             "active, disabled, or normal");
   }
   else if (name == "-tickinterval") {
     double r;
@@ -6408,13 +6834,23 @@ execConfig(const QString &name, const QVariant &var)
       qscale_->setTickLabelDelta(0.0);
   }
   else if (name == "-to") {
-    long to;
-    if (! tk_->getOptionInt(name, var, to))
-      return false;
+    double to;
+    if (! tk_->variantToReal(var, to))
+      return tk_->throwError(tk_->msg() + "expected floating-point number but "
+                             "got \"" + var + "\"");
 
     qscale_->setMaximum(to);
   }
+  else if (name == "-troughcolor") {
+    QColor c;
+    if (! CTkAppUtil::variantToQColor(tk_, var, c))
+      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+
+    setTroughColor(c);
+  }
   else if (name == "-variable") {
+    auto value = tk_->variantToString(var);
+
     setVarName(value);
 
     if (! isInitNotify() && ! tk_->hasGlobalVar(varName()))
@@ -6429,7 +6865,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-width") {
     long w;
     if (! CTkAppUtil::variantToDistanceI(tk_, var, w))
-      return tk_->throwError("Invalid width \"" + value + "\"");
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
 
     width_ = w;
 
@@ -6451,13 +6887,22 @@ execOp(const Args &args)
     return tk_->wrongNumArgs(getName() + " option ?arg ...?");
 
   static auto optionNames = std::vector<QString>({
-    "cget", "configure", "set"});
+    "cget", "configure", "coords", "get", "identify", "set"});
 
   QString option;
   if (! tk_->lookupOptionName(optionNames, args[0], option))
     return false;
 
-  if (option == "set") {
+  if      (option == "coords") {
+    tk_->TODO(args);
+  }
+  else if (option == "get") {
+    tk_->TODO(args);
+  }
+  else if (option == "identify") {
+    tk_->TODO(args);
+  }
+  else if (option == "set") {
     tk_->TODO(args);
   }
   else
@@ -6544,7 +6989,8 @@ execConfig(const QString &name, const QVariant &var)
   if      (name == "-orient") {
     Qt::Orientation orient;
     if (! CTkAppUtil::variantToOrient(tk_, var, orient))
-      return false;
+      return tk_->throwError(tk_->msg() + "bad orient \"" + var + "\": must be "
+                             "horizontal or vertical");
 
     qscrollbar_->setOrientation(orient);
   }
@@ -6554,7 +7000,8 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-troughcolor") {
     QColor c;
     if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return false;
+      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+
     qscrollbar_->setTroughColor(c);
   }
   else
@@ -6587,18 +7034,19 @@ execOp(const Args &args)
 
     double pos1, pos2;
 
-    if (tk_->variantToReal(args[1], pos1) && tk_->variantToReal(args[2], pos2)) {
-      connectSlots(false);
+    if (! tk_->variantToReal(args[1], pos1) ||
+        ! tk_->variantToReal(args[2], pos2))
+      return tk_->throwError(tk_->msg() + "expected floating-point number but "
+                             "got \"" + args[1] + "\"");
 
-      qscrollbar_->setPageStep(int((pos2 - pos1)*1000));
-      qscrollbar_->setValue   (int(pos1*1000));
+    connectSlots(false);
 
-      //std::cerr << "set " << pos1 << " " << pos2 << "\n";
+    qscrollbar_->setPageStep(int((pos2 - pos1)*1000));
+    qscrollbar_->setValue   (int(pos1*1000));
 
-      connectSlots(true);
-    }
-    else
-      return false;
+    //std::cerr << "set " << pos1 << " " << pos2 << "\n";
+
+    connectSlots(true);
   }
   else
     return CTkAppWidget::execOp(args);
@@ -6639,11 +7087,14 @@ class CTkAppSpinBoxVarProc : public CTclTraceProc {
   }
 
   void handleWrite(const char *) override {
-    spin_->updateFromVar();
+    if (spin_)
+      spin_->updateFromVar();
   }
 
  private:
-  CTkAppSpinBox *spin_ { nullptr };
+  using SpinBoxP = QPointer<CTkAppSpinBox>;
+
+  SpinBoxP spin_;
 };
 
 //---
@@ -6698,16 +7149,27 @@ execConfig(const QString &name, const QVariant &var)
   if      (name == "-buttonbackground") {
     QColor c;
     if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return false;
+      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+
     tk_->TODO(name);
   }
   else if (name == "-buttoncursor") {
     tk_->TODO(name);
   }
   else if (name == "-buttondownrelief") {
+    Relief relief { Relief::NONE };
+    if (! CTkAppUtil::variantToRelief(tk_, var, relief))
+      return tk_->throwError(tk_->msg() + "bad relief \"" + var + "\": must be "
+                             "flat, groove, raised, ridge, solid, or sunken");
+
     tk_->TODO(name);
   }
   else if (name == "-buttonuprelief") {
+    Relief relief { Relief::NONE };
+    if (! CTkAppUtil::variantToRelief(tk_, var, relief))
+      return tk_->throwError(tk_->msg() + "bad relief \"" + var + "\": must be "
+                             "flat, groove, raised, ridge, solid, or sunken");
+
     tk_->TODO(name);
   }
   else if (name == "-command") {
@@ -6716,13 +7178,14 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-disabledbackground") {
     QColor c;
     if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return false;
+      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+
     tk_->TODO(name);
   }
   else if (name == "-disabledforeground") {
     QColor c;
     if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return false;
+      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
     tk_->TODO(name);
   }
   else if (name == "-format") {
@@ -6731,7 +7194,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-from") {
     long from;
     if (! tk_->getOptionInt(name, var, from))
-      return false;
+      return tk_->throwError(tk_->msg() + "expected integer but got \"" + var + "\"");
 
     qspin_->setMinimum(from);
   }
@@ -6741,14 +7204,14 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-increment") {
     long step;
     if (! tk_->getOptionInt(name, var, step))
-      return false;
+      return tk_->throwError(tk_->msg() + "expected integer but got \"" + var + "\"");
 
     qspin_->setSingleStep(step);
   }
   else if (name == "-readonlybackground") {
     QColor c;
     if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return false;
+      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
 
     tk_->TODO(name);
   }
@@ -6757,7 +7220,8 @@ execConfig(const QString &name, const QVariant &var)
       qspin_->setReadOnly(true);
     else {
       if (! setWidgetState(value))
-        return false;
+        return tk_->throwError(tk_->msg() + "bad state \"" + value + "\": must be "
+                               "active, disabled, or normal");
     }
   }
   else if (name == "-textvariable") {
@@ -6776,7 +7240,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-to") {
     long to;
     if (! tk_->getOptionInt(name, var, to))
-      return false;
+      return tk_->throwError(tk_->msg() + "expected integer but got \"" + var + "\"");
 
     qspin_->setMaximum(to);
   }
@@ -6819,7 +7283,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-width") {
     long w;
     if (! CTkAppUtil::stringToInt(value, w))
-      return tk_->throwError("Invalid width \"" + value + "\"");
+      return tk_->throwError("bad integer \"" + value + "\"");
     qspin_->setWidth(w);
   }
   else if (name == "-wrap") {
@@ -7009,7 +7473,8 @@ execOp(const Args &args)
 
       double f;
       if (! tk_->variantToReal(args[2], f))
-        return false;
+        return tk_->throwError(tk_->msg() + "expected floating-point number but "
+                               "got \"" + args[2] + "\"");
 
       //int len = qspin_->text().length();
       //int pos = std::min(std::max(int(len*f), 0), len);
@@ -7022,6 +7487,22 @@ execOp(const Args &args)
       if (numArgs != 4)
         return tk_->wrongNumArgs(getName() + " xview scroll number what");
 
+      long i;
+      if (! tk_->variantToInt(args[2], i))
+        return false;
+
+      static auto names = std::vector<QString>({"pages", "units"});
+
+      QString name;
+      if (! tk_->lookupName("what", names, args[3], name))
+        return tk_->throwError(tk_->msg() + "bad argument \"" + args[3] +
+                               "\": must be pages or units");
+
+      int value = 1;
+      if (name == "pages")
+        value = i*1000;
+
+      tk_->TODO("xview scroll " + QString::number(value));
       tk_->TODO(args);
     }
     else {
@@ -7188,13 +7669,13 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-height") {
     long h;
     if (! CTkAppUtil::stringToInt(value, h))
-      return tk_->throwError("Invalid height \"" + value + "\"");
+      return tk_->throwError("bad integer \"" + value + "\"");
     qtext_->setHeight(h);
   }
   else if (name == "-inactiveselectbackground") {
     QColor c;
     if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return false;
+      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
 
     tk_->TODO(name);
   }
@@ -7218,7 +7699,8 @@ execConfig(const QString &name, const QVariant &var)
   }
   else if (name == "-state") {
     if (! setWidgetState(value))
-      return false;
+      return tk_->throwError(tk_->msg() + "bad state \"" + value + "\": must be "
+                             "active, disabled, or normal");
   }
   else if (name == "-tabs") {
     std::vector<QString> strs;
@@ -7236,7 +7718,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-width") {
     long w;
     if (! CTkAppUtil::stringToInt(value, w))
-      return tk_->throwError("Invalid width \"" + value + "\"");
+      return tk_->throwError("bad integer \"" + value + "\"");
     qtext_->setWidth(w);
   }
   else if (name == "-wrap") {
@@ -7938,25 +8420,31 @@ execOp(const Args &args)
             if (! nextI()) return false;
             QColor c;
             if (! CTkAppUtil::variantToQColor(tk_, var1, c))
-              return false;
+              return tk_->throwError(tk_->msg() + "unknown color name \"" + var1 + "\"");
+
             tagData.background = c;
           }
           else if (arg1 == "-foreground") {
             if (! nextI()) return false;
             QColor c;
             if (! CTkAppUtil::variantToQColor(tk_, var1, c))
-              return false;
+              return tk_->throwError(tk_->msg() + "unknown color name \"" + var1 + "\"");
+
             tagData.foreground = c;
           }
           else if (arg1 == "-font") {
             if (! nextI()) return false;
+
+            if (value1 == "")
+              return tk_->throwError("font \"" + value1 + "\" doesn't exist");
+
             tagData.font = tk_->getQFont(value1);
           }
           else if (arg1 == "-borderwidth") {
             if (! nextI()) return false;
             double w;
             if (! CTkAppUtil::variantToDistance(tk_, var1, w))
-              return false;
+              return tk_->throwError(tk_->msg() + "bad screen distance \"" + var1 + "\"");
             tagData.borderWidth = w;
           }
           else if (arg1 == "-lmargin1") {
@@ -7969,13 +8457,20 @@ execOp(const Args &args)
           }
           else if (arg1 == "-relief") {
             if (! nextI()) return false;
+
+            Relief relief { Relief::NONE };
+            if (! CTkAppUtil::variantToRelief(tk_, var1, relief))
+              return tk_->throwError(tk_->msg() + "bad relief \"" + var1 + "\": must be "
+                                     "flat, groove, raised, ridge, solid, or sunken");
+
             tk_->TODO(args);
           }
           else if (arg1 == "-underline") {
             if (! nextI()) return false;
             bool b;
             if (! tk_->variantToBool(var1, b))
-              return false;
+              return tk_->throwError(tk_->msg() +
+                "expected boolean value but got \"" + var1 + "\"");
             tagData.underline = b;
           }
           else {
@@ -8170,7 +8665,7 @@ execOp(const Args &args)
         qtext_->horizontalScrollBar()->setValue(min + (max - min)*x);
       }
       else if (opt == "scroll") {
-        if (numArgs < 4)
+        if (numArgs != 4)
           return tk_->wrongNumArgs(getName() + " xview scroll number pages|units");
 
         double x;
@@ -8182,16 +8677,15 @@ execOp(const Args &args)
         else if (args[3] == "units")
           value += x*1000;
         else
-          return tk_->throwError(tk_->msg() + "bad argument '" + args[3] +
-                                 "' must be pages or units");
+          return tk_->throwError(tk_->msg() + "bad argument \"" + args[3] +
+                                 "\": must be pages or units");
 
         qtext_->horizontalScrollBar()->setValue(min + (max - min)*x);
       }
       else {
         double x;
-
         if (! CTkAppUtil::stringToReal(opt, x))
-          return tk_->throwError("Invalid xview value '" + opt + "'");
+          return tk_->throwError("unknown option \"" + opt + "\": must be moveto or scroll");
 
         qtext_->horizontalScrollBar()->setValue(min + (max - min)*x);
       }
@@ -8212,11 +8706,11 @@ execOp(const Args &args)
       tk_->setRealArrayResult(reals);
     }
     else {
-      auto opt = args[1].toString();
+      auto opt = tk_->variantToString(args[1]);
 
       if      (opt == "moveto") {
-        if (numArgs < 3)
-          return tk_->wrongNumArgs(getName() + " yview moveto number");
+        if (numArgs != 3)
+          return tk_->wrongNumArgs(getName() + " yview moveto fraction");
 
         double y;
 
@@ -8226,7 +8720,7 @@ execOp(const Args &args)
         qtext_->verticalScrollBar()->setValue(min + (max - min)*y);
       }
       else if (opt == "scroll") {
-        if (numArgs < 4)
+        if (numArgs != 4)
           return tk_->wrongNumArgs(getName() + " yview scroll number pages|units");
 
         double y;
@@ -8239,16 +8733,15 @@ execOp(const Args &args)
         else if (args[3] == "units")
           value += y*1000;
         else
-          return tk_->throwError(tk_->msg() + "bad argument '" + args[3] +
-                                 "' must be pages or units");
+          return tk_->throwError(tk_->msg() + "bad argument \"" + args[3] +
+                                 "\": must be pages or units");
 
         qtext_->verticalScrollBar()->setValue(min + (max - min)*y);
       }
       else {
         double y;
-
         if (! CTkAppUtil::stringToReal(opt, y))
-          return tk_->throwError("Invalid yview value '" + opt + "'");
+          return tk_->throwError("unknown option \"" + opt + "\": must be moveto or scroll");
 
         qtext_->verticalScrollBar()->setValue(min + (max - min)*y);
       }
@@ -8745,8 +9238,16 @@ bool
 CTkAppTopLevel::
 execConfig(const QString &name, const QVariant &var)
 {
-  if (name == "-class")
+  if      (name == "-class") {
     tk_->TODO(name);
+  }
+  else if (name == "-container") {
+    bool b;
+    if (! tk_->variantToBool(var, b))
+      return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
+
+    setContainer(b);
+  }
   else
     return CTkAppWidget::execConfig(name, var);
 
@@ -8821,7 +9322,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-height") {
     long h;
     if (! CTkAppUtil::stringToInt(value, h))
-      return tk_->throwError("Invalid height \"" + value + "\"");
+      return tk_->throwError("bad integer \"" + value + "\"");
     qtree_->setHeight(h);
   }
   else if (name == "-selectmode") {
@@ -9305,7 +9806,7 @@ execOp(const Args &args)
         qtree_->horizontalScrollBar()->setValue(min + (max - min)*x);
       }
       else if (opt == "scroll") {
-        if (numArgs < 4)
+        if (numArgs != 4)
           return tk_->wrongNumArgs(getName() + " xview scroll number pages|units");
 
         double x;
@@ -9317,16 +9818,15 @@ execOp(const Args &args)
         else if (args[3] == "units")
           value += x*1000;
         else
-          return tk_->throwError(tk_->msg() + "bad argument '" + args[3] +
-                                 "' must be pages or units");
+          return tk_->throwError(tk_->msg() + "bad argument \"" + args[3] +
+                                 "\": must be pages or units");
 
         qtree_->horizontalScrollBar()->setValue(min + (max - min)*x);
       }
       else {
         double x;
-
         if (! CTkAppUtil::stringToReal(opt, x))
-          return tk_->throwError("Invalid xview value '" + opt + "'");
+          return tk_->throwError("unknown option \"" + opt + "\": must be moveto or scroll");
 
         qtree_->horizontalScrollBar()->setValue(min + (max - min)*x);
       }
@@ -9347,11 +9847,11 @@ execOp(const Args &args)
       tk_->setRealArrayResult(reals);
     }
     else {
-      auto opt = args[1].toString();
+      auto opt = tk_->variantToString(args[1]);
 
       if      (opt == "moveto") {
-        if (numArgs < 3)
-          return tk_->wrongNumArgs(getName() + " yview moveto number");
+        if (numArgs != 3)
+          return tk_->wrongNumArgs(getName() + " yview moveto fraction");
 
         double y;
 
@@ -9361,7 +9861,7 @@ execOp(const Args &args)
         qtree_->verticalScrollBar()->setValue(min + (max - min)*y);
       }
       else if (opt == "scroll") {
-        if (numArgs < 4)
+        if (numArgs != 4)
           return tk_->wrongNumArgs(getName() + " yview scroll number pages|units");
 
         double y;
@@ -9374,16 +9874,15 @@ execOp(const Args &args)
         else if (args[3] == "units")
           value += y*1000;
         else
-          return tk_->throwError(tk_->msg() + "bad argument '" + args[3] +
-                                 "' must be pages or units");
+          return tk_->throwError(tk_->msg() + "bad argument \"" + args[3] +
+                                 "\": must be pages or units");
 
         qtree_->verticalScrollBar()->setValue(min + (max - min)*y);
       }
       else {
         double y;
-
         if (! CTkAppUtil::stringToReal(opt, y))
-          return tk_->throwError("Invalid yview value '" + opt + "'");
+          return tk_->throwError("unknown option \"" + opt + "\": must be moveto or scroll");
 
         qtree_->verticalScrollBar()->setValue(min + (max - min)*y);
       }
@@ -9852,37 +10351,52 @@ void
 CTkAppWidget::
 addChild(CTkAppWidget *w)
 {
-  children_[w->getName()] = w;
+  auto name = w->getName();
+
+  auto pc = children_.find(name);
+
+  if (pc != children_.end()) {
+    assert((*pc).second->isDeleted());
+
+    children_.erase(pc);
+  }
+
+  children_[name] = w;
 }
 
 void
 CTkAppWidget::
 removeChild(CTkAppWidget *w)
 {
-  auto p = children_.find(w->getName());
+  auto pc = children_.find(w->getName());
 
-  if (p != children_.end())
-    children_.erase(p);
+  if (pc != children_.end())
+    children_.erase(pc);
 }
 
 void
 CTkAppWidget::
 getChildren(Children &children) const
 {
-  for (const auto &pc : children_)
-    children.push_back(pc.second);
+  for (const auto &pc : children_) {
+    if (! pc.second->isDeleted())
+      children.push_back(pc.second);
+  }
 }
 
 CTkAppWidget *
 CTkAppWidget::
 getChild(const QString &name) const
 {
-  auto p = children_.find(name);
+  auto pc = children_.find(name);
 
-  if (p == children_.end())
+  if (pc == children_.end())
     return nullptr;
 
-  return (*p).second;
+  if ((*pc).second->isDeleted())
+    return nullptr;
+
+  return (*pc).second;
 }
 
 void
@@ -9986,22 +10500,30 @@ execConfig(const QString &name, const QVariant &var)
   if      (name == "-activebackground") {
     QColor c;
     if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return false;
+      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+
     setActiveBackground(c);
   }
   else if (name == "-activeforeground") {
     QColor c;
     if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return false;
+      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+
     setActiveForeground(c);
   }
   else if (name == "-anchor") {
-    setAnchorVar(var);
+    Qt::Alignment align;
+    if (! CTkAppUtil::variantToAlign(tk_, var, align))
+      return tk_->throwError("bad anchor position \"" + var.toString() + "\": must be "
+                             "n, ne, e, se, s, sw, w, nw, or center");
+
+    setAnchor(align);
   }
   else if (name == "-background" || name == "-bg") {
     QColor c;
     if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return false;
+      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+
     setBackground(c);
   }
   else if (name == "-bitmap") {
@@ -10017,176 +10539,213 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-borderwidth" || name == "-bd") {
     double w;
     if (! CTkAppUtil::variantToDistance(tk_, var, w))
-      return false;
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
     setBorderWidth(w);
+  }
+  else if (name == "-colormap") {
+    setColormap(value);
   }
   else if (name == "-compound") {
     CTkAppCompoundType compoundType;
-    if (! CTkAppUtil::stringToCompound(value, compoundType))
-      return false;
+    if (! CTkAppUtil::variantToCompound(tk_, var, compoundType))
+      return tk_->throwError("bad compound \"" + value + "\": must be "
+                             "bottom, center, left, none, right, or top");
     setCompoundType(compoundType);
   }
   else if (name == "-cursor") {
+    if (value != "") {
+      auto *cursor = tk_->getCursor(value);
+      if (! cursor)
+        return tk_->throwError("bad cursor spec \"" + value + "\"");
+    }
+
     setCursor(value);
   }
   else if (name == "-disabledbackground") {
     QColor c;
     if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return false;
+      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+
     setDisabledBackground(c);
   }
   else if (name == "-disabledforeground") {
     QColor c;
     if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return false;
+      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+
     setDisabledBackground(c);
   }
-  else if (name == "-foreground" || name == "-fg") {
-    QColor c;
-    if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return false;
-    setForeground(c);
-  }
-  else if (name == "-highlightbackground") {
-    QColor c;
-    if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return false;
-    setHighlightBackground(c);
-  }
-  else if (name == "-highlightcolor") {
-    QColor c;
-    if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return false;
-    setHighlightForeground(c);
-  }
-  else if (name == "-highlightthickness") {
-    double thickness;
-    if (! CTkAppUtil::variantToDistance(tk_, var, thickness))
-      return false;
-    setHighlightThickness(thickness);
-  }
-  else if (name == "-image") {
-    if (! setImage(value))
-      return tk_->throwError("Failed to get image '" + value + "'");
-  }
-  else if (name == "-insertbackground") {
-    QColor c;
-    if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return false;
-    setInsertBackground(c);
-  }
-  else if (name == "-insertborderwidth") {
-    double w;
-    if (! CTkAppUtil::variantToDistance(tk_, var, w))
-      return false;
-    setInsertBorderWidth(w);
-  }
-  else if (name == "-insertofftime") {
-    tk_->TODO(name);
-  }
-  else if (name == "-insertontime") {
-    tk_->TODO(name);
-  }
-  else if (name == "-insertwidth") {
-    double w;
-    if (! CTkAppUtil::variantToDistance(tk_, var, w))
-      return false;
-    setInsertWidth(w);
-  }
-  else if (name == "-justify") {
-    auto align = CTkAppUtil::stringToJustify(value);
-
-    setJustify(align);
-  }
-  else if (name == "-padx") {
-    long pad;
-    if (! CTkAppUtil::variantToDistanceI(tk_, var, pad))
-      return false;
-    setPadX(pad);
-  }
-  else if (name == "-pady") {
-    long pad;
-    if (! CTkAppUtil::variantToDistanceI(tk_, var, pad))
-      return false;
-    setPadY(pad);
-  }
-  else if (name == "-relief") {
-    if (! setReliefFromVar(var))
-      return false;
-  }
-  else if (name == "-repeatdelay") {
-    long i;
-    if (! tk_->getOptionInt(name, var, i))
-      return false;
-    setRepeatDelay(i);
-  }
-  else if (name == "-repeatinterval") {
-    long i;
-    if (! tk_->getOptionInt(name, var, i))
-      return false;
-    setRepeatInterval(i);
-  }
-  else if (name == "-takefocus") {
-    bool b;
-    if (! tk_->variantToBool(var, b))
-      return tk_->throwError("Invalid " + name + " \"" + value + "\"");
-    qwidget_->setFocusPolicy(b ? Qt::TabFocus : Qt::NoFocus);
-  }
-  else if (name == "-text") {
-    setText(value);
-  }
-  else if (name == "-selectbackground") {
-    QColor c;
-    if (CTkAppUtil::variantToQColor(tk_, var, c))
-      selectBackground_ = c;
-  }
-  else if (name == "-selectborderwidth") {
-    double w;
-    if (! CTkAppUtil::variantToDistance(tk_, var, w))
-      return tk_->throwError("Invalid width \"" + value + "\"");
-    setSelectBorderWidth(w);
-  }
-  else if (name == "-selectforeground") {
-    QColor c;
-    if (CTkAppUtil::variantToQColor(tk_, var, c))
-      selectForeground_ = c;
-  }
-  else if (name == "-width") {
-    long w;
-    if (! CTkAppUtil::variantToDistanceI(tk_, var, w))
-      return tk_->throwError("Invalid width \"" + value + "\"");
-
-    setWidth(w);
-
-    qwidget_->resize(getWidth(), getHeight());
-  }
-  else if (name == "-height") {
-    long h;
-    if (! CTkAppUtil::variantToDistanceI(tk_, var, h))
-      return tk_->throwError("Invalid height \"" + value + "\"");
-
-    setHeight(h);
-
-    qwidget_->resize(getWidth(), getHeight());
-  }
   else if (name == "-font") {
+    if (value == "")
+      return tk_->throwError("font \"" + value + "\" doesn't exist");
+
     auto f = tk_->getQFont(value);
 
     qwidget_->setFont(f);
 
     qwidget_->update();
   }
-  else if (name == "-colormap") {
+  else if (name == "-foreground" || name == "-fg") {
+    QColor c;
+    if (! CTkAppUtil::variantToQColor(tk_, var, c))
+      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+
+    setForeground(c);
+  }
+  else if (name == "-height") {
+    long h;
+    if (! CTkAppUtil::variantToDistanceI(tk_, var, h))
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+
+    setHeight(h);
+
+    qwidget_->resize(getWidth(), getHeight());
+  }
+  else if (name == "-highlightbackground") {
+    QColor c;
+    if (! CTkAppUtil::variantToQColor(tk_, var, c))
+      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+
+    setHighlightBackground(c);
+  }
+  else if (name == "-highlightcolor") {
+    QColor c;
+    if (! CTkAppUtil::variantToQColor(tk_, var, c))
+      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+    setHighlightForeground(c);
+  }
+  else if (name == "-highlightthickness") {
+    double thickness;
+    if (! CTkAppUtil::variantToDistance(tk_, var, thickness))
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+
+    setHighlightThickness(thickness);
+  }
+  else if (name == "-image") {
+    if (! setImage(value))
+      return tk_->throwError("image \"" + value + "\" doesn't exist");
+  }
+  else if (name == "-insertbackground") {
+    QColor c;
+    if (! CTkAppUtil::variantToQColor(tk_, var, c))
+      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+
+    setInsertBackground(c);
+  }
+  else if (name == "-insertborderwidth") {
+    double w;
+    if (! CTkAppUtil::variantToDistance(tk_, var, w))
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+
+    setInsertBorderWidth(w);
+  }
+  else if (name == "-insertofftime") {
+    long t;
+    if (! CTkAppUtil::variantToInt(tk_, var, t))
+      return tk_->throwError(tk_->msg() + "Invalid real value \"" + var + "\"");
+
     tk_->TODO(name);
+  }
+  else if (name == "-insertontime") {
+    long t;
+    if (! CTkAppUtil::variantToInt(tk_, var, t))
+      return tk_->throwError(tk_->msg() + "Invalid real value \"" + var + "\"");
+
+    tk_->TODO(name);
+  }
+  else if (name == "-insertwidth") {
+    double w;
+    if (! CTkAppUtil::variantToDistance(tk_, var, w))
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+
+    setInsertWidth(w);
+  }
+  else if (name == "-justify") {
+    Qt::Alignment align;
+    if (! CTkAppUtil::stringToJustify(value, align))
+      return tk_->throwError("bad justification \"" + value + "\": must be "
+                             "left, right, or center");
+
+    setJustify(align);
+  }
+  else if (name == "-padx") {
+    long pad;
+    if (! CTkAppUtil::variantToDistanceI(tk_, var, pad))
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+
+    setPadX(pad);
+  }
+  else if (name == "-pady") {
+    long pad;
+    if (! CTkAppUtil::variantToDistanceI(tk_, var, pad))
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+
+    setPadY(pad);
+  }
+  else if (name == "-relief") {
+    if (! setReliefFromVar(var))
+      return tk_->throwError(tk_->msg() + "bad relief \"" + var + "\": must be "
+                             "flat, groove, raised, ridge, solid, or sunken");
+  }
+  else if (name == "-repeatdelay") {
+    long i;
+    if (! tk_->getOptionInt(name, var, i))
+      return tk_->throwError(tk_->msg() + "expected integer but got \"" + var + "\"");
+    setRepeatDelay(i);
+  }
+  else if (name == "-repeatinterval") {
+    long i;
+    if (! tk_->getOptionInt(name, var, i))
+      return tk_->throwError(tk_->msg() + "expected integer but got \"" + var + "\"");
+    setRepeatInterval(i);
+  }
+  else if (name == "-selectbackground") {
+    QColor c;
+    if (! CTkAppUtil::variantToQColor(tk_, var, c))
+      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+
+    selectBackground_ = c;
+  }
+  else if (name == "-selectborderwidth") {
+    double w;
+    if (! CTkAppUtil::variantToDistance(tk_, var, w))
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+
+    setSelectBorderWidth(w);
+  }
+  else if (name == "-selectforeground") {
+    QColor c;
+    if (! CTkAppUtil::variantToQColor(tk_, var, c))
+      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+    selectForeground_ = c;
   }
   else if (name == "-setgrid") {
     bool b;
     if (! tk_->variantToBool(var, b))
-      return tk_->throwError("Invalid " + name + " \"" + value + "\"");
+      return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
     setGridWidget(b);
   }
+  else if (name == "-takefocus") {
+    bool b;
+    if (tk_->variantToBool(var, b))
+      qwidget_->setFocusPolicy(b ? Qt::TabFocus : Qt::NoFocus);
+    else
+      tk_->TODO(name); // allow arbritray value
+  }
+  else if (name == "-text") {
+    setText(value);
+  }
   else if (name == "-visual") {
-    tk_->TODO(name);
+    setVisual(value);
+  }
+  else if (name == "-width") {
+    long w;
+    if (! CTkAppUtil::variantToDistanceI(tk_, var, w))
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+
+    setWidth(w);
+
+    qwidget_->resize(getWidth(), getHeight());
   }
   else if (name == "-xscrollcommand") {
     setXScrollCommand(value);
@@ -10376,25 +10935,11 @@ setPadY(int pady)
 
 bool
 CTkAppWidget::
-setAnchorVar(const QVariant &var)
-{
-  Qt::Alignment align;
-  if (! CTkAppUtil::variantToAlign(tk_, var, align))
-    return false;
-
-  anchorStr_ = var.toString();
-  setAnchor(align);
-  return true;
-}
-
-bool
-CTkAppWidget::
 setAnchorStr(const QString &str)
 {
   Qt::Alignment align;
   if (! CTkAppUtil::variantToAlign(tk_, str, align))
     return false;
-
   anchorStr_ = str;
   setAnchor(align);
   return true;
@@ -10428,7 +10973,7 @@ setImage(const QString &s)
   return true;
 }
 
-void
+bool
 CTkAppWidget::
 setCursor(const QString &s)
 {
@@ -10436,6 +10981,8 @@ setCursor(const QString &s)
 
   //auto c = CTkAppUtil::stringToCursor(s);
   //qwidget_->setCursor(c);
+
+  return true;
 }
 
 //---
@@ -10486,12 +11033,8 @@ CTkAppWidget::
 setReliefFromVar(const QVariant &var)
 {
   Relief relief { Relief::NONE };
-  if (! CTkAppUtil::variantToRelief(tk_, var, relief_)) {
-    auto str = var.toString();
-    tk_->throwError("bad relief \"" + str + "\": must be "
-                    "flat, groove, raised, ridge, solid, or sunken");
+  if (! CTkAppUtil::variantToRelief(tk_, var, relief))
     return false;
-  }
 
   relief_    = relief;
   reliefVar_ = var;
@@ -10662,6 +11205,8 @@ deleteLater()
   deleted_ = true;
 
   tk_->addDeleteWidget(this);
+
+  getWidgetCommand()->deleteCommand();
 }
 
 void
@@ -10735,35 +11280,31 @@ bool
 CTkAppWidget::
 setWidgetState(const QString &value)
 {
+  CTkAppWidgetState state;
+  if (! CTkAppUtil::variantToState(tk_, value, state))
+    return false;
+
   auto *qw = this->getQWidget();
 
   auto *qbutton = qobject_cast<QAbstractButton *>(qw);
 
   if (qbutton) {
-    if      (value == "active")
+    if      (state == CTkAppWidgetState::ACTIVE)
       qbutton->setDown(true);
-    else if (value == "disabled")
+    else if (state == CTkAppWidgetState::DISABLED)
       qbutton->setEnabled(false);
-    else if (value == "normal") {
+    else if (state == CTkAppWidgetState::NORMAL) {
       qbutton->setEnabled(true);
       qbutton->setDown(false);
     }
-    else {
-      std::cerr << "Invalid state '" << value.toStdString() << "'\n";
-      return false;
-    }
   }
   else {
-    if      (value == "active")
+    if      (state == CTkAppWidgetState::ACTIVE)
       std::cerr << "Unsupported state '" << value.toStdString() << "'\n";
-    else if (value == "disabled")
+    else if (state == CTkAppWidgetState::DISABLED)
       qw->setEnabled(false);
-    else if (value == "normal")
+    else if (state == CTkAppWidgetState::NORMAL)
       qw->setEnabled(true);
-    else {
-      std::cerr << "Invalid state '" << value.toStdString() << "'\n";
-      return false;
-    }
   }
 
   return true;

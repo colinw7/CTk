@@ -100,7 +100,7 @@ class CLASS : public DERIVED { \
 //CTkAppCommandDef("tk_bisque"           , CTkAppTkBisqueCmd)
 //CTkAppCommandDef("tk_chooseColor"      , CTkAppTkChooseColorCmd)
 //CTkAppCommandDef("tk_chooseDirectory"  , CTkAppTkChooseDirectoryCmd)
-//CTkAppCommandDef("tk_dialog"           , CTkAppTkDialogCmd)
+  CTkAppCommandDef("tk_dialog"           , CTkAppTkDialogCmd)
 //CTkAppCommandDef("tk_focusFollowsMouse", CTkAppTkFocusFollowsMouseCmd)
 //CTkAppCommandDef("tk_focusNext"        , CTkAppTkFocusNextCmd)
 //CTkAppCommandDef("tk_focusPrev"        , CTkAppTkFocusPrevCmd)
@@ -216,6 +216,7 @@ addCommands(CTkApp *tk)
   new CTkAppWInfoCmd      (tk);
   new CTkAppWmCmd         (tk);
 
+  new CTkAppTkDialogCmd     (tk);
 //new CTkAppTkErrorCmd      (tk);
   new CTkAppTkGetOpenFileCmd(tk);
   new CTkAppTkGetSaveFileCmd(tk);
@@ -293,7 +294,7 @@ run(const Args &args)
     }
     else
       return tk_->throwError("bad option \"" + arg + "\": must be "
-                             "-displayof or -nice");
+                             "-displayof, or -nice");
   }
 
   QApplication::beep();
@@ -405,7 +406,7 @@ run(const Args &args)
   auto widgetName = args[0];
 
   auto *w = tk_->lookupWidgetByName(widgetName, /*quiet*/true);
-  if (! w) return tk_->throwError(tk_->msg() + "Invalid widget name \"" + widgetName + "\"");
+  if (! w) return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
 
   if (numArgs > 1) {
     std::vector<QString> bindtags;
@@ -490,13 +491,18 @@ run(const Args &args)
   }
 
   if (! widgetName.isValid())
-    return tk_->throwError("No name");
+    return tk_->wrongNumArgs("button pathName ?-option value ...?");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
+
+  auto *child = parent->getChild(childName);
+  if (child)
+    return tk_->throwError(tk_->msg() + "window name \"" + childName + "\" "
+                           "already exists in parent");
 
   auto *button = new CTkAppButton(tk_, parent, childName);
 
@@ -530,9 +536,7 @@ run(const Args &args)
 
   static CTkAppOpt opts[] = {
     { "-background"         , "background"         , "Background"         , "#d9d9d9" },
-    { "-bg"                 , "-background"         , nullptr              , nullptr  },
     { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "0"       },
-    { "-bd"                 , "-borderwidth"        , nullptr              , nullptr  },
     { "-closeenough"        , "closeEnough"        , "CloseEnough"        , "1"       },
     { "-confine"            , "confine"            , "Confine"            , "1"       },
     { "-cursor"             , "cursor"             , "Cursor"             , ""        },
@@ -558,7 +562,11 @@ run(const Args &args)
     { "-xscrollincrement"   , "xScrollIncrement"   , "ScrollIncrement"    , "0"       },
     { "-yscrollcommand"     , "yScrollCommand"     , "ScrollCommand"      , ""        },
     { "-yscrollincrement"   , "yScrollIncrement"   , "ScrollIncrement"    , "0"       },
-    { nullptr               , nullptr              , nullptr              , nullptr   }
+
+    { "-bd", "-borderwidth", nullptr, nullptr },
+    { "-bg", "-background" , nullptr, nullptr },
+
+    { nullptr, nullptr, nullptr, nullptr }
   };
 
   QVariant widgetName;
@@ -578,13 +586,18 @@ run(const Args &args)
   }
 
   if (! widgetName.isValid())
-    return tk_->throwError("No name");
+    return tk_->wrongNumArgs("canvas pathName ?-option value ...?");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
+
+  auto *child = parent->getChild(childName);
+  if (child)
+    return tk_->throwError(tk_->msg() + "window name \"" + childName + "\" "
+                           "already exists in parent");
 
   auto *canvas = new CTkAppCanvas(tk_, parent, childName);
 
@@ -593,7 +606,8 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), canvas, opts);
 
-  cmd->processArgs(args);
+  if (! cmd->processArgs(args))
+    return false;
 
   setResult(widgetName);
 
@@ -613,15 +627,12 @@ run(const Args &args)
     { "-activeforeground"   , "activeForeground"   , "Background"         , "#000000"       },
     { "-anchor"             , "anchor"             , "Anchor"             , "center"        },
     { "-background"         , "background"         , "Background"         , "#d9d9d9"       },
-    { "-bd"                 , "-borderwidth"       , nullptr              , nullptr         },
-    { "-bg"                 , "-background"        , nullptr              , nullptr         },
     { "-bitmap"             , "bitmap"             , "Bitmap"             , ""              },
     { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "1"             },
     { "-command"            , "command"            , "Command"            , ""              },
     { "-compound"           , "compound"           , "Compound"           , "none"          },
     { "-cursor"             , "cursor"             , "Cursor"             , ""              },
     { "-disabledforeground" , "disabledForeground" , "DisabledForeground" , "#a3a3a3"       },
-    { "-fg"                 , "-foreground"        , nullptr              , nullptr         },
     { "-font"               , "font"               , "Font"               , "TkDefaultFont" },
     { "-foreground"         , "foreground"         , "Foreground"         , "#000000"       },
     { "-height"             , "height"             , "Height"             , "0"             },
@@ -650,7 +661,12 @@ run(const Args &args)
     { "-variable"           , "variable"           , "Variable"           , ""              },
     { "-width"              , "width"              , "Width"              , "0"             },
     { "-wraplength"         , "wrapLength"         , "WrapLength"         , "0"             },
-    { nullptr               , nullptr              , nullptr              , nullptr         }
+
+    { "-bd", "-borderwidth", nullptr, nullptr },
+    { "-bg", "-background" , nullptr, nullptr },
+    { "-fg", "-foreground" , nullptr, nullptr },
+
+    { nullptr, nullptr, nullptr, nullptr }
   };
 
   QVariant widgetName;
@@ -670,13 +686,18 @@ run(const Args &args)
   }
 
   if (! widgetName.isValid())
-    return tk_->throwError("No name");
+    return tk_->wrongNumArgs("checkbutton pathName ?-option value ...?");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
+
+  auto *child = parent->getChild(childName);
+  if (child)
+    return tk_->throwError(tk_->msg() + "window name \"" + childName + "\" "
+                           "already exists in parent");
 
   auto *check = new CTkAppCheckButton(tk_, parent, childName);
 
@@ -685,7 +706,8 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), check, opts);
 
-  cmd->processArgs(args);
+  if (! cmd->processArgs(args))
+    return false;
 
   setResult(widgetName);
 
@@ -702,14 +724,11 @@ run(const Args &args)
 
   static CTkAppOpt opts[] = {
     { "-background"         , "background"         , "Background"         , "#ffffff"    },
-    { "-bd"                 , "-borderwidth"       , nullptr              , nullptr      },
-    { "-bg"                 , "-background"        , nullptr              , nullptr      },
     { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "1"          },
     { "-cursor"             , "cursor"             , "Cursor"             , "xterm"      },
     { "-disabledbackground" , "disabledBackground" , "DisabledBackground" , "#d9d9d9"    },
     { "-disabledforeground" , "disabledForeground" , "DisabledForeground" , "#a3a3a3"    },
     { "-exportselection"    , "exportSelection"    , "ExportSelection"    , "1"          },
-    { "-fg"                 , "-foreground"        , nullptr              , nullptr      },
     { "-font"               , "font"               , "Font"               , "TkTextFont" },
     { "-foreground"         , "foreground"         , "Foreground"         , "#000000"    },
     { "-height"             , "height"             , "Height"             , "0"       },
@@ -722,7 +741,6 @@ run(const Args &args)
     { "-insertontime"       , "insertOnTime"       , "OnTime"             , "600"        },
     { "-insertwidth"        , "insertWidth"        , "InsertWidth"        , "2"          },
     { "-invalidcommand"     , "invalidCommand"     , "InvalidCommand"     , ""           },
-    { "-invcmd"             , "-invalidcommand"    , nullptr              , nullptr      },
     { "-justify"            , "justify"            , "Justify"            , "left"       },
     { "-postcommand"        , "postCommand"        , "PostCommand"        , ""           },
     { "-readonlybackground" , "readonlyBackground" , "ReadonlyBackground" , "#d9d9d9"    },
@@ -737,10 +755,16 @@ run(const Args &args)
     { "-validate"           , "validate"           , "Validate"           , "none"       },
     { "-validatecommand"    , "validateCommand"    , "ValidateCommand"    , ""           },
     { "-values"             , "values"             , "Values"             , ""           },
-    { "-vcmd"               , "-validatecommand"   , nullptr              , nullptr      },
     { "-width"              , "width"              , "Width"              , "20"         },
     { "-xscrollcommand"     , "xScrollCommand"     , "ScrollCommand"      , ""           },
-    { nullptr               , nullptr              , nullptr              , nullptr      }
+
+    { "-bd"    , "-borderwidth"    , nullptr, nullptr },
+    { "-bg"    , "-background"     , nullptr, nullptr },
+    { "-fg"    , "-foreground"     , nullptr, nullptr },
+    { "-invcmd", "-invalidcommand" , nullptr, nullptr },
+    { "-vcmd"  , "-validatecommand", nullptr, nullptr },
+
+    { nullptr, nullptr, nullptr, nullptr }
   };
 
   QVariant widgetName;
@@ -760,13 +784,18 @@ run(const Args &args)
   }
 
   if (! widgetName.isValid())
-    return tk_->throwError("No name");
+    return tk_->wrongNumArgs("combobox pathName ?-option value ...?");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
+
+  auto *child = parent->getChild(childName);
+  if (child)
+    return tk_->throwError(tk_->msg() + "window name \"" + childName + "\" "
+                           "already exists in parent");
 
   auto *check = new CTkAppComboBox(tk_, parent, childName);
 
@@ -775,7 +804,8 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), check, opts);
 
-  cmd->processArgs(args);
+  if (! cmd->processArgs(args))
+    return false;
 
   setResult(widgetName);
 
@@ -802,22 +832,121 @@ run(const Args &args)
   if (! tk_->lookupOptionName(optionNames, args[0], opt))
     return false;
 
-  //---
-
   auto *clipboard = QApplication::clipboard();
 
   if      (opt == "clear") {
-    // -displayof window
+    uint i = 1;
+
+    for ( ; i < numArgs; ++i) {
+      auto arg = tk_->variantToString(args[i]);
+
+      if (arg[0] != '-')
+        break;
+
+      static auto argNames = std::vector<QString>({ "-displayof" });
+      QString arg1;
+      if (! tk_->lookupName("option", argNames, arg, arg1, /*quiet*/true))
+        return tk_->throwError("bad option \"" + arg + "\": must be -displayof");
+
+      if      (arg1 == "-displayof") {
+        tk_->TODO(args);
+
+        ++i;
+
+        if (i >= numArgs)
+          return tk_->wrongNumArgs("clipboard clear ?-displayof window?");
+      }
+    }
+
+    if (i != numArgs)
+      return tk_->wrongNumArgs("clipboard append ?-displayof window? "
+                               "?-format format? ?-type type? ?--? data");
+
     clipboard->setText("", QClipboard::Clipboard);
   }
   else if (opt == "append") {
-    // -option value ... data
-    if (numArgs < 2)
+    uint i = 1;
+
+    for ( ; i < numArgs; ++i) {
+      auto arg = tk_->variantToString(args[i]);
+
+      if (arg[0] != '-')
+        break;
+
+      static auto argNames = std::vector<QString>({ "-displayof", "-format", "-type", "--" });
+      QString arg1;
+      if (! tk_->lookupName("option", argNames, arg, arg1, /*quiet*/true))
+        return tk_->throwError("bad option \"" + arg + "\": must be "
+                               "-displayof, -format, or -type");
+
+      if      (arg1 == "-displayof") {
+        tk_->TODO(args);
+
+        ++i;
+
+        if (i >= numArgs)
+          return tk_->wrongNumArgs("clipboard append ?-displayof window?");
+      }
+      else if (arg1 == "-format") {
+        tk_->TODO(args);
+
+        ++i;
+
+        if (i >= numArgs)
+          return tk_->wrongNumArgs("clipboard append ?-format format?");
+      }
+      else if (arg1 == "-type") {
+        tk_->TODO(args);
+
+        ++i;
+
+        if (i >= numArgs)
+          return tk_->wrongNumArgs("clipboard append ?-type window?");
+      }
+      else if (arg == "--")
+        break;
+    }
+
+    if (i >= numArgs)
       return tk_->wrongNumArgs("clipboard append ?-option value ...? data");
 
-    clipboard->setText(clipboard->text(QClipboard::Clipboard) + tk_->variantToString(args[1]));
+    clipboard->setText(clipboard->text(QClipboard::Clipboard) + tk_->variantToString(args[i]));
   }
   else if (opt == "get") {
+    uint i = 1;
+
+    for ( ; i < numArgs; ++i) {
+      auto arg = tk_->variantToString(args[i]);
+
+      if (arg[0] != '-')
+        break;
+
+      static auto argNames = std::vector<QString>({ "-displayof", "-type" });
+      QString arg1;
+      if (! tk_->lookupName("option", argNames, arg, arg1, /*quiet*/true))
+        return tk_->throwError("bad option \"" + arg + "\": must be -displayof, -type");
+
+      if      (arg1 == "-displayof") {
+        tk_->TODO(args);
+
+        ++i;
+
+        if (i >= numArgs)
+          return tk_->wrongNumArgs("clipboard get ?-displayof window?");
+      }
+      else if (arg1 == "-type") {
+        tk_->TODO(args);
+
+        ++i;
+
+        if (i >= numArgs)
+          return tk_->wrongNumArgs("clipboard get ?-type window?");
+      }
+    }
+
+    if (i != numArgs)
+      return tk_->wrongNumArgs("clipboard get ?-displayof window? ?-type type?");
+
     setStringResult(clipboard->text(QClipboard::Clipboard));
   }
 
@@ -945,43 +1074,47 @@ run(const Args &args)
   tk_->debugCmd(name_, args);
 
   static CTkAppOpt opts[] = {
-    { "-background"         , "background"         , "Background"         , "#ffffff"    },
-    { "-bd"                 , "-borderwidth"       , nullptr              , nullptr      },
-    { "-bg"                 , "-background"        , nullptr              , nullptr      },
-    { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "1"          },
-    { "-cursor"             , "cursor"             , "Cursor"             , "xterm"      },
-    { "-disabledbackground" , "disabledBackground" , "DisabledBackground" , "#d9d9d9"    },
-    { "-disabledforeground" , "disabledForeground" , "DisabledForeground" , "#a3a3a3"    },
-    { "-exportselection"    , "exportSelection"    , "ExportSelection"    , "1"          },
-    { "-fg"                 , "-foreground"        , nullptr              , nullptr      },
-    { "-font"               , "font"               , "Font"               , "TkTextFont" },
-    { "-foreground"         , "foreground"         , "Foreground"         , "#000000"    },
-    { "-highlightbackground", "highlightBackground", "HighlightBackground", "#d9d9d9"    },
-    { "-highlightcolor"     , "highlightColor"     , "HighlightColor"     , "#000000"    },
-    { "-highlightthickness" , "highlightThickness" , "HighlightThickness" , "1"          },
-    { "-insertbackground"   , "insertBackground"   , "Foreground"         , "#000000"    },
-    { "-insertborderwidth"  , "insertBorderWidth"  , "BorderWidth"        , "0"          },
-    { "-insertofftime"      , "insertOffTime"      , "OffTime"            , "300"        },
-    { "-insertontime"       , "insertOnTime"       , "OnTime"             , "600"        },
-    { "-insertwidth"        , "insertWidth"        , "InsertWidth"        , "2"          },
-    { "-invalidcommand"     , "invalidCommand"     , "InvalidCommand"     , ""           },
-    { "-invcmd"             , "-invalidcommand"    , nullptr              , nullptr      },
-    { "-justify"            , "justify"            , "Justify"            , "left"       },
-    { "-readonlybackground" , "readonlyBackground" , "ReadonlyBackground" , "#d9d9d9"    },
-    { "-relief"             , "relief"             , "Relief"             , "sunken"     },
-    { "-selectbackground"   , "selectBackground"   , "Foreground"         , "#c3c3c3"    },
-    { "-selectborderwidth"  , "selectBorderWidth"  , "BorderWidth"        , "0"          },
-    { "-selectforeground"   , "selectForeground"   , "Background"         , "#000000"    },
-    { "-show"               , "show"               , "Show"               , ""           },
-    { "-state"              , "state"              , "State"              , "normal"     },
-    { "-takefocus"          , "takeFocus"          , "TakeFocus"          , ""           },
-    { "-textvariable"       , "textVariable"       , "Variable"           , ""           },
-    { "-validate"           , "validate"           , "Validate"           , "none"       },
-    { "-validatecommand"    , "validateCommand"    , "ValidateCommand"    , ""           },
-    { "-vcmd"               , "-validatecommand"   , nullptr              , nullptr      },
-    { "-width"              , "width"              , "Width"              , "20"         },
-    { "-xscrollcommand"     , "xScrollCommand"     , "ScrollCommand"      , ""           },
-    { nullptr               , nullptr              , nullptr              , nullptr      }
+    { "-background"           , "background"           , "Background"           , "#ffffff"    },
+    { "-borderwidth"          , "borderWidth"          , "BorderWidth"          , "1"          },
+    { "-cursor"               , "cursor"               , "Cursor"               , "xterm"      },
+    { "-disabledbackground"   , "disabledBackground"   , "DisabledBackground"   , "#d9d9d9"    },
+    { "-disabledforeground"   , "disabledForeground"   , "DisabledForeground"   , "#a3a3a3"    },
+    { "-exportselection"      , "exportSelection"      , "ExportSelection"      , "1"          },
+    { "-font"                 , "font"                 , "Font"                 , "TkTextFont" },
+    { "-foreground"           , "foreground"           , "Foreground"           , "#000000"    },
+    { "-highlightbackground"  , "highlightBackground"  , "HighlightBackground"  , "#d9d9d9"    },
+    { "-highlightcolor"       , "highlightColor"       , "HighlightColor"       , "#000000"    },
+    { "-highlightthickness"   , "highlightThickness"   , "HighlightThickness"   , "1"          },
+    { "-insertbackground"     , "insertBackground"     , "Foreground"           , "#000000"    },
+    { "-insertborderwidth"    , "insertBorderWidth"    , "BorderWidth"          , "0"          },
+    { "-insertofftime"        , "insertOffTime"        , "OffTime"              , "300"        },
+    { "-insertontime"         , "insertOnTime"         , "OnTime"               , "600"        },
+    { "-insertwidth"          , "insertWidth"          , "InsertWidth"          , "2"          },
+    { "-invalidcommand"       , "invalidCommand"       , "InvalidCommand"       , ""           },
+    { "-justify"              , "justify"              , "Justify"              , "left"       },
+    { "-placeholder"          , "placeHolder"          , "PlaceHolder"          , ""           },
+    { "-placeholderforeground", "placeholderForeground", "PlaceholderForeground", ""           },
+    { "-readonlybackground"   , "readonlyBackground"   , "ReadonlyBackground"   , "#d9d9d9"    },
+    { "-relief"               , "relief"               , "Relief"               , "sunken"     },
+    { "-selectbackground"     , "selectBackground"     , "Foreground"           , "#c3c3c3"    },
+    { "-selectborderwidth"    , "selectBorderWidth"    , "BorderWidth"          , "0"          },
+    { "-selectforeground"     , "selectForeground"     , "Background"           , "#000000"    },
+    { "-show"                 , "show"                 , "Show"                 , ""           },
+    { "-state"                , "state"                , "State"                , "normal"     },
+    { "-takefocus"            , "takeFocus"            , "TakeFocus"            , ""           },
+    { "-textvariable"         , "textVariable"         , "Variable"             , ""           },
+    { "-validate"             , "validate"             , "Validate"             , "none"       },
+    { "-validatecommand"      , "validateCommand"      , "ValidateCommand"      , ""           },
+    { "-width"                , "width"                , "Width"                , "20"         },
+    { "-xscrollcommand"       , "xScrollCommand"       , "ScrollCommand"        , ""           },
+
+    { "-bd"    , "-borderwidth"    , nullptr, nullptr },
+    { "-bg"    , "-background"     , nullptr, nullptr },
+    { "-fg"    , "-foreground"     , nullptr, nullptr },
+    { "-invcmd", "-invalidcommand" , nullptr, nullptr },
+    { "-vcmd"  , "-validatecommand", nullptr, nullptr },
+
+    { nullptr, nullptr, nullptr, nullptr }
   };
 
   QVariant widgetName;
@@ -1001,13 +1134,18 @@ run(const Args &args)
   }
 
   if (! widgetName.isValid())
-    return tk_->throwError("No name");
+    return tk_->wrongNumArgs("entry pathName ?-option value ...?");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
+
+  auto *child = parent->getChild(childName);
+  if (child)
+    return tk_->throwError(tk_->msg() + "window name \"" + childName + "\" "
+                           "already exists in parent");
 
   auto *entry = new CTkAppEntry(tk_, parent, childName);
 
@@ -1016,7 +1154,8 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), entry, opts);
 
-  cmd->processArgs(args);
+  if (! cmd->processArgs(args))
+    return false;
 
   setResult(widgetName);
 
@@ -1361,12 +1500,9 @@ run(const Args &args)
   tk_->debugCmd(name_, args);
 
   static CTkAppOpt opts[] = {
-    { "-bd"                 , "-borderwidth"       , nullptr              , nullptr   },
+    { "-background"         , "background"         , "Background"         , "#d9d9d9" },
     { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "0"       },
     { "-class"              , "class"              , "Class"              , "Frame"   },
-    { "-relief"             , "relief"             , "Relief"             , "flat"    },
-    { "-background"         , "background"         , "Background"         , "#d9d9d9" },
-    { "-bg"                 , "-background"        , nullptr              , nullptr   },
     { "-colormap"           , "colormap"           , "Colormap"           , ""        },
     { "-container"          , "container"          , "Container"          , "0"       },
     { "-cursor"             , "cursor"             , "Cursor"             , ""        },
@@ -1376,10 +1512,15 @@ run(const Args &args)
     { "-highlightthickness" , "highlightThickness" , "HighlightThickness" , "0"       },
     { "-padx"               , "padX"               , "Pad"                , "0"       },
     { "-pady"               , "padY"               , "Pad"                , "0"       },
+    { "-relief"             , "relief"             , "Relief"             , "flat"    },
     { "-takefocus"          , "takeFocus"          , "TakeFocus"          , "0"       },
     { "-visual"             , "visual"             , "Visual"             , ""        },
     { "-width"              , "width"              , "Width"              , "0"       },
-    { nullptr               , nullptr              , nullptr              , nullptr   }
+
+    { "-bd", "-borderwidth", nullptr, nullptr },
+    { "-bg", "-background" , nullptr, nullptr },
+
+    { nullptr, nullptr, nullptr, nullptr }
   };
 
   QVariant widgetName;
@@ -1399,13 +1540,18 @@ run(const Args &args)
   }
 
   if (! widgetName.isValid())
-    return tk_->throwError("No name");
+    return tk_->wrongNumArgs("frame pathName ?-option value ...?");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
+
+  auto *child = parent->getChild(childName);
+  if (child)
+    return tk_->throwError(tk_->msg() + "window name \"" + childName + "\" "
+                           "already exists in parent");
 
   auto *frame = new CTkAppFrame(tk_, parent, childName);
 
@@ -1414,7 +1560,8 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), frame, opts);
 
-  cmd->processArgs(args);
+  if (! cmd->processArgs(args))
+    return false;
 
   setResult(widgetName);
 
@@ -1573,14 +1720,16 @@ run(const Args &args)
     else if (numArgs == 4) {
       long column, row;
       if (! tk_->variantToInt(args[2], column) || ! tk_->variantToInt(args[3], row))
-        return tk_->throwError("Bad column/row");
+        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[2] + "\"");
+
       window->setGridBBox(column, row, column, row);
     }
     else if (numArgs == 4) {
       long column1, row1, column2, row2;
       if (! tk_->variantToInt(args[2], column1) || ! tk_->variantToInt(args[3], row1) ||
           ! tk_->variantToInt(args[4], column2) || ! tk_->variantToInt(args[5], row2))
-        return tk_->throwError("Bad column/row");
+        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[2] + "\"");
+
       window->setGridBBox(column1, row1, column2, row2);
     }
   }
@@ -1596,7 +1745,7 @@ run(const Args &args)
 
     long index;
     if (! tk_->variantToInt(args[2], index))
-      return tk_->throwError("Bad index");
+      return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[2] + "\"");
 
     for (uint i = 3; i < numArgs - 1; i += 2) {
       auto name = tk_->variantToString(args[i]);
@@ -1714,7 +1863,7 @@ run(const Args &args)
 
     long index;
     if (! tk_->variantToInt(args[2], index))
-      return tk_->throwError("Bad index");
+      return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[2] + "\"");
 
     for (uint i = 3; i < numArgs - 1; i += 2) {
       auto name = tk_->variantToString(args[i]);
@@ -1866,7 +2015,7 @@ run(const Args &args)
         QString       childName;
 
         if (! root()->decodeWidgetName(arg, &parent1, childName))
-          return tk_->throwError("Invalid widget name '" + arg + "'");
+          return tk_->throwError("bad window path name \"" + arg + "\"");
 
         auto *child = parent1->getChild(childName);
 
@@ -2168,14 +2317,11 @@ run(const Args &args)
     { "-activeforeground"   , "activeForeground"   , "Background"         , "#000000"       },
     { "-anchor"             , "anchor"             , "Anchor"             , "center"        },
     { "-background"         , "background"         , "Background"         , "#d9d9d9"       },
-    { "-bd"                 , "-borderwidth"       , nullptr              , nullptr         },
-    { "-bg"                 , "-background"        , nullptr              , nullptr         },
     { "-bitmap"             , "bitmap"             , "Bitmap"             , ""              },
     { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "1"             },
     { "-compound"           , "compound"           , "Compound"           , "none"          },
     { "-cursor"             , "cursor"             , "Cursor"             , ""              },
     { "-disabledforeground" , "disabledForeground" , "DisabledForeground" , "#a3a3a3"       },
-    { "-fg"                 , "-foreground"        , nullptr              , nullptr         },
     { "-font"               , "font"               , "Font"               , "TkDefaultFont" },
     { "-foreground"         , "foreground"         , "Foreground"         , "#000000"       },
     { "-height"             , "height"             , "Height"             , "0"             },
@@ -2194,7 +2340,12 @@ run(const Args &args)
     { "-underline"          , "underline"          , "Underline"          , "-1"            },
     { "-width"              , "width"              , "Width"              , "0"             },
     { "-wraplength"         , "wrapLength"         , "WrapLength"         , "0"             },
-    { nullptr               , nullptr              , nullptr              , nullptr         }
+
+    { "-bd", "-borderwidth", nullptr, nullptr },
+    { "-bg", "-background" , nullptr, nullptr },
+    { "-fg", "-foreground" , nullptr, nullptr },
+
+    { nullptr, nullptr, nullptr, nullptr }
   };
 
   QVariant widgetName;
@@ -2214,13 +2365,18 @@ run(const Args &args)
   }
 
   if (! widgetName.isValid())
-    return tk_->throwError("No name");
+    return tk_->wrongNumArgs("label pathName ?-option value ...?");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
+
+  auto *child = parent->getChild(childName);
+  if (child)
+    return tk_->throwError(tk_->msg() + "window name \"" + childName + "\" "
+                           "already exists in parent");
 
   auto *label = new CTkAppLabel(tk_, parent, childName);
 
@@ -2229,7 +2385,8 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), label, opts);
 
-  cmd->processArgs(args);
+  if (! cmd->processArgs(args))
+    return false;
 
   setResult(widgetName);
 
@@ -2245,31 +2402,33 @@ run(const Args &args)
   tk_->debugCmd(name_, args);
 
   static CTkAppOpt opts[] = {
-    { "-bd"                 , "-borderwidth"       , nullptr              , nullptr         },
+    { "-background"         , "background"         , "Background"         , "#d9d9d9"       },
     { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "2"             },
     { "-class"              , "class"              , "Class"              , "Labelframe"    },
-    { "-fg"                 , "-foreground"        , nullptr              , nullptr         },
-    { "-font"               , "font"               , "Font"               , "TkDefaultFont" },
-    { "-foreground"         , "foreground"         , "Foreground"         , "#000000"       },
-    { "-labelanchor"        , "labelAnchor"        , "LabelAnchor"        , "nw"            },
-    { "-labelwidget"        , "labelWidget"        , "LabelWidget"        , ""              },
-    { "-relief"             , "relief"             , "Relief"             , "groove"        },
-    { "-text"               , "text"               , "Text"               , ""              },
-    { "-background"         , "background"         , "Background"         , "#d9d9d9"       },
-    { "-bg"                 , "-background"        , nullptr              , nullptr         },
     { "-colormap"           , "colormap"           , "Colormap"           , ""              },
     { "-container"          , "container"          , "Container"          , "0"             },
     { "-cursor"             , "cursor"             , "Cursor"             , ""              },
+    { "-font"               , "font"               , "Font"               , "TkDefaultFont" },
+    { "-foreground"         , "foreground"         , "Foreground"         , "#000000"       },
     { "-height"             , "height"             , "Height"             , "0"             },
     { "-highlightbackground", "highlightBackground", "HighlightBackground", "#d9d9d9"       },
     { "-highlightcolor"     , "highlightColor"     , "HighlightColor"     , "#000000"       },
     { "-highlightthickness" , "highlightThickness" , "HighlightThickness" , "0"             },
+    { "-labelanchor"        , "labelAnchor"        , "LabelAnchor"        , "nw"            },
+    { "-labelwidget"        , "labelWidget"        , "LabelWidget"        , ""              },
     { "-padx"               , "padX"               , "Pad"                , "0"             },
     { "-pady"               , "padY"               , "Pad"                , "0"             },
+    { "-relief"             , "relief"             , "Relief"             , "groove"        },
     { "-takefocus"          , "takeFocus"          , "TakeFocus"          , "0"             },
+    { "-text"               , "text"               , "Text"               , ""              },
     { "-visual"             , "visual"             , "Visual"             , ""              },
     { "-width"              , "width"              , "Width"              , "0"             },
-    { nullptr               , nullptr              , nullptr              , nullptr         }
+
+    { "-bd", "-borderwidth", nullptr, nullptr },
+    { "-bg", "-background" , nullptr, nullptr },
+    { "-fg", "-foreground" , nullptr, nullptr },
+
+    { nullptr, nullptr, nullptr, nullptr }
   };
 
   QVariant widgetName;
@@ -2289,13 +2448,18 @@ run(const Args &args)
   }
 
   if (! widgetName.isValid())
-    return tk_->throwError("No name");
+    return tk_->wrongNumArgs("labelframe pathName ?-option value ...?");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
+
+  auto *child = parent->getChild(childName);
+  if (child)
+    return tk_->throwError(tk_->msg() + "window name \"" + childName + "\" "
+                           "already exists in parent");
 
   auto *frame = new CTkAppLabelFrame(tk_, parent, childName);
 
@@ -2304,7 +2468,8 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), frame, opts);
 
-  cmd->processArgs(args);
+  if (! cmd->processArgs(args))
+    return false;
 
   setResult(widgetName);
 
@@ -2322,19 +2487,18 @@ run(const Args &args)
   static CTkAppOpt opts[] = {
     { "-activestyle"        , "activeStyle"        , "ActiveStyle"        , "dotbox"        },
     { "-background"         , "background"         , "Background"         , "#ffffff"       },
-    { "-bd"                 , "-borderwidth"       , nullptr              , nullptr         },
-    { "-bg"                 , "-background"        , nullptr              , nullptr         },
     { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "1"             },
     { "-cursor"             , "cursor"             , "Cursor"             , ""              },
     { "-disabledforeground" , "disabledForeground" , "DisabledForeground" , "#a3a3a3"       },
     { "-exportselection"    , "exportSelection"    , "ExportSelection"    , "1"             },
-    { "-fg"                 , "-foreground"        , nullptr              , nullptr         },
     { "-font"               , "font"               , "Font"               , "TkDefaultFont" },
     { "-foreground"         , "foreground"         , "Foreground"         , "#000000"       },
     { "-height"             , "height"             , "Height"             , "10"            },
     { "-highlightbackground", "highlightBackground", "HighlightBackground", "#d9d9d9"       },
     { "-highlightcolor"     , "highlightColor"     , "HighlightColor"     , "#000000"       },
     { "-highlightthickness" , "highlightThickness" , "HighlightThickness" , "1"             },
+    { "-justify"            , "justify"            , "Justify"            , "center"        },
+    { "-listvariable"       , "listVariable"       , "Variable"           , ""              },
     { "-relief"             , "relief"             , "Relief"             , "sunken"        },
     { "-selectbackground"   , "selectBackground"   , "Foreground"         , "#c3c3c3"       },
     { "-selectborderwidth"  , "selectBorderWidth"  , "BorderWidth"        , "0"             },
@@ -2346,8 +2510,12 @@ run(const Args &args)
     { "-width"              , "width"              , "Width"              , "20"            },
     { "-xscrollcommand"     , "xScrollCommand"     , "ScrollCommand"      , ""              },
     { "-yscrollcommand"     , "yScrollCommand"     , "ScrollCommand"      , ""              },
-    { "-listvariable"       , "listVariable"       , "Variable"           , ""              },
-    { nullptr               , nullptr              , nullptr              , nullptr         }
+
+    { "-bd", "-borderwidth", nullptr, nullptr },
+    { "-bg", "-background" , nullptr, nullptr },
+    { "-fg", "-foreground" , nullptr, nullptr },
+
+    { nullptr, nullptr, nullptr, nullptr }
   };
 
   QVariant widgetName;
@@ -2367,13 +2535,18 @@ run(const Args &args)
   }
 
   if (! widgetName.isValid())
-    return tk_->throwError("No name");
+    return tk_->wrongNumArgs("listbox pathName ?-option value ...?");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
+
+  auto *child = parent->getChild(childName);
+  if (child)
+    return tk_->throwError(tk_->msg() + "window name \"" + childName + "\" "
+                           "already exists in parent");
 
   auto *list = new CTkAppListBox(tk_, parent, childName);
 
@@ -2382,7 +2555,8 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), list, opts);
 
-  cmd->processArgs(args);
+  if (! cmd->processArgs(args))
+    return false;
 
   setResult(widgetName);
 
@@ -2408,12 +2582,12 @@ run(const Args &args)
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
 
   auto *child = parent->getChild(childName);
 
   if (! child)
-    return tk_->throwError(tk_->msg() + "Invalid widget name \"" + widgetName + "\"");
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
 
   child->lower();
 
@@ -2445,7 +2619,8 @@ run(const Args &args)
     { "-tearoff"         , "tearoff"         , "TearOff"    , ""              },
     { "-state"           , "state"           , "State"      , "normal"        },
     { "-underline"       , "underline"       , "Underline"  , "-1"            },
-    { nullptr            , nullptr           , nullptr      , nullptr         }
+
+    { nullptr, nullptr, nullptr, nullptr }
   };
 
   QVariant widgetName;
@@ -2465,13 +2640,18 @@ run(const Args &args)
   }
 
   if (! widgetName.isValid())
-    return tk_->throwError("No name");
+    return tk_->wrongNumArgs("menu pathName ?-option value ...?");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
+
+  auto *child = parent->getChild(childName);
+  if (child)
+    return tk_->throwError(tk_->msg() + "window name \"" + childName + "\" "
+                           "already exists in parent");
 
   auto *menu = new CTkAppMenu(tk_, parent, childName);
 
@@ -2480,7 +2660,8 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), menu, opts);
 
-  cmd->processArgs(args);
+  if (! cmd->processArgs(args))
+    return false;
 
   setResult(widgetName);
 
@@ -2500,14 +2681,11 @@ run(const Args &args)
     { "-activeforeground"   , "activeForeground"   , "Background"         , "#000000"       },
     { "-anchor"             , "anchor"             , "Anchor"             , "center"        },
     { "-background"         , "background"         , "Background"         , "#ffffff"       },
-    { "-bd"                 , "-borderwidth"       , nullptr              , nullptr         },
-    { "-bg"                 , "-background"        , nullptr              , nullptr         },
     { "-bitmap"             , "bitmap"             , "Bitmap"             , ""              },
     { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "1"             },
     { "-cursor"             , "cursor"             , "Cursor"             , ""              },
     { "-direction"          , "direction"          , "Direction"          , ""              },
     { "-disabledforeground" , "disabledForeground" , "DisabledForeground" , "#a3a3a3"       },
-    { "-fg"                 , "-foreground"        , nullptr              , nullptr         },
     { "-font"               , "font"               , "Font"               , "TkDefaultFont" },
     { "-foreground"         , "foreground"         , "Foreground"         , "#000000"       },
     { "-height"             , "height"             , "Height"             , "10"            },
@@ -2529,7 +2707,12 @@ run(const Args &args)
     { "-underline"          , "underline"          , "Underline"          , "-1"            },
     { "-width"              , "width"              , "Width"              , "20"            },
     { "-wraplength"         , "wrapLength"         , "WrapLength"         , "0"             },
-    { nullptr               , nullptr              , nullptr              , nullptr         }
+
+    { "-bd", "-borderwidth", nullptr, nullptr },
+    { "-bg", "-background" , nullptr, nullptr },
+    { "-fg", "-foreground" , nullptr, nullptr },
+
+    { nullptr, nullptr, nullptr, nullptr }
   };
 
   QVariant widgetName;
@@ -2549,13 +2732,18 @@ run(const Args &args)
   }
 
   if (! widgetName.isValid())
-    return tk_->throwError("No name");
+    return tk_->wrongNumArgs("menubutton pathName ?-option value ...?");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
+
+  auto *child = parent->getChild(childName);
+  if (child)
+    return tk_->throwError(tk_->msg() + "window name \"" + childName + "\" "
+                           "already exists in parent");
 
   auto *button = new CTkAppMenuButton(tk_, parent, childName);
 
@@ -2564,7 +2752,8 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), button, opts);
 
-  cmd->processArgs(args);
+  if (! cmd->processArgs(args))
+    return false;
 
   setResult(widgetName);
 
@@ -2585,7 +2774,8 @@ run(const Args &args)
     { "-image"    , "image"    , "Image"    , nullptr  },
     { "-compound" , "compound" , "Compound" , nullptr  },
     { "-underline", "underline", "Underline", ""       },
-    { nullptr     , nullptr    , nullptr    , nullptr  }
+
+    { nullptr, nullptr, nullptr, nullptr }
   };
 
   QVariant widgetName;
@@ -2605,13 +2795,18 @@ run(const Args &args)
   }
 
   if (! widgetName.isValid())
-    return tk_->throwError("No name");
+    return tk_->wrongNumArgs("notebook pathName ?-option value ...?");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
+
+  auto *child = parent->getChild(childName);
+  if (child)
+    return tk_->throwError(tk_->msg() + "window name \"" + childName + "\" "
+                           "already exists in parent");
 
   auto *button = new CTkAppNoteBook(tk_, parent, childName);
 
@@ -2620,7 +2815,8 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), button, opts);
 
-  cmd->processArgs(args);
+  if (! cmd->processArgs(args))
+    return false;
 
   setResult(widgetName);
 
@@ -2639,11 +2835,8 @@ run(const Args &args)
     { "-anchor"             , "anchor"             , "Anchor"             , "center"        },
     { "-aspect"             , "aspect"             , "Aspect"             , ""              },
     { "-background"         , "background"         , "Background"         , "#ffffff"       },
-    { "-bd"                 , "-borderwidth"       , nullptr              , nullptr         },
-    { "-bg"                 , "-background"        , nullptr              , nullptr         },
     { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "1"             },
     { "-cursor"             , "cursor"             , "Cursor"             , ""              },
-    { "-fg"                 , "-foreground"        , nullptr              , nullptr         },
     { "-font"               , "font"               , "Font"               , "TkDefaultFont" },
     { "-foreground"         , "foreground"         , "Foreground"         , "#000000"       },
     { "-highlightbackground", "highlightBackground", "HighlightBackground", "#d9d9d9"       },
@@ -2657,7 +2850,12 @@ run(const Args &args)
     { "-text"               , "text"               , "Text"               , ""              },
     { "-textvariable"       , "textVariable"       , "Variable"           , ""              },
     { "-width"              , "width"              , "Width"              , "20"            },
-    { nullptr               , nullptr              , nullptr              , nullptr         }
+
+    { "-bd", "-borderwidth", nullptr, nullptr },
+    { "-bg", "-background" , nullptr, nullptr },
+    { "-fg", "-foreground" , nullptr, nullptr },
+
+    { nullptr, nullptr, nullptr, nullptr }
   };
 
   QVariant widgetName;
@@ -2677,13 +2875,18 @@ run(const Args &args)
   }
 
   if (! widgetName.isValid())
-    return tk_->throwError("No name");
+    return tk_->wrongNumArgs("message pathName ?-option value ...?");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
+
+  auto *child = parent->getChild(childName);
+  if (child)
+    return tk_->throwError(tk_->msg() + "window name \"" + childName + "\" "
+                           "already exists in parent");
 
   auto *message = new CTkAppMessage(tk_, parent, childName);
 
@@ -2692,7 +2895,8 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), message, opts);
 
-  cmd->processArgs(args);
+  if (! cmd->processArgs(args))
+    return false;
 
   setResult(widgetName);
 
@@ -2849,7 +3053,7 @@ run(const Args &args)
     QString       childName;
 
     if (! root()->decodeWidgetName(arg, &parent, childName))
-      return tk_->throwError("Invalid widget name '" + arg + "'");
+      return tk_->throwError("bad window path name \"" + arg + "\"");
 
     auto *child = parent->getChild(childName);
 
@@ -2955,7 +3159,7 @@ run(const Args &args)
         QString       childName;
 
         if (! root()->decodeWidgetName(arg, &parent1, childName))
-          return tk_->throwError("Invalid widget name '" + arg + "'");
+          return tk_->throwError("bad window path name \"" + arg + "\"");
 
         auto *child = parent1->getChild(childName);
 
@@ -2965,6 +3169,8 @@ run(const Args &args)
 
           children.push_back(child);
         }
+        else
+          return tk_->throwError("bad window path name \"" + arg + "\"");
       }
     }
 
@@ -3084,8 +3290,6 @@ run(const Args &args)
 
   static CTkAppOpt opts[] = {
     { "-background"  , "background"  , "Background"  , "#d9d9d9"    },
-    { "-bd"          , "-borderwidth", nullptr       , nullptr      },
-    { "-bg"          , "-background" , nullptr       , nullptr      },
     { "-borderwidth" , "borderWidth" , "BorderWidth" , "1"          },
     { "-cursor"      , "cursor"      , "Cursor"      , ""           },
     { "-handlepad"   , "handlePad"   , "HandlePad"   , "8"          },
@@ -3100,7 +3304,11 @@ run(const Args &args)
     { "-sashwidth"   , "sashWidth"   , "Width"       , "3"          },
     { "-showhandle"  , "showHandle"  , "ShowHandle"  , "0"          },
     { "-width"       , "width"       , "Width"       , ""           },
-    { nullptr        , nullptr       , nullptr       , nullptr      }
+
+    { "-bd", "-borderwidth", nullptr, nullptr },
+    { "-bg", "-background" , nullptr, nullptr },
+
+    { nullptr, nullptr, nullptr, nullptr }
   };
 
   QVariant widgetName;
@@ -3120,13 +3328,18 @@ run(const Args &args)
   }
 
   if (! widgetName.isValid())
-    return tk_->throwError("No name");
+    return tk_->wrongNumArgs("panedwindow pathName ?-option value ...?");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
+
+  auto *child = parent->getChild(childName);
+  if (child)
+    return tk_->throwError(tk_->msg() + "window name \"" + childName + "\" "
+                           "already exists in parent");
 
   auto *pane = new CTkAppPanedWindow(tk_, parent, childName);
 
@@ -3135,7 +3348,8 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), pane, opts);
 
-  cmd->processArgs(args);
+  if (! cmd->processArgs(args))
+    return false;
 
   setResult(widgetName);
 
@@ -3184,7 +3398,7 @@ run(const Args &args)
     QString       childName;
 
     if (! root()->decodeWidgetName(name, &parent, childName))
-      return tk_->throwError(tk_->msg() + "Invalid widget name '" + name + "'");
+      return tk_->throwError(tk_->msg() + "bad window path name \"" + name + "\"");
 
     child = parent->getChild(childName);
 
@@ -3281,7 +3495,7 @@ run(const Args &args)
         QString       childName;
 
         if (! root()->decodeWidgetName(args[i], &parent1, childName))
-          return tk_->throwError("Invalid widget name '" + arg + "'");
+          return tk_->throwError(tk_->msg() + "bad window path name \"" + args[i] + "\"");
 
         auto *child = parent1->getChild(childName);
 
@@ -3440,15 +3654,12 @@ run(const Args &args)
     { "-activeforeground"   , "activeForeground"   , "Background"         , "#000000"        },
     { "-anchor"             , "anchor"             , "Anchor"             , "center"         },
     { "-background"         , "background"         , "Background"         , "#d9d9d9"        },
-    { "-bd"                 , "-borderwidth"       , nullptr              , nullptr          },
-    { "-bg"                 , "-background"        , nullptr              , nullptr          },
     { "-bitmap"             , "bitmap"             , "Bitmap"             , ""               },
     { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "1"              },
     { "-command"            , "command"            , "Command"            , ""               },
     { "-compound"           , "compound"           , "Compound"           , "none"           },
     { "-cursor"             , "cursor"             , "Cursor"             , ""               },
     { "-disabledforeground" , "disabledForeground" , "DisabledForeground" , "#a3a3a3"        },
-    { "-fg"                 , "-foreground"        , nullptr              , nullptr          },
     { "-font"               , "font"               , "Font"               , "TkDefaultFont"  },
     { "-foreground"         , "foreground"         , "Foreground"         , "#000000"        },
     { "-height"             , "height"             , "Height"             , "0"              },
@@ -3476,7 +3687,12 @@ run(const Args &args)
     { "-variable"           , "variable"           , "Variable"           , "selectedButton" },
     { "-width"              , "width"              , "Width"              , "0"              },
     { "-wraplength"         , "wrapLength"         , "WrapLength"         , "0"              },
-    { nullptr               , nullptr              , nullptr              , nullptr          }
+
+    { "-bd", "-borderwidth", nullptr, nullptr },
+    { "-bg", "-background" , nullptr, nullptr },
+    { "-fg", "-foreground" , nullptr, nullptr },
+
+    { nullptr, nullptr, nullptr, nullptr }
   };
 
   QVariant widgetName;
@@ -3496,13 +3712,18 @@ run(const Args &args)
   }
 
   if (! widgetName.isValid())
-    return tk_->throwError("No name");
+    return tk_->wrongNumArgs("radiobutton pathName ?-option value ...?");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
+
+  auto *child = parent->getChild(childName);
+  if (child)
+    return tk_->throwError(tk_->msg() + "window name \"" + childName + "\" "
+                           "already exists in parent");
 
   auto *radio = new CTkAppRadioButton(tk_, parent, childName);
 
@@ -3511,7 +3732,8 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), radio, opts);
 
-  cmd->processArgs(args);
+  if (! cmd->processArgs(args))
+    return false;
 
   setResult(widgetName);
 
@@ -3533,18 +3755,11 @@ run(const Args &args)
 
   auto widgetName = args[0];
 
-  CTkAppWidget* parent = nullptr;
-  QString       childName;
+  auto *w = tk_->lookupWidgetByName(widgetName, /*quiet*/true);
+  if (! w)
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
 
-  if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
-
-  auto *child = parent->getChild(childName);
-
-  if (! child)
-    return tk_->throwError(tk_->msg() + "Invalid widget name \"" + widgetName + "\"");
-
-  child->raise();
+  w->raise();
 
   return true;
 }
@@ -3561,13 +3776,10 @@ run(const Args &args)
     { "-activebackground"   , "activeBackground"   , "Foreground"         , "#ececec"       },
     { "-background"         , "background"         , "Background"         , "#d9d9d9"       },
     { "-bigincrement"       , "bigIncrement"       , "BigIncrement"       , "0"             },
-    { "-bd"                 , "-borderwidth"       , nullptr              , nullptr         },
-    { "-bg"                 , "-background"        , nullptr              , nullptr         },
     { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "1"             },
     { "-command"            , "command"            , "Command"            , ""              },
     { "-cursor"             , "cursor"             , "Cursor"             , ""              },
     { "-digits"             , "digits"             , "Digits"             , "0"             },
-    { "-fg"                 , "-foreground"        , nullptr              , nullptr         },
     { "-font"               , "font"               , "Font"               , "TkDefaultFont" },
     { "-foreground"         , "foreground"         , "Foreground"         , "#000000"       },
     { "-from"               , "from"               , "From"               , "0"             },
@@ -3591,12 +3803,20 @@ run(const Args &args)
     { "-troughcolor"        , "troughColor"        , "Background"         , "#b3b3b3"       },
     { "-variable"           , "variable"           , "Variable"           , ""              },
     { "-width"              , "width"              , "Width"              , "15"            },
-    { nullptr               , nullptr              , nullptr              , nullptr         }
+
+    { "-bd", "-borderwidth", nullptr, nullptr },
+    { "-bg", "-background" , nullptr, nullptr },
+    { "-fg", "-foreground" , nullptr, nullptr },
+
+    { nullptr, nullptr, nullptr, nullptr }
   };
 
   QVariant widgetName;
 
   auto numArgs = args.size();
+
+  if (numArgs == 0)
+    return tk_->wrongNumArgs("scale pathName ?-option value ...?");
 
   for (uint i = 0; i < numArgs; ++i) {
     auto name = tk_->variantToString(args[i]);
@@ -3611,13 +3831,18 @@ run(const Args &args)
   }
 
   if (! widgetName.isValid())
-    return tk_->throwError("No name");
+    return tk_->wrongNumArgs("scale pathName ?-option value ...?");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
+
+  auto *child = parent->getChild(childName);
+  if (child)
+    return tk_->throwError(tk_->msg() + "window name \"" + childName + "\" "
+                           "already exists in parent");
 
   auto *scale = new CTkAppScale(tk_, parent, childName);
 
@@ -3626,7 +3851,8 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), scale, opts);
 
-  cmd->processArgs(args);
+  if (! cmd->processArgs(args))
+    return false;
 
   setResult(widgetName);
 
@@ -3645,8 +3871,6 @@ run(const Args &args)
     { "-activebackground"   , "activeBackground"   , "Foreground"         , "#ececec"  },
     { "-activerelief"       , "activeRelief"       , "Relief"             , "raised"   },
     { "-background"         , "background"         , "Background"         , "#d9d9d9"  },
-    { "-bd"                 , "borderwidth"        , nullptr              , nullptr    },
-    { "-bg"                 , "background"         , nullptr              , nullptr    },
     { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "1"        },
     { "-command"            , "command"            , "Command"            , ""         },
     { "-cursor"             , "cursor"             , "Cursor"             , ""         },
@@ -3662,7 +3886,11 @@ run(const Args &args)
     { "-takefocus"          , "takeFocus"          , "TakeFocus"          , ""         },
     { "-troughcolor"        , "troughColor"        , "Background"         , "#b3b3b3"  },
     { "-width"              , "width"              , "Width"              , "11"       },
-    { nullptr               , nullptr              , nullptr              , nullptr    }
+
+    { "-bd", "borderwidth", nullptr, nullptr },
+    { "-bg", "background" , nullptr, nullptr },
+
+    { nullptr, nullptr, nullptr, nullptr }
   };
 
   QVariant widgetName;
@@ -3682,13 +3910,18 @@ run(const Args &args)
   }
 
   if (! widgetName.isValid())
-    return tk_->throwError("No name");
+    return tk_->wrongNumArgs("scrollbar pathName ?-option value ...?");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
+
+  auto *child = parent->getChild(childName);
+  if (child)
+    return tk_->throwError(tk_->msg() + "window name \"" + childName + "\" "
+                           "already exists in parent");
 
   auto *scrollbar = new CTkAppScrollBar(tk_, parent, childName);
 
@@ -3697,7 +3930,8 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), scrollbar, opts);
 
-  cmd->processArgs(args);
+  if (! cmd->processArgs(args))
+    return false;
 
   setResult(widgetName);
 
@@ -3718,29 +3952,190 @@ run(const Args &args)
     return tk_->wrongNumArgs("selection options ?arg arg ...?");
 
   static auto optionNames = std::vector<QString>({
-    "append", "clear", "get"});
+    "clear", "get", "handle", "own" });
 
   QString opt;
   if (! tk_->lookupOptionName(optionNames, args[0], opt))
     return false;
 
-  //---
-
   auto *clipboard = QApplication::clipboard();
 
   if      (opt == "clear") {
+    uint i = 1;
+
+    for ( ; i < numArgs; ++i) {
+      auto arg = tk_->variantToString(args[i]);
+
+      if (arg[0] != '-')
+        break;
+
+      static auto argNames = std::vector<QString>({ "-displayof", "-selection" });
+      QString arg1;
+      if (! tk_->lookupName("option", argNames, arg, arg1, /*quiet*/true))
+        return tk_->throwError("bad option \"" + arg + "\": must be "
+                               "-displayof, or -selection");
+
+      if      (arg1 == "-displayof") {
+        tk_->TODO(args);
+
+        ++i;
+
+        if (i >= numArgs)
+          return tk_->wrongNumArgs("selection clear -displayof window");
+      }
+      else if (arg1 == "-selection") {
+        tk_->TODO(args);
+
+        ++i;
+
+        if (i >= numArgs)
+          return tk_->wrongNumArgs("selection clear -selection selection");
+      }
+    }
+
+    if (i != numArgs)
+      return tk_->wrongNumArgs("selection clear ?-displayof window? ?-selection selection?");
+
     // -displayof window
     clipboard->setText("", QClipboard::Selection);
   }
-  else if (opt == "append") {
-    // -option value ... data
-    if (numArgs < 2)
-      return tk_->wrongNumArgs("selection append ?-option value ...? data");
-
-    clipboard->setText(clipboard->text(QClipboard::Selection) + args[1].toString());
-  }
   else if (opt == "get") {
-    setStringResult(clipboard->text(QClipboard::Selection));
+    uint i = 1;
+
+    for ( ; i < numArgs; ++i) {
+      auto arg = tk_->variantToString(args[i]);
+
+      if (arg[0] != '-')
+        break;
+
+      static auto argNames = std::vector<QString>({ "-displayof", "-selection", "-type" });
+      QString arg1;
+      if (! tk_->lookupName("option", argNames, arg, arg1, /*quiet*/true))
+        return tk_->throwError("bad option \"" + arg + "\": must be "
+                               "-displayof, -selection, or -type");
+
+      if      (arg1 == "-displayof") {
+        tk_->TODO(args);
+
+        ++i;
+
+        if (i >= numArgs)
+          return tk_->wrongNumArgs("selection get -displayof window");
+      }
+      else if (arg1 == "-selection") {
+        tk_->TODO(args);
+
+        ++i;
+
+        if (i >= numArgs)
+          return tk_->wrongNumArgs("selection get -selection selection");
+      }
+      else if (arg1 == "-type") {
+        tk_->TODO(args);
+
+        ++i;
+
+        if (i >= numArgs)
+          return tk_->wrongNumArgs("selection get -type type");
+      }
+    }
+
+    if (i != numArgs)
+      return tk_->wrongNumArgs("selection get ?-displayof window? "
+                               "?-selection selection? ?-type type?");
+
+    auto res = clipboard->text(QClipboard::Selection);
+
+    setStringResult(res);
+  }
+  else if (opt == "handle") {
+    uint i = 1;
+
+    for ( ; i < numArgs; ++i) {
+      auto arg = tk_->variantToString(args[i]);
+
+      if (arg[0] != '-')
+        break;
+
+      static auto argNames = std::vector<QString>({ "-selection", "-type", "-format" });
+      QString arg1;
+      if (! tk_->lookupName("option", argNames, arg, arg1, /*quiet*/true))
+        return tk_->throwError("bad option \"" + arg + "\": must be "
+                               "-selection, -type, or -format");
+
+      if      (arg1 == "-selection") {
+        tk_->TODO(args);
+
+        ++i;
+
+        if (i >= numArgs)
+          return tk_->wrongNumArgs("selection handle -selection selection");
+      }
+      else if (arg1 == "-type") {
+        tk_->TODO(args);
+
+        ++i;
+
+        if (i >= numArgs)
+          return tk_->wrongNumArgs("selection handle -type type");
+      }
+      else if (arg1 == "-format") {
+        tk_->TODO(args);
+
+        ++i;
+
+        if (i >= numArgs)
+          return tk_->wrongNumArgs("selection handle -format format");
+      }
+    }
+
+    if (i >= numArgs - 2)
+      return tk_->wrongNumArgs("selection handle ?-selection selection? "
+                               "?-type type? ?-format format? window command");
+  }
+  else if (opt == "own") {
+    uint i = 1;
+
+    for ( ; i < numArgs; ++i) {
+      auto arg = tk_->variantToString(args[i]);
+
+      if (arg[0] != '-')
+        break;
+
+      static auto argNames = std::vector<QString>({ "-displayof", "-command", "-selection" });
+      QString arg1;
+      if (! tk_->lookupName("option", argNames, arg, arg1, /*quiet*/true))
+        return tk_->throwError("bad option \"" + arg + "\": must be "
+                               "-displayof, -command, or -selection");
+
+      if      (arg1 == "-displayof") {
+        tk_->TODO(args);
+
+        ++i;
+
+        if (i >= numArgs)
+          return tk_->wrongNumArgs("selection own -displayof window");
+      }
+      else if (arg1 == "-command") {
+        tk_->TODO(args);
+
+        ++i;
+
+        if (i >= numArgs)
+          return tk_->wrongNumArgs("selection own -command command");
+      }
+      else if (arg1 == "-selection") {
+        tk_->TODO(args);
+
+        ++i;
+
+        if (i >= numArgs)
+          return tk_->wrongNumArgs("selection own -selection selection");
+      }
+    }
+
+    if (i != numArgs)
+      return tk_->wrongNumArgs("selection own ?-displayof window? ?-selection selection?");
   }
 
   return true;
@@ -3775,8 +4170,6 @@ run(const Args &args)
   static CTkAppOpt opts[] = {
     { "-activebackground"   , "activeBackground"   , "Background"         , "#ececec"    },
     { "-background"         , "background"         , "Background"         , "#ffffff"    },
-    { "-bd"                 , "-borderwidth"       , nullptr              , nullptr      },
-    { "-bg"                 , "-background"        , nullptr              , nullptr      },
     { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "1"          },
     { "-buttonbackground"   , "Button.background"  , "Background"         , "#d9d9d9"    },
     { "-buttoncursor"       , "Button.cursor"      , "Cursor"             , ""           },
@@ -3787,7 +4180,6 @@ run(const Args &args)
     { "-disabledbackground" , "disabledBackground" , "DisabledBackground" , "#d9d9d9"    },
     { "-disabledforeground" , "disabledForeground" , "DisabledForeground" , "#a3a3a3"    },
     { "-exportselection"    , "exportSelection"    , "ExportSelection"    , "1"          },
-    { "-fg"                 , "-foreground"        , nullptr              , nullptr      },
     { "-font"               , "font"               , "Font"               , "TkTextFont" },
     { "-foreground"         , "foreground"         , "Foreground"         , "#000000"    },
     { "-format"             , "format"             , "Format"             , ""           },
@@ -3802,7 +4194,6 @@ run(const Args &args)
     { "-insertontime"       , "insertOnTime"       , "OnTime"             , "600"        },
     { "-insertwidth"        , "insertWidth"        , "InsertWidth"        , "2"          },
     { "-invalidcommand"     , "invalidCommand"     , "InvalidCommand"     , ""           },
-    { "-invcmd"             , "-invalidcommand"    , nullptr              , nullptr      },
     { "-justify"            , "justify"            , "Justify"            , "left"       },
     { "-relief"             , "relief"             , "Relief"             , "sunken"     },
     { "-readonlybackground" , "readonlyBackground" , "ReadonlyBackground" , "#d9d9d9"    },
@@ -3818,11 +4209,17 @@ run(const Args &args)
     { "-validate"           , "validate"           , "Validate"           , "none"       },
     { "-validatecommand"    , "validateCommand"    , "ValidateCommand"    , ""           },
     { "-values"             , "values"             , "Values"             , ""           },
-    { "-vcmd"               , "-validatecommand"   , nullptr              , nullptr      },
     { "-width"              , "width"              , "Width"              , "20"         },
     { "-wrap"               , "wrap"               , "Wrap"               , "0"          },
     { "-xscrollcommand"     , "xScrollCommand"     , "ScrollCommand"      , ""           },
-    { nullptr               , nullptr              , nullptr              , nullptr      }
+
+    { "bd"     , "-borderwidth"    , nullptr, nullptr },
+    { "-bg"    , "-background"     , nullptr, nullptr },
+    { "-fg"    , "-foreground"     , nullptr, nullptr },
+    { "-invcmd", "-invalidcommand" , nullptr, nullptr },
+    { "-vcmd"  , "-validatecommand", nullptr, nullptr },
+
+    { nullptr, nullptr, nullptr, nullptr }
   };
 
   QVariant widgetName;
@@ -3842,13 +4239,18 @@ run(const Args &args)
   }
 
   if (! widgetName.isValid())
-    return tk_->throwError("No name");
+    return tk_->wrongNumArgs("spinbox pathName ?-option value ...?");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
+
+  auto *child = parent->getChild(childName);
+  if (child)
+    return tk_->throwError(tk_->msg() + "window name \"" + childName + "\" "
+                           "already exists in parent");
 
   auto *spin = new CTkAppSpinBox(tk_, parent, childName);
 
@@ -3857,7 +4259,8 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), spin, opts);
 
-  cmd->processArgs(args);
+  if (! cmd->processArgs(args))
+    return false;
 
   setResult(widgetName);
 
@@ -3875,14 +4278,11 @@ run(const Args &args)
   static CTkAppOpt opts[] = {
    {"-autoseparators"          , "autoSeparators"          , "AutoSeparators"     , "1"          },
    {"-background"              , "background"              , "Background"         , "#ffffff"    },
-   {"-bd"                      , "-borderwidth"            , nullptr              , nullptr      },
-   {"-bg"                      , "-background"             , nullptr              , nullptr      },
    {"-blockcursor"             , "blockCursor"             , "BlockCursor"        , "0"          },
    {"-borderwidth"             , "borderWidth"             , "BorderWidth"        , "1"          },
    {"-cursor"                  , "cursor"                  , "Cursor"             , "xterm"      },
    {"-endline"                 , ""                        , ""                   , ""           },
    {"-exportselection"         , "exportSelection"         , "ExportSelection"    , "1"          },
-   {"-fg"                      , "-foreground"             , nullptr              , nullptr      },
    {"-font"                    , "font"                    , "Font"               , "TkFixedFont"},
    {"-foreground"              , "foreground"              , "Foreground"         , "#000000"    },
    {"-height"                  , "height"                  , "Height"             , "24"         },
@@ -3916,7 +4316,12 @@ run(const Args &args)
    {"-wrap"                    , "wrap"                    , "Wrap"               , "char"       },
    {"-xscrollcommand"          , "xScrollCommand"          , "ScrollCommand"      , ""           },
    {"-yscrollcommand"          , "yScrollCommand"          , "ScrollCommand"      , ""           },
-   {nullptr                    , nullptr                   , nullptr              , nullptr      }
+
+   {"-bd", "-borderwidth", nullptr, nullptr },
+   {"-bg", "-background" , nullptr, nullptr },
+   {"-fg", "-foreground" , nullptr, nullptr },
+
+   {nullptr, nullptr, nullptr, nullptr }
   };
 
   QVariant widgetName;
@@ -3936,13 +4341,18 @@ run(const Args &args)
   }
 
   if (! widgetName.isValid())
-    return tk_->throwError("No name");
+    return tk_->wrongNumArgs("text pathName ?-option value ...?");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
+
+  auto *child = parent->getChild(childName);
+  if (child)
+    return tk_->throwError(tk_->msg() + "window name \"" + childName + "\" "
+                           "already exists in parent");
 
   auto *text = new CTkAppText(tk_, parent, childName);
 
@@ -3951,7 +4361,8 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), text, opts);
 
-  cmd->processArgs(args);
+  if (! cmd->processArgs(args))
+    return false;
 
   setResult(widgetName);
 
@@ -4186,6 +4597,99 @@ run(const Args &args)
 //---
 
 bool
+CTkAppTkDialogCmd::
+run(const Args &args)
+{
+  tk_->debugCmd(name_, args);
+
+  uint numArgs = args.size();
+
+  if (numArgs < 6)
+    return tk_->wrongNumArgs("tk_dialog w title text bitmap default *");
+
+  uint i = 0;
+
+  auto windowName = tk_->variantToString(args[i++]);
+
+  CTkAppWidget* parent = nullptr;
+  QString       childName;
+
+  if (! root()->decodeWidgetName(windowName, &parent, childName))
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + windowName + "\"");
+
+  auto title = tk_->variantToString(args[i++]);
+  auto text  = tk_->variantToString(args[i++]);
+
+  auto bitmap = tk_->variantToString(args[i++]);
+
+  CTkAppImageRef bitmapImage;
+
+  if (bitmap != "") {
+    bitmapImage = tk_->getBitmap(bitmap);
+    if (! bitmapImage)
+      return tk_->throwError(tk_->msg() + "bitmap \"" + bitmap + "\" not defined");
+  }
+
+  long defInd;
+  if (! tk_->variantToInt(args[i++], defInd))
+    return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i - 1] + "\"");
+
+  std::vector<QString> buttons;
+
+  while (i < numArgs) {
+    auto name = tk_->variantToString(args[i++]);
+
+    buttons.push_back(name);
+  }
+
+  auto *dialog = new QDialog(root()->getQWidget());
+
+  dialog->setWindowTitle(title);
+
+  dialog->setProperty("ind", "");
+
+  auto *layout = new QVBoxLayout(dialog);
+
+  auto *label = new QLabel; label->setText(text);
+
+  layout->addWidget(label);
+
+  auto *blayout = new QHBoxLayout;
+
+  layout->addLayout(blayout);
+
+  int buttonInd = 0;
+
+  for (const auto &button : buttons) {
+    auto *buttonw = new QPushButton;
+
+    buttonw->setText(button);
+    buttonw->setProperty("ind", buttonInd++);
+
+    blayout->addWidget(buttonw);
+
+    buttonw->connect(buttonw, &QPushButton::clicked, [buttonw, dialog]() {
+      dialog->setProperty("ind", buttonw->property("ind")); dialog->close(); } );
+  }
+
+  blayout->addStretch(1);
+
+  (void) dialog->exec();
+
+  bool ok;
+  auto ind = dialog->property("ind").toInt(&ok);
+  if (! ok) ind = -1;
+
+  delete dialog;
+
+  tk_->setIntegerResult(ind);
+
+  return true;
+}
+
+//---
+
+bool
 CTkAppTkGetOpenFileCmd::
 run(const Args &args)
 {
@@ -4338,11 +4842,17 @@ run(const Args &args)
     auto *w = tk_->lookupWidgetByName(name);
     if (! w) return false;
 
-    auto *windowLoop = new CTkWindowVisibleEventLoop(tk_, w->getQWidget());
+    auto *topWidget = qobject_cast<CTkAppTopLevel *>(w);
+    if (topWidget)
+      topWidget->setNeedsShow(true);
 
-    windowLoop->startLoop();
+    if (! w->getQWidget()->isVisible()) {
+      auto *windowLoop = new CTkWindowVisibleEventLoop(tk_, w->getQWidget());
 
-    delete windowLoop;
+      windowLoop->startLoop();
+
+      delete windowLoop;
+    }
   }
   else if (arg == "window") {
     auto *w = tk_->lookupWidgetByName(name);
@@ -4559,7 +5069,6 @@ run(const Args &args)
   tk_->debugCmd(name_, args);
 
   static CTkAppOpt opts[] = {
-    { "-bd"                 , "-borderwidth"       , nullptr              , nullptr    },
     { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "0"        },
     { "-class"              , "class"              , "Class"              , "Toplevel" },
     { "-menu"               , "menu"               , "Menu"               , ""         },
@@ -4567,7 +5076,6 @@ run(const Args &args)
     { "-screen"             , "screen"             , "Screen"             , ""         },
     { "-use"                , "use"                , "Use"                , ""         },
     { "-background"         , "background"         , "Background"         , "#d9d9d9"  },
-    { "-bg"                 , "-background"        , nullptr              , nullptr    },
     { "-colormap"           , "colormap"           , "Colormap"           , ""         },
     { "-container"          , "container"          , "Container"          , "0"        },
     { "-cursor"             , "cursor"             , "Cursor"             , ""         },
@@ -4580,7 +5088,11 @@ run(const Args &args)
     { "-takefocus"          , "takeFocus"          , "TakeFocus"          , "0"        },
     { "-visual"             , "visual"             , "Visual"             , ""         },
     { "-width"              , "width"              , "Width"              , "0"        },
-    { nullptr               , nullptr              , nullptr              , nullptr    }
+
+    { "-bd", "-borderwidth", nullptr, nullptr },
+    { "-bg", "-background" , nullptr, nullptr },
+
+    { nullptr, nullptr, nullptr, nullptr }
   };
 
   QVariant widgetName;
@@ -4600,13 +5112,18 @@ run(const Args &args)
   }
 
   if (! widgetName.isValid())
-    return tk_->throwError("No name");
+    return tk_->wrongNumArgs("toplevel pathName ?-option value ...?");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
+
+  auto *child = parent->getChild(childName);
+  if (child)
+    return tk_->throwError(tk_->msg() + "window name \"" + childName + "\" "
+                           "already exists in parent");
 
   auto *toplevel = new CTkAppTopLevel(tk_, parent, childName);
 
@@ -4615,7 +5132,8 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), toplevel, opts);
 
-  cmd->processArgs(args);
+  if (! cmd->processArgs(args))
+    return false;
 
   setResult(widgetName);
 
@@ -4643,7 +5161,8 @@ run(const Args &args)
     { "-height"        , "height"        , "Height"        , ""             },
     { "-selectmode"    , "selectMode"    , "SelectMode"    , "browse"       },
     { "-show"          , "show"          , "Show"          , "tree headings"},
-    { nullptr          , nullptr         , nullptr         , nullptr        }
+
+    { nullptr, nullptr, nullptr, nullptr }
   };
 
   QVariant widgetName;
@@ -4663,13 +5182,18 @@ run(const Args &args)
   }
 
   if (! widgetName.isValid())
-    return tk_->throwError("No name");
+    return tk_->wrongNumArgs("treeview pathName ?-option value ...?");
 
   CTkAppWidget* parent = nullptr;
   QString       childName;
 
   if (! root()->decodeWidgetName(widgetName, &parent, childName))
-    return tk_->throwError(tk_->msg() + "Invalid widget name '" + widgetName + "'");
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
+
+  auto *child = parent->getChild(childName);
+  if (child)
+    return tk_->throwError(tk_->msg() + "window name \"" + childName + "\" "
+                           "already exists in parent");
 
   auto *toplevel = new CTkAppTreeView(tk_, parent, childName);
 
@@ -4678,7 +5202,8 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), toplevel, opts);
 
-  cmd->processArgs(args);
+  if (! cmd->processArgs(args))
+    return false;
 
   setResult(widgetName);
 
@@ -5129,17 +5654,17 @@ run(const Args &args)
 
   uint numArgs = args.size();
 
-  if (numArgs < 2)
+  if (numArgs < 1)
     return tk_->wrongNumArgs("wm option window ?arg ...?");
 
   //---
 
   static auto optionNames = std::vector<QString>({
     "aspect", "attributes", "client", "colormapwindows", "command", "deiconify", "focusmodel",
-    "forget", "frame", "geometry", "grid", "group", "iconbitmap", "iconify", "iconmask",
-    "iconname", "iconphoto", "iconposition", "iconwindow", "manage", "maxsize", "minsize",
-    "overrideredirect", "positionfrom", "protocol", "resizable", "sizefrom", "stackorder",
-    "state", "title", "transient", "withdraw" });
+    "forget", "frame", "geometry", "grid", "group", "iconbadge", "iconbitmap", "iconify",
+    "iconmask", "iconname", "iconphoto", "iconposition", "iconwindow", "manage", "maxsize",
+    "minsize", "overrideredirect", "positionfrom", "protocol", "resizable", "sizefrom",
+    "stackorder", "state", "title", "transient", "withdraw" });
 
   QString arg;
   if (! tk_->lookupOptionName(optionNames, args[0], arg))
@@ -5147,13 +5672,16 @@ run(const Args &args)
 
   //---
 
+  if (numArgs < 2)
+    return tk_->wrongNumArgs("wm option window ?arg ...?");
+
   auto name = args[1];
 
   CTkAppWidget* parent;
   QString       childName;
 
   if (! root()->decodeWidgetName(name, &parent, childName))
-    return tk_->throwError(tk_->msg() + "Invalid widget name '" + name + "'");
+    return tk_->throwError(tk_->msg() + "bad window path name \"" + name + "\"");
 
   CTkAppWidget *w;
 
@@ -5161,7 +5689,7 @@ run(const Args &args)
     auto *child = parent->getChild(childName);
 
     if (! child)
-      return tk_->throwError(tk_->msg() + "Invalid widget name '" + name + "'");
+      return tk_->throwError(tk_->msg() + "bad window path name \"" + name + "\"");
 
     w = child;
   }
@@ -5171,7 +5699,40 @@ run(const Args &args)
   //---
 
   if      (arg == "aspect") {
-    tk_->setStringResult(""); // TODO
+    if      (numArgs == 6) {
+      long minNumer = -1;
+      if (args[2].isValid() && args[2].toString() != "") {
+        if (! tk_->variantToInt(args[2], minNumer))
+          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[2] + "\"");
+        if (minNumer <= 0) return tk_->throwError(tk_->msg() + "aspect number can't be <= 0");
+      }
+
+      long minDenom = -1;
+      if (args[3].isValid() && args[3].toString() != "") {
+        if (! tk_->variantToInt(args[3], minDenom))
+          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[3] + "\"");
+        if (minDenom <= 0) return tk_->throwError(tk_->msg() + "aspect number can't be <= 0");
+      }
+
+      long maxNumer = 1;
+      if (args[4].isValid() && args[4].toString() != "") {
+        if (! tk_->variantToInt(args[4], maxNumer))
+          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[4] + "\"");
+        if (maxNumer <= 0) return tk_->throwError(tk_->msg() + "aspect number can't be <= 0");
+      }
+
+      long maxDenom = 1;
+      if (args[5].isValid() && args[5].toString() != "") {
+        if (! tk_->variantToInt(args[5], maxDenom))
+          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[5] + "\"");
+        if (maxDenom <= 0) return tk_->throwError(tk_->msg() + "aspect number can't be <= 0");
+      }
+    }
+    else if (numArgs == 2) {
+      tk_->setStringResult(""); // TODO
+    }
+    else
+      return tk_->wrongNumArgs("wm aspect window ?minNumer minDenom maxNumer maxDenom?");
   }
   else if (arg == "attributes") {
     if (numArgs == 2) {
@@ -5227,6 +5788,9 @@ run(const Args &args)
     tk_->setStringResult(""); // TODO
   }
   else if (arg == "geometry") {
+    if (! w->isTopLevel())
+      return tk_->throwError(tk_->msg() + "window \"" + args[1] + "\" isn't a top-level window");
+
     if (numArgs == 3) {
       auto *pw = tk_->lookupWidgetByName(w->wmTransientFor(), /*quiet*/true);
 
@@ -5253,7 +5817,7 @@ run(const Args &args)
       long w, h, iw, ih;
       if (! tk_->variantToInt(args[2],  w) || ! tk_->variantToInt(args[3],  h) ||
           ! tk_->variantToInt(args[4], iw) || ! tk_->variantToInt(args[5], ih))
-        return false;
+        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[2] + "\"");
 
       tk_->setWmGrid(w, h, iw, ih);
     }
@@ -5494,7 +6058,7 @@ CTkAppRootCommand(CTkApp *tk) :
     { "-screen"             , "screen"             , "Screen"             , ""         },
     { "-use"                , "use"                , "Use"                , ""         },
     { "-background"         , "background"         , "Background"         , "#d9d9d9"  },
-    { "-colormap"           , "colormap"           , "Colormap"           , "",        },
+    { "-colormap"           , "colormap"           , "Colormap"           , ""         },
     { "-container"          , "container"          , "Container"          , "0"        },
     { "-cursor"             , "cursor"             , "Cursor"             , ""         },
     { "-height"             , "height"             , "Height"             , "0"        },
@@ -5504,7 +6068,7 @@ CTkAppRootCommand(CTkApp *tk) :
     { "-padx"               , "padX"               , "Pad"                , "0"        },
     { "-pady"               , "padY"               , "Pad"                , "0"        },
     { "-takefocus"          , "takeFocus"          , "TakeFocus"          , "0"        },
-    { "-visual"             , "visual"             , "Visual"             , "",        },
+    { "-visual"             , "visual"             , "Visual"             , ""         },
     { "-width"              , "width"              , "Width"              , "0"        },
 
     { "-bg", "-background" , nullptr, nullptr },
@@ -5596,7 +6160,7 @@ run(const Args &args)
   uint numArgs = args.size();
 
   if (numArgs == 0)
-    return tk_->wrongNumArgs(getName() + " option ?arg arg ...?");
+    return tk_->wrongNumArgs(getName() + " option ?arg ...?");
 
   auto arg = tk_->variantToString(args[0]);
 
@@ -5636,10 +6200,8 @@ processArgs(const Args &args)
       if (i < numArgs) {
         auto value = args[i];
 
-        if (! setOptValue(name, value)) {
-          //getTk()->throwError("unknown option \"" + name + "\"");
+        if (! setOptValue(name, value))
           rc = false;
-        }
       }
       else {
         getTk()->throwError("missing option value for \"" + name + "\"");
@@ -5659,8 +6221,10 @@ setOptValue(const QString &name, const QVariant &value)
 {
   const CTkAppOpt *opt;
 
-  if (! opts_.setOptValue(name, value, &opt))
+  if (! opts_.setOptValue(name, value, &opt)) {
+    getTk()->throwError("unknown option \"" + name + "\"");
     return false;
+  }
 
   if (! w_->execConfig(opt->name, value))
     return false;
@@ -6396,8 +6960,10 @@ execConfigure(const Args &args)
       auto name  = tk_->variantToString(args[i]);
       auto value = args[i + 1];
 
-      if (! setOptValue(name, value))
-        return tk_->throwError("unknown config option \"" + name + "\"");
+      if (! setOptValue(name, value)) {
+        //return tk_->throwError("unknown config option \"" + name + "\"");
+        return false;
+      }
     }
   }
 
@@ -6420,8 +6986,10 @@ setOptValue(const QString &name, const QVariant &value)
 {
   const CTkAppOpt *opt;
 
-  if (! opts_.setOptValue(name, value, &opt))
+  if (! opts_.setOptValue(name, value, &opt)) {
+    getTk()->throwError("unknown option \"" + name + "\"");
     return false;
+  }
 
   return true;
 }

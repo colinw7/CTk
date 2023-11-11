@@ -87,6 +87,8 @@ getOptVar(const QString &name) const
       else
         vars.push_back(opt.def);
     }
+    else
+      return getOptVar(opt.dname); 
   }
 
   return vars;

@@ -213,7 +213,7 @@ class CTkAppWidget : public QObject {
   virtual void setImageRef(const CTkAppImageRef &i);
 
   const QString &cursor() const { return cursor_; }
-  void setCursor(const QString &s);
+  bool setCursor(const QString &s);
 
   const CTkAppCompoundType &compoundType() const { return compoundType_; }
   void setCompoundType(const CTkAppCompoundType &v) { compoundType_ = v; }
@@ -260,6 +260,14 @@ class CTkAppWidget : public QObject {
 
   void lower();
   void raise();
+
+  //---
+
+  const QString &colormap() const { return colormap_; }
+  void setColormap(const QString &s) { colormap_ = s; }
+
+  const QString &visual() const { return visual_; }
+  void setVisual(const QString &s) { visual_ = s; }
 
   //---
 
@@ -376,7 +384,6 @@ class CTkAppWidget : public QObject {
   virtual void setAnchor(const Qt::Alignment &a) { anchor_ = a; }
 
   const QString &anchorStr() const { return anchorStr_; }
-  bool setAnchorVar(const QVariant &var);
   bool setAnchorStr(const QString &s);
 
   bool isGridWidget() const { return gridWidget_; }
@@ -459,6 +466,9 @@ class CTkAppWidget : public QObject {
   WidgetP    qwidget_;
   WidgetMap  children_;
   EventDatas eventDatas_;
+
+  QString colormap_;
+  QString visual_;
 
   QString xScrollCommand_;
   QString yScrollCommand_;
@@ -2097,7 +2107,7 @@ class CTkAppCheckButton : public CTkAppWidget {
  public:
   explicit CTkAppCheckButton(CTkApp *tk, CTkAppWidget *parent=nullptr, const QString &name="");
 
-  const char *getClassName() const override { return "CheckButton"; }
+  const char *getClassName() const override { return "Checkbutton"; }
 
   //---
 
@@ -2239,9 +2249,10 @@ class CTkAppComboBoxWidget : public QComboBox {
   QSize sizeHint() const override;
 
  private:
-  CTkAppComboBox* combo_    { nullptr };
-  int             width_    { -1 };
-  bool            readOnly_ { false };
+  CTkAppComboBox* combo_ { nullptr };
+
+  int  width_    { -1 };
+  bool readOnly_ { false };
 };
 
 //---
@@ -2314,7 +2325,8 @@ class CTkAppEntryWidget : public QLineEdit {
 
  private:
   CTkAppEntry* entry_ { nullptr };
-  int          width_ { -1 };
+
+  int width_ { -1 };
 };
 
 //---
@@ -2329,12 +2341,17 @@ class CTkAppFrame : public CTkAppWidget {
 
   const char *getClassName() const override { return "Frame"; }
 
+  bool isContainer() const { return container_; }
+  void setContainer(bool b) { container_ = b; }
+
   bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
 
  private:
   CTkAppFrameWidget* qframe_ { nullptr };
+
+  bool container_ { false };
 };
 
 class CTkAppFrameWidget : public QFrame {
@@ -2344,7 +2361,7 @@ class CTkAppFrameWidget : public QFrame {
   QSize sizeHint() const override;
 
  private:
-  CTkAppFrame *frame_;
+  CTkAppFrame *frame_ { nullptr };
 };
 
 //---
@@ -2457,7 +2474,7 @@ class CTkAppListBox : public CTkAppWidget {
  public:
   explicit CTkAppListBox(CTkApp *tk, CTkAppWidget *parent=nullptr, const QString &name="");
 
-  const char *getClassName() const override { return "ListBox"; }
+  const char *getClassName() const override { return "Listbox"; }
 
   bool execConfig(const QString &name, const QVariant &value) override;
 
@@ -2725,8 +2742,9 @@ class CTkAppMenuButtonWidget : public QToolButton {
   void setReadOnly(bool b) { readOnly_ = b; }
 
  private:
-  CTkAppMenuButton *button_   { nullptr };
-  bool              readOnly_ { false };
+  CTkAppMenuButton *button_ { nullptr };
+
+  bool readOnly_ { false };
 };
 
 //---
@@ -2843,7 +2861,7 @@ class CTkAppRadioButton : public CTkAppWidget {
   explicit CTkAppRadioButton(CTkApp *tk, CTkAppWidget *parent=nullptr, const QString &name="");
  ~CTkAppRadioButton();
 
-  const char *getClassName() const override { return "RadioButton"; }
+  const char *getClassName() const override { return "Radiobutton"; }
 
   bool execConfig(const QString &name, const QVariant &value) override;
 
@@ -2951,6 +2969,9 @@ class CTkAppScale : public CTkAppWidget {
 
   const char *getClassName() const override { return "Scale"; }
 
+  const QColor &troughColor() const { return troughColor_; }
+  void setTroughColor(const QColor &c) { troughColor_ = c; }
+
   bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
@@ -2974,11 +2995,13 @@ class CTkAppScale : public CTkAppWidget {
   void valueSlot(int);
 
  private:
-  CQRealSlider*       qscale_  { nullptr };
+  CQRealSlider* qscale_ { nullptr };
+
   QString             varName_;
   CTkAppScaleVarProc* varProc_ { nullptr };
   int                 length_  { 0 };
   int                 width_   { 0 };
+  QColor              troughColor_;
 };
 
 //---
@@ -2996,7 +3019,8 @@ class CTkAppScrollBarWidget : public QScrollBar {
 
  private:
   CTkAppScrollBar* scrollbar_ { nullptr };
-  QColor           troughColor_;
+
+  QColor troughColor_;
 };
 
 class CTkAppScrollBar : public CTkAppWidget {
@@ -3212,6 +3236,9 @@ class CTkAppTopLevel : public CTkAppWidget {
 
   bool isTopLevel() const override { return true; }
 
+  bool isContainer() const { return container_; }
+  void setContainer(bool b) { container_ = b; }
+
   bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
@@ -3229,8 +3256,10 @@ class CTkAppTopLevel : public CTkAppWidget {
 
  private:
   CTkAppTopLevelWidget* qtoplevel_ { nullptr };
-  bool                  needsShow_ { false };
-  QString               iconWindow_;
+
+  bool    needsShow_ { false };
+  QString iconWindow_;
+  bool    container_ { false };
 };
 
 class CTkAppTopLevelWidget : public QFrame {

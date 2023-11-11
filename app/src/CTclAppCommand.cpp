@@ -15,7 +15,7 @@ CTclAppCommand(CTclApp *app, const QString &name) :
 CTclAppCommand::
 ~CTclAppCommand()
 {
-  Tcl_DeleteCommand(app_->getInterp(), name_.toLatin1().constData());
+  deleteCommand();
 }
 
 int
@@ -28,6 +28,17 @@ commandProc(ClientData clientData, Tcl_Interp *, int objc, Tcl_Obj * const *objv
     return TCL_ERROR;
 
   return TCL_OK;
+}
+
+void
+CTclAppCommand::
+deleteCommand()
+{
+  if (! cmdDeleted_) {
+    Tcl_DeleteCommand(app_->getInterp(), name_.toLatin1().constData());
+
+    cmdDeleted_ = true;
+  }
 }
 
 //---

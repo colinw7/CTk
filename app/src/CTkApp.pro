@@ -25,6 +25,7 @@ CTkApp.cpp \
 CTkAppCommands.cpp \
 CTkAppImage.cpp \
 CTkAppFont.cpp \
+CTkAppCursor.cpp \
 CTkAppOptData.cpp \
 CTkAppWidget.cpp \
 \
@@ -60,6 +61,7 @@ HEADERS += \
 ../include/CTkAppEventData.h \
 ../include/CTkAppImage.h \
 ../include/CTkAppFont.h \
+../include/CTkAppCursor.h \
 ../include/CTkAppOptData.h \
 ../include/CTkAppOptionValue.h \
 ../include/CTkAppWidget.h \

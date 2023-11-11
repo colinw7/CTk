@@ -20,4 +20,12 @@ enum class CTkAppWidgetRelief {
   GROOVE
 };
 
+enum class CTkAppWidgetState {
+  NONE,
+  ACTIVE,
+  DISABLED,
+  NORMAL,
+  HIDDEN
+};
+
 #endif

@@ -26,6 +26,11 @@ class CTkAppCommand : public CTclAppCommand {
 
   CTkAppRoot *root() const;
 
+  const QString &getName() const { return CTclAppCommand::getName(); }
+
+  void deleteCommand() const { return
+    const_cast<CTkAppCommand *>(this)->CTclAppCommand::deleteCommand(); }
+
  protected:
   bool proc(int objc, Tcl_Obj * const *objv) override;
 

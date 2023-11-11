@@ -23,6 +23,8 @@ class CTkAppWidget;
 class CTkAppImage;
 class CTkAppFont;
 class CTkAppTopLevelWidget;
+class CTkAppCursorMgr;
+class CTkAppCursor;
 
 using CTkAppImageRef = std::shared_ptr<CTkAppImage>;
 using CTkAppFontRef  = std::shared_ptr<CTkAppFont>;
@@ -161,6 +163,10 @@ class CTkApp : public QObject, public CTclApp {
   void getFontNames(std::vector<QString> &names) const;
 
   void showFontDialog(bool b);
+
+  //---
+
+  CTkAppCursor *getCursor(const QString &name);
 
   //---
 
@@ -425,6 +431,8 @@ class CTkApp : public QObject, public CTclApp {
   };
 
   WmGrid wmGrid_;
+
+  CTkAppCursorMgr *cursorMgr_ { nullptr };
 };
 
 #endif

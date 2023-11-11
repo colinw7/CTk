@@ -53,6 +53,7 @@ SOURCES       = CTkApp.cpp \
 		CTkAppCommands.cpp \
 		CTkAppImage.cpp \
 		CTkAppFont.cpp \
+		CTkAppCursor.cpp \
 		CTkAppOptData.cpp \
 		CTkAppWidget.cpp \
 		CTkAppGridLayout.cpp \
@@ -98,6 +99,7 @@ OBJECTS       = ../obj/CTkApp.o \
 		../obj/CTkAppCommands.o \
 		../obj/CTkAppImage.o \
 		../obj/CTkAppFont.o \
+		../obj/CTkAppCursor.o \
 		../obj/CTkAppOptData.o \
 		../obj/CTkAppWidget.o \
 		../obj/CTkAppGridLayout.o \
@@ -235,6 +237,7 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		../include/CTkAppEventData.h \
 		../include/CTkAppImage.h \
 		../include/CTkAppFont.h \
+		../include/CTkAppCursor.h \
 		../include/CTkAppOptData.h \
 		../include/CTkAppOptionValue.h \
 		../include/CTkAppWidget.h \
@@ -261,6 +264,7 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		CTkAppCommands.cpp \
 		CTkAppImage.cpp \
 		CTkAppFont.cpp \
+		CTkAppCursor.cpp \
 		CTkAppOptData.cpp \
 		CTkAppWidget.cpp \
 		CTkAppGridLayout.cpp \
@@ -497,8 +501,8 @@ distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents ../include/CTkApp.h ../include/CTkAppCommands.h ../include/CTkAppEventData.h ../include/CTkAppImage.h ../include/CTkAppFont.h ../include/CTkAppOptData.h ../include/CTkAppOptionValue.h ../include/CTkAppWidget.h ../include/CTkAppGridLayout.h ../include/CTkAppPackLayout.h ../include/CTkAppPlaceLayout.h ../include/CTkAppLayout.h ../include/CTkAppLayoutWidget.h ../include/CTkAppUtil.h ../include/CTclApp.h ../include/CTclAppCommand.h ../include/CTkWidget.h ../include/CTkAppDebug.h ../include/CTkAppButtonWidget.h ../include/CTkAppSpinBoxWidget.h ../include/CTkAppTextWidget.h ../include/CQLabelImage.h ../include/CQButtonImage.h ../include/CQTextWidget.h ../include/CQSpinList.h ../include/CSVGUtil.h ../include/CQRotatedText.h CQOptEdit.h $(DISTDIR)/
-	$(COPY_FILE) --parents CTkApp.cpp CTkAppCommands.cpp CTkAppImage.cpp CTkAppFont.cpp CTkAppOptData.cpp CTkAppWidget.cpp CTkAppGridLayout.cpp CTkAppPackLayout.cpp CTkAppPlaceLayout.cpp CTkAppLayout.cpp CTkAppLayoutWidget.cpp CTkAppBitmaps.cpp CTkAppUtil.cpp CTclApp.cpp CTclAppCommand.cpp CTkWidget.cpp CTkAppDebug.cpp CQLabelImage.cpp CQButtonImage.cpp CQTextWidget.cpp CQSpinList.cpp CSVGUtil.cpp CQRotatedText.cpp CQOptEdit.cpp CXBMImage.cpp CGIFImage.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents ../include/CTkApp.h ../include/CTkAppCommands.h ../include/CTkAppEventData.h ../include/CTkAppImage.h ../include/CTkAppFont.h ../include/CTkAppCursor.h ../include/CTkAppOptData.h ../include/CTkAppOptionValue.h ../include/CTkAppWidget.h ../include/CTkAppGridLayout.h ../include/CTkAppPackLayout.h ../include/CTkAppPlaceLayout.h ../include/CTkAppLayout.h ../include/CTkAppLayoutWidget.h ../include/CTkAppUtil.h ../include/CTclApp.h ../include/CTclAppCommand.h ../include/CTkWidget.h ../include/CTkAppDebug.h ../include/CTkAppButtonWidget.h ../include/CTkAppSpinBoxWidget.h ../include/CTkAppTextWidget.h ../include/CQLabelImage.h ../include/CQButtonImage.h ../include/CQTextWidget.h ../include/CQSpinList.h ../include/CSVGUtil.h ../include/CQRotatedText.h CQOptEdit.h $(DISTDIR)/
+	$(COPY_FILE) --parents CTkApp.cpp CTkAppCommands.cpp CTkAppImage.cpp CTkAppFont.cpp CTkAppCursor.cpp CTkAppOptData.cpp CTkAppWidget.cpp CTkAppGridLayout.cpp CTkAppPackLayout.cpp CTkAppPlaceLayout.cpp CTkAppLayout.cpp CTkAppLayoutWidget.cpp CTkAppBitmaps.cpp CTkAppUtil.cpp CTclApp.cpp CTclAppCommand.cpp CTkWidget.cpp CTkAppDebug.cpp CQLabelImage.cpp CQButtonImage.cpp CQTextWidget.cpp CQSpinList.cpp CSVGUtil.cpp CQRotatedText.cpp CQOptEdit.cpp CXBMImage.cpp CGIFImage.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -723,6 +727,7 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../include/CTkAppOptData.h \
 		../include/CTkAppDebug.h \
 		../include/CTkAppBitmaps.h \
+		../include/CTkAppCursor.h \
 		../../../CQUtil/include/CQStrParse.h \
 		../../../CUtil/include/CScreenUnits.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTkApp.o CTkApp.cpp
@@ -814,6 +819,9 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../../../CMath/include/CMathUtil.h \
 		../../../COS/include/COSNaN.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTkAppFont.o CTkAppFont.cpp
+
+../obj/CTkAppCursor.o: CTkAppCursor.cpp ../include/CTkAppCursor.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTkAppCursor.o CTkAppCursor.cpp
 
 ../obj/CTkAppOptData.o: CTkAppOptData.cpp ../include/CTkAppOptData.h \
 		../include/CTkAppOptionValue.h \

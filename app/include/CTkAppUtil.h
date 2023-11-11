@@ -63,7 +63,7 @@ bool variantToQFont (CTclApp *app, const QVariant &var, QFont  &f);
 
 bool variantToOrient(CTclApp *app, const QVariant &var, Qt::Orientation &orient);
 
-bool variantToAlign(CTclApp *app, const QVariant &var, Qt::Alignment &align, bool quiet=false);
+bool variantToAlign(CTclApp *app, const QVariant &var, Qt::Alignment &align);
 QString alignToString(const Qt::Alignment &align);
 
 bool variantToCapStyle(CTclApp *app, const QVariant &var, Qt::PenCapStyle &capStyle);
@@ -90,11 +90,13 @@ bool stringToTextInd(CTkApp *app, const QVariant &var, CTkAppTextInd &ind);
 bool variantToRelief(CTkApp *app, const QVariant &var, CTkAppWidgetRelief &relief);
 void setFrameRelief(QWidget *w, const CTkAppWidgetRelief &relief);
 
-Qt::Alignment stringToJustify(const QString &value);
+bool variantToState(CTkApp *app, const QVariant &var, CTkAppWidgetState &state);
+
+bool stringToJustify(const QString &value, Qt::Alignment &align);
 
 QString underlineLabel(const QString &label, long pos);
 
-bool stringToCompound(const QString &value, CTkAppCompoundType &type);
+bool variantToCompound(CTkApp *app, const QVariant &var, CTkAppCompoundType &type);
 
 bool stringToPath(const QString &str, QPainterPath &path);
 

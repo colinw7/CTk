@@ -8,6 +8,7 @@
 
 static std::string opts = "\
 -debug:f \
+-init:s \
 -namespace:s \
 ";
 
@@ -84,7 +85,12 @@ main(int argc, char **argv)
   if (cargs.isStringArg("-namespace"))
     context = QString::fromStdString(cargs.getStringArg("-namespace"));
 
-  std::vector<QString>     filenames;
+  QString initFile;
+
+  if (cargs.isStringArg("-init"))
+    initFile = QString::fromStdString(cargs.getStringArg("-init"));
+
+  std::deque<QString>      filenames;
   std::vector<std::string> args;
   bool                     processing = true;
 
@@ -110,6 +116,9 @@ main(int argc, char **argv)
         args.push_back(arg);
     }
   }
+
+  if (initFile != "")
+    filenames.push_front(initFile);
 
   int    argc1 = int(args.size()) + 1;
   char **argv1 = new char * [argc1 + 1];

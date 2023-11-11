@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QRect>
 #include <QWidgetItem>
+#include <QPointer>
 
 #include <vector>
 
@@ -15,13 +16,14 @@ class CTkAppLayoutWidget : public QObject, public QLayoutItem {
   Q_OBJECT
 
  public:
-  using TkWidget = CTkAppWidget;
+  using TkWidget  = CTkAppWidget;
+  using TkWidgetP = QPointer<CTkAppWidget>;
 
   explicit CTkAppLayoutWidget(CTkAppLayout *l, TkWidget *widget);
 
   explicit CTkAppLayoutWidget(CTkAppLayout *l, QLayout *layout);
 
-  TkWidget *getTkWidget() const { return widget_; }
+  TkWidget *getTkWidget() const;
   QLayout  *getLayout() const { return layout_; }
 
   Qt::Orientations expandingDirections() const override;
@@ -57,7 +59,7 @@ class CTkAppLayoutWidget : public QObject, public QLayoutItem {
 
  private:
   CTkAppLayout* l_      { nullptr };
-  TkWidget*     widget_ { nullptr };
+  TkWidgetP     widget_;
   QLayout*      layout_ { nullptr };
 };
 
