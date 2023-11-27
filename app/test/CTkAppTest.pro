@@ -1,6 +1,6 @@
 TEMPLATE = app
 
-QT += widgets svg
+QT += widgets svg x11extras
 
 TARGET = CTkTest
 
@@ -71,4 +71,4 @@ unix:LIBS += \
 -lCArgs -lCImageLib -lCFont -lCTimer -lCGlob -lCMath \
 -lCRGBName -lCFileUtil -lCFile -lCOS -lCStrUtil -lCRegExp \
 -lpng -ljpeg -ltre -lreadline -lncurses \
--ltk -ltcl
+-ltk -ltcl -lX11

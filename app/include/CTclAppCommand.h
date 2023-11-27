@@ -47,7 +47,7 @@ class CTclAppCommand {
   void setStringVar (const QString &var, const QString &value);
   void setBoolVar   (const QString &var, bool value);
 
-  int     getIntegerVar(const QString &var) const;
+  long    getIntegerVar(const QString &var) const;
   double  getRealVar   (const QString &var) const;
   QString getStringVar (const QString &var) const;
   bool    getBoolVar   (const QString &var) const;

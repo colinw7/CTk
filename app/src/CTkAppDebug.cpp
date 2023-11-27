@@ -1,10 +1,29 @@
 #include <CTkAppDebug.h>
 #include <CTkApp.h>
+
 #include <CTkAppWidget.h>
+#include <CTkAppRoot.h>
+#include <CTkAppButton.h>
+#include <CTkAppCanvas.h>
+#include <CTkAppCanvasWidget.h>
+#include <CTkAppCanvasShape.h>
+#include <CTkAppCheckButton.h>
+#include <CTkAppComboBox.h>
+#include <CTkAppEntry.h>
+#include <CTkAppLabel.h>
+#include <CTkAppListBox.h>
+#include <CTkAppMenuButton.h>
+#include <CTkAppMessage.h>
+#include <CTkAppRadioButton.h>
+#include <CTkAppScale.h>
+#include <CTkAppSpinBox.h>
+#include <CTkAppTopLevel.h>
+
 #include <CTkAppLayout.h>
 #include <CTkAppPackLayout.h>
 #include <CTkAppGridLayout.h>
 #include <CTkAppPlaceLayout.h>
+
 #include <CTkAppImage.h>
 #include <CTkAppFont.h>
 #include <CTkAppOptData.h>
@@ -970,7 +989,7 @@ updateProperties()
 {
   propertyView_->clear();
 
-  for (auto *w : tk_->widgets()) {
+  for (const auto &w : tk_->widgets()) {
     auto parentName = "widgets/" + widgetPropPath(w) + "/.DATA";
 
     propertyView_->addProperty(parentName, w, "type");

@@ -344,6 +344,13 @@ getQPixmap() const
   return pixmap;
 }
 
+void
+CTkAppImage::
+setQImage(const QImage &qimage)
+{
+  qimage_ = qimage;
+}
+
 int
 CTkAppImage::
 width() const
@@ -485,4 +492,42 @@ CTkAppImage::
 removeRef(const QString &ref)
 {
   refNames_.erase(ref);
+}
+
+//---
+
+QString
+CTkAppImage::
+dataString() const
+{
+  auto hexStr = [&](int i) {
+    static const char *hexChars = "0123456789ABCDEF";
+
+    int i1 = i/16;
+    int i2 = i - i1*16;
+
+    return QString(QChar(hexChars[i1])) + QChar(hexChars[i2]);
+  };
+
+  QString str = "{";
+
+  for (int y = 0; y < height_; ++y) {
+    str += " {";
+
+    for (int x = 0; x < width_; ++x) {
+      if (x > 0)
+        str += " ";
+
+      auto rgba = qimage_.pixel(x, y);
+
+      str += QString("#%1%2%3").
+        arg(hexStr(qRed(rgba))).arg(hexStr(qGreen(rgba))).arg(hexStr(qBlue(rgba)));
+    }
+
+    str += "}";
+  }
+
+  str += "}";
+
+  return str;
 }

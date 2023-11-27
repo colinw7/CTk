@@ -252,25 +252,37 @@ paintEvent(QPaintEvent *)
       pos2 = width()/2 + sliderSize_.width()/2 + 2;
     }
 
+    auto hasSmallTicks = [&]() {
+      if (minimum() > maximum() || pageStep() <= 0) return false;
+      int n = int((maximum() - minimum())/pageStep() + 0.5);
+      return (n < 1000);
+    };
+
     if      (tickPosition() == TicksAbove) {
       drawLargeTicks(pos1);
 
-      for (int i = minimum(); i <= maximum(); i += pageStep())
-        drawSmallTick(&p, i, pos1);
+      if (hasSmallTicks()) {
+        for (int i = minimum(); i <= maximum(); i += pageStep())
+          drawSmallTick(&p, i, pos1);
+      }
     }
     else if (tickPosition() == TicksBelow) {
       drawLargeTicks(pos2);
 
-      for (int i = minimum(); i <= maximum(); i += pageStep())
-        drawSmallTick(&p, i, pos2);
+      if (hasSmallTicks()) {
+        for (int i = minimum(); i <= maximum(); i += pageStep())
+          drawSmallTick(&p, i, pos2);
+      }
     }
     else if (tickPosition() == TicksBothSides) {
       drawLargeTicks(pos1);
       drawLargeTicks(pos2);
 
-      for (int i = minimum(); i <= maximum(); i += pageStep()) {
-        drawSmallTick(&p, i, pos1);
-        drawSmallTick(&p, i, pos2);
+      if (hasSmallTicks()) {
+        for (int i = minimum(); i <= maximum(); i += pageStep()) {
+          drawSmallTick(&p, i, pos1);
+          drawSmallTick(&p, i, pos2);
+        }
       }
     }
   }
@@ -621,6 +633,28 @@ valueWidthToPos(double val, int w) const
   return pos;
 }
 
+double
+CQRealSlider::
+posToValue(int pos) const
+{
+  double border = 2.0; // pixels
+
+  double value = 0.0;
+
+  if (orientation() == Qt::Horizontal) {
+    double w = width() - 2*border - dx1_ - dx2_;
+
+    value = double(pos - dx1_ - dx2_ - border)*(maximum() - minimum())/w + minimum();
+  }
+  else {
+    double h = height() - 2*border - dy1_ - dy2_;
+
+    value = double(pos - dy1_ - dy2_ - border)*(maximum() - minimum())/h + minimum();
+  }
+
+  return value;
+}
+
 void
 CQRealSlider::
 paintEvent(QPaintEvent *)
@@ -692,25 +726,37 @@ paintEvent(QPaintEvent *)
       pos2 = width()/2 + sliderSize_.width()/2 + 2;
     }
 
+    auto hasSmallTicks = [&]() {
+      if (minimum() > maximum() || pageStep() <= 0) return false;
+      int n = int((maximum() - minimum())/pageStep() + 0.5);
+      return (n < 1000);
+    };
+
     if      (tickPosition() == TicksAbove) {
       drawLargeTicks(pos1);
 
-      for (double i = minimum(); i <= maximum(); i += pageStep())
-        drawSmallTick(&p, i, pos1);
+      if (hasSmallTicks()) {
+        for (double i = minimum(); i <= maximum(); i += pageStep())
+          drawSmallTick(&p, i, pos1);
+      }
     }
     else if (tickPosition() == TicksBelow) {
       drawLargeTicks(pos2);
 
-      for (double i = minimum(); i <= maximum(); i += pageStep())
-        drawSmallTick(&p, i, pos2);
+      if (hasSmallTicks()) {
+        for (double i = minimum(); i <= maximum(); i += pageStep())
+          drawSmallTick(&p, i, pos2);
+      }
     }
     else if (tickPosition() == TicksBothSides) {
       drawLargeTicks(pos1);
       drawLargeTicks(pos2);
 
-      for (double i = minimum(); i <= maximum(); i += pageStep()) {
-        drawSmallTick(&p, i, pos1);
-        drawSmallTick(&p, i, pos2);
+      if (hasSmallTicks()) {
+        for (double i = minimum(); i <= maximum(); i += pageStep()) {
+          drawSmallTick(&p, i, pos1);
+          drawSmallTick(&p, i, pos2);
+        }
       }
     }
   }

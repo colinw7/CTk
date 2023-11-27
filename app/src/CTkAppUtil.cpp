@@ -19,7 +19,10 @@ bool
 stringToInt(const QString &str, long &i)
 {
   try {
-    i = std::stol(str.toStdString());
+    size_t pos;
+    i = std::stol(str.toStdString(), &pos);
+    if (pos != size_t(str.length()))
+      return false;
   }
     catch (...) {
     return false;
@@ -32,7 +35,10 @@ bool
 stringToReal(const QString &str, double &r)
 {
   try {
-    r = std::stod(str.toStdString());
+    size_t pos;
+    r = std::stod(str.toStdString(), &pos);
+    if (pos != size_t(str.length()))
+      return false;
   }
     catch (...) {
     return false;
@@ -64,8 +70,12 @@ variantToQColor(CTclApp *app, const QVariant &var, QColor &c)
   double r, g, b, a;
   if (CRGBName::lookup(str.toStdString(), &r, &g, &b, &a))
     c = QColor(255*r, 255*g, 255*b, 255*a);
-  else
+  else {
+    if (str[0] == '#')
+      return false;
+
     c = QColor(str);
+  }
 
   return c.isValid();
 }
@@ -145,55 +155,73 @@ variantToQFont(CTclApp *app, const QVariant &var, QFont &f)
 }
 
 bool
-variantToDistanceI(CTclApp *app, const QVariant &var, long &i)
+variantToDistanceI(CTclApp *app, const QVariant &var, Distance &d)
 {
-  double r;
-  if (! variantToDistance(app, var, r))
+  if (! variantToDistance(app, var, d))
     return false;
-  i = long(r);
+
+  if (d.isReal)
+    return false;
+
+  d.ivalue = long(d.rvalue);
+  d.rvalue = double(d.ivalue);
+
   return true;
 }
 
 bool
-variantToDistance(CTclApp *app, const QVariant &var, double &r)
+variantToDistance(CTclApp *app, const QVariant &var, Distance &d)
 {
+  d = Distance();
+
   auto str = variantToString(app, var);
 
   CQStrParse parse(str);
 
   parse.skipSpace();
 
-  double r1;
-
-  if (! parse.readReal(&r1))
+  if (! parse.readNumber(d.r, d.i, d.isReal))
     return false;
+
+  if (! d.isReal)
+    d.r = d.i;
+  else
+    d.i = long(d.r);
 
   parse.skipSpace();
 
-  if (parse.eof()) {
-    r = r1;
-    return true;
+  if (! parse.eof()) {
+    auto c = parse.readChar();
+
+    if      (c == 'm') {
+      d.units = Distance::Units::MM;
+      d.f     = 1.0/25.4;
+    }
+    else if (c == 'c') {
+      d.units = Distance::Units::CM;
+      d.f     = 1.0/2.54;
+    }
+    else if (c == 'i') {
+      d.units = Distance::Units::IN;
+      d.f     = 1.0;
+    }
+    else if (c == 'p') {
+      d.units = Distance::Units::PT;
+      d.f     = 1.0/72.0;
+    }
+    else
+      return false;
+
+    auto dpi = CScreenUnitsMgrInst->dpi();
+  //double dpi = 72.0;
+
+    d.rvalue = d.r*dpi*d.f;
+    d.ivalue = long(d.rvalue);
   }
-
-  auto c = parse.readChar();
-
-  double f = 1.0;
-
-  if      (c == 'm') // millimeters
-    f = 1.0/25.4;
-  else if (c == 'c') // centimeters
-    f = 1.0/2.54;
-  else if (c == 'i') // inches
-    f = 1.0;
-  else if (c == 'p') // points
-    f = 1.0/72.0;
-  else
-    return false;
-
-  auto dpi = CScreenUnitsMgrInst->dpi();
-//double dpi = 72.0;
-
-  r = r1*dpi*f;
+  else {
+    d.rvalue = d.r;
+    d.ivalue = d.i;
+  }
 
   return true;
 }
@@ -607,13 +635,15 @@ setFrameRelief(QWidget *w, const CTkAppWidgetRelief &relief)
 }
 
 bool
-stringToJustify(const QString &value, Qt::Alignment &align)
+variantToJustify(const QVariant &var, Qt::Alignment &align)
 {
+  auto str = var.toString();
+
   align = Qt::AlignCenter;
 
-  if      (value == "left"  ) align = Qt::AlignLeft;
-  else if (value == "right" ) align = Qt::AlignRight;
-  else if (value == "center") align = Qt::AlignHCenter;
+  if      (str == "left"  ) align = Qt::AlignLeft;
+  else if (str == "right" ) align = Qt::AlignRight;
+  else if (str == "center") align = Qt::AlignHCenter;
   else return false;
 
   return true;

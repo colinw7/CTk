@@ -4,7 +4,7 @@ TARGET = CTkApp
 
 DEPENDPATH += .
 
-QT += widgets svg
+QT += widgets svg x11extras
 
 CONFIG += staticlib
 CONFIG += debug
@@ -21,28 +21,53 @@ MOC_DIR = .moc
 
 # Input
 SOURCES += \
-CTkApp.cpp \
+CTkAppBitmaps.cpp \
+CTkAppButton.cpp \
+CTkAppButtonWidget.cpp \
+CTkAppCanvas.cpp \
+CTkAppCanvasShape.cpp \
+CTkAppCanvasWidget.cpp \
+CTkAppCheckButton.cpp \
+CTkAppComboBox.cpp \
 CTkAppCommands.cpp \
-CTkAppImage.cpp \
-CTkAppFont.cpp \
+CTkApp.cpp \
 CTkAppCursor.cpp \
-CTkAppOptData.cpp \
-CTkAppWidget.cpp \
-\
+CTkAppDebug.cpp \
+CTkAppEntry.cpp \
+CTkAppFont.cpp \
+CTkAppFrame.cpp \
 CTkAppGridLayout.cpp \
-CTkAppPackLayout.cpp \
-CTkAppPlaceLayout.cpp \
+CTkAppImageCommand.cpp \
+CTkAppImage.cpp \
+CTkAppLabel.cpp \
+CTkAppLabelFrame.cpp \
 CTkAppLayout.cpp \
 CTkAppLayoutWidget.cpp \
-\
-CTkAppBitmaps.cpp \
+CTkAppListBox.cpp \
+CTkAppMenuButton.cpp \
+CTkAppMenu.cpp \
+CTkAppMessage.cpp \
+CTkAppNoteBook.cpp \
+CTkAppOptData.cpp \
+CTkAppPackLayout.cpp \
+CTkAppPanedWindow.cpp \
+CTkAppPlaceLayout.cpp \
+CTkAppRadioButton.cpp \
+CTkAppRoot.cpp \
+CTkAppScale.cpp \
+CTkAppScrollBar.cpp \
+CTkAppSpinBox.cpp \
+CTkAppText.cpp \
+CTkAppTopLevel.cpp \
+CTkAppTreeView.cpp \
 CTkAppUtil.cpp \
+CTkAppWidget.cpp \
+CTkAppX11.cpp \
 \
 CTclApp.cpp \
 CTclAppCommand.cpp \
 \
 CTkWidget.cpp \
-CTkAppDebug.cpp \
 \
 CQLabelImage.cpp \
 CQButtonImage.cpp \
@@ -51,38 +76,66 @@ CQSpinList.cpp \
 CSVGUtil.cpp \
 CQRotatedText.cpp \
 CQOptEdit.cpp \
+CQSlider.cpp \
 \
 CXBMImage.cpp \
 CGIFImage.cpp \
 
 HEADERS += \
-../include/CTkApp.h \
+../include/CTkAppBitmaps.h \
+../include/CTkAppButton.h \
+../include/CTkAppButtonWidget.h \
+../include/CTkAppCanvas.h \
+../include/CTkAppCanvasShape.h \
+../include/CTkAppCanvasWidget.h \
+../include/CTkAppCheckButton.h \
+../include/CTkAppComboBox.h \
+../include/CTkAppCommand.h \
 ../include/CTkAppCommands.h \
-../include/CTkAppEventData.h \
-../include/CTkAppImage.h \
-../include/CTkAppFont.h \
 ../include/CTkAppCursor.h \
-../include/CTkAppOptData.h \
-../include/CTkAppOptionValue.h \
-../include/CTkAppWidget.h \
-\
+../include/CTkAppDebug.h \
+../include/CTkAppEntry.h \
+../include/CTkAppEventData.h \
+../include/CTkAppFont.h \
+../include/CTkAppFrame.h \
 ../include/CTkAppGridLayout.h \
-../include/CTkAppPackLayout.h \
-../include/CTkAppPlaceLayout.h \
+../include/CTkApp.h \
+../include/CTkAppImageCommand.h \
+../include/CTkAppImage.h \
+../include/CTkAppLabelFrame.h \
+../include/CTkAppLabel.h \
 ../include/CTkAppLayout.h \
 ../include/CTkAppLayoutWidget.h \
-\
+../include/CTkAppListBox.h \
+../include/CTkAppMenuButton.h \
+../include/CTkAppMenu.h \
+../include/CTkAppMessage.h \
+../include/CTkAppNoteBook.h \
+../include/CTkAppOptData.h \
+../include/CTkAppOptionValue.h \
+../include/CTkAppPackLayout.h \
+../include/CTkAppPanedWindow.h \
+../include/CTkAppPlaceLayout.h \
+../include/CTkAppPoint.h \
+../include/CTkAppRadioButton.h \
+../include/CTkAppRoot.h \
+../include/CTkAppScale.h \
+../include/CTkAppScrollBar.h \
+../include/CTkAppSpinBox.h \
+../include/CTkAppSpinBoxWidget.h \
+../include/CTkAppText.h \
+../include/CTkAppTextWidget.h \
+../include/CTkAppTopLevel.h \
+../include/CTkAppTreeView.h \
+../include/CTkAppTypes.h \
 ../include/CTkAppUtil.h \
+../include/CTkAppWidget.h \
+../include/CTkAppX11.h \
 \
 ../include/CTclApp.h \
 ../include/CTclAppCommand.h \
 \
 ../include/CTkWidget.h \
-../include/CTkAppDebug.h \
-\
-../include/CTkAppButtonWidget.h \
-../include/CTkAppSpinBoxWidget.h \
-../include/CTkAppTextWidget.h \
 \
 ../include/CQLabelImage.h \
 ../include/CQButtonImage.h \
@@ -90,6 +143,7 @@ HEADERS += \
 ../include/CQSpinList.h \
 ../include/CSVGUtil.h \
 ../include/CQRotatedText.h \
+../include/CQSlider.h \
 \
 CQOptEdit.h \
 

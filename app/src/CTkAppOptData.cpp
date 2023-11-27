@@ -1,4 +1,5 @@
 #include <CTkAppOptData.h>
+#include <CTkAppUtil.h>
 #include <CTkApp.h>
 
 #include <cstring>
@@ -58,9 +59,9 @@ getOptsVar() const
   return vars;
 }
 
-QVariant
+bool
 CTkAppOptData::
-getOptVar(const QString &name) const
+getOptVar(const QString &name, QVariant &var) const
 {
   QVariantList vars;
 
@@ -70,30 +71,32 @@ getOptVar(const QString &name) const
     auto optName = QString(opt.name);
     if (optName != name) continue;
 
+    if (opt.isAlias())
+      return getOptVar(opt.dname, var);
+
     vars.push_back(opt.name);
     vars.push_back(opt.dname);
 
-    if (! opt.isAlias()) {
-      vars.push_back(opt.cname);
-      vars.push_back(opt.def);
+    vars.push_back(opt.cname);
+    vars.push_back(opt.def);
 
-      auto p = values_.find(optName);
+    auto p = values_.find(optName);
 
-      if (p != values_.end()) {
-        auto s = (*p).second.getString();
+    if (p != values_.end()) {
+      auto s = (*p).second.getString();
 
-        vars.push_back(s);
-      }
-      else
-        vars.push_back(opt.def);
+      vars.push_back(s);
     }
     else
-      return getOptVar(opt.dname); 
+      vars.push_back(opt.def);
+
+    var = QVariant(vars);
+
+    return true;
   }
 
-  return vars;
+  return false;
 }
-
 
 void
 CTkAppOptData::
@@ -194,7 +197,27 @@ setOptValue(const QString &name, const QVariant &value, const CTkAppOpt **opt)
 
     *opt = &opt1;
 
-    values_[name].setValue(value);
+    auto pv = values_.find(name);
+
+    if (pv == values_.end())
+      pv = values_.emplace_hint(values_.end(), name, CTkAppOptionValue());
+
+    if (value.type() == QVariant::String) {
+      if      (opt1.type == QVariant::Int) {
+        long i;
+        if (CTkAppUtil::stringToInt(value.toString(), i))
+          (*pv).second.setInteger(i);
+      }
+      else if (opt1.type == QVariant::Bool) {
+        bool b;
+        if (CTkAppUtil::stringToBool(value.toString(), b))
+          (*pv).second.setBool(b);
+      }
+      else
+        (*pv).second.setValue(value);
+    }
+    else
+      (*pv).second.setValue(value);
 
     return true;
   }

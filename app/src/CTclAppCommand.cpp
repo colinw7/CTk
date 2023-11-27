@@ -145,18 +145,22 @@ setBoolVar(const QString &name, bool b)
 
 //---
 
-int
+long
 CTclAppCommand::
 getIntegerVar(const QString &name) const
 {
-  return app_->getIntegerGlobalVar(name);
+  long i;
+  (void) app_->getIntegerGlobalVar(name, i);
+  return i;
 }
 
 double
 CTclAppCommand::
 getRealVar(const QString &name) const
 {
-  return app_->getRealGlobalVar(name);
+  double r;
+  (void) app_->getRealGlobalVar(name, r);
+  return r;
 }
 
 QString

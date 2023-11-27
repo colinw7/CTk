@@ -69,6 +69,8 @@ class CTkAppImage : public QObject {
   QImage getQImage() const;
   QPixmap getQPixmap() const;
 
+  void setQImage(const QImage &image);
+
   //---
 
   bool loadFile(const QString &filename);
@@ -101,6 +103,10 @@ class CTkAppImage : public QObject {
 
   void addRef(const QString &ref);
   void removeRef(const QString &ref);
+
+  //---
+
+  QString dataString() const;
 
  private:
   using RefNames = std::set<QString>;

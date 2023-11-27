@@ -1,7 +1,7 @@
 #ifndef CTkAppCommands_H
 #define CTkAppCommands_H
 
-#include <CTclAppCommand.h>
+#include <CTkAppCommand.h>
 #include <CTkAppOptData.h>
 
 class CTkAppRoot;
@@ -15,40 +15,13 @@ void addCommands(CTkApp *tk);
 
 //---
 
-class CTkAppCommand : public CTclAppCommand {
- public:
-  using Args = std::vector<QVariant>;
-
- public:
-  explicit CTkAppCommand(CTkApp *tk, const QString &name);
-
-  CTkApp *getTk() const { return tk_; }
-
-  CTkAppRoot *root() const;
-
-  const QString &getName() const { return CTclAppCommand::getName(); }
-
-  void deleteCommand() const { return
-    const_cast<CTkAppCommand *>(this)->CTclAppCommand::deleteCommand(); }
-
- protected:
-  bool proc(int objc, Tcl_Obj * const *objv) override;
-
-  virtual bool run(const Args &args) = 0;
-
- protected:
-  CTkApp *tk_ { nullptr };
-
-  mutable QString arg0_;
-};
-
-//---
-
 class CTkAppOptsCommand :  public CTkAppCommand {
  public:
   CTkAppOptsCommand(CTkApp *tk, const QString &name);
 
   const CTkAppOptData &getOpts() const { return opts_; }
+
+  bool getNameValue(const Args &args, QString &name, QVariant &value);
 
   bool execCGet(const Args &args);
 
@@ -93,24 +66,11 @@ class CTkAppWidgetCommand : public CTkAppOptsCommand {
 
   bool setOptValue(const QString &name, const QVariant &value) override;
 
+  bool setNameValue(const QString &name, const QVariant &value);
+
  private:
   CTkAppCommand* command_ { nullptr };
   CTkAppWidget*  w_       { nullptr };
-};
-
-//---
-
-class CTkAppImageCommand : public CTkAppCommand {
- public:
-  explicit CTkAppImageCommand(CTkApp *app, const QString &name, const QString &type);
-
- ~CTkAppImageCommand();
-
-  bool run(const Args &args) override;
-
- private:
-  CTkApp* app_ { nullptr };
-  QString type_;
 };
 
 //---

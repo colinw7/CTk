@@ -1,15 +1,43 @@
 #include <CTkAppCommands.h>
+
+#include <CTkAppImageCommand.h>
 #include <CTkApp.h>
+
 #include <CTkAppWidget.h>
+#include <CTkAppRoot.h>
+#include <CTkAppButton.h>
+#include <CTkAppCanvas.h>
+#include <CTkAppCheckButton.h>
+#include <CTkAppComboBox.h>
+#include <CTkAppEntry.h>
+#include <CTkAppFrame.h>
+#include <CTkAppLabel.h>
+#include <CTkAppLabelFrame.h>
+#include <CTkAppListBox.h>
+#include <CTkAppMenu.h>
+#include <CTkAppMenuButton.h>
+#include <CTkAppNoteBook.h>
+#include <CTkAppMessage.h>
+#include <CTkAppPanedWindow.h>
+#include <CTkAppRadioButton.h>
+#include <CTkAppScale.h>
+#include <CTkAppScrollBar.h>
+#include <CTkAppSpinBox.h>
+#include <CTkAppText.h>
+#include <CTkAppTopLevel.h>
+#include <CTkAppTreeView.h>
+
 #include <CTkAppPackLayout.h>
 #include <CTkAppPlaceLayout.h>
 #include <CTkAppGridLayout.h>
 #include <CTkAppPackLayout.h>
+
 #include <CTkAppImage.h>
 #include <CTkAppFont.h>
 #include <CTkAppOptionValue.h>
 #include <CTkAppOptData.h>
 #include <CTkAppUtil.h>
+#include <CTkAppX11.h>
 
 #include <CQTclUtil.h>
 
@@ -277,12 +305,10 @@ run(const Args &args)
       ++i;
 
       if (i < numArgs) {
-        auto name = args[i].toString();
+        auto name = tk_->variantToString(args[i]);
 
         auto *window = tk_->lookupWidgetByName(name, /*quiet*/true);
-
-        if (! window)
-          return tk_->throwError("bad window path name \"" + name + "\"");
+        if (! window) return tk_->throwError("bad window path name \"" + name + "\"");
       }
       else
         return tk_->wrongNumArgs("bell ?-displayof window? ?-nice?");
@@ -467,11 +493,11 @@ run(const Args &args)
     { "-width"              , "width"              , "Width"              , "0"             },
     { "-wraplength"         , "wrapLength"         , "WrapLength"         , "0"             },
 
-    { "-bd", "-borderwidth", nullptr, nullptr },
-    { "-bg", "-background" , nullptr, nullptr },
-    { "-fg", "-foreground" , nullptr, nullptr },
+    CTkAppOpt::optSynonym("-bd", "-borderwidth"),
+    CTkAppOpt::optSynonym("-bg", "-background" ),
+    CTkAppOpt::optSynonym("-fg", "-foreground" ),
 
-    { nullptr, nullptr, nullptr, nullptr }
+    CTkAppOpt::optEnd()
   };
 
   QVariant widgetName;
@@ -510,16 +536,18 @@ run(const Args &args)
     button->setBackground(QColor("#d9d9d9"));
 
   // TODO: process defaults
-  long pad;
-  if (! CTkAppUtil::variantToDistanceI(tk_, "3m", pad))
+  CTkAppDistance pad;
+  if (! tk_->variantToDistanceI("3m", pad))
     return false;
-  button->setPadX(pad);
-  button->setPadY(pad);
+  button->setPadX(pad.rvalue);
+  button->setPadY(pad.rvalue);
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), button, opts);
 
-  if (! cmd->processArgs(args))
+  if (! cmd->processArgs(args)) {
+    button->deleteLater();
     return false;
+  }
 
   setResult(widgetName);
 
@@ -534,40 +562,42 @@ run(const Args &args)
 {
   tk_->debugCmd(name_, args);
 
-  static CTkAppOpt opts[] = {
-    { "-background"         , "background"         , "Background"         , "#d9d9d9" },
-    { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "0"       },
-    { "-closeenough"        , "closeEnough"        , "CloseEnough"        , "1"       },
-    { "-confine"            , "confine"            , "Confine"            , "1"       },
-    { "-cursor"             , "cursor"             , "Cursor"             , ""        },
-    { "-height"             , "height"             , "Height"             , "7c"      },
-    { "-highlightbackground", "highlightBackground", "HighlightBackground", "#d9d9d9" },
-    { "-highlightcolor"     , "highlightColor"     , "HighlightColor"     , "#000000" },
-    { "-highlightthickness" , "highlightThickness" , "HighlightThickness" , "1"       },
-    { "-insertbackground"   , "insertBackground"   , "Foreground"         , "#000000" },
-    { "-insertborderwidth"  , "insertBorderWidth"  , "BorderWidth"        , "0"       },
-    { "-insertofftime"      , "insertOffTime"      , "OffTime"            , "300"     },
-    { "-insertontime"       , "insertOnTime"       , "OnTime"             , "600"     },
-    { "-insertwidth"        , "insertWidth"        , "InsertWidth"        , "2"       },
-    { "-offset"             , "offset"             , "Offset"             , "0,0"     },
-    { "-relief"             , "relief"             , "Relief"             , "flat"    },
-    { "-scrollregion"       , "scrollRegion"       , "ScrollRegion"       , ""        },
-    { "-selectbackground"   , "selectBackground"   , "Foreground"         , "#c3c3c3" },
-    { "-selectborderwidth"  , "selectBorderWidth"  , "BorderWidth"        , "1"       },
-    { "-selectforeground"   , "selectForeground"   , "Background"         , "#000000" },
-    { "-state"              , "state"              , "State"              , "normal"  },
-    { "-takefocus"          , "takeFocus"          , "TakeFocus"          , ""        },
-    { "-width"              , "width"              , "Width"              , "10c"     },
-    { "-xscrollcommand"     , "xScrollCommand"     , "ScrollCommand"      , ""        },
-    { "-xscrollincrement"   , "xScrollIncrement"   , "ScrollIncrement"    , "0"       },
-    { "-yscrollcommand"     , "yScrollCommand"     , "ScrollCommand"      , ""        },
-    { "-yscrollincrement"   , "yScrollIncrement"   , "ScrollIncrement"    , "0"       },
+  using Opt = CTkAppOpt;
 
-    { "-bd", "-borderwidth", nullptr, nullptr },
-    { "-bg", "-background" , nullptr, nullptr },
+  static Opt opts[] = {
+  {              "-background"         , "background"         , "Background"         , "#d9d9d9"},
+  {              "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "0"      },
+  Opt::optReal  ("-closeenough"        , "closeEnough"        , "CloseEnough"        , "1"      ),
+  Opt::optBool  ("-confine"            , "confine"            , "Confine"            , "1"      ),
+  Opt::optCursor("-cursor"             , "cursor"             , "Cursor"             , ""       ),
+  {              "-height"             , "height"             , "Height"             , "7c"     },
+  Opt::optColor ("-highlightbackground", "highlightBackground", "HighlightBackground", "#d9d9d9"),
+  Opt::optColor ("-highlightcolor"     , "highlightColor"     , "HighlightColor"     , "#000000"),
+  {              "-highlightthickness" , "highlightThickness" , "HighlightThickness" , "1"      },
+  {              "-insertbackground"   , "insertBackground"   , "Foreground"         , "#000000"},
+  {              "-insertborderwidth"  , "insertBorderWidth"  , "BorderWidth"        , "0"      },
+  Opt::optInt   ("-insertofftime"      , "insertOffTime"      , "OffTime"            , "300"    ),
+  Opt::optInt   ("-insertontime"       , "insertOnTime"       , "OnTime"             , "600"    ),
+  {              "-insertwidth"        , "insertWidth"        , "InsertWidth"        , "2"      },
+  {              "-offset"             , "offset"             , "Offset"             , "0,0"    },
+  {              "-relief"             , "relief"             , "Relief"             , "flat"   },
+  Opt::optString("-scrollregion"       , "scrollRegion"       , "ScrollRegion"       , ""       ),
+  {              "-selectbackground"   , "selectBackground"   , "Foreground"         , "#c3c3c3"},
+  {              "-selectborderwidth"  , "selectBorderWidth"  , "BorderWidth"        , "1"      },
+  Opt::optColor ("-selectforeground"   , "selectForeground"   , "Background"         , "#000000"),
+  {              "-state"              , "state"              , "State"              , "normal" },
+  Opt::optString("-takefocus"          , "takeFocus"          , "TakeFocus"          , ""       ),
+  {              "-width"              , "width"              , "Width"              , "10c"    },
+  Opt::optString("-xscrollcommand"     , "xScrollCommand"     , "ScrollCommand"      , ""       ),
+  {              "-xscrollincrement"   , "xScrollIncrement"   , "ScrollIncrement"    , "0"      },
+  Opt::optString("-yscrollcommand"     , "yScrollCommand"     , "ScrollCommand"      , ""       ),
+  {              "-yscrollincrement"   , "yScrollIncrement"   , "ScrollIncrement"    , "0"      },
 
-    { nullptr, nullptr, nullptr, nullptr }
-  };
+  Opt::optSynonym("-bd", "-borderwidth"),
+  Opt::optSynonym("-bg", "-background" ),
+
+  Opt::optEnd()
+};
 
   QVariant widgetName;
 
@@ -606,8 +636,10 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), canvas, opts);
 
-  if (! cmd->processArgs(args))
+  if (! cmd->processArgs(args)) {
+    canvas->deleteLater();
     return false;
+  }
 
   setResult(widgetName);
 
@@ -622,7 +654,9 @@ run(const Args &args)
 {
   tk_->debugCmd(name_, args);
 
-  static CTkAppOpt opts[] = {
+  using Opt = CTkAppOpt;
+
+  static Opt opts[] = {
     { "-activebackground"   , "activeBackground"   , "Foreground"         , "#ececec"       },
     { "-activeforeground"   , "activeForeground"   , "Background"         , "#000000"       },
     { "-anchor"             , "anchor"             , "Anchor"             , "center"        },
@@ -640,7 +674,7 @@ run(const Args &args)
     { "-highlightcolor"     , "highlightColor"     , "HighlightColor"     , "#000000"       },
     { "-highlightthickness" , "highlightThickness" , "HighlightThickness" , "1"             },
     { "-image"              , "image"              , "Image"              , ""              },
-    { "-indicatoron"        , "indicatorOn"        , "IndicatorOn"        , "1"             },
+    Opt::optBool("-indicatoron", "indicatorOn", "IndicatorOn", "1"),
     { "-justify"            , "justify"            , "Justify"            , "center"        },
     { "-offrelief"          , "offRelief"          , "OffRelief"          , "raised"        },
     { "-offvalue"           , "offValue"           , "Value"              , "0"             },
@@ -662,11 +696,11 @@ run(const Args &args)
     { "-width"              , "width"              , "Width"              , "0"             },
     { "-wraplength"         , "wrapLength"         , "WrapLength"         , "0"             },
 
-    { "-bd", "-borderwidth", nullptr, nullptr },
-    { "-bg", "-background" , nullptr, nullptr },
-    { "-fg", "-foreground" , nullptr, nullptr },
+    Opt::optSynonym("-bd", "-borderwidth"),
+    Opt::optSynonym("-bg", "-background" ),
+    Opt::optSynonym("-fg", "-foreground" ),
 
-    { nullptr, nullptr, nullptr, nullptr }
+    Opt::optEnd()
   };
 
   QVariant widgetName;
@@ -706,8 +740,10 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), check, opts);
 
-  if (! cmd->processArgs(args))
+  if (! cmd->processArgs(args)) {
+    check->deleteLater();
     return false;
+  }
 
   setResult(widgetName);
 
@@ -758,13 +794,13 @@ run(const Args &args)
     { "-width"              , "width"              , "Width"              , "20"         },
     { "-xscrollcommand"     , "xScrollCommand"     , "ScrollCommand"      , ""           },
 
-    { "-bd"    , "-borderwidth"    , nullptr, nullptr },
-    { "-bg"    , "-background"     , nullptr, nullptr },
-    { "-fg"    , "-foreground"     , nullptr, nullptr },
-    { "-invcmd", "-invalidcommand" , nullptr, nullptr },
-    { "-vcmd"  , "-validatecommand", nullptr, nullptr },
+    CTkAppOpt::optSynonym("-bd"    , "-borderwidth"     ),
+    CTkAppOpt::optSynonym("-bg"    , "-background"      ),
+    CTkAppOpt::optSynonym("-fg"    , "-foreground"      ),
+    CTkAppOpt::optSynonym("-invcmd", "-invalidcommand"  ),
+    CTkAppOpt::optSynonym("-vcmd"  , "-validatecommand" ),
 
-    { nullptr, nullptr, nullptr, nullptr }
+    CTkAppOpt::optEnd()
   };
 
   QVariant widgetName;
@@ -797,15 +833,17 @@ run(const Args &args)
     return tk_->throwError(tk_->msg() + "window name \"" + childName + "\" "
                            "already exists in parent");
 
-  auto *check = new CTkAppComboBox(tk_, parent, childName);
+  auto *combo = new CTkAppComboBox(tk_, parent, childName);
 
   if (! tk_->useStyle())
-    check->setBackground(QColor("#d9d9d9"));
+    combo->setBackground(QColor("#d9d9d9"));
 
-  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), check, opts);
+  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), combo, opts);
 
-  if (! cmd->processArgs(args))
+  if (! cmd->processArgs(args)) {
+    combo->deleteLater();
     return false;
+  }
 
   setResult(widgetName);
 
@@ -1108,13 +1146,13 @@ run(const Args &args)
     { "-width"                , "width"                , "Width"                , "20"         },
     { "-xscrollcommand"       , "xScrollCommand"       , "ScrollCommand"        , ""           },
 
-    { "-bd"    , "-borderwidth"    , nullptr, nullptr },
-    { "-bg"    , "-background"     , nullptr, nullptr },
-    { "-fg"    , "-foreground"     , nullptr, nullptr },
-    { "-invcmd", "-invalidcommand" , nullptr, nullptr },
-    { "-vcmd"  , "-validatecommand", nullptr, nullptr },
+    CTkAppOpt::optSynonym("-bd"    , "-borderwidth"     ),
+    CTkAppOpt::optSynonym("-bg"    , "-background"      ),
+    CTkAppOpt::optSynonym("-fg"    , "-foreground"      ),
+    CTkAppOpt::optSynonym("-invcmd", "-invalidcommand"  ),
+    CTkAppOpt::optSynonym("-vcmd"  , "-validatecommand" ),
 
-    { nullptr, nullptr, nullptr, nullptr }
+    CTkAppOpt::optEnd()
   };
 
   QVariant widgetName;
@@ -1154,8 +1192,10 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), entry, opts);
 
-  if (! cmd->processArgs(args))
+  if (! cmd->processArgs(args)) {
+    entry->deleteLater();
     return false;
+  }
 
   setResult(widgetName);
 
@@ -1287,14 +1327,14 @@ run(const Args &args)
         ++i; if (i >= numArgs) return false;
         bool b;
         if (! tk_->variantToBool(args[i], b))
-          return tk_->throwError(tk_->msg() + "Invalid bool '" + args[i] + "'");
+          return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + args[i] + "\"");
         font->setUnderline(b);
       }
       else if (args[i] == "-overstrike") {
         ++i; if (i >= numArgs) return false;
         bool b;
         if (! tk_->variantToBool(args[i], b))
-          return tk_->throwError(tk_->msg() + "Invalid bool '" + args[i] + "'");
+          return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + args[i] + "\"");
         font->setOverstrike(b);
       }
       else {
@@ -1517,10 +1557,10 @@ run(const Args &args)
     { "-visual"             , "visual"             , "Visual"             , ""        },
     { "-width"              , "width"              , "Width"              , "0"       },
 
-    { "-bd", "-borderwidth", nullptr, nullptr },
-    { "-bg", "-background" , nullptr, nullptr },
+    CTkAppOpt::optSynonym("-bd", "-borderwidth"),
+    CTkAppOpt::optSynonym("-bg", "-background" ),
 
-    { nullptr, nullptr, nullptr, nullptr }
+    CTkAppOpt::optEnd()
   };
 
   QVariant widgetName;
@@ -1560,8 +1600,10 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), frame, opts);
 
-  if (! cmd->processArgs(args))
+  if (! cmd->processArgs(args)) {
+    frame->deleteLater();
     return false;
+  }
 
   setResult(widgetName);
 
@@ -1752,11 +1794,11 @@ run(const Args &args)
       auto var  = args[i + 1];
 
       if      (name == "-minsize") {
-        double size;
-        if (! CTkAppUtil::variantToDistance(tk_, var, size))
+        CTkAppDistance size;
+        if (! tk_->variantToDistance(var, size))
           return tk_->throwError(tk_->msg() + "Invalid width \"" + var + "\"");
 
-        layout->setColumnMinSize(index, size);
+        layout->setColumnMinSize(index, size.rvalue);
       }
       else if (name == "-pad") {
         long pad;
@@ -1827,10 +1869,11 @@ run(const Args &args)
     auto *master = tk_->lookupWidgetByName(args[1]);
     if (! master) return false;
 
-    double x, y;
-    if (! tk_->variantToDistance(args[2], x) || ! tk_->variantToDistance(args[3], y))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + args[2] +
-                             "\" or \"" + args[3] + "\"");
+    CTkAppDistance x, y;
+    if (! tk_->variantToDistance(args[2], x))
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + args[2] + "\"");
+    if (! tk_->variantToDistance(args[3], y))
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + args[3] + "\"");
 
     tk_->TODO(args);
   }
@@ -1847,7 +1890,7 @@ run(const Args &args)
     else {
       bool b;
       if (! tk_->variantToBool(args[2], b))
-        return tk_->throwError(tk_->msg() + "Invalid bool '" + args[2] + "'");
+        return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + args[2] + "\"");
       window->setGridPropagate(b);
     }
   }
@@ -1870,11 +1913,11 @@ run(const Args &args)
       auto var  = args[i + 1];
 
       if      (name == "-minsize") {
-        double size;
-        if (! CTkAppUtil::variantToDistance(tk_, var, size))
+        CTkAppDistance size;
+        if (! tk_->variantToDistance(var, size))
           return tk_->throwError(tk_->msg() + "Invalid width \"" + var + "\"");
 
-        layout->setRowMinSize(index, size);
+        layout->setRowMinSize(index, size.rvalue);
       }
       else if (name == "-pad") {
         long pad;
@@ -2094,12 +2137,8 @@ run(const Args &args)
 
     layout->invalidate();
 
-    if (parent->isTopLevel()) {
-      auto *topWidget = qobject_cast<CTkAppTopLevel *>(parent);
-
-      if (topWidget)
-        topWidget->setNeedsShow(true);
-    }
+    if (parent->isTopLevel())
+      parent->setNeedsShow(true);
   }
 
   return true;
@@ -2233,8 +2272,7 @@ run(const Args &args)
     if (format != "")
       image->setFormat(format);
 
-    auto *cmd = new CTkAppImageCommand(tk_, name, type);
-    assert(cmd);
+    (void) tk_->addImageCommand(name, type);
 
     setResult(name);
   }
@@ -2341,11 +2379,11 @@ run(const Args &args)
     { "-width"              , "width"              , "Width"              , "0"             },
     { "-wraplength"         , "wrapLength"         , "WrapLength"         , "0"             },
 
-    { "-bd", "-borderwidth", nullptr, nullptr },
-    { "-bg", "-background" , nullptr, nullptr },
-    { "-fg", "-foreground" , nullptr, nullptr },
+    CTkAppOpt::optSynonym("-bd", "-borderwidth"),
+    CTkAppOpt::optSynonym("-bg", "-background" ),
+    CTkAppOpt::optSynonym("-fg", "-foreground" ),
 
-    { nullptr, nullptr, nullptr, nullptr }
+    CTkAppOpt::optEnd()
   };
 
   QVariant widgetName;
@@ -2385,8 +2423,10 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), label, opts);
 
-  if (! cmd->processArgs(args))
+  if (! cmd->processArgs(args)) {
+    label->deleteLater();
     return false;
+  }
 
   setResult(widgetName);
 
@@ -2424,11 +2464,11 @@ run(const Args &args)
     { "-visual"             , "visual"             , "Visual"             , ""              },
     { "-width"              , "width"              , "Width"              , "0"             },
 
-    { "-bd", "-borderwidth", nullptr, nullptr },
-    { "-bg", "-background" , nullptr, nullptr },
-    { "-fg", "-foreground" , nullptr, nullptr },
+    CTkAppOpt::optSynonym("-bd", "-borderwidth"),
+    CTkAppOpt::optSynonym("-bg", "-background" ),
+    CTkAppOpt::optSynonym("-fg", "-foreground" ),
 
-    { nullptr, nullptr, nullptr, nullptr }
+    CTkAppOpt::optEnd()
   };
 
   QVariant widgetName;
@@ -2468,8 +2508,10 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), frame, opts);
 
-  if (! cmd->processArgs(args))
+  if (! cmd->processArgs(args)) {
+    frame->deleteLater();
     return false;
+  }
 
   setResult(widgetName);
 
@@ -2511,11 +2553,11 @@ run(const Args &args)
     { "-xscrollcommand"     , "xScrollCommand"     , "ScrollCommand"      , ""              },
     { "-yscrollcommand"     , "yScrollCommand"     , "ScrollCommand"      , ""              },
 
-    { "-bd", "-borderwidth", nullptr, nullptr },
-    { "-bg", "-background" , nullptr, nullptr },
-    { "-fg", "-foreground" , nullptr, nullptr },
+    CTkAppOpt::optSynonym("-bd", "-borderwidth"),
+    CTkAppOpt::optSynonym("-bg", "-background" ),
+    CTkAppOpt::optSynonym("-fg", "-foreground" ),
 
-    { nullptr, nullptr, nullptr, nullptr }
+    CTkAppOpt::optEnd()
   };
 
   QVariant widgetName;
@@ -2555,8 +2597,10 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), list, opts);
 
-  if (! cmd->processArgs(args))
+  if (! cmd->processArgs(args)) {
+    list->deleteLater();
     return false;
+  }
 
   setResult(widgetName);
 
@@ -2585,9 +2629,7 @@ run(const Args &args)
     return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
 
   auto *child = parent->getChild(childName);
-
-  if (! child)
-    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
+  if (! child) return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
 
   child->lower();
 
@@ -2620,7 +2662,7 @@ run(const Args &args)
     { "-state"           , "state"           , "State"      , "normal"        },
     { "-underline"       , "underline"       , "Underline"  , "-1"            },
 
-    { nullptr, nullptr, nullptr, nullptr }
+    CTkAppOpt::optEnd()
   };
 
   QVariant widgetName;
@@ -2660,8 +2702,10 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), menu, opts);
 
-  if (! cmd->processArgs(args))
+  if (! cmd->processArgs(args)) {
+    menu->deleteLater();
     return false;
+  }
 
   setResult(widgetName);
 
@@ -2676,7 +2720,9 @@ run(const Args &args)
 {
   tk_->debugCmd(name_, args);
 
-  static CTkAppOpt opts[] = {
+  using Opt = CTkAppOpt;
+
+  static Opt opts[] = {
     { "-activebackground"   , "activeBackground"   , "Foreground"         , "#ececec"       },
     { "-activeforeground"   , "activeForeground"   , "Background"         , "#000000"       },
     { "-anchor"             , "anchor"             , "Anchor"             , "center"        },
@@ -2693,7 +2739,7 @@ run(const Args &args)
     { "-highlightcolor"     , "highlightColor"     , "HighlightColor"     , "#000000"       },
     { "-highlightthickness" , "highlightThickness" , "HighlightThickness" , "1"             },
     { "-image"              , "image"              , "Image"              , ""              },
-    { "-indicatoron"        , "indicatorOn"        , "IndicatorOn"        , "1"             },
+    Opt::optBool("-indicatoron", "indicatorOn", "IndicatorOn", "1"),
     { "-justify"            , "justify"            , "Justify"            , "center"        },
     { "-menu"               , "menu"               , "Menu"               , ""              },
     { "-padx"               , "padX"               , "Pad"                , "1"             },
@@ -2708,11 +2754,11 @@ run(const Args &args)
     { "-width"              , "width"              , "Width"              , "20"            },
     { "-wraplength"         , "wrapLength"         , "WrapLength"         , "0"             },
 
-    { "-bd", "-borderwidth", nullptr, nullptr },
-    { "-bg", "-background" , nullptr, nullptr },
-    { "-fg", "-foreground" , nullptr, nullptr },
+    Opt::optSynonym("-bd", "-borderwidth"),
+    Opt::optSynonym("-bg", "-background" ),
+    Opt::optSynonym("-fg", "-foreground" ),
 
-    { nullptr, nullptr, nullptr, nullptr }
+    Opt::optEnd()
   };
 
   QVariant widgetName;
@@ -2752,8 +2798,10 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), button, opts);
 
-  if (! cmd->processArgs(args))
+  if (! cmd->processArgs(args)) {
+    button->deleteLater();
     return false;
+  }
 
   setResult(widgetName);
 
@@ -2775,7 +2823,7 @@ run(const Args &args)
     { "-compound" , "compound" , "Compound" , nullptr  },
     { "-underline", "underline", "Underline", ""       },
 
-    { nullptr, nullptr, nullptr, nullptr }
+    CTkAppOpt::optEnd()
   };
 
   QVariant widgetName;
@@ -2808,15 +2856,17 @@ run(const Args &args)
     return tk_->throwError(tk_->msg() + "window name \"" + childName + "\" "
                            "already exists in parent");
 
-  auto *button = new CTkAppNoteBook(tk_, parent, childName);
+  auto *notebook = new CTkAppNoteBook(tk_, parent, childName);
 
   if (! tk_->useStyle())
-    button->setBackground(QColor("#d9d9d9"));
+    notebook->setBackground(QColor("#d9d9d9"));
 
-  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), button, opts);
+  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), notebook, opts);
 
-  if (! cmd->processArgs(args))
+  if (! cmd->processArgs(args)) {
+    notebook->deleteLater();
     return false;
+  }
 
   setResult(widgetName);
 
@@ -2851,11 +2901,11 @@ run(const Args &args)
     { "-textvariable"       , "textVariable"       , "Variable"           , ""              },
     { "-width"              , "width"              , "Width"              , "20"            },
 
-    { "-bd", "-borderwidth", nullptr, nullptr },
-    { "-bg", "-background" , nullptr, nullptr },
-    { "-fg", "-foreground" , nullptr, nullptr },
+    CTkAppOpt::optSynonym("-bd", "-borderwidth"),
+    CTkAppOpt::optSynonym("-bg", "-background" ),
+    CTkAppOpt::optSynonym("-fg", "-foreground" ),
 
-    { nullptr, nullptr, nullptr, nullptr }
+    CTkAppOpt::optEnd()
   };
 
   QVariant widgetName;
@@ -2895,8 +2945,10 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), message, opts);
 
-  if (! cmd->processArgs(args))
+  if (! cmd->processArgs(args)) {
+    message->deleteLater();
     return false;
+  }
 
   setResult(widgetName);
 
@@ -2928,7 +2980,7 @@ run(const Args &args)
     int     ipriority = -1;
 
     if (numArgs == 4) {
-      priority = args[3].toString();
+      priority = tk_->variantToString(args[3]);
 
       if      (priority == "widgetDefault") {
         ipriority = -1;
@@ -2964,13 +3016,13 @@ run(const Args &args)
     if (numArgs != 4)
       return tk_->wrongNumArgs("option get window name class");
 
-    auto windowName = args[1].toString();
+    auto windowName = tk_->variantToString(args[1]);
 
     auto *window = tk_->lookupWidgetByName(windowName);
     if (! window) return false;
 
-    auto optName  = args[2].toString();
-    auto optClass = args[3].toString();
+    auto optName  = tk_->variantToString(args[2]);
+    auto optClass = tk_->variantToString(args[3]);
 
     QVariant optValue;
     if (! window->getOptionValue(optName, optClass, optValue))
@@ -3047,7 +3099,7 @@ run(const Args &args)
     if (numArgs != 2)
       return tk_->wrongNumArgs("pack info window");
 
-    auto arg = args[1].toString();
+    auto arg = tk_->variantToString(args[1]);
 
     CTkAppWidget* parent;
     QString       childName;
@@ -3056,9 +3108,7 @@ run(const Args &args)
       return tk_->throwError("bad window path name \"" + arg + "\"");
 
     auto *child = parent->getChild(childName);
-
-    if (! child)
-      return tk_->throwError("bad window path name \"" + arg + "\"");
+    if (! child) return tk_->throwError("bad window path name \"" + arg + "\"");
 
     auto *layout = parent->getTkPackLayout();
     if (! layout) return tk_->throwError("no pack layout for \"" + arg + "\"");
@@ -3079,7 +3129,7 @@ run(const Args &args)
     if (numArgs < 2 || numArgs > 3)
       return tk_->wrongNumArgs("pack option arg ?arg ...?");
 
-    auto arg = args[1].toString();
+    auto arg = tk_->variantToString(args[1]);
 
     auto *w = tk_->lookupWidgetByName(arg);
     if (! w) return false;
@@ -3094,7 +3144,7 @@ run(const Args &args)
 
       bool b;
       if (! tk_->variantToBool(var, b))
-        return tk_->throwError(tk_->msg() + "Invalid bool '" + var + "'");
+        return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
 
       layout->setPropagate(b);
     }
@@ -3103,7 +3153,7 @@ run(const Args &args)
     if (numArgs != 2)
       return tk_->wrongNumArgs("pack " + option + " arg ?arg ...?");
 
-    auto arg = args[1].toString();
+    auto arg = tk_->variantToString(args[1]);
 
     auto *w = tk_->lookupWidgetByName(arg);
     if (! w) return false;
@@ -3148,7 +3198,7 @@ run(const Args &args)
     CTkAppOptionValueMap optValues;
 
     for (uint i = ic; i < numArgs; ++i) {
-      auto arg = args[i].toString();
+      auto arg = tk_->variantToString(args[i]);
 
       if (arg.size() > 0 && arg[0] == '-') {
         if (! tk_->processOption(opts, args, i, optValues))
@@ -3162,15 +3212,12 @@ run(const Args &args)
           return tk_->throwError("bad window path name \"" + arg + "\"");
 
         auto *child = parent1->getChild(childName);
+        if (! child) return tk_->throwError("bad window path name \"" + arg + "\"");
 
-        if (child) {
-          if (! parent)
-            parent = parent1;
+        if (! parent)
+          parent = parent1;
 
-          children.push_back(child);
-        }
-        else
-          return tk_->throwError("bad window path name \"" + arg + "\"");
+        children.push_back(child);
       }
     }
 
@@ -3269,12 +3316,8 @@ run(const Args &args)
 
     layout->invalidate();
 
-    if (parent->isTopLevel()) {
-      auto *topWidget = qobject_cast<CTkAppTopLevel *>(parent);
-
-      if (topWidget)
-        topWidget->setNeedsShow(true);
-    }
+    if (parent->isTopLevel())
+      parent->setNeedsShow(true);
   }
 
   return true;
@@ -3305,10 +3348,10 @@ run(const Args &args)
     { "-showhandle"  , "showHandle"  , "ShowHandle"  , "0"          },
     { "-width"       , "width"       , "Width"       , ""           },
 
-    { "-bd", "-borderwidth", nullptr, nullptr },
-    { "-bg", "-background" , nullptr, nullptr },
+    CTkAppOpt::optSynonym("-bd", "-borderwidth"),
+    CTkAppOpt::optSynonym("-bg", "-background" ),
 
-    { nullptr, nullptr, nullptr, nullptr }
+    CTkAppOpt::optEnd()
   };
 
   QVariant widgetName;
@@ -3348,8 +3391,10 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), pane, opts);
 
-  if (! cmd->processArgs(args))
+  if (! cmd->processArgs(args)) {
+    pane->deleteLater();
     return false;
+  }
 
   setResult(widgetName);
 
@@ -3401,9 +3446,7 @@ run(const Args &args)
       return tk_->throwError(tk_->msg() + "bad window path name \"" + name + "\"");
 
     child = parent->getChild(childName);
-
-    if (! child)
-      return tk_->throwError(tk_->msg() + "bad window path name \"" + name + "\"");
+    if (! child) return tk_->throwError(tk_->msg() + "bad window path name \"" + name + "\"");
 
     layout = parent->getTkPlaceLayout();
     if (! layout) return tk_->throwError(tk_->msg() + "no place layout for \"" + name + "\"");
@@ -3411,16 +3454,22 @@ run(const Args &args)
     return true;
   };
 
+  int ic = 0;
+
   if      (option == "configure") {
     configure = true;
+
+    ++ic;
   }
   else if (option == "forget") {
     if (numArgs < 2)
       return tk_->wrongNumArgs("place forget args");
 
+    auto name = tk_->variantToString(args[1]);
+
     CTkAppPlaceLayout *layout;
     CTkAppWidget      *child;
-    if (! getPlaceLayout(args[1].toString(), layout, child))
+    if (! getPlaceLayout(name, layout, child))
       return false;
 
     // Causes the placer to stop managing the geometry of window.
@@ -3433,9 +3482,11 @@ run(const Args &args)
     if (numArgs != 2)
       return tk_->wrongNumArgs("place info window");
 
+    auto name = tk_->variantToString(args[1]);
+
     CTkAppPlaceLayout *layout;
     CTkAppWidget      *child;
-    if (! getPlaceLayout(args[1].toString(), layout, child))
+    if (! getPlaceLayout(name, layout, child))
       return false;
 
     CTkAppPlaceLayout::Info info;
@@ -3483,8 +3534,8 @@ run(const Args &args)
 
     CTkAppOptionValueMap optValues;
 
-    for (uint i = 0; i < numArgs; ++i) {
-      auto arg = args[i].toString();
+    for (uint i = ic; i < numArgs; ++i) {
+      auto arg = tk_->variantToString(args[i]);
 
       if (arg.size() > 0 && arg[0] == '-') {
         if (! tk_->processOption(opts, args, i, optValues))
@@ -3542,10 +3593,12 @@ run(const Args &args)
     auto p = optValues.find("-height");
     if (p != optValues.end()) {
       auto arg = (*p).second.getValue();
-      double height;
-      if (! CTkAppUtil::variantToDistance(tk_, arg, height))
+
+      CTkAppDistance height;
+      if (! tk_->variantToDistance(arg, height))
         return tk_->throwError(tk_->msg() + "Invalid number \"" + arg + "\"");
-      info.setHeight(height);
+
+      info.setHeight(height.rvalue);
     }
     }
 
@@ -3581,10 +3634,12 @@ run(const Args &args)
     auto p = optValues.find("-width");
     if (p != optValues.end()) {
       auto arg = (*p).second.getValue();
-      double width;
-      if (! CTkAppUtil::variantToDistance(tk_, arg, width))
+
+      CTkAppDistance width;
+      if (! tk_->variantToDistance(arg, width))
         return tk_->throwError(tk_->msg() + "Invalid number \"" + arg + "\"");
-      info.setWidth(width);
+
+      info.setWidth(width.rvalue);
     }
     }
 
@@ -3592,10 +3647,12 @@ run(const Args &args)
     auto p = optValues.find("-x");
     if (p != optValues.end()) {
       auto arg = (*p).second.getValue();
-      double x;
-      if (! CTkAppUtil::variantToDistance(tk_, arg, x))
+
+      CTkAppDistance x;
+      if (! tk_->variantToDistance(arg, x))
         return tk_->throwError(tk_->msg() + "Invalid number \"" + arg + "\"");
-      info.setX(x);
+
+      info.setX(x.rvalue);
     }
     }
 
@@ -3603,10 +3660,11 @@ run(const Args &args)
     auto p = optValues.find("-y");
     if (p != optValues.end()) {
       auto arg = (*p).second.getValue();
-      double y;
-      if (! CTkAppUtil::variantToDistance(tk_, arg, y))
+
+      CTkAppDistance y;
+      if (! tk_->variantToDistance(arg, y))
         return tk_->throwError(tk_->msg() + "Invalid number \"" + arg + "\"");
-      info.setY(y);
+      info.setY(y.rvalue);
     }
     }
 
@@ -3632,12 +3690,8 @@ run(const Args &args)
 
     layout->invalidate();
 
-    if (parent->isTopLevel()) {
-      auto *topWidget = qobject_cast<CTkAppTopLevel *>(parent);
-
-      if (topWidget)
-        topWidget->setNeedsShow(true);
-    }
+    if (parent->isTopLevel())
+      parent->setNeedsShow(true);
   }
 
   return true;
@@ -3649,7 +3703,9 @@ run(const Args &args)
 {
   tk_->debugCmd(name_, args);
 
-  static CTkAppOpt opts[] = {
+  using Opt = CTkAppOpt;
+
+  static Opt opts[] = {
     { "-activebackground"   , "activeBackground"   , "Foreground"         , "#ececec"        },
     { "-activeforeground"   , "activeForeground"   , "Background"         , "#000000"        },
     { "-anchor"             , "anchor"             , "Anchor"             , "center"         },
@@ -3667,7 +3723,7 @@ run(const Args &args)
     { "-highlightcolor"     , "highlightColor"     , "HighlightColor"     , "#000000"        },
     { "-highlightthickness" , "highlightThickness" , "HighlightThickness" , "1"              },
     { "-image"              , "image"              , "Image"              , ""               },
-    { "-indicatoron"        , "indicatorOn"        , "IndicatorOn"        , "1"              },
+    Opt::optBool("-indicatoron", "indicatorOn", "IndicatorOn", "1"),
     { "-justify"            , "justify"            , "Justify"            , "center"         },
     { "-offrelief"          , "offRelief"          , "OffRelief"          , "raised"         },
     { "-overrelief"         , "overRelief"         , "OverRelief"         , ""               },
@@ -3688,11 +3744,11 @@ run(const Args &args)
     { "-width"              , "width"              , "Width"              , "0"              },
     { "-wraplength"         , "wrapLength"         , "WrapLength"         , "0"              },
 
-    { "-bd", "-borderwidth", nullptr, nullptr },
-    { "-bg", "-background" , nullptr, nullptr },
-    { "-fg", "-foreground" , nullptr, nullptr },
+    Opt::optSynonym("-bd", "-borderwidth"),
+    Opt::optSynonym("-bg", "-background" ),
+    Opt::optSynonym("-fg", "-foreground" ),
 
-    { nullptr, nullptr, nullptr, nullptr }
+    Opt::optEnd()
   };
 
   QVariant widgetName;
@@ -3732,8 +3788,10 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), radio, opts);
 
-  if (! cmd->processArgs(args))
+  if (! cmd->processArgs(args)) {
+    radio->deleteLater();
     return false;
+  }
 
   setResult(widgetName);
 
@@ -3756,8 +3814,7 @@ run(const Args &args)
   auto widgetName = args[0];
 
   auto *w = tk_->lookupWidgetByName(widgetName, /*quiet*/true);
-  if (! w)
-    return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
+  if (! w) return tk_->throwError(tk_->msg() + "bad window path name \"" + widgetName + "\"");
 
   w->raise();
 
@@ -3804,11 +3861,11 @@ run(const Args &args)
     { "-variable"           , "variable"           , "Variable"           , ""              },
     { "-width"              , "width"              , "Width"              , "15"            },
 
-    { "-bd", "-borderwidth", nullptr, nullptr },
-    { "-bg", "-background" , nullptr, nullptr },
-    { "-fg", "-foreground" , nullptr, nullptr },
+    CTkAppOpt::optSynonym("-bd", "-borderwidth"),
+    CTkAppOpt::optSynonym("-bg", "-background" ),
+    CTkAppOpt::optSynonym("-fg", "-foreground" ),
 
-    { nullptr, nullptr, nullptr, nullptr }
+    CTkAppOpt::optEnd()
   };
 
   QVariant widgetName;
@@ -3851,8 +3908,10 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), scale, opts);
 
-  if (! cmd->processArgs(args))
+  if (! cmd->processArgs(args)) {
+    scale->deleteLater();
     return false;
+  }
 
   setResult(widgetName);
 
@@ -3867,30 +3926,32 @@ run(const Args &args)
 {
   tk_->debugCmd(name_, args);
 
-  static CTkAppOpt opts[] = {
-    { "-activebackground"   , "activeBackground"   , "Foreground"         , "#ececec"  },
-    { "-activerelief"       , "activeRelief"       , "Relief"             , "raised"   },
-    { "-background"         , "background"         , "Background"         , "#d9d9d9"  },
-    { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "1"        },
-    { "-command"            , "command"            , "Command"            , ""         },
-    { "-cursor"             , "cursor"             , "Cursor"             , ""         },
-    { "-elementborderwidth" , "elementBorderWidth" , "BorderWidth"        , "-1"       },
-    { "-highlightbackground", "highlightBackground", "HighlightBackground", "#d9d9d9"  },
-    { "-highlightcolor"     , "highlightColor"     , "HighlightColor"     , "#000000"  },
-    { "-highlightthickness" , "highlightThickness" , "HighlightThickness" , "0"        },
-    { "-jump"               , "jump"               , "Jump"               , "0"        },
-    { "-orient"             , "orient"             , "Orient"             , "vertical" },
-    { "-relief"             , "relief"             , "Relief"             , "sunken"   },
-    { "-repeatdelay"        , "repeatDelay"        , "RepeatDelay"        , "300"      },
-    { "-repeatinterval"     , "repeatInterval"     , "RepeatInterval"     , "100"      },
-    { "-takefocus"          , "takeFocus"          , "TakeFocus"          , ""         },
-    { "-troughcolor"        , "troughColor"        , "Background"         , "#b3b3b3"  },
-    { "-width"              , "width"              , "Width"              , "11"       },
+  using Opt = CTkAppOpt;
 
-    { "-bd", "borderwidth", nullptr, nullptr },
-    { "-bg", "background" , nullptr, nullptr },
+  static Opt opts[] = {
+  {              "-activebackground"   , "activeBackground"   , "Foreground"         , "#ececec" },
+  {              "-activerelief"       , "activeRelief"       , "Relief"             , "raised"  },
+  {              "-background"         , "background"         , "Background"         , "#d9d9d9" },
+  Opt::optInt   ("-borderwidth"        , "borderWidth"        , "BorderWidth"        , "1"       ),
+  Opt::optString("-command"            , "command"            , "Command"            , ""        ),
+  Opt::optCursor("-cursor"             , "cursor"             , "Cursor"             , ""        ),
+  Opt::optInt   ("-elementborderwidth" , "elementBorderWidth" , "BorderWidth"        , "-1"      ),
+  Opt::optColor ("-highlightbackground", "highlightBackground", "HighlightBackground", "#d9d9d9" ),
+  Opt::optColor ("-highlightcolor"     , "highlightColor"     , "HighlightColor"     , "#000000" ),
+  Opt::optInt   ("-highlightthickness" , "highlightThickness" , "HighlightThickness" , "0"       ),
+  Opt::optBool  ("-jump"               , "jump"               , "Jump"               , false     ),
+  {              "-orient"             , "orient"             , "Orient"             , "vertical"},
+  {              "-relief"             , "relief"             , "Relief"             , "sunken"  },
+  Opt::optInt   ("-repeatdelay"        , "repeatDelay"        , "RepeatDelay"        , "300"     ),
+  Opt::optInt   ("-repeatinterval"     , "repeatInterval"     , "RepeatInterval"     , "100"     ),
+  Opt::optString("-takefocus"          , "takeFocus"          , "TakeFocus"          , ""        ),
+  Opt::optColor ("-troughcolor"        , "troughColor"        , "Background"         , "#b3b3b3" ),
+  Opt::optInt   ("-width"              , "width"              , "Width"              , "11"      ),
 
-    { nullptr, nullptr, nullptr, nullptr }
+  Opt::optSynonym("-bd", "-borderwidth"),
+  Opt::optSynonym("-bg", "-background" ),
+
+  Opt::optEnd(),
   };
 
   QVariant widgetName;
@@ -3930,8 +3991,10 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), scrollbar, opts);
 
-  if (! cmd->processArgs(args))
+  if (! cmd->processArgs(args)) {
+    scrollbar->deleteLater();
     return false;
+  }
 
   setResult(widgetName);
 
@@ -4219,7 +4282,7 @@ run(const Args &args)
     { "-invcmd", "-invalidcommand" , nullptr, nullptr },
     { "-vcmd"  , "-validatecommand", nullptr, nullptr },
 
-    { nullptr, nullptr, nullptr, nullptr }
+    CTkAppOpt::optEnd()
   };
 
   QVariant widgetName;
@@ -4259,8 +4322,10 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), spin, opts);
 
-  if (! cmd->processArgs(args))
+  if (! cmd->processArgs(args)) {
+    spin->deleteLater();
     return false;
+  }
 
   setResult(widgetName);
 
@@ -4276,52 +4341,52 @@ run(const Args &args)
   tk_->debugCmd(name_, args);
 
   static CTkAppOpt opts[] = {
-   {"-autoseparators"          , "autoSeparators"          , "AutoSeparators"     , "1"          },
-   {"-background"              , "background"              , "Background"         , "#ffffff"    },
-   {"-blockcursor"             , "blockCursor"             , "BlockCursor"        , "0"          },
-   {"-borderwidth"             , "borderWidth"             , "BorderWidth"        , "1"          },
-   {"-cursor"                  , "cursor"                  , "Cursor"             , "xterm"      },
-   {"-endline"                 , ""                        , ""                   , ""           },
-   {"-exportselection"         , "exportSelection"         , "ExportSelection"    , "1"          },
-   {"-font"                    , "font"                    , "Font"               , "TkFixedFont"},
-   {"-foreground"              , "foreground"              , "Foreground"         , "#000000"    },
-   {"-height"                  , "height"                  , "Height"             , "24"         },
-   {"-highlightbackground"     , "highlightBackground"     , "HighlightBackground", "#d9d9d9"    },
-   {"-highlightcolor"          , "highlightColor"          , "HighlightColor"     , "#000000"    },
-   {"-highlightthickness"      , "highlightThickness"      , "HighlightThickness" , "1"          },
-   {"-inactiveselectbackground", "inactiveSelectBackground", "Foreground"         , "#c3c3c3"    },
-   {"-insertbackground"        , "insertBackground"        , "Foreground"         , "#000000"    },
-   {"-insertborderwidth"       , "insertBorderWidth"       , "BorderWidth"        , "0"          },
-   {"-insertofftime"           , "insertOffTime"           , "OffTime"            , "300"        },
-   {"-insertontime"            , "insertOnTime"            , "OnTime"             , "600"        },
-   {"-insertwidth"             , "insertWidth"             , "InsertWidth"        , "2"          },
-   {"-maxundo"                 , "maxUndo"                 , "MaxUndo"            , "0"          },
-   {"-padx"                    , "padX"                    , "Pad"                , "1"          },
-   {"-pady"                    , "padY"                    , "Pad"                , "1"          },
-   {"-relief"                  , "relief"                  , "Relief"             , "sunken"     },
-   {"-selectbackground"        , "selectBackground"        , "Foreground"         , "#c3c3c3"    },
-   {"-selectborderwidth"       , "selectBorderWidth"       , "BorderWidth"        , "0"          },
-   {"-selectforeground"        , "selectForeground"        , "Background"         , "#000000"    },
-   {"-setgrid"                 , "setGrid"                 , "SetGrid"            , "0"          },
-   {"-spacing1"                , "spacing1"                , "Spacing"            , "0"          },
-   {"-spacing2"                , "spacing2"                , "Spacing"            , "0"          },
-   {"-spacing3"                , "spacing3"                , "Spacing"            , "0"          },
-   {"-startline"               , ""                        , ""                   , ""           },
-   {"-state"                   , "state"                   , "State"              , "normal"     },
-   {"-tabs"                    , "tabs"                    , "Tabs"               , ""           },
-   {"-tabstyle"                , "tabStyle"                , "TabStyle"           , "tabular"    },
-   {"-takefocus"               , "takeFocus"               , "TakeFocus"          , ""           },
-   {"-undo"                    , "undo"                    , "Undo"               , "0"          },
-   {"-width"                   , "width"                   , "Width"              , "80"         },
-   {"-wrap"                    , "wrap"                    , "Wrap"               , "char"       },
-   {"-xscrollcommand"          , "xScrollCommand"          , "ScrollCommand"      , ""           },
-   {"-yscrollcommand"          , "yScrollCommand"          , "ScrollCommand"      , ""           },
+    {"-autoseparators"          , "autoSeparators"          , "AutoSeparators"     , "1"          },
+    {"-background"              , "background"              , "Background"         , "#ffffff"    },
+    {"-blockcursor"             , "blockCursor"             , "BlockCursor"        , "0"          },
+    {"-borderwidth"             , "borderWidth"             , "BorderWidth"        , "1"          },
+    {"-cursor"                  , "cursor"                  , "Cursor"             , "xterm"      },
+    {"-endline"                 , ""                        , ""                   , ""           },
+    {"-exportselection"         , "exportSelection"         , "ExportSelection"    , "1"          },
+    {"-font"                    , "font"                    , "Font"               , "TkFixedFont"},
+    {"-foreground"              , "foreground"              , "Foreground"         , "#000000"    },
+    {"-height"                  , "height"                  , "Height"             , "24"         },
+    {"-highlightbackground"     , "highlightBackground"     , "HighlightBackground", "#d9d9d9"    },
+    {"-highlightcolor"          , "highlightColor"          , "HighlightColor"     , "#000000"    },
+    {"-highlightthickness"      , "highlightThickness"      , "HighlightThickness" , "1"          },
+    {"-inactiveselectbackground", "inactiveSelectBackground", "Foreground"         , "#c3c3c3"    },
+    {"-insertbackground"        , "insertBackground"        , "Foreground"         , "#000000"    },
+    {"-insertborderwidth"       , "insertBorderWidth"       , "BorderWidth"        , "0"          },
+    {"-insertofftime"           , "insertOffTime"           , "OffTime"            , "300"        },
+    {"-insertontime"            , "insertOnTime"            , "OnTime"             , "600"        },
+    {"-insertwidth"             , "insertWidth"             , "InsertWidth"        , "2"          },
+    {"-maxundo"                 , "maxUndo"                 , "MaxUndo"            , "0"          },
+    {"-padx"                    , "padX"                    , "Pad"                , "1"          },
+    {"-pady"                    , "padY"                    , "Pad"                , "1"          },
+    {"-relief"                  , "relief"                  , "Relief"             , "sunken"     },
+    {"-selectbackground"        , "selectBackground"        , "Foreground"         , "#c3c3c3"    },
+    {"-selectborderwidth"       , "selectBorderWidth"       , "BorderWidth"        , "0"          },
+    {"-selectforeground"        , "selectForeground"        , "Background"         , "#000000"    },
+    {"-setgrid"                 , "setGrid"                 , "SetGrid"            , "0"          },
+    {"-spacing1"                , "spacing1"                , "Spacing"            , "0"          },
+    {"-spacing2"                , "spacing2"                , "Spacing"            , "0"          },
+    {"-spacing3"                , "spacing3"                , "Spacing"            , "0"          },
+    {"-startline"               , ""                        , ""                   , ""           },
+    {"-state"                   , "state"                   , "State"              , "normal"     },
+    {"-tabs"                    , "tabs"                    , "Tabs"               , ""           },
+    {"-tabstyle"                , "tabStyle"                , "TabStyle"           , "tabular"    },
+    {"-takefocus"               , "takeFocus"               , "TakeFocus"          , ""           },
+    {"-undo"                    , "undo"                    , "Undo"               , "0"          },
+    {"-width"                   , "width"                   , "Width"              , "80"         },
+    {"-wrap"                    , "wrap"                    , "Wrap"               , "char"       },
+    {"-xscrollcommand"          , "xScrollCommand"          , "ScrollCommand"      , ""           },
+    {"-yscrollcommand"          , "yScrollCommand"          , "ScrollCommand"      , ""           },
 
-   {"-bd", "-borderwidth", nullptr, nullptr },
-   {"-bg", "-background" , nullptr, nullptr },
-   {"-fg", "-foreground" , nullptr, nullptr },
+    CTkAppOpt::optSynonym("-bd", "-borderwidth"),
+    CTkAppOpt::optSynonym("-bg", "-background" ),
+    CTkAppOpt::optSynonym("-fg", "-foreground" ),
 
-   {nullptr, nullptr, nullptr, nullptr }
+    {nullptr, nullptr, nullptr, nullptr }
   };
 
   QVariant widgetName;
@@ -4361,8 +4426,10 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), text, opts);
 
-  if (! cmd->processArgs(args))
+  if (! cmd->processArgs(args)) {
+    text->deleteLater();
     return false;
+  }
 
   setResult(widgetName);
 
@@ -4382,13 +4449,16 @@ run(const Args &args)
   if (numArgs == 0)
     return tk_->wrongNumArgs("tk subcommand ?arg ...?");
 
-  auto arg = args[0].toString();
+  auto arg = tk_->variantToString(args[0]);
 
   if      (arg == "appname") {
     if      (numArgs == 1)
       tk_->setStringResult(tk_->getAppName());
-    else if (numArgs == 2)
-      tk_->setAppName(args[1].toString());
+    else if (numArgs == 2) {
+      auto name = tk_->variantToString(args[1]);
+
+      tk_->setAppName(name);
+    }
     else
       return tk_->wrongNumArgs("tk appname ?newName?");
   }
@@ -4396,15 +4466,14 @@ run(const Args &args)
     if (numArgs < 2)
       return tk_->wrongNumArgs("tk busy options ?arg ...?");
 
-    auto option = args[1].toString();
+    auto option = tk_->variantToString(args[1]);
 
     if      (option == "cget") {
       if (numArgs != 4)
         return tk_->wrongNumArgs("tk busy cget window option");
 
       auto *w = tk_->lookupWidgetByName(args[2]);
-      if (! w)
-        return tk_->throwError(tk_->msg() + "bad window path name \"" + args[2] + "\"");
+      if (! w) return tk_->throwError(tk_->msg() + "bad window path name \"" + args[2] + "\"");
 
       tk_->TODO(args);
     }
@@ -4413,8 +4482,7 @@ run(const Args &args)
         return tk_->wrongNumArgs("tk busy configure window ?option? ?value ...?");
 
       auto *w = tk_->lookupWidgetByName(args[2]);
-      if (! w)
-        return tk_->throwError(tk_->msg() + "bad window path name \"" + args[2] + "\"");
+      if (! w) return tk_->throwError(tk_->msg() + "bad window path name \"" + args[2] + "\"");
 
       tk_->TODO(args);
     }
@@ -4427,8 +4495,7 @@ run(const Args &args)
         return tk_->wrongNumArgs("tk busy forget window");
 
       auto *w = tk_->lookupWidgetByName(args[2]);
-      if (! w)
-        return tk_->throwError(tk_->msg() + "bad window path name \"" + args[2] + "\"");
+      if (! w) return tk_->throwError(tk_->msg() + "bad window path name \"" + args[2] + "\"");
 
       tk_->TODO(args);
     }
@@ -4437,8 +4504,7 @@ run(const Args &args)
         return tk_->wrongNumArgs("tk busy hold window ?-option value ...?");
 
       auto *w = tk_->lookupWidgetByName(args[2]);
-      if (! w)
-        return tk_->throwError(tk_->msg() + "bad window path name \"" + args[2] + "\"");
+      if (! w) return tk_->throwError(tk_->msg() + "bad window path name \"" + args[2] + "\"");
 
       uint i = 3;
 
@@ -4458,8 +4524,7 @@ run(const Args &args)
         return tk_->wrongNumArgs("tk busy status window");
 
       auto *w = tk_->lookupWidgetByName(args[2]);
-      if (! w)
-        return tk_->throwError(tk_->msg() + "bad window path name \"" + args[2] + "\"");
+      if (! w) return tk_->throwError(tk_->msg() + "bad window path name \"" + args[2] + "\"");
 
       tk_->setIntegerResult(0);
       tk_->TODO(args);
@@ -4477,7 +4542,7 @@ run(const Args &args)
     if (numArgs == 2)
       tk_->setStringResult("-height 0 -x 0 -y 0");
     else {
-      auto opt = args[2].toString();
+      auto opt = tk_->variantToString(args[2]);
 
       if      (opt == "-height") {
         if (numArgs == 3)
@@ -4501,29 +4566,29 @@ run(const Args &args)
     if (numArgs < 2)
       return tk_->wrongNumArgs("tk fontchooser subcommand ?arg ...?");
 
-    auto subcommand = args[1].toString();
+    auto subcommand = tk_->variantToString(args[1]);
 
     if      (subcommand == "configure") {
       if (numArgs == 2)
         tk_->setStringResult("-parent . -title Font -font TkDefaultFont -command {} -visible 0");
       else {
         for (uint i = 2; i < numArgs; ++i) {
-          const auto &name = args[i].toString();
+          const auto &name = tk_->variantToString(args[i]);
 
           if      (name == "-command") {
-            auto value = args[++i].toString();
+            auto value = tk_->variantToString(args[++i]);
             tk_->TODO(name + " " + value, args);
           }
           else if (name == "-font") {
-            auto value = args[++i].toString();
+            auto value = tk_->variantToString(args[++i]);
             tk_->TODO(name + " " + value, args);
           }
           else if (name == "-parent") {
-            auto value = args[++i].toString();
+            auto value = tk_->variantToString(args[++i]);
             tk_->TODO(name + " " + value, args);
           }
           else if (name == "-title") {
-            auto value = args[++i].toString();
+            auto value = tk_->variantToString(args[++i]);
             tk_->TODO(name + " " + value, args);
           }
           else
@@ -4731,7 +4796,7 @@ run(const Args &args)
       return QString();
     }
 
-    return args[++i].toString();
+    return tk_->variantToString(args[++i]);
   };
 
   auto getBoolValue = [&]() {
@@ -4750,7 +4815,7 @@ run(const Args &args)
   QString       initialDir, initialFile, parent, title, typeVariable;
 
   for ( ; i < numArgs; ++i) {
-    auto name = args[i].toString();
+    auto name = tk_->variantToString(args[i]);
 
     if      (name == "-confirmoverwrite") {
       confirmOverwrite = getBoolValue(); if (! rc) return false;
@@ -4827,7 +4892,7 @@ run(const Args &args)
   if (! tk_->lookupOptionName(optionNames, args[0], arg))
     return false;
 
-  auto name = args[1].toString();
+  auto name = tk_->variantToString(args[1]);
 
   if      (arg == "variable") {
     auto *varProc = new CTkVarTraceEventLoop(tk_, name);
@@ -4842,9 +4907,11 @@ run(const Args &args)
     auto *w = tk_->lookupWidgetByName(name);
     if (! w) return false;
 
-    auto *topWidget = qobject_cast<CTkAppTopLevel *>(w);
-    if (topWidget)
-      topWidget->setNeedsShow(true);
+    if (w->isTopLevel()) {
+      w->setNeedsShow(true);
+
+      tk_->showToplevels();
+     }
 
     if (! w->getQWidget()->isVisible()) {
       auto *windowLoop = new CTkWindowVisibleEventLoop(tk_, w->getQWidget());
@@ -4917,11 +4984,11 @@ run(const Args &args)
   bool buttonsAdded = false;
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto name = args[i].toString();
+    auto name = tk_->variantToString(args[i]);
 
     if (name.size() > 0 && name[0] == '-') {
       bool hasValue = (i < numArgs - 1);
-      auto value    = (hasValue ? args[++i].toString() : "");
+      auto value    = (hasValue ? tk_->variantToString(args[++i]) : "");
 
       if      (name == "-default") {
         if (! hasValue) return missingValue(name);
@@ -5069,30 +5136,30 @@ run(const Args &args)
   tk_->debugCmd(name_, args);
 
   static CTkAppOpt opts[] = {
-    { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "0"        },
-    { "-class"              , "class"              , "Class"              , "Toplevel" },
-    { "-menu"               , "menu"               , "Menu"               , ""         },
-    { "-relief"             , "relief"             , "Relief"             , "flat"     },
-    { "-screen"             , "screen"             , "Screen"             , ""         },
-    { "-use"                , "use"                , "Use"                , ""         },
-    { "-background"         , "background"         , "Background"         , "#d9d9d9"  },
-    { "-colormap"           , "colormap"           , "Colormap"           , ""         },
-    { "-container"          , "container"          , "Container"          , "0"        },
-    { "-cursor"             , "cursor"             , "Cursor"             , ""         },
-    { "-height"             , "height"             , "Height"             , "0"        },
-    { "-highlightbackground", "highlightBackground", "HighlightBackground", "#d9d9d9"  },
-    { "-highlightcolor"     , "highlightColor"     , "HighlightColor"     , "#000000"  },
-    { "-highlightthickness" , "highlightThickness" , "HighlightThickness" , "0"        },
-    { "-padx"               , "padX"               , "Pad"                , "0"        },
-    { "-pady"               , "padY"               , "Pad"                , "0"        },
-    { "-takefocus"          , "takeFocus"          , "TakeFocus"          , "0"        },
-    { "-visual"             , "visual"             , "Visual"             , ""         },
-    { "-width"              , "width"              , "Width"              , "0"        },
+    {"-borderwidth"        , "borderWidth"        , "BorderWidth"        , "0"        },
+    {"-class"              , "class"              , "Class"              , "Toplevel" },
+    {"-menu"               , "menu"               , "Menu"               , ""         },
+    {"-relief"             , "relief"             , "Relief"             , "flat"     },
+    {"-screen"             , "screen"             , "Screen"             , ""         },
+    {"-use"                , "use"                , "Use"                , ""         },
+    {"-background"         , "background"         , "Background"         , "#d9d9d9"  },
+    {"-colormap"           , "colormap"           , "Colormap"           , ""         },
+    {"-container"          , "container"          , "Container"          , "0"        },
+    {"-cursor"             , "cursor"             , "Cursor"             , ""         },
+    {"-height"             , "height"             , "Height"             , "0"        },
+    {"-highlightbackground", "highlightBackground", "HighlightBackground", "#d9d9d9"  },
+    {"-highlightcolor"     , "highlightColor"     , "HighlightColor"     , "#000000"  },
+    {"-highlightthickness" , "highlightThickness" , "HighlightThickness" , "0"        },
+    {"-padx"               , "padX"               , "Pad"                , "0"        },
+    {"-pady"               , "padY"               , "Pad"                , "0"        },
+    {"-takefocus"          , "takeFocus"          , "TakeFocus"          , "0"        },
+    {"-visual"             , "visual"             , "Visual"             , ""         },
+    {"-width"              , "width"              , "Width"              , "0"        },
 
-    { "-bd", "-borderwidth", nullptr, nullptr },
-    { "-bg", "-background" , nullptr, nullptr },
+    CTkAppOpt::optSynonym("-bd", "-borderwidth"),
+    CTkAppOpt::optSynonym("-bg", "-background" ),
 
-    { nullptr, nullptr, nullptr, nullptr }
+    CTkAppOpt::optEnd()
   };
 
   QVariant widgetName;
@@ -5132,8 +5199,10 @@ run(const Args &args)
 
   auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), toplevel, opts);
 
-  if (! cmd->processArgs(args))
+  if (! cmd->processArgs(args)) {
+    toplevel->deleteLater();
     return false;
+  }
 
   setResult(widgetName);
 
@@ -5162,7 +5231,7 @@ run(const Args &args)
     { "-selectmode"    , "selectMode"    , "SelectMode"    , "browse"       },
     { "-show"          , "show"          , "Show"          , "tree headings"},
 
-    { nullptr, nullptr, nullptr, nullptr }
+    CTkAppOpt::optEnd()
   };
 
   QVariant widgetName;
@@ -5195,15 +5264,17 @@ run(const Args &args)
     return tk_->throwError(tk_->msg() + "window name \"" + childName + "\" "
                            "already exists in parent");
 
-  auto *toplevel = new CTkAppTreeView(tk_, parent, childName);
+  auto *tree = new CTkAppTreeView(tk_, parent, childName);
 
   if (! tk_->useStyle())
-    toplevel->setBackground(QColor("#d9d9d9"));
+    tree->setBackground(QColor("#d9d9d9"));
 
-  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), toplevel, opts);
+  auto *cmd = new CTkAppWidgetCommand(this, tk_->variantToString(widgetName), tree, opts);
 
-  if (! cmd->processArgs(args))
+  if (! cmd->processArgs(args)) {
+    tree->deleteLater();
     return false;
+  }
 
   setResult(widgetName);
 
@@ -5265,52 +5336,93 @@ run(const Args &args)
   if (! tk_->lookupOptionName(optionNames, args[0], arg))
     return false;
 
+  //---
+
   CTkAppWidget *w = nullptr;
 
-  auto getWindow = [&](uint i=1, bool quiet=false) {
+  auto getWindow = [&](uint &i, bool quiet=false) {
     if (numArgs < 2)
       return tk_->wrongNumArgs("winfo " + arg + " window");
 
     auto widgetName = args[i];
 
     w = tk_->lookupWidgetByName(widgetName, quiet);
+    if (! w) return false;
 
-    return (w ? true : false);
+    ++i;
+
+    return true;
   };
 
   //---
 
-  if      (arg == "atom") {
-    uint i = 1;
+  CTkAppWidget *displayW = nullptr;
 
-    if (i < numArgs && args[i] == "-displayof")
-      i += 2;
+  auto getDisplayOf = [&](uint &i) {
+    if (i >= numArgs)
+      return true;
+
+    static auto argNames = std::vector<QString>({ "-displayof" });
+    QString arg;
+    if (! tk_->lookupName("option", argNames, args[i], arg, /*quiet*/true))
+      return true;
+
+    ++i;
+
+    displayW = tk_->lookupWidgetByName(args[i]);
+    if (! displayW) return tk_->throwError(tk_->msg() + "bad window path name \"" + args[i] + "\"");
+
+    ++i;
+
+    return true;
+  };
+
+  //---
+
+  uint i = 1;
+
+  if      (arg == "atom") {
+    if (! getDisplayOf(i))
+      return false;
 
     if (i != numArgs - 1)
       return tk_->wrongNumArgs("winfo atom ?-displayof window? name");
 
+    auto name = tk_->variantToString(args[i]);
+
+    auto xatom = CTkAppX11::getAtomInd(name, /*create*/false);
+
     // get atom id for name
-    tk_->TODO(args);
+    setIntegerResult(xatom);
   }
   else if (arg == "atomname") {
-    uint i = 1;
-
-    if (i < numArgs && args[i] == "-displayof")
-      i += 2;
+    if (! getDisplayOf(i))
+      return false;
 
     if (i != numArgs - 1)
       return tk_->wrongNumArgs("winfo atomname ?-displayof window? id");
 
-    // get name for atom id
-    tk_->TODO(args);
+    long atom;
+    if (! tk_->variantToInt(args[i], atom))
+      return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
+
+    auto name = CTkAppX11::getAtomName(atom);
+
+    if (name == "")
+      return tk_->throwError(tk_->msg() + "no atom exists with id \"" +
+                             QString::number(atom) + "\"");
+
+    setStringResult(name);
   }
   else if (arg == "cells") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
 
     tk_->TODO(args); // window size in cells ?
   }
   else if (arg == "children") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
 
     std::vector<CTkAppWidget *> children;
 
@@ -5320,8 +5432,8 @@ run(const Args &args)
 
     std::vector<QString> list;
 
-    for (uint i = 0; i < numChildren; ++i) {
-      auto *child = children[i];
+    for (uint ic = 0; ic < numChildren; ++ic) {
+      auto *child = children[ic];
 
       list.push_back(child->getFullName());
     }
@@ -5329,45 +5441,52 @@ run(const Args &args)
     setStringArrayResult(list);
   }
   else if (arg == "class") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
 
     setStringResult(w->getClassName());
   }
   else if (arg == "colormapfull") {
-    if (numArgs != 2)
+    if (i != numArgs)
       return tk_->wrongNumArgs("winfo colormapfull window");
 
     tk_->TODO(args);
   }
   else if (arg == "containing") {
-    uint i = 1;
-
-    if (i < numArgs && args[i] == "-displayof")
-      i += 2;
+    if (! getDisplayOf(i))
+      return false;
 
     if (i + 2 != numArgs)
       return tk_->wrongNumArgs("winfo containing ?-displayof window? rootX rootY");
 
-    long x;
-    if (! tk_->variantToInt(args[i], x))
-      return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
+    CTkAppDistance x;
+    if (! tk_->variantToDistanceI(args[i], x))
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + args[i] + "\"");
 
     ++i;
 
-    long y;
-    if (! tk_->variantToInt(args[i], y))
-      return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
+    CTkAppDistance y;
+    if (! tk_->variantToDistanceI(args[i], y))
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + args[i] + "\"");
 
-    tk_->TODO(args);
+    auto *w = tk_->getWidgetAt(x.ivalue, y.ivalue);
+
+    setStringResult(w ? w->getFullName() : "");
   }
   else if (arg == "depth") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
 
     auto *screen = qApp->primaryScreen();
     setIntegerResult(screen->depth());
   }
   else if (arg == "exists") {
-    setIntegerResult(getWindow(1, /*quiet*/true) ? 1 : 0);
+    if (numArgs != 2)
+      return tk_->wrongNumArgs("winfo exists window");
+
+    getWindow(i, /*quiet*/true);
+
+    setIntegerResult(w ? 1 : 0);
   }
   else if (arg == "fpixels") {
     if (numArgs != 3)
@@ -5376,14 +5495,15 @@ run(const Args &args)
     auto *w = tk_->lookupWidgetByName(args[1]);
     if (! w) return false;
 
-    double size;
+    CTkAppDistance size;
     if (! tk_->variantToDistance(args[2], size))
-      return tk_->throwError(tk_->msg() + "Invalid number \"" + args[2] + "\"");
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + args[2] + "\"");
 
-    setRealResult(size);
+    setRealResult(size.rvalue);
   }
   else if (arg == "geometry") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
 
     auto r = w->getQWidget()->geometry();
 
@@ -5392,30 +5512,44 @@ run(const Args &args)
     setStringResult(res);
   }
   else if (arg == "height") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
+
+    if (i != numArgs)
+      return tk_->wrongNumArgs("winfo height window");
 
     setIntegerResult(w->getQWidget()->height());
   }
   else if (arg == "id") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
 
-    setIntegerResult(long(w->getQWidget()));
+    if (i != numArgs)
+      return tk_->wrongNumArgs("winfo id window");
+
+    setIntegerResult(ulong(w->getQWidget()));
   }
   else if (arg == "interps") {
-    uint i = 1;
+    if (! getDisplayOf(i))
+      return false;
 
-    if (i < numArgs && args[i] == "-displayof")
-      i += 2;
+    if (i != numArgs)
+      return tk_->wrongNumArgs("winfo interps ?-displayof window?");
 
     setStringResult("CTkApp");
   }
   else if (arg == "ismapped") {
-    (void) getWindow();
+    if (! getWindow(i))
+      return false;
+
+    if (i != numArgs)
+      return tk_->wrongNumArgs("winfo ismapped window");
 
     setIntegerResult(w ? w->getQWidget()->isVisible() : 0);
   }
   else if (arg == "manager") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
 
     auto *parent = w->getParent();
     auto *layout = (parent ? parent->getTkLayout() : nullptr);
@@ -5423,28 +5557,40 @@ run(const Args &args)
     setStringResult(layout ? layout->name() : "");
   }
   else if (arg == "name") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
 
     setStringResult(w->getName());
   }
   else if (arg == "parent") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
 
     auto *parent = w->getParent();
 
     setStringResult(parent ? parent->getFullName() : "");
   }
   else if (arg == "pathname") {
-    uint i = 1;
+    if (! getDisplayOf(i))
+      return false;
 
-    if (i < numArgs && args[i] == "-displayof")
-      i += 2;
+    if (i != numArgs - 1)
+      return tk_->wrongNumArgs("winfo pathname ?-displayof window? id");
 
     long id;
     if (! tk_->variantToInt(args[i], id))
-      return tk_->throwError(tk_->msg() + "Invalid number \"" + args[i] + "\"");
+      return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
 
-    tk_->TODO(args); // window id to widget
+//  XWindowAttributes attr;
+//  if (! XGetWindowAttributes(display_, xwin, &attr))
+//    return tk_->throwError(tk_->msg() + window id \"" + QString::number(id) +
+//                           "\" doesn't exist in this application");
+    auto *w = tk_->lookupWidgetId(ulong(id));
+    if (! w)
+      return tk_->throwError(tk_->msg() + "window id \"" + QString::number(id) +
+                             "\" doesn't exist in this application");
+
+    setStringResult(w->getFullName());
   }
   else if (arg == "pixels") {
     if (numArgs != 3)
@@ -5453,37 +5599,57 @@ run(const Args &args)
     auto *w = tk_->lookupWidgetByName(args[1]);
     if (! w) return false;
 
-    double size;
-    if (! tk_->variantToDistance(args[2], size))
-      return tk_->throwError(tk_->msg() + "Invalid number \"" + args[2] + "\"");
+    CTkAppDistance size;
+    if (! tk_->variantToDistanceI(args[2], size))
+      return tk_->throwError(tk_->msg() + "bad screen distance \"" + args[2] + "\"");
 
-    setIntegerResult(int(size));
+    setIntegerResult(size.ivalue);
   }
   else if (arg == "pointerx") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
+
+    if (i != numArgs)
+      return tk_->wrongNumArgs("winfo pointerx window");
 
     auto pos = QCursor::pos();
     setIntegerResult(pos.x());
   }
   else if (arg == "pointerxy") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
+
+    if (i != numArgs)
+      return tk_->wrongNumArgs("winfo pointerxy window");
 
     auto pos = QCursor::pos();
     setIntegerArrayResult({ pos.x(), pos.y()});
   }
   else if (arg == "pointery") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
+
+    if (i != numArgs)
+      return tk_->wrongNumArgs("winfo pointery window");
 
     auto pos = QCursor::pos();
     setIntegerResult(pos.y());
   }
   else if (arg == "reqheight") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
 
-    setIntegerResult(w->getQWidget()->sizeHint().width());
+    if (i != numArgs)
+      return tk_->wrongNumArgs("winfo reqheight window");
+
+    setIntegerResult(w->getQWidget()->sizeHint().height());
   }
   else if (arg == "reqwidth") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
+
+    if (i != numArgs)
+      return tk_->wrongNumArgs("winfo reqwidth window");
 
     setIntegerResult(w->getQWidget()->sizeHint().width());
   }
@@ -5496,144 +5662,218 @@ run(const Args &args)
 
     QColor c;
     if (! CTkAppUtil::variantToQColor(tk_, args[2], c))
-      return false;
+      return tk_->throwError(tk_->msg() + "invalid color name \"" + args[2] + "\"");
 
     tk_->setIntegerArrayResult({int(65535*c.redF()), int(65535*c.greenF()), int(65535*c.blueF())});
   }
   else if (arg == "rootx") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
 
-    auto *screen = qApp->primaryScreen();
-    auto r = screen->geometry();
-    setIntegerResult(r.x());
+    if (i != numArgs)
+      return tk_->wrongNumArgs("winfo rootx window");
+
+    auto rect = w->getQWidget()->rect();
+    auto tl   = w->getQWidget()->mapToGlobal(rect.topLeft());
+
+    setIntegerResult(tl.x());
   }
   else if (arg == "rooty") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
 
-    auto *screen = qApp->primaryScreen();
-    auto r = screen->geometry();
-    setIntegerResult(r.y());
+    if (i != numArgs)
+      return tk_->wrongNumArgs("winfo rooty window");
+
+    auto rect = w->getQWidget()->rect();
+    auto tl   = w->getQWidget()->mapToGlobal(rect.topLeft());
+
+    setIntegerResult(tl.y());
   }
   else if (arg == "screen") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
 
     auto *screen = qApp->primaryScreen();
     setStringResult(screen->name());
   }
   else if (arg == "screencells") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
 
     tk_->TODO(args); // window size in cells ?
   }
   else if (arg == "screendepth") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
 
     setIntegerResult(24);
   }
   else if (arg == "screenheight") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
 
     auto *screen = qApp->primaryScreen();
     auto r = screen->geometry();
     setIntegerResult(r.height());
   }
   else if (arg == "screenmmheight") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
 
     auto *screen = qApp->primaryScreen();
     auto r = screen->geometry();
     tk_->setRealResult(r.height()/CScreenUnitsMgrInst->mmSize());
   }
   else if (arg == "screenmmwidth") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
 
     auto *screen = qApp->primaryScreen();
     auto r = screen->geometry();
     tk_->setRealResult(r.width()/CScreenUnitsMgrInst->mmSize());
   }
   else if (arg == "screenvisual") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
 
     setStringResult("truecolor"); // TODO
   }
   else if (arg == "screenwidth") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
 
     auto *screen = qApp->primaryScreen();
     auto r = screen->geometry();
     setIntegerResult(r.width());
   }
   else if (arg == "server") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
 
     setStringResult("X11R0 The X.Org Foundation 12101004"); // TODO
   }
   else if (arg == "toplevel") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
+
+    if (i != numArgs)
+      return tk_->wrongNumArgs("winfo toplevel window");
 
     auto *toplevel = w->toplevel();
     setStringResult(toplevel ? toplevel->getFullName() : ".");
   }
   else if (arg == "viewable") {
-    (void) getWindow();
+    if (! getWindow(i))
+      return false;
+
+    if (i != numArgs)
+      return tk_->wrongNumArgs("winfo viewable window");
 
     setIntegerResult(w ? w->getQWidget()->isVisible() : 0);
   }
   else if (arg == "visual") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
+
+    if (i != numArgs)
+      return tk_->wrongNumArgs("winfo visual window");
 
     setStringResult("truecolor"); // TODO
   }
   else if (arg == "visualid") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
+
+    if (i != numArgs)
+      return tk_->wrongNumArgs("winfo visualid window");
 
     setStringResult("0x21"); // TODO
   }
   else if (arg == "visualsavailable") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
+
+    if (i < numArgs) {
+      if (args[i] != "includeids")
+        return tk_->wrongNumArgs("winfo visualsavailable window ?includeids?");
+
+      ++i;
+    }
+
+    if (i != numArgs)
+      return tk_->wrongNumArgs("winfo visualsavailable window ?includeids?");
 
     setStringResult("{truecolor 24}"); // TODO
   }
   else if (arg == "vrootheight") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
+
+    if (i != numArgs)
+      return tk_->wrongNumArgs("winfo vrootheight window");
 
     auto *screen = qApp->primaryScreen();
     auto r = screen->geometry();
     setIntegerResult(r.height());
   }
   else if (arg == "vrootwidth") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
+
+    if (i != numArgs)
+      return tk_->wrongNumArgs("winfo vrootwidth window");
 
     auto *screen = qApp->primaryScreen();
     auto r = screen->geometry();
     setIntegerResult(r.width());
   }
   else if (arg == "vrootx") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
+
+    if (i != numArgs)
+      return tk_->wrongNumArgs("winfo vrootx window");
 
     auto *screen = qApp->primaryScreen();
     auto r = screen->geometry();
     setIntegerResult(r.x());
   }
   else if (arg == "vrooty") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
+
+    if (i != numArgs)
+      return tk_->wrongNumArgs("winfo vrooty window");
 
     auto *screen = qApp->primaryScreen();
     auto r = screen->geometry();
     setIntegerResult(r.y());
   }
   else if (arg == "width") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
+
+    if (i != numArgs)
+      return tk_->wrongNumArgs("winfo height window");
 
     setIntegerResult(w ? w->getQWidget()->width() : 0);
   }
   else if (arg == "x") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
+
+    if (i != numArgs)
+      return tk_->wrongNumArgs("winfo x window");
 
     setIntegerResult(w ? w->getQWidget()->x() : 0);
   }
   else if (arg == "y") {
-    if (! getWindow()) return false;
+    if (! getWindow(i))
+      return false;
+
+    if (i != numArgs)
+      return tk_->wrongNumArgs("winfo y window");
 
     setIntegerResult(w ? w->getQWidget()->y() : 0);
   }
@@ -5660,11 +5900,14 @@ run(const Args &args)
   //---
 
   static auto optionNames = std::vector<QString>({
-    "aspect", "attributes", "client", "colormapwindows", "command", "deiconify", "focusmodel",
-    "forget", "frame", "geometry", "grid", "group", "iconbadge", "iconbitmap", "iconify",
-    "iconmask", "iconname", "iconphoto", "iconposition", "iconwindow", "manage", "maxsize",
-    "minsize", "overrideredirect", "positionfrom", "protocol", "resizable", "sizefrom",
-    "stackorder", "state", "title", "transient", "withdraw" });
+    "aspect", "attributes", "client", "colormapwindows",
+    "command", "deiconify", "focusmodel", "forget",
+    "frame", "geometry", "grid", "group", "iconbadge", "iconbitmap",
+    "iconify", "iconmask", "iconname", "iconphoto",
+    "iconposition", "iconwindow", "manage", "maxsize",
+    "minsize", "overrideredirect", "positionfrom",
+    "protocol", "resizable", "sizefrom", "stackorder",
+    "state", "title", "transient", "withdraw" });
 
   QString arg;
   if (! tk_->lookupOptionName(optionNames, args[0], arg))
@@ -5687,9 +5930,7 @@ run(const Args &args)
 
   if (childName != "") {
     auto *child = parent->getChild(childName);
-
-    if (! child)
-      return tk_->throwError(tk_->msg() + "bad window path name \"" + name + "\"");
+    if (! child) return tk_->throwError(tk_->msg() + "bad window path name \"" + name + "\"");
 
     w = child;
   }
@@ -5701,35 +5942,57 @@ run(const Args &args)
   if      (arg == "aspect") {
     if      (numArgs == 6) {
       long minNumer = -1;
-      if (args[2].isValid() && args[2].toString() != "") {
+      if (tk_->variantIsValid(args[2])) {
         if (! tk_->variantToInt(args[2], minNumer))
           return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[2] + "\"");
         if (minNumer <= 0) return tk_->throwError(tk_->msg() + "aspect number can't be <= 0");
       }
 
       long minDenom = -1;
-      if (args[3].isValid() && args[3].toString() != "") {
+      if (tk_->variantIsValid(args[3])) {
         if (! tk_->variantToInt(args[3], minDenom))
           return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[3] + "\"");
         if (minDenom <= 0) return tk_->throwError(tk_->msg() + "aspect number can't be <= 0");
       }
 
-      long maxNumer = 1;
-      if (args[4].isValid() && args[4].toString() != "") {
+      long maxNumer = -1;
+      if (tk_->variantIsValid(args[4])) {
         if (! tk_->variantToInt(args[4], maxNumer))
           return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[4] + "\"");
         if (maxNumer <= 0) return tk_->throwError(tk_->msg() + "aspect number can't be <= 0");
       }
 
-      long maxDenom = 1;
-      if (args[5].isValid() && args[5].toString() != "") {
+      long maxDenom = -1;
+      if (tk_->variantIsValid(args[5])) {
         if (! tk_->variantToInt(args[5], maxDenom))
           return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[5] + "\"");
         if (maxDenom <= 0) return tk_->throwError(tk_->msg() + "aspect number can't be <= 0");
       }
+
+      if (minNumer < 0 || minDenom < 0 || maxNumer < 0 || maxDenom < 0) {
+        w->setWmMinAspect(CTkAppWidget::OptPointI());
+        w->setWmMaxAspect(CTkAppWidget::OptPointI());
+      }
+      else {
+        w->setWmMinAspect(CTkAppWidget::OptPointI(QPoint(minNumer, minDenom)));
+        w->setWmMaxAspect(CTkAppWidget::OptPointI(QPoint(maxNumer, maxDenom)));
+      }
+      w->updateWmSizeHints();
     }
     else if (numArgs == 2) {
-      tk_->setStringResult(""); // TODO
+      if (w->wmMinAspect() && w->wmMaxAspect()) {
+        auto minAspect = *w->wmMinAspect();
+        auto maxAspect = *w->wmMaxAspect();
+
+        QVariantList vars;
+
+        vars.push_back(QVariant(minAspect.x()));
+        vars.push_back(QVariant(minAspect.y()));
+        vars.push_back(QVariant(maxAspect.x()));
+        vars.push_back(QVariant(maxAspect.y()));
+
+        tk_->setVariantListResult(vars);
+      }
     }
     else
       return tk_->wrongNumArgs("wm aspect window ?minNumer minDenom maxNumer maxDenom?");
@@ -5739,21 +6002,21 @@ run(const Args &args)
       tk_->setStringResult("-alpha 1.0 -topmost 0 -zoomed 0 -fullscreen 0 -type {}");
     }
     else {
-      auto opt = args[2].toString();
+      auto opt = tk_->variantToString(args[2]);
 
       if      (opt == "-alpha") {
         if (numArgs == 2)
           tk_->setStringResult("1.0"); // TODO
+      }
+      else if (opt == "-fullscreen") {
+        if (numArgs == 2)
+          tk_->setStringResult("0"); // TODO
       }
       else if (opt == "-topmost") {
         if (numArgs == 2)
           tk_->setStringResult("0"); // TODO
       }
       else if (opt == "-zoomed") {
-        if (numArgs == 2)
-          tk_->setStringResult("0"); // TODO
-      }
-      else if (opt == "-fullscreen") {
         if (numArgs == 2)
           tk_->setStringResult("0"); // TODO
       }
@@ -5767,46 +6030,168 @@ run(const Args &args)
     }
   }
   else if (arg == "client") {
-    tk_->setStringResult(""); // TODO
+    if (numArgs > 3)
+      return tk_->wrongNumArgs("wm client window ?name?");
+
+    auto winId = w->getQWidget()->winId();
+
+    if      (numArgs == 2) {
+      QString name;
+      CTkAppX11::getWmClientMachine(winId, name);
+
+      tk_->setStringResult(name);
+    }
+    else if (numArgs == 3) {
+      auto name = tk_->variantToString(args[2]);
+
+      CTkAppX11::setWmClientMachine(winId, name);
+    }
   }
   else if (arg == "colormapwindows") {
-    tk_->setStringResult(""); // TODO
+    auto winId = w->getQWidget()->winId();
+
+    std::vector<CTkAppWidget *> widgets;
+
+    if      (numArgs == 2) {
+      std::vector<uint> windows;
+      if (! CTkAppX11::getWmColormapWindows(winId, windows)) {
+        w->getColormapChildren(widgets);
+
+        for (auto *w : widgets)
+          windows.push_back(w->getQWidget()->winId());
+      }
+
+      std::vector<QString> winNames;
+      for (auto *w : widgets)
+        winNames.push_back(w->getFullName());
+
+      tk_->setStringArrayResult(winNames);
+    }
+    else if (numArgs == 3) {
+      auto str = tk_->variantToString(args[2]);
+
+      std::vector<QString> strs;
+      if (! tk_->splitList(str, strs))
+        return false;
+
+      std::vector<uint> windows;
+
+      for (const auto &str : strs) {
+        auto *w = tk_->lookupWidgetByName(str);
+        if (! w) return tk_->throwError(tk_->msg() + "bad window path name \"" + str + "\"");
+
+        auto winId = w->getQWidget()->winId();
+
+        windows.push_back(winId);
+      }
+
+      CTkAppX11::setWmColormapWindows(winId, windows);
+    }
+    else
+      return tk_->wrongNumArgs("wm colormapwindows window ?windowList?");
   }
   else if (arg == "command") {
-    tk_->setStringResult(""); // TODO
+    auto winId = w->getQWidget()->winId();
+
+    if      (numArgs == 2) {
+      QString name;
+      CTkAppX11::getWmCommand(winId, name);
+
+      tk_->setStringResult(name);
+    }
+    else if (numArgs == 3) {
+      auto name = tk_->variantToString(args[2]);
+
+      CTkAppX11::setWmCommand(winId, name);
+    }
+    else
+      return tk_->wrongNumArgs("wm command window ?value?");
   }
   else if (arg == "deiconify") {
-    w->show();
+    if (numArgs == 2) {
+      if (! w->isRoot() && w->isTopLevel()) {
+        auto *toplevel = w->toplevel();
+        assert(toplevel);
+
+        if (toplevel->isIconWindow()) {
+          auto itoplevel = toplevel->iconWindowP();
+
+          return tk_->throwError(tk_->msg() + "can't deiconify " + w->getFullName() +
+                                 ": it is an icon for " + itoplevel->getFullName());
+        }
+      }
+
+      if (! w->show())
+        return false;
+    }
+    else
+      return tk_->wrongNumArgs("wm deiconify window");
   }
   else if (arg == "focusmodel") {
-    tk_->setStringResult("passive"); // TODO
+    if      (numArgs == 2) {
+      if (w->focusModel() == CTkAppWidget::FocusModel::Passive)
+        tk_->setStringResult("passive");
+      else
+        tk_->setStringResult("active");
+    }
+    else if (numArgs == 3) {
+      static auto optionNames = std::vector<QString>({"active", "passive"});
+
+      QString arg1;
+      if (! tk_->lookupName("argument", optionNames, args[2], arg1))
+        return false;
+
+      if (arg1 == "passive")
+        w->setFocusModel(CTkAppWidget::FocusModel::Passive);
+      else
+        w->setFocusModel(CTkAppWidget::FocusModel::Active);
+    }
+    else
+      return tk_->wrongNumArgs("wm focusmodel window ?active|passive?");
   }
   else if (arg == "forget") {
     w->hide();
   }
   else if (arg == "frame") {
+    if (! w->isTopLevel())
+      return tk_->throwError(tk_->msg() + "window \"" + args[1] + "\" isn't a top-level window");
+
+    if (numArgs != 2)
+      return tk_->wrongNumArgs("wm frame window");
+
     tk_->setStringResult(""); // TODO
   }
   else if (arg == "geometry") {
     if (! w->isTopLevel())
       return tk_->throwError(tk_->msg() + "window \"" + args[1] + "\" isn't a top-level window");
 
-    if (numArgs == 3) {
+    if      (numArgs == 2)
+      setStringResult(w->getGeometry());
+    else if (numArgs == 3) {
       auto *pw = tk_->lookupWidgetByName(w->wmTransientFor(), /*quiet*/true);
 
       if (pw) {
-        if (! w->setTransientGeometry(pw, args[2].toString()))
-          return false;
+        if (! w->setTransientGeometry(pw, tk_->variantToString(args[2])))
+          return tk_->throwError(tk_->msg() + "bad geometry specifier \"" + args[2] + "\"");
       }
       else {
-        if (! w->setGeometry(args[2].toString()))
-          return false;
+        if (! w->setGeometry(tk_->variantToString(args[2])))
+          return tk_->throwError(tk_->msg() + "bad geometry specifier \"" + args[2] + "\"");
       }
     }
     else
-      setStringResult(w->getGeometry());
+      return tk_->wrongNumArgs("wm geometry window ?newGeometry?");
+
+    if (w->isTopLevel()) {
+      w->setNeedsShow(true);
+
+      tk_->showToplevels();
+    }
   }
   else if (arg == "grid") {
+    if (! w->isTopLevel())
+      return tk_->throwError(tk_->msg() + "window \"" + args[1] + "\" isn't a top-level window");
+
     if      (numArgs == 2) {
       int w, h, iw, ih;
       tk_->getWmGrid(w, h, iw, ih);
@@ -5814,10 +6199,30 @@ run(const Args &args)
       setIntegerArrayResult({w, h, iw, ih});
     }
     else if (numArgs == 6) {
+      std::vector<int> errorInds;
+      std::vector<int> badInds;
+
+      auto variantToInt = [&](int ind, long &i) {
+        i = 0;
+        if (tk_->variantIsValid(args[ind])) {
+          if (! tk_->variantToInt(args[ind], i)) {
+            errorInds.push_back(ind);
+            return false;
+          }
+        }
+        return true;
+      };
+
       long w, h, iw, ih;
-      if (! tk_->variantToInt(args[2],  w) || ! tk_->variantToInt(args[3],  h) ||
-          ! tk_->variantToInt(args[4], iw) || ! tk_->variantToInt(args[5], ih))
-        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[2] + "\"");
+      if (! variantToInt(2,  w) || ! variantToInt(3,  h) ||
+          ! variantToInt(4, iw) || ! variantToInt(5, ih))
+        return tk_->throwError(tk_->msg() + "expected integer but got \"" +
+                               args[*errorInds.begin()] + "\"");
+
+      if (w  <  0) return tk_->throwError(tk_->msg() + "baseWidth can't be < 0");
+      if (h  <  0) return tk_->throwError(tk_->msg() + "baseHeight can't be < 0");
+      if (iw <= 0) return tk_->throwError(tk_->msg() + "widthInc can't be <= 0");
+      if (ih <= 0) return tk_->throwError(tk_->msg() + "heightInc can't be <= 0");
 
       tk_->setWmGrid(w, h, iw, ih);
     }
@@ -5825,62 +6230,181 @@ run(const Args &args)
       return tk_->wrongNumArgs("wm grid window ?baseWidth baseHeight widthInc heightInc?");
   }
   else if (arg == "group") {
-    if (numArgs > 3)
-      return tk_->wrongNumArgs("wm group window ?pathName?");
+    if (! w->isTopLevel())
+      return tk_->throwError(tk_->msg() + "window \"" + args[1] + "\" isn't a top-level window");
 
-    if (numArgs > 2) {
-      auto *w1 = tk_->lookupWidgetByName(args[2]);
-      if (! w1) return false;
-
-      tk_->setWmGroup(w, w1);
-    }
-    else {
+    if      (numArgs == 2) {
       auto *w1 = tk_->getWmGroup(w);
 
-      setStringResult(w1 ? w1->getName() : "");
+      setStringResult(w1 ? w1->getFullName() : "");
     }
+    else if (numArgs == 3) {
+      if (tk_->variantIsValid(args[2])) {
+        auto *w1 = tk_->lookupWidgetByName(args[2]);
+        if (! w1) return tk_->throwError(tk_->msg() + "bad window path name \"" + args[2] + "\"");
+
+        tk_->setWmGroup(w, w1);
+      }
+      else
+        tk_->setWmGroup(w, nullptr);
+    }
+    else
+      return tk_->wrongNumArgs("wm group window ?pathName?");
+  }
+  else if (arg == "iconbadge") {
+    if (numArgs != 3)
+      return tk_->wrongNumArgs("wm iconbadge window badge");
+
+    auto name1 = tk_->variantToString(args[1]);
+    auto badge = tk_->variantToString(args[2]);
+
+    auto cmd = QString("::tk::icons::IconBadge {%1} {%2}").arg(name1).arg(badge);
+
+    tk_->eval(cmd);
   }
   else if (arg == "iconbitmap") {
-    setStringResult(""); // TODO
+    if (! w->isTopLevel())
+      return tk_->throwError(tk_->msg() + "window \"" + args[1] + "\" isn't a top-level window");
+
+    if      (numArgs == 2)
+      setStringResult(""); // TODO
+    else if (numArgs == 3) {
+      auto bitmapImage = tk_->getBitmap(tk_->variantToString(args[2]));
+      if (! bitmapImage)
+        return tk_->throwError(tk_->msg() + "bitmap \"" + args[2] + "\" not defined");
+    }
+    else
+      return tk_->wrongNumArgs("wm iconbitmap window ?bitmap?");
   }
   else if (arg == "iconify") {
+    if (! w->isTopLevel())
+      return tk_->throwError(tk_->msg() + "window \"" + args[1] + "\" isn't a top-level window");
+
+    if (numArgs != 2)
+      return tk_->wrongNumArgs("wm iconify window");
+
     w->getQWidget()->showMinimized();
   }
   else if (arg == "iconmask") {
-    setStringResult(""); // TODO
+    if (! w->isTopLevel())
+      return tk_->throwError(tk_->msg() + "window \"" + args[1] + "\" isn't a top-level window");
+
+    if      (numArgs == 2) {
+      auto im = w->iconMask();
+
+      setStringResult(im ? im->name() : "");
+    }
+    else if (numArgs == 3) {
+      if (tk_->variantIsValid(args[2])) {
+        auto bitmapImage = tk_->getBitmap(tk_->variantToString(args[2]));
+        if (! bitmapImage)
+          return tk_->throwError(tk_->msg() + "bitmap \"" + args[2] + "\" not defined");
+
+        w->setIconMask(bitmapImage);
+      }
+      else
+        w->setIconMask(CTkAppImageRef());
+    }
+    else
+      return tk_->wrongNumArgs("wm iconmask window ?bitmap?");
   }
   else if (arg == "iconname") {
-    if (numArgs == 3)
-      w->setIcon(args[2].toString());
-    else
+    if (! w->isTopLevel())
+      return tk_->throwError(tk_->msg() + "window \"" + args[1] + "\" isn't a top-level window");
+
+    if      (numArgs == 2)
       setStringResult(w->getIcon());
+    else if (numArgs == 3)
+      w->setIcon(tk_->variantToString(args[2]));
+    else
+      return tk_->wrongNumArgs("wm iconname window ?newName?");
   }
   else if (arg == "iconphoto") {
-    if (numArgs < 2)
-      return tk_->wrongNumArgs("wm iconphoto window ?-default? image1 ?image2 ...?");
+    if (! w->isTopLevel())
+      return tk_->throwError(tk_->msg() + "window \"" + args[1] + "\" isn't a top-level window");
 
-    setStringResult(""); // TODO
+    if (numArgs < 3)
+      return tk_->wrongNumArgs("wm iconphoto window ?-default? image1 ?image2 ...?");
+    else {
+      for (uint i = 2; i < numArgs; ++i) {
+        if (tk_->variantToString(args[i]) == "-default")
+          continue;
+
+        auto image = tk_->getImage(args[i]);
+        if (! image) return tk_->throwError(tk_->msg() + "can't use \"" + args[i] + "\" as "
+                                            "iconphoto: not a photo image");
+      }
+    }
   }
   else if (arg == "iconposition") {
-    setStringResult(""); // TODO
+    if (! w->isTopLevel())
+      return tk_->throwError(tk_->msg() + "window \"" + args[1] + "\" isn't a top-level window");
+
+    if      (numArgs == 2) {
+      auto p = w->iconPosition();
+
+      tk_->setIntegerArrayResult({p.x(), p.y()});
+    }
+    else if (numArgs == 4) {
+      long x, y;
+      if (! tk_->variantToInt(args[2], x))
+        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[2] + "\"");
+
+      if (! tk_->variantToInt(args[3], y))
+        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[3] + "\"");
+
+      w->setIconPosition(QPoint(x, y));
+    }
+    else
+      return tk_->wrongNumArgs("wm iconposition window ?x y?");
   }
   else if (arg == "iconwindow") {
-    if (numArgs != 2 && numArgs != 3)
-      return tk_->wrongNumArgs("wm iconwindow window ?icon_window?");
+    if (! w->isTopLevel())
+      return tk_->throwError(tk_->msg() + "window \"" + args[1] + "\" isn't a top-level window");
 
-    if (numArgs == 2)
-      setStringResult("");
-    else {
-      auto *iw = tk_->lookupWidgetByName(args[2]);
-      if (! iw) return false;
+    auto *toplevel = w->toplevel();
 
-      auto *toplevel = iw->toplevel();
-      if (! toplevel) return false;
+    auto itoplevel = toplevel->iconWindowP();
 
-      toplevel->setIconWindow(tk_->variantToString(name));
-
-      toplevel->hide();
+    if      (numArgs == 2) {
+      setStringResult(itoplevel ? itoplevel->getFullName() : "");
     }
+    else if (numArgs == 3) {
+      if (tk_->variantIsValid(args[2])) {
+        auto *iw = tk_->lookupWidgetByName(args[2]);
+        if (! iw) return tk_->throwError(tk_->msg() + "bad window path name \"" + args[2] + "\"");
+
+        if (! iw->isTopLevel())
+          return tk_->throwError(tk_->msg() +
+            "can't use " + args[2] + " as icon window: not at top level");
+
+        if (itoplevel) {
+          itoplevel->setIconWindow(false);
+          itoplevel->setIconWindowP(CTkAppTopLevel::TopLevelP());
+        }
+
+        itoplevel = iw->toplevel();
+
+        toplevel->setIconWindow(false);
+        toplevel->setIconWindowP(itoplevel);
+
+        itoplevel->setIconWindow(true);
+        itoplevel->setIconWindowP(toplevel);
+
+        itoplevel->hide();
+      }
+      else {
+        if (itoplevel) {
+          itoplevel->setIconWindow(false);
+          itoplevel->setIconWindowP(CTkAppTopLevel::TopLevelP());
+        }
+
+        toplevel->setIconWindow(false);
+        toplevel->setIconWindowP(CTkAppTopLevel::TopLevelP());
+      }
+    }
+    else
+      return tk_->wrongNumArgs("wm iconwindow window ?pathName?");
   }
   else if (arg == "manage") {
     // set as toplevel
@@ -5892,23 +6416,21 @@ run(const Args &args)
 
       tk_->setIntegerArrayResult({size.width(), size.height()});
     }
-    else if (numArgs != 4) {
-      return tk_->wrongNumArgs("wm maxsize window ?width height?");
-    }
-    else {
+    else if (numArgs == 4) {
       long sw, sh;
-
       if (! tk_->variantToInt(args[2], sw))
-        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[2] + "\"");
+        return tk_->throwError(tk_->msg() + "bad screen distance \"" + args[2] + "\"");
 
       if (! tk_->variantToInt(args[3], sh))
-        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[3] + "\"");
+        return tk_->throwError(tk_->msg() + "bad screen distance \"" + args[3] + "\"");
 
       sw = std::max(sw, 1L);
       sh = std::max(sh, 1L);
 
       w->getQWidget()->setMaximumSize(QSize(sw, sh));
     }
+    else if (numArgs != 4)
+      return tk_->wrongNumArgs("wm maxsize window ?width height?");
   }
   else if (arg == "minsize") {
     if      (numArgs == 2) {
@@ -5916,65 +6438,93 @@ run(const Args &args)
 
       tk_->setIntegerArrayResult({size.width(), size.height()});
     }
-    else if (numArgs != 4) {
-      return tk_->wrongNumArgs("wm minsize window ?width height?");
-    }
-    else {
+    else if (numArgs == 4) {
       long sw, sh;
 
       if (! tk_->variantToInt(args[2], sw))
-        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[2] + "\"");
+        return tk_->throwError(tk_->msg() + "bad screen distance \"" + args[2] + "\"");
 
       if (! tk_->variantToInt(args[3], sh))
-        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[3] + "\"");
+        return tk_->throwError(tk_->msg() + "bad screen distance \"" + args[3] + "\"");
 
       sw = std::max(sw, 1L);
       sh = std::max(sh, 1L);
 
       w->getQWidget()->setMinimumSize(QSize(sw, sh));
     }
+    else
+      return tk_->wrongNumArgs("wm minsize window ?width height?");
   }
   else if (arg == "overrideredirect") {
-    if (numArgs != 3)
-      return false;
+    if      (numArgs == 2)
+      tk_->setBoolResult(w->isOverrideRedirect());
+    else if (numArgs == 3) {
+      bool b;
+      if (! tk_->variantToBool(args[2], b))
+        return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + args[2] + "\"");
 
-    bool b;
-    if (! tk_->variantToBool(args[2], b))
-      return tk_->throwError("Invalid overrideredirect value");
-
-    if (b == 1)
-      w->getQWidget()->setWindowFlags(
-        Qt::Tool | Qt::FramelessWindowHint | Qt::X11BypassWindowManagerHint);
-    else
-      return false;
-  }
-  else if (arg == "positionfrom") {
-    setStringResult(""); // TODO
-  }
-  else if (arg == "protocol") {
-    QString atomName;
-
-    if (numArgs > 2)
-      atomName = args[2].toString();
-
-    if (numArgs > 3) {
-      auto atomValue = args[3].toString();
-
-      w->setWmAtomValue(atomName, atomValue);
+      w->setOverrideRedirect(b);
     }
     else
-      tk_->setStringResult(w->getWmAtomValue(atomName));
+      return tk_->wrongNumArgs("wm overrideredirect window ?boolean?");
+  }
+  else if (arg == "positionfrom") {
+    if      (numArgs == 2) {
+      if      (w->positionFrom() == CTkAppWidget::PositionFrom::USER)
+        setStringResult("user");
+      else if (w->positionFrom() == CTkAppWidget::PositionFrom::PROGRAM)
+        setStringResult("program");
+      else
+        setStringResult("");
+    }
+    else if (numArgs == 3) {
+      if (tk_->variantIsValid(args[2])) {
+        static auto optionNames = std::vector<QString>({"user", "program"});
+
+        QString arg1;
+        if (! tk_->lookupName("argument", optionNames, args[2], arg1))
+          return false;
+
+        if (arg1 == "user")
+          w->setPositionFrom(CTkAppWidget::PositionFrom::USER);
+        else
+          w->setPositionFrom(CTkAppWidget::PositionFrom::PROGRAM);
+      }
+      else
+        w->setPositionFrom(CTkAppWidget::PositionFrom::NONE);
+    }
+    else
+      return tk_->wrongNumArgs("wm positionfrom window ?user|program?");
+  }
+  else if (arg == "protocol") {
+    if      (numArgs == 2)
+      setStringResult(""); // TODO
+    else if (numArgs == 3 || numArgs == 4) {
+      auto atomName = tk_->variantToString(args[2]);
+
+      if (numArgs == 4) {
+        auto atomValue = tk_->variantToString(args[3]);
+
+        w->setWmAtomValue(atomName, atomValue);
+      }
+      else
+        tk_->setStringResult(w->getWmAtomValue(atomName));
+    }
+    else
+      return tk_->wrongNumArgs("wm protocol window ?name? ?command?");
   }
   else if (arg == "resizable") {
     if      (numArgs == 2) {
-      tk_->setStringResult("1 1");
+      bool wf, hf;
+      w->isResizable(wf, hf);
+      tk_->setStringResult(QString("%1 %2").arg(wf ? "1" : "0").arg(hf ? "1" : "0"));
     }
     else if (numArgs == 4) {
       bool wf, hf;
       if (! tk_->variantToBool(args[2], wf))
-        return tk_->throwError(tk_->msg() + "invalid bool \"" + args[2] + "\"");
+        return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + args[2] + "\"");
       if (! tk_->variantToBool(args[3], hf))
-        return tk_->throwError(tk_->msg() + "invalid bool \"" + args[3] + "\"");
+        return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + args[3] + "\"");
 
       w->setResizable(wf, hf);
     }
@@ -5982,10 +6532,53 @@ run(const Args &args)
       return tk_->wrongNumArgs("wm resizable window ?width height?");
   }
   else if (arg == "sizefrom") {
-    setStringResult(""); // TODO
+    if      (numArgs == 2) {
+      if      (w->sizeFrom() == CTkAppWidget::SizeFrom::USER)
+        setStringResult("user");
+      else if (w->sizeFrom() == CTkAppWidget::SizeFrom::PROGRAM)
+        setStringResult("program");
+      else
+        setStringResult("");
+    }
+    else if (numArgs == 3) {
+      if (tk_->variantIsValid(args[2])) {
+        static auto optionNames = std::vector<QString>({"user", "program"});
+
+        QString arg1;
+        if (! tk_->lookupName("argument", optionNames, args[2], arg1))
+          return false;
+
+        if (arg1 == "user")
+          w->setSizeFrom(CTkAppWidget::SizeFrom::USER);
+        else
+          w->setSizeFrom(CTkAppWidget::SizeFrom::PROGRAM);
+      }
+      else
+        w->setSizeFrom(CTkAppWidget::SizeFrom::NONE);
+    }
+    else
+      return tk_->wrongNumArgs("wm sizefrom window ?user|program?");
   }
   else if (arg == "stackorder") {
-    tk_->TODO(args);
+    if      (numArgs == 2) {
+      auto name1 = tk_->variantToString(args[1]);
+
+      setStringResult(name1); // TODO
+    }
+    else if (numArgs == 4) {
+      static auto optionNames = std::vector<QString>({"isabove", "isbelow"});
+
+      QString arg1;
+      if (! tk_->lookupName("argument", optionNames, args[2], arg1))
+        return false;
+
+      auto *w = tk_->lookupWidgetByName(args[3]);
+      if (! w) return tk_->throwError(tk_->msg() + "bad window path name \"" + args[3] + "\"");
+
+      setStringResult("0");
+    }
+    else
+      return tk_->wrongNumArgs("wm stackorder window ?isabove|isbelow window?");
   }
   else if (arg == "state") {
     if (numArgs < 2 || numArgs > 3)
@@ -6000,7 +6593,7 @@ run(const Args &args)
         setStringResult("normal");
     }
     else {
-      auto state = args[2].toString();
+      auto state = tk_->variantToString(args[2]);
 
       if      (state == "normal") {
         w->getQWidget()->showNormal();
@@ -6017,27 +6610,42 @@ run(const Args &args)
     }
   }
   else if (arg == "title") {
-    if (numArgs == 3) {
-      auto title = args[2].toString();
-
-      w->setTitle(title);
-    }
-    else {
+    if      (numArgs == 2) {
       const auto &title = w->getTitle();
 
       setStringResult(title);
     }
+    else if (numArgs == 2) {
+      auto title = tk_->variantToString(args[2]);
+
+      w->setTitle(title);
+    }
+    else
+      return tk_->wrongNumArgs("wm title window ?newTitle?");
   }
   else if (arg == "transient") {
-    if (numArgs != 3)
-      return false;
+    if      (numArgs == 2) {
+      auto fullName = w->wmTransientFor();
 
-    auto *pw = tk_->lookupWidgetByName(args[2]);
-    if (! pw) return false;
+      setStringResult(fullName);
+    }
+    else if (numArgs == 3) {
+      if (tk_->variantIsValid(args[2])) {
+        auto *pw = tk_->lookupWidgetByName(args[2]);
+        if (! pw) return tk_->throwError(tk_->msg() + "bad window path name \"" + args[2] + "\"");
 
-    w->setWmTransientFor(pw ? pw->getFullName() : "");
+        w->setWmTransientFor(pw->getFullName());
+      }
+      else
+        w->setWmTransientFor("");
+    }
+    else
+      return tk_->wrongNumArgs("wm transient window ?master?");
   }
   else if (arg == "withdraw") {
+    if (numArgs != 2)
+      return tk_->wrongNumArgs("wm withdraw window");
+
     w->hide();
   }
 
@@ -6051,30 +6659,30 @@ CTkAppRootCommand(CTkApp *tk) :
  CTkAppOptsCommand(tk, ".")
 {
   static CTkAppOpt opts[] = {
-    { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "0"        },
-    { "-class"              , "class"              , "Class"              , "Toplevel" },
-    { "-menu"               , "menu"               , "Menu"               , ""         },
-    { "-relief"             , "relief"             , "Relief"             , "flat"     },
-    { "-screen"             , "screen"             , "Screen"             , ""         },
-    { "-use"                , "use"                , "Use"                , ""         },
-    { "-background"         , "background"         , "Background"         , "#d9d9d9"  },
-    { "-colormap"           , "colormap"           , "Colormap"           , ""         },
-    { "-container"          , "container"          , "Container"          , "0"        },
-    { "-cursor"             , "cursor"             , "Cursor"             , ""         },
-    { "-height"             , "height"             , "Height"             , "0"        },
-    { "-highlightbackground", "highlightBackground", "HighlightBackground", "#d9d9d9"  },
-    { "-highlightcolor"     , "highlightColor"     , "HighlightColor"     , "#000000"  },
-    { "-highlightthickness" , "highlightThickness" , "HighlightThickness" , "0"        },
-    { "-padx"               , "padX"               , "Pad"                , "0"        },
-    { "-pady"               , "padY"               , "Pad"                , "0"        },
-    { "-takefocus"          , "takeFocus"          , "TakeFocus"          , "0"        },
-    { "-visual"             , "visual"             , "Visual"             , ""         },
-    { "-width"              , "width"              , "Width"              , "0"        },
+    {"-borderwidth"        , "borderWidth"        , "BorderWidth"        , "0"        },
+    {"-class"              , "class"              , "Class"              , "Toplevel" },
+    {"-menu"               , "menu"               , "Menu"               , ""         },
+    {"-relief"             , "relief"             , "Relief"             , "flat"     },
+    {"-screen"             , "screen"             , "Screen"             , ""         },
+    {"-use"                , "use"                , "Use"                , ""         },
+    {"-background"         , "background"         , "Background"         , "#d9d9d9"  },
+    {"-colormap"           , "colormap"           , "Colormap"           , ""         },
+    {"-container"          , "container"          , "Container"          , "0"        },
+    {"-cursor"             , "cursor"             , "Cursor"             , ""         },
+    {"-height"             , "height"             , "Height"             , "0"        },
+    {"-highlightbackground", "highlightBackground", "HighlightBackground", "#d9d9d9"  },
+    {"-highlightcolor"     , "highlightColor"     , "HighlightColor"     , "#000000"  },
+    {"-highlightthickness" , "highlightThickness" , "HighlightThickness" , "0"        },
+    {"-padx"               , "padX"               , "Pad"                , "0"        },
+    {"-pady"               , "padY"               , "Pad"                , "0"        },
+    {"-takefocus"          , "takeFocus"          , "TakeFocus"          , "0"        },
+    {"-visual"             , "visual"             , "Visual"             , ""         },
+    {"-width"              , "width"              , "Width"              , "0"        },
 
-    { "-bg", "-background" , nullptr, nullptr },
-    { "-bd", "-borderwidth", nullptr, nullptr },
+    CTkAppOpt::optSynonym("-bd", "-borderwidth"),
+    CTkAppOpt::optSynonym("-bg", "-background" ),
 
-    { nullptr, nullptr, nullptr, nullptr }
+    CTkAppOpt::optEnd()
   };
 
   opts_.init(opts);
@@ -6099,7 +6707,7 @@ run(const Args &args)
     return false;
 
   // set config name/value
-  if      (arg == "configure") {
+  if      (arg == "configure" || arg == "config") {
     return execConfigure(args);
   }
   // get config name/value
@@ -6232,515 +6840,12 @@ setOptValue(const QString &name, const QVariant &value)
   return true;
 }
 
-//---
-
-CTkAppImageCommand::
-CTkAppImageCommand(CTkApp *app, const QString &name, const QString &type) :
- CTkAppCommand(app, name), type_(type)
-{
-}
-
-CTkAppImageCommand::
-~CTkAppImageCommand()
-{
-}
-
 bool
-CTkAppImageCommand::
-run(const Args &args)
+CTkAppWidgetCommand::
+setNameValue(const QString &name, const QVariant &value)
 {
-  tk_->debugCmd(name_, args);
-
-  uint numArgs = args.size();
-
-  if (numArgs < 1)
-    return tk_->wrongNumArgs(getName() + " option ?arg ...?");
-
-  auto image = tk_->getImage(getName());
-  assert(image);
-
-  static auto photoNames  =
-    std::vector<QString>({"blank", "cget", "configure", "copy", "data", "get", "put",
-                          "read", "redither", "transparency", "write"});
-  static auto bitmapNames = std::vector<QString>({"cget", "configure"});
-
-  QString option;
-  if (type_ == "photo") {
-    if (! tk_->lookupOptionName(photoNames, args[0], option))
-      return false;
-  }
-  else {
-    if (! tk_->lookupOptionName(bitmapNames, args[0], option))
-      return false;
-  }
-
-  if      (option == "blank") {
-    if (numArgs != 1)
-      return tk_->wrongNumArgs(getName() + " blank");
-
-    image->clear();
-  }
-  else if (option == "cget") {
-    if (numArgs < 2)
-      return tk_->wrongNumArgs(getName() + " cget option");
-
-    auto opt = args[1].toString();
-
-    if (type_ == "photo") {
-      if      (opt == "-data") {
-        tk_->setStringResult(image->getEncodedDataStr());
-      }
-      else if (opt == "-format") {
-        tk_->setStringResult(image->format());
-      }
-      else if (opt == "-file") {
-        tk_->setStringResult(image->filename());
-      }
-      else if (opt == "-gamma") {
-        tk_->setRealResult(image->gamma());
-      }
-      else if (opt == "-height") {
-        tk_->setIntegerResult(image->height());
-      }
-      else if (opt == "-palette") {
-        int r, g, b;
-        image->getColorBits(r, g, b);
-        tk_->setIntegerArrayResult({r, g, b});
-      }
-      else if (opt == "-width") {
-        tk_->setIntegerResult(image->width());
-      }
-      else
-        return false;
-    }
-    else {
-      if      (opt == "-background") {
-        tk_->setStringResult(image->background().name());
-      }
-      else if (opt == "-data") {
-        tk_->setStringResult(image->getBitmapStr());
-      }
-      else if (opt == "-file") {
-        tk_->setStringResult(image->filename());
-      }
-      else if (opt == "-foreground") {
-        tk_->setStringResult(image->foreground().name());
-      }
-      else if (opt == "-maskdata") {
-        tk_->setStringResult(image->getMaskBitmapStr());
-      }
-      else if (opt == "-maskfile") {
-        tk_->setStringResult(image->maskFilename());
-      }
-      else
-        return false;
-    }
-  }
-  else if (option == "configure") {
-    if      (numArgs == 1) {
-      QString res;
-
-      auto addData = [&](const QString &name, const QString &def, const QString &value) {
-        if (res != "")
-          res += " ";
-
-        res += "{" + name + " {} {} {" + def + "} {" + value + "}}";
-      };
-
-      if (type_ == "photo") {
-        int r, g, b;
-        image->getColorBits(r, g, b);
-
-        addData("-data"   , "" , image->getEncodedDataStr());
-        addData("-format" , "" , image->format());
-        addData("-file"   , "" , image->filename());
-        addData("-gamma"  , "1", QString::number(image->gamma()));
-        addData("-height" , "0", QString::number(image->height()));
-        addData("-palette", "" , QString("%1 %2 %3").arg(r).arg(g).arg(b));
-        addData("-width " , "0", QString::number(image->width()));
-      }
-      else {
-        addData("-background", "", image->background().name());
-        addData("-data"      , "", image->getBitmapStr());
-        addData("-file"      , "", image->filename());
-        addData("-foreground", "", image->foreground().name());
-        addData("-maskdata"  , "", image->getMaskBitmapStr());
-        addData("-maskfile"  , "", image->maskFilename());
-      }
-
-      tk_->setStringResult(res);
-    }
-    else if (numArgs == 2) {
-      auto name = args[1].toString();
-
-      QString res;
-
-      if (type_ == "photo") {
-        int r, g, b;
-        image->getColorBits(r, g, b);
-
-        if (name == "-data"   ) res = image->getEncodedDataStr();
-        if (name == "-format" ) res = image->format();
-        if (name == "-file"   ) res = image->filename();
-        if (name == "-gamma"  ) res = QString::number(image->gamma());
-        if (name == "-height" ) res = QString::number(image->height());
-        if (name == "-palette") res = QString("%1 %2 %3").arg(r).arg(g).arg(b);
-        if (name == "-width " ) res = QString::number(image->width());
-      }
-      else {
-        if (name == "-background") res = image->background().name();
-        if (name == "-data"      ) res = image->getBitmapStr();
-        if (name == "-file"      ) res = image->filename();
-        if (name == "-foreground") res = image->foreground().name();
-        if (name == "-maskdata"  ) res = image->getMaskBitmapStr();
-        if (name == "-maskfile"  ) res = image->maskFilename();
-      }
-
-      tk_->setStringResult(res);
-    }
-    else {
-      uint i = 1;
-
-      for ( ; i < numArgs; ++i) {
-        auto name = args[i++].toString();
-
-        if (i >= numArgs)
-          return tk_->throwError("value for \"" + name + "\" missing");
-
-        auto value = tk_->variantToString(args[i]);
-
-        if (type_ == "photo") {
-          if      (name == "-data") {
-            auto data = value.toStdString();
-            image->loadEncodedData("", "", data);
-          }
-          else if (name == "-format") {
-            image->setFormat(value);
-          }
-          else if (name == "-file") {
-            image->setFilename(value);
-          }
-          else if (name == "-gamma") {
-            double r;
-            if (! tk_->variantToReal(args[i], r))
-              return tk_->throwError(tk_->msg() + "expected real but got \"" + args[i] + "\"");
-            image->setGamma(r);
-          }
-          else if (name == "-height") {
-            long h;
-            if (! tk_->variantToInt(args[i], h))
-              return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
-            image->setHeight(h);
-          }
-          else if (name == "-palette") {
-            std::vector<QString> strs;
-            if (! tk_->splitList(value, strs))
-              return false;
-            if (strs.size() != 1 && strs.size() != 3)
-              return false;
-            long r, g, b;
-            if (strs.size() == 1) {
-              if (! CTkAppUtil::stringToInt(strs[0], g))
-                return false;
-              r = g;
-              b = g;
-            }
-            else {
-              if (! CTkAppUtil::stringToInt(strs[0], r) ||
-                  ! CTkAppUtil::stringToInt(strs[1], g) ||
-                  ! CTkAppUtil::stringToInt(strs[2], b))
-                return false;
-            }
-            image->setColorBits(r, g, b);
-          }
-          else if (name == "-width") {
-            long w;
-            if (! tk_->variantToInt(args[i], w))
-              return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
-            image->setWidth(w);
-          }
-          else
-            return false;
-        }
-        else {
-          if      (name == "-background") {
-            QColor c;
-            if (! CTkAppUtil::variantToQColor(tk_, args[i], c))
-              return false;
-            image->setBackground(c);
-          }
-          else if (name == "-data") {
-            auto data = value.toStdString();
-            if (! image->loadXBM("bitmap", data))
-              return false;
-          }
-          else if (name == "-file") {
-            image->setFilename(value);
-          }
-          else if (name == "-foreground") {
-            QColor c;
-            if (! CTkAppUtil::variantToQColor(tk_, args[i], c))
-              return false;
-            image->setForeground(c);
-          }
-          else if (name == "-maskdata") {
-            auto data = value.toStdString();
-            if (! image->loadMaskXBM("mask", data))
-              return false;
-          }
-          else if (name == "-maskfile") {
-            image->setMaskFilename(value);
-          }
-        }
-      }
-    }
-  }
-  else if (option == "copy") {
-    if (numArgs < 3)
-      return tk_->wrongNumArgs(getName() +
-        " copy source-image ?-compositingrule rule? "
-        "?-from x1 y1 x2 y2? ?-to x1 y1 x2 y2? ?-zoom x y? ?-subsample x y?");
-
-    tk_->TODO(args);
-  }
-  else if (option == "data") {
-    tk_->TODO(args);
-  }
-  else if (option == "get") {
-    if (numArgs != 3)
-      return tk_->wrongNumArgs(getName() + " get x y");
-
-    long x;
-    if (! tk_->variantToInt(args[1], x))
-      return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[1] + "\"");
-
-    long y;
-    if (! tk_->variantToInt(args[2], y))
-      return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[2] + "\"");
-
-    QColor c;
-    if (! image->getPixel(x, y, c))
-      return tk_->throwError("invalid position");
-
-    tk_->setIntegerArrayResult({c.red(), c.green(), c.blue()});
-  }
-  else if (option == "put") {
-    if (numArgs < 2)
-      return tk_->wrongNumArgs(getName() + " put data ?-option value ...?");
-
-    auto data = args[1].toString();
-
-    QColor c;
-    if (image->isColor()) {
-      (void) CTkAppUtil::variantToQColor(tk_, args[1], c);
-    }
-    else {
-      bool b;
-      tk_->variantToBool(data, b);
-      c = (b ? Qt::white : Qt::black);
-    }
-
-    uint i = 2;
-
-    for ( ; i < numArgs; ++i) {
-      if      (args[i] == "-format") {
-        ++i;
-        tk_->TODO(args);
-      }
-      else if (args[i] == "-to") {
-        ++i;
-
-        long x1;
-        if (i >= numArgs || ! tk_->variantToInt(args[i], x1))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
-
-        ++i;
-
-        long y1;
-        if (i >= numArgs || ! tk_->variantToInt(args[i], y1))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
-
-        if (i < numArgs) {
-          ++i;
-
-          long x2;
-          if (i >= numArgs || ! tk_->variantToInt(args[i], x2))
-            return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
-
-          ++i;
-
-          long y2;
-          if (i >= numArgs || ! tk_->variantToInt(args[i], y2))
-            return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
-
-          image->setPixels(x1, y1, x2, y2, c);
-        }
-        else
-          image->setPixel(x1, y1, c);
-      }
-    }
-  }
-  else if (option == "read") {
-    if (numArgs < 2)
-      return tk_->wrongNumArgs(getName() + " read fileName ?-option value ...?");
-
-    auto filename = args[1].toString();
-
-    uint i = 2;
-
-    for ( ; i < numArgs; ++i) {
-      if      (args[i] == "-format") {
-        ++i;
-        tk_->TODO(args);
-      }
-      else if (args[i] == "-from") {
-        long x1;
-        if (i >= numArgs || ! tk_->variantToInt(args[i], x1))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
-
-        ++i;
-
-        long y1;
-        if (i >= numArgs || ! tk_->variantToInt(args[i], y1))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
-
-        ++i;
-
-        long x2;
-        if (i >= numArgs || ! tk_->variantToInt(args[i], x2))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
-
-        ++i;
-
-        long y2;
-        if (i >= numArgs || ! tk_->variantToInt(args[i], y2))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
-      }
-      else if (args[i] == "-to") {
-        long x1;
-        if (i >= numArgs || ! tk_->variantToInt(args[i], x1))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
-
-        ++i;
-
-        long y1;
-        if (i >= numArgs || ! tk_->variantToInt(args[i], y1))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
-
-        ++i;
-      }
-      else if (args[i] == "-shrink") {
-        tk_->TODO(args);
-      }
-    }
-
-    if (! image->loadFile(filename))
-      return false;
-  }
-  else if (option == "redither") {
-    if (numArgs != 1)
-      return tk_->wrongNumArgs(getName() + " redither");
-
-    tk_->TODO(args);
-  }
-  else if (option == "transparency") {
-    if (numArgs < 2)
-      return tk_->wrongNumArgs(getName() + " transparency option ?arg ...?");
-
-    if      (args[1] == "get") {
-      if (numArgs != 4)
-        return tk_->wrongNumArgs(getName() + " transparency get x y");
-
-      long x;
-      if (! tk_->variantToInt(args[1], x))
-        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[1] + "\"");
-
-      long y;
-      if (! tk_->variantToInt(args[2], y))
-        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[2] + "\"");
-
-      QColor c;
-      if (! image->getPixel(x, y, c))
-        return tk_->throwError("invalid position");
-
-      tk_->setBoolResult(c.alpha() < 255);
-    }
-    else if (args[1] == "set") {
-      if (numArgs != 5)
-        return tk_->wrongNumArgs(getName() + " transparency set x y boolean");
-
-      long x;
-      if (! tk_->variantToInt(args[1], x))
-        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[1] + "\"");
-
-      long y;
-      if (! tk_->variantToInt(args[2], y))
-        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[2] + "\"");
-
-      bool b;
-      if (! tk_->variantToBool(args[3], b))
-        return tk_->throwError(tk_->msg() + "expected boolean but got \"" + args[3] + "\"");
-
-      QColor c;
-      if (! image->getPixel(x, y, c))
-        return tk_->throwError("invalid position");
-
-      c.setAlpha(b ? 0 : 255);
-
-      image->setPixel(x, y, c);
-    }
-    else
-      return false;
-  }
-  else if (option == "write") {
-    if (numArgs < 2)
-      return tk_->wrongNumArgs(getName() + " write fileName ?-option value ...?");
-
-    auto filename = args[1].toString();
-
-    uint i = 2;
-
-    for ( ; i < numArgs; ++i) {
-      if      (args[i] == "-background") {
-        ++i;
-        tk_->TODO(args);
-      }
-      else if (args[i] == "-format") {
-        ++i;
-        tk_->TODO(args);
-      }
-      else if (args[i] == "-from") {
-        long x1;
-        if (i >= numArgs || ! tk_->variantToInt(args[i], x1))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
-
-        ++i;
-
-        long y1;
-        if (i >= numArgs || ! tk_->variantToInt(args[i], y1))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
-
-        ++i;
-
-        long x2;
-        if (i >= numArgs || ! tk_->variantToInt(args[i], x2))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
-
-        ++i;
-
-        long y2;
-        if (i >= numArgs || ! tk_->variantToInt(args[i], y2))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
-      }
-      else if (args[i] == "-grayscale") {
-        tk_->TODO(args);
-      }
-    }
-
-    tk_->TODO(args);
-  }
-
-  return true;
+  const CTkAppOpt *opt;
+  return opts_.setOptValue(name, value, &opt);
 }
 
 //---
@@ -6757,7 +6862,7 @@ run(const Args &args)
   if (numArgs < 1)
     return tk_->wrongNumArgs(getName() + " opt ?-option value ...?");
 
-  auto opt = args[0].toString();
+  auto opt = tk_->variantToString(args[0]);
 
   auto mname = tk_->newMatrixName();
 
@@ -6916,18 +7021,28 @@ CTkAppOptsCommand(CTkApp *tk, const QString &name) :
 
 bool
 CTkAppOptsCommand::
-execCGet(const Args &args)
+getNameValue(const Args &args, QString &name, QVariant &value)
 {
   uint numArgs = args.size();
 
   if (numArgs != 2)
     return tk_->wrongNumArgs(getName() + " cget option");
 
-  auto name = tk_->variantToString(args[1]);
+  name = tk_->variantToString(args[1]);
 
-  QVariant value;
   if (! getOptValue(name, value))
-    return tk_->throwError("unknown cget option \"" + name + "\"");
+    return tk_->throwError("unknown option \"" + name + "\"");
+
+  return true;
+}
+
+bool
+CTkAppOptsCommand::
+execCGet(const Args &args)
+{
+  QString name; QVariant value;
+  if (! getNameValue(args, name, value))
+    return false;
 
   setResult(value);
 
@@ -6950,20 +7065,28 @@ execConfigure(const Args &args)
   else if (numArgs == 2) {
     auto name = tk_->variantToString(args[1]);
 
-    auto var = opts_.getOptVar(name);
+    QVariant var;
+    if (! opts_.getOptVar(name, var))
+      return tk_->throwError("unknown option \"" + name + "\"");
 
     tk_->setResult(var);
   }
   // set option
   else {
-    for (uint i = 1; i < numArgs - 1; i += 2) {
-      auto name  = tk_->variantToString(args[i]);
-      auto value = args[i + 1];
+    uint i = 1;
 
-      if (! setOptValue(name, value)) {
+    while (i < numArgs) {
+      auto name = tk_->variantToString(args[i]);
+
+      if (i + 1 >= numArgs)
+        return tk_->throwError("value for \"" + name + "\" missing");
+
+      if (! setOptValue(name, args[i + 1])) {
         //return tk_->throwError("unknown config option \"" + name + "\"");
         return false;
       }
+
+      i += 2;
     }
   }
 

@@ -164,7 +164,7 @@ setIntegerArrayResult(int *values, int num_values)
   for (int i = 0; i < num_values; ++i)
     vars.push_back(values[i]);
 
-  CQTclUtil::setResult(app_->interp_, vars);
+  setVariantListResult(vars);
 }
 
 void
@@ -176,7 +176,7 @@ setIntegerArrayResult(const std::vector<int> &values)
   for (const auto &value : values)
     vars.push_back(value);
 
-  CQTclUtil::setResult(app_->interp_, vars);
+  setVariantListResult(vars);
 }
 
 void
@@ -200,7 +200,7 @@ setRealArrayResult(double *values, int num_values)
   for (int i = 0; i < num_values; ++i)
     vars.push_back(values[i]);
 
-  CQTclUtil::setResult(app_->interp_, vars);
+  setVariantListResult(vars);
 }
 
 void
@@ -212,7 +212,7 @@ setRealArrayResult(const std::vector<double> &values)
   for (const auto &value : values)
     vars.push_back(value);
 
-  CQTclUtil::setResult(app_->interp_, vars);
+  setVariantListResult(vars);
 }
 
 void
@@ -224,6 +224,25 @@ setStringArrayResult(const std::vector<QString> &values)
   for (const auto &value : values)
     vars.push_back(value);
 
+  setVariantListResult(vars);
+}
+
+void
+CTclApp::
+setVariantArrayResult(const std::vector<QVariant> &vars)
+{
+  QVariantList vars1;
+
+  for (const auto &var : vars)
+    vars1.push_back(var);
+
+  setVariantListResult(vars1);
+}
+
+void
+CTclApp::
+setVariantListResult(const QVariantList &vars)
+{
   CQTclUtil::setResult(app_->interp_, vars);
 }
 
@@ -367,28 +386,30 @@ hasGlobalVar(const QString &name) const
   return CQTclUtil::hasGlobalVar(app_->interp_, name);
 }
 
-int
+bool
 CTclApp::
-getIntegerGlobalVar(const QString &name) const
+getIntegerGlobalVar(const QString &name, long &i) const
 {
   auto var = getGlobalVar(name);
 
-  long i = 0;
-  (void) CTkAppUtil::variantToInt(app_, var, i);
+  i = 0;
+  if (! CTkAppUtil::variantToInt(app_, var, i))
+    return false;
 
-  return i;
+  return true;
 }
 
-double
+bool
 CTclApp::
-getRealGlobalVar(const QString &name) const
+getRealGlobalVar(const QString &name, double &r) const
 {
   auto var = getGlobalVar(name);
 
-  double r = 0.0;
-  (void) CTkAppUtil::variantToReal(app_, var, r);
+  r = 0.0;
+  if (! CTkAppUtil::variantToReal(app_, var, r))
+    return false;
 
-  return r;
+  return true;
 }
 
 bool
@@ -437,6 +458,15 @@ getStringArrayGlobalVar(const QString &name, std::vector<QString> &strs) const
 }
 
 //---
+
+bool
+CTclApp::
+splitList(const QVariant &var, std::vector<QString> &strs) const
+{
+  // TODO: handle list variant
+  auto str = CTkAppUtil::variantToString(app_, var);
+  return splitList(str, strs);
+}
 
 bool
 CTclApp::
@@ -680,13 +710,14 @@ CTclApp::
 handleTrace(const char *name, int flags)
 {
   // ignore unset called on trace destruction
-  if (flags & TCL_TRACE_UNSETS) return;
+//if (flags & TCL_TRACE_UNSETS)
+//  return;
 
   bool handled = false;
 
   if (flags & TCL_TRACE_READS ) { handleRead (name); handled = true; }
   if (flags & TCL_TRACE_WRITES) { handleWrite(name); handled = true; }
-//if (flags & TCL_TRACE_UNSETS) { handleUnset(name); handled = true; }
+  if (flags & TCL_TRACE_UNSETS) { handleUnset(name); handled = true; }
 
   assert(handled);
 }
@@ -696,12 +727,17 @@ CTclApp::
 traceProc(ClientData data, Tcl_Interp *, const char *name1, const char *, int flags)
 {
   // ignore unset called on trace destruction
-  if (flags & TCL_TRACE_UNSETS) return nullptr;
+//if (flags & TCL_TRACE_UNSETS)
+//  return nullptr;
 
   auto *th = static_cast<CTclApp *>(data);
   assert(th);
 
   auto pn = th->traceProcs_.find(name1);
+
+  if (name1[0] == ':' && name1[1] == ':')
+    pn = th->traceProcs_.find(&name1[2]);
+
   //assert(pn != th->traceProcs_.end());
   if (pn == th->traceProcs_.end()) {
     std::cerr << "Failed to find trace proc '" << name1 << "'\n";
@@ -716,7 +752,7 @@ traceProc(ClientData data, Tcl_Interp *, const char *name1, const char *, int fl
 
     if (flags & TCL_TRACE_READS ) { proc->handleRead (name1); handled = true; }
     if (flags & TCL_TRACE_WRITES) { proc->handleWrite(name1); handled = true; }
-  //if (flags & TCL_TRACE_UNSETS) { proc->handleUnset(name1); handled = true; }
+    if (flags & TCL_TRACE_UNSETS) { proc->handleUnset(name1); handled = true; }
 
     assert(handled);
   }
@@ -750,14 +786,12 @@ handleWrite(const char *name)
   std::cerr << "CTclApp::handleWrite " << name << "\n";
 }
 
-#if 0
 void
 CTclApp::
 handleUnset(const char *name)
 {
   std::cerr << "CTcl::handleUnset " << name << "\n";
 }
-#endif
 
 //---
 

@@ -1,7 +1,7 @@
 #ifndef CTkWidget_H
 #define CTkWidget_H
 
-#include <CTkAppWidget.h>
+#include <CTkAppTopLevel.h>
 
 class CTkApp;
 

@@ -9,6 +9,7 @@ enum class CTkAppEventType {
   Key,
   Enter,
   Leave,
+  Destroy,
   Expose,
   Virtual,
 };

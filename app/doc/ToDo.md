@@ -1,3 +1,7 @@
++ checkbutton radiobutton custom widgets for sizing in icons
+
++ varianle lifetime on assign
+
 + init widget from default
 
 + use QString instead of std::string

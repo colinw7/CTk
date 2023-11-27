@@ -1,8 +1,11 @@
 #include <CTkApp.h>
 #include <CTkAppWidget.h>
+#include <CTkAppRoot.h>
+#include <CTkAppTopLevel.h>
 #include <CTkAppImage.h>
 #include <CTkAppFont.h>
 #include <CTkAppCommands.h>
+#include <CTkAppImageCommand.h>
 #include <CTkAppEventData.h>
 #include <CTkAppUtil.h>
 #include <CTkAppDebug.h>
@@ -119,6 +122,8 @@ int s_eventEventProc(Tcl_Event * /*evPtr*/, int flags) {
 
   s_app->purgeWidgets();
 
+  s_app->showToplevels();
+
   return 1;
 }
 
@@ -138,7 +143,8 @@ void s_eventCheckProc(ClientData /*clientData*/, int flags) {
     return;
 
   if (! QThread::currentThread()->eventDispatcher()->hasPendingEvents() &&
-      ! s_app->numRemoveWidgets())
+      ! s_app->numDeleteWidgets() &&
+      ! s_app->numShowToplevels())
     return;
 
   auto *event = reinterpret_cast<Tcl_Event *>(Tcl_Alloc(sizeof(Tcl_Event)));
@@ -185,6 +191,9 @@ construct(int argc, const char **argv)
 
   tclInit();
 
+  Tcl_CreateNamespace(getInterp(), "::tk"       , nullptr, nullptr);
+  Tcl_CreateNamespace(getInterp(), "::tk::icons", nullptr, nullptr);
+
   Tcl_StaticPackage(getInterp(), "Tk", CTkApp_Init, CTkApp_SafeInit);
 
   Tcl_PkgProvide(getInterp(), "Tk", "8.0");
@@ -210,6 +219,8 @@ construct(int argc, const char **argv)
   setStringGlobalVar("tk_version", QString("8.6"));
   setStringGlobalVar("tk_library", QString("/usr/share/tcltk/tk8.6"));
   setStringGlobalVar("tk_patchLevel", QString("8.6.12"));
+
+  eval("proc ::tk::icons::IconBadge {win badgenumber} { }");
 
   //---
 
@@ -287,13 +298,7 @@ void
 CTkApp::
 timerSlot()
 {
-  for (auto *toplevel : toplevels_) {
-    if (toplevel->isNeedsShow()) {
-      toplevel->setNeedsShow(false);
-
-      toplevel->show();
-    }
-  }
+  showToplevels();
 
   Tcl_DoOneEvent(TCL_ALL_EVENTS);
 }
@@ -359,14 +364,51 @@ CTkApp::
 show()
 {
   if (toplevels_.empty())
-    root_->show();
-  else {
-    for (auto *toplevel : toplevels_) {
-      if (toplevel->isNeedsShow()) {
-        toplevel->setNeedsShow(false);
+    root_->setNeedsShow(true);
 
-        toplevel->show();
-      }
+  showToplevels();
+}
+
+int
+CTkApp::
+numShowToplevels() const
+{
+  int n = 0;
+
+  if (root_->isNeedsShow())
+    ++n;
+
+  for (const auto &toplevel : toplevels_) {
+    if (! toplevel || toplevel->isDeleted())
+      continue;
+
+    if (toplevel->isNeedsShow())
+      ++n;
+  }
+
+  return n;
+}
+
+void
+CTkApp::
+showToplevels()
+{
+  if (root_->isNeedsShow()) {
+    root_->setNeedsShow(false);
+
+    root_->show();
+  }
+
+  for (const auto &toplevel : toplevels_) {
+    if (! toplevel || toplevel->isDeleted())
+      continue;
+
+    if (toplevel->isNeedsShow()) {
+      toplevel->setNeedsShow(false);
+
+      toplevel->show();
+
+      processEvents();
     }
   }
 }
@@ -384,14 +426,14 @@ lookupWidgetByName(const QVariant &widgetName, bool quiet) const
   QString       childName;
 
   if (! root_->decodeWidgetName(widgetName, &parent, childName)) {
-    if (! quiet) throwError(msg() + "Invalid name '" + widgetName + "'");
+    if (! quiet) throwError(msg() + "bad window path name \"" + widgetName + "\"");
     return nullptr;
   }
 
   auto *child = parent->getChild(childName);
 
   if (child == nullptr) {
-    if (! quiet) throwError("bad window path name \"" + childName + "\"");
+    if (! quiet) throwError(msg() + "bad window path name \"" + widgetName + "\"");
     return nullptr;
   }
 
@@ -584,6 +626,20 @@ getBitmapNames(std::vector<QString> &names) const
 {
   for (const auto &pi : bitmaps_)
     names.push_back(pi.first);
+}
+
+//---
+
+CTkAppImageCommand *
+CTkApp::
+addImageCommand(const QString &name, const QString &type)
+{
+  auto pi = imageCommands_.find(name);
+
+  if (pi == imageCommands_.end())
+    pi = imageCommands_.emplace_hint(pi, name, new CTkAppImageCommand(this, name, type));
+
+  return (*pi).second;
 }
 
 //---
@@ -1060,7 +1116,10 @@ CTkAppWidget *
 CTkApp::
 lookupWidget(QWidget *w) const
 {
-  for (auto *tw : widgets_) {
+  for (const auto &tw : widgets_) {
+    if (! tw || tw->isDeleted())
+      continue;
+
     if (tw->getQWidget() == w)
       return tw;
   }
@@ -1068,14 +1127,52 @@ lookupWidget(QWidget *w) const
   return nullptr;
 }
 
-//---
-
-uint
+CTkAppWidget *
 CTkApp::
-numRemoveWidgets() const
+lookupWidgetId(ulong id) const
 {
-  return widgets_.size();
+  for (const auto &tw : widgets_) {
+    if (! tw || tw->isDeleted())
+      continue;
+
+    if (tw->getQWidget()->winId() == id)
+      return tw;
+  }
+
+  return nullptr;
 }
+
+CTkAppWidget *
+CTkApp::
+getWidgetAt(long x, long y) const
+{
+  using Widgets      = std::vector<CTkAppWidget *>;
+  using DepthWidgets = std::map<int, Widgets>;
+
+  DepthWidgets depthWidgets;
+
+  auto p = QPoint(x, y);
+
+  for (const auto &tw : widgets_) {
+    if (! tw || tw->isDeleted())
+      continue;
+
+    auto rect = tw->getQWidget()->rect();
+    auto tl   = tw->getQWidget()->mapToGlobal(rect.topLeft());
+
+    auto r = QRect(tl.x(), tl.y(), rect.width(), rect.height());
+
+    if (r.contains(p))
+      depthWidgets[tw->parentDepth()].push_back(tw);
+  }
+
+  if (depthWidgets.empty())
+    return nullptr;
+
+  return (*depthWidgets.rbegin()).second.front();
+}
+
+//---
 
 void
 CTkApp::
@@ -1085,6 +1182,19 @@ removeWidget(CTkAppWidget *w)
 
   if (p != widgets_.end())
     widgets_.erase(p);
+
+  if (w->isTopLevel()) {
+    auto *topWidget = qobject_cast<CTkAppTopLevel *>(w);
+
+    removeTopLevel(topWidget);
+  }
+}
+
+uint
+CTkApp::
+numDeleteWidgets() const
+{
+  return deleteWidgets_.size();
 }
 
 void
@@ -1116,6 +1226,8 @@ purgeWidgets()
     if (deleteWidgets[i])
       delete deleteWidgets[i];
   }
+
+  deleteWidgets_.clear();
 }
 
 //---
@@ -1287,6 +1399,16 @@ parseEvent(const QVariant &var, CTkAppEventData &data)
       }
 
       return false;
+    }
+    else if (parse.isString("Destroy")) {
+      parse.skipLastString();
+
+      data.type = CTkAppEventType::Destroy;
+
+      if (! parseClose('>'))
+        return false;
+
+      return true;
     }
     else if (parse.isString("Expose")) {
       parse.skipLastString();
@@ -1788,8 +1910,12 @@ lookupName(const QString &msg, const std::vector<QString> &names,
 
     for (uint i = 0; i < n; ++i) {
       if (i > 0) {
-        if (i == n - 1)
-          str += ", or ";
+        if (i == n - 1) {
+          if (n > 2)
+            str += ",";
+
+          str += " or ";
+        }
         else
           str += ", ";
       }
@@ -1859,7 +1985,10 @@ void
 CTkApp::
 setWmGroup(CTkAppWidget *group, CTkAppWidget *child)
 {
-  wmGroups_[group] = child;
+  if (child)
+    wmGroups_[group] = child;
+  else
+    wmGroups_.erase(group);
 }
 
 void
@@ -1898,9 +2027,28 @@ getScaling() const
 
 bool
 CTkApp::
-variantToDistance(const QVariant &var, double &r) const
+variantIsValid(const QVariant &var) const
 {
-  return CTkAppUtil::variantToDistance(const_cast<CTkApp *>(this), var, r);
+  QString str;
+
+  if (var.isValid())
+    str = variantToString(var);
+
+  return (str != "");
+}
+
+bool
+CTkApp::
+variantToDistance(const QVariant &var, Distance &d) const
+{
+  return CTkAppUtil::variantToDistance(const_cast<CTkApp *>(this), var, d);
+}
+
+bool
+CTkApp::
+variantToDistanceI(const QVariant &var, Distance &d) const
+{
+  return CTkAppUtil::variantToDistanceI(const_cast<CTkApp *>(this), var, d);
 }
 
 bool
@@ -1931,6 +2079,53 @@ variantToString(const QVariant &var) const
   return CTkAppUtil::variantToString(const_cast<CTkApp *>(this), var);
 }
 
+//--
+
+QVariant
+CTkApp::
+boolToVariant(bool b) const
+{
+  return QVariant(b);
+}
+
+QVariant
+CTkApp::
+intToVariant(long i) const
+{
+  return QVariant(int(i));
+}
+
+QVariant
+CTkApp::
+realToVariant(double r) const
+{
+  return QVariant(r);
+}
+
+QVariant
+CTkApp::
+colorToVariant(const QColor &c) const
+{
+  return QVariant(c.name());
+}
+
+QVariant
+CTkApp::
+fontToVariant(const QFont &f) const
+{
+  return QVariant(f.toString());
+}
+
+QVariant
+CTkApp::
+imageToVariant(const CTkAppImageRef &image) const
+{
+  if (image)
+    return QVariant(image->name());
+  else
+    return "";
+}
+
 //---
 
 bool
@@ -1945,6 +2140,20 @@ wrongNumArgs(const QString &msg) const
   Tcl_SetObjResult(getInterp(), sobj);
 
   return false;
+}
+
+bool
+CTkApp::
+invalidInteger(const QVariant &var) const
+{
+  return throwError(msg() + "expected integer but got \"" + var + "\"");
+}
+
+bool
+CTkApp::
+invalidReal(const QVariant &var) const
+{
+  return throwError(msg() + "expected floating-point number but got \"" + var + "\"");
 }
 
 bool
@@ -1985,7 +2194,7 @@ bool
 CTkApp::
 TODO(const Msg &msg) const
 {
-  return TODO(msg.str());;
+  return TODO(msg.str());
 }
 
 bool

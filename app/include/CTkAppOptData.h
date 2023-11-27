@@ -25,7 +25,7 @@ class CTkAppOptData {
   const CTkAppOpt *opt(const QString &name) const;
 
   QVariant getOptsVar() const;
-  QVariant getOptVar(const QString &name) const;
+  bool getOptVar(const QString &name, QVariant &var) const;
 
   void getNames(std::vector<QString> &names, bool alias=true) const;
 

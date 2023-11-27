@@ -164,14 +164,17 @@ class CQRealSlider : public CQSliderBase {
 
   //---
 
+  int valueToPos(double v) const override;
+  double posToValue(int pos) const;
+
+  //---
+
   QSize sizeHint() const override;
 
  private:
   void init();
 
   void paintEvent(QPaintEvent *) override;
-
-  int valueToPos(double v) const override;
 
   int valueWidthToPos(double v, int width) const;
 

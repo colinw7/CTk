@@ -14,10 +14,10 @@ EQ            = =
 
 CC            = @echo compiling $< && gcc
 CXX           = @echo compiling $< && g++
-DEFINES       = -DQT_SVG_LIB -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB
+DEFINES       = -DQT_SVG_LIB -DQT_WIDGETS_LIB -DQT_X11EXTRAS_LIB -DQT_GUI_LIB -DQT_CORE_LIB
 CFLAGS        = -pipe -g -Wall -Wextra -D_REENTRANT -fPIC $(DEFINES)
 CXXFLAGS      = -pipe -std=c++14 -g -Wall -Wextra -D_REENTRANT -fPIC $(DEFINES)
-INCPATH       = -I. -I. -I../include -I../../../CQApp/include -I../../../CQUtil/include -I../../../CFont/include -I../../../CImageLib/include -I../../../CReadLine/include -I../../../CFileUtil/include -I../../../CFile/include -I../../../CArgs/include -I../../../COS/include -I../../../CUtil/include -I../../../CMath/include -I../../../CStrUtil/include -I../../../CRegExp/include -I../../../CRGBName/include -I../../../CCSS/include -I../../../CXML/include -I/usr/include/tcl -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtSvg -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I.moc -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++
+INCPATH       = -I. -I. -I../include -I../../../CQApp/include -I../../../CQUtil/include -I../../../CFont/include -I../../../CImageLib/include -I../../../CReadLine/include -I../../../CFileUtil/include -I../../../CFile/include -I../../../CArgs/include -I../../../COS/include -I../../../CUtil/include -I../../../CMath/include -I../../../CStrUtil/include -I../../../CRegExp/include -I../../../CRGBName/include -I../../../CCSS/include -I../../../CXML/include -I/usr/include/tcl -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtSvg -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtX11Extras -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I.moc -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++
 QMAKE         = /usr/lib/qt5/bin/qmake
 DEL_FILE      = rm -f
 CHK_DIR_EXISTS= test -d
@@ -39,8 +39,8 @@ COMPRESS      = gzip -9f
 DISTNAME      = CTkTest1.0.0
 DISTDIR = /home/colinw/git/CTk/app/obj/CTkTest1.0.0
 LINK          = @echo linking $@ && g++
-LFLAGS        = 
-LIBS          = $(SUBLIBS) -L../lib -L../../../CQPropertyView/lib -L../../../CQUtil/lib -L../../../CCommand/lib -L../../../CArgs/lib -L../../../CReadLine/lib -L../../../CFont/lib -L../../../CUtil/lib -L../../../CImageLib/lib -L../../../CConfig/lib -L../../../CMath/lib -L../../../CFileUtil/lib -L../../../CFile/lib -L../../../CTimer/lib -L../../../CGlob/lib -L../../../COS/lib -L../../../CStrUtil/lib -L../../../CRegExp/lib -L../../../CRGBName/lib -lCTkApp -lCQPropertyView -lCQUtil -lCReadLine -lCConfig -lCUtil -lCCommand -lCArgs -lCImageLib -lCFont -lCTimer -lCGlob -lCMath -lCRGBName -lCFileUtil -lCFile -lCOS -lCStrUtil -lCRegExp -lpng -ljpeg -ltre -lreadline -lncurses -ltk -ltcl /usr/lib/x86_64-linux-gnu/libQt5Svg.so /usr/lib/x86_64-linux-gnu/libQt5Widgets.so /usr/lib/x86_64-linux-gnu/libQt5Gui.so /usr/lib/x86_64-linux-gnu/libQt5Core.so -lGL -lpthread   
+LFLAGS        = -Wl,-rpath-link,/usr/lib/x86_64-linux-gnu
+LIBS          = $(SUBLIBS) -L../lib -L../../../CQPropertyView/lib -L../../../CQUtil/lib -L../../../CCommand/lib -L../../../CArgs/lib -L../../../CReadLine/lib -L../../../CFont/lib -L../../../CUtil/lib -L../../../CImageLib/lib -L../../../CConfig/lib -L../../../CMath/lib -L../../../CFileUtil/lib -L../../../CFile/lib -L../../../CTimer/lib -L../../../CGlob/lib -L../../../COS/lib -L../../../CStrUtil/lib -L../../../CRegExp/lib -L../../../CRGBName/lib -lCTkApp -lCQPropertyView -lCQUtil -lCReadLine -lCConfig -lCUtil -lCCommand -lCArgs -lCImageLib -lCFont -lCTimer -lCGlob -lCMath -lCRGBName -lCFileUtil -lCFile -lCOS -lCStrUtil -lCRegExp -lpng -ljpeg -ltre -lreadline -lncurses -ltk -ltcl -lX11 /usr/lib/x86_64-linux-gnu/libQt5Svg.so /usr/lib/x86_64-linux-gnu/libQt5Widgets.so /usr/lib/x86_64-linux-gnu/libQt5X11Extras.so /usr/lib/x86_64-linux-gnu/libQt5Gui.so /usr/lib/x86_64-linux-gnu/libQt5Core.so -lGL -lpthread   
 AR            = ar cqs
 RANLIB        = 
 SED           = sed
@@ -413,6 +413,7 @@ compiler_clean: compiler_moc_predefs_clean
 		../include/CTkAppOptionValue.h \
 		../include/CTkAppEventData.h \
 		../include/CTkAppTypes.h \
+		../include/CTkAppUtil.h \
 		../include/CTclApp.h \
 		../../../CMath/include/CMatrix2D.h \
 		../../../CMath/include/CPoint2D.h \

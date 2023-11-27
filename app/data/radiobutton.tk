@@ -1,8 +1,11 @@
 labelframe .lbl -text "Steps:"
 
-radiobutton .c1 -text Lights  -variable lights
-radiobutton .c2 -text Cameras -variable cameras
-radiobutton .c3 -text Action! -variable action
+radiobutton .c1 -text Lights  -variable lights \
+  -command {puts $::lights; set ::lights [expr {1 - $::lights}]; puts $::lights}
+radiobutton .c2 -text Cameras -variable cameras \
+  -command {puts $::cameras; set ::cameras [expr {1 - $::cameras}]; puts $::cameras}
+radiobutton .c3 -text Action! -variable action \
+  -command {puts $::action; set ::action [expr {1 - $::action}]; puts $::action}
 
 pack .c1 .c2 .c3 -in .lbl
 

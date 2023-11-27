@@ -37,6 +37,7 @@ class CTclTraceProc {
 
   virtual void handleRead (const char *) { }
   virtual void handleWrite(const char *) { }
+  virtual void handleUnset(const char *) { }
 
   bool isEnabled() const { return enabled_; }
   void setEnabled(bool b) { enabled_ = b; }
@@ -80,6 +81,9 @@ class CTclApp {
   void setRealArrayResult   (double *values, int num_values);
   void setRealArrayResult   (const std::vector<double> &values);
   void setStringArrayResult (const std::vector<QString> &strs);
+  void setVariantArrayResult(const std::vector<QVariant> &vars);
+
+  void setVariantListResult(const QVariantList &vars);
 
   //---
 
@@ -107,8 +111,8 @@ class CTclApp {
 
   bool hasGlobalVar(const QString &name) const;
 
-  int      getIntegerGlobalVar(const QString &name) const;
-  double   getRealGlobalVar   (const QString &name) const;
+  bool     getIntegerGlobalVar(const QString &name, long &i) const;
+  bool     getRealGlobalVar   (const QString &name, double &r) const;
   QString  getStringGlobalVar (const QString &name) const;
   bool     getBoolGlobalVar   (const QString &name) const;
   QVariant getGlobalVar       (const QString &name) const;
@@ -117,6 +121,7 @@ class CTclApp {
 
   //---
 
+  bool splitList(const QVariant &var, std::vector<QString> &strs) const;
   bool splitList(const QString &str, std::vector<QString> &strs) const;
 
   QString mergeList(const std::vector<QString> &strs) const;
@@ -137,11 +142,9 @@ class CTclApp {
   static char *genTraceProc(ClientData data, Tcl_Interp *,
                             const char *name1, const char *, int flags);
 
-  virtual void handleRead(const char *name);
+  virtual void handleRead (const char *name);
   virtual void handleWrite(const char *name);
-#if 0
   virtual void handleUnset(const char *name);
-#endif
 
   int createAlias(const QString &newName, const QString &oldName);
 

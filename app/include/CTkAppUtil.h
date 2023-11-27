@@ -48,7 +48,33 @@ struct CTkAppTextInd {
 
 //---
 
+enum class CTkAppUnits {
+  NONE,
+  CM,  // Centimeters
+  MM,  // Millimeters
+  IN,  // Inches
+  PT   // Points
+};
+
+struct CTkAppDistance {
+  using Units = CTkAppUnits;
+
+  CTkAppDistance() { }
+
+  Units  units  { Units::NONE };
+  double r      { 0.0 };
+  long   i      { 0 };
+  bool   isReal { true };
+  double f      { 1.0 };
+  double rvalue { 0.0 };
+  long   ivalue { 0 };
+};
+
+//---
+
 namespace CTkAppUtil {
+
+using Distance = CTkAppDistance;
 
 enum { END_INDEX=INT_MAX };
 
@@ -72,8 +98,8 @@ QString capStyleToString(const Qt::PenCapStyle &capStyle);
 bool variantToFillRule(CTclApp *app, const QVariant &var, Qt::FillRule &fillRule);
 QString fillRuleToString(const Qt::FillRule &fillRule);
 
-bool variantToDistance (CTclApp *app, const QVariant &var, double &r);
-bool variantToDistanceI(CTclApp *app, const QVariant &var, long &i);
+bool variantToDistance (CTclApp *app, const QVariant &var, Distance &d);
+bool variantToDistanceI(CTclApp *app, const QVariant &var, Distance &d);
 
 bool variantToInt (CTclApp *app, const QVariant &var, long &i);
 bool variantToReal(CTclApp *app, const QVariant &var, double &r);
@@ -92,7 +118,7 @@ void setFrameRelief(QWidget *w, const CTkAppWidgetRelief &relief);
 
 bool variantToState(CTkApp *app, const QVariant &var, CTkAppWidgetState &state);
 
-bool stringToJustify(const QString &value, Qt::Alignment &align);
+bool variantToJustify(const QVariant &value, Qt::Alignment &align);
 
 QString underlineLabel(const QString &label, long pos);
 

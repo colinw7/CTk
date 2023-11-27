@@ -77,10 +77,36 @@ struct CTkAppOpt {
     return false;
   }
 
-  const char* name  { nullptr }; // option name
-  const char* dname { nullptr }; // database name (or alias name)
-  const char* cname { nullptr }; // class name    (null if alias)
-  const char* def   { nullptr }; // default value (null if alias)
+  const char*    name  { nullptr }; // option name
+  const char*    dname { nullptr }; // database name (or alias name)
+  const char*    cname { nullptr }; // class name    (null if alias)
+  const char*    def   { nullptr }; // default value (null if alias)
+  QVariant::Type type  { QVariant::Invalid };
+
+  static CTkAppOpt optBool(const char* name, const char* dname, const char* cname, bool def) {
+    return CTkAppOpt { name, dname, cname, (def ? "1" : "0"), QVariant::Bool };
+  }
+  static CTkAppOpt optInt(const char* name, const char* dname, const char* cname, const char *def) {
+    return CTkAppOpt { name, dname, cname, def, QVariant::Int };
+  }
+  static CTkAppOpt optReal(const char* name, const char* dname, const char* cname, const char *def) {
+    return CTkAppOpt { name, dname, cname, def, QVariant::Double };
+  }
+  static CTkAppOpt optString(const char* name, const char* dname, const char* cname, const char *def) {
+    return CTkAppOpt { name, dname, cname, def, QVariant::String };
+  }
+  static CTkAppOpt optColor(const char* name, const char* dname, const char* cname, const char *def) {
+    return CTkAppOpt { name, dname, cname, def, QVariant::Color };
+  }
+  static CTkAppOpt optCursor(const char* name, const char* dname, const char* cname, const char *def) {
+    return CTkAppOpt { name, dname, cname, def, QVariant::Cursor };
+  }
+  static CTkAppOpt optSynonym(const char* name, const char* dname) {
+    return CTkAppOpt { name, dname, nullptr, nullptr, QVariant::Invalid };
+  }
+  static CTkAppOpt optEnd() {
+    return CTkAppOpt { nullptr, nullptr, nullptr, nullptr, QVariant::Invalid };
+  }
 };
 
 #endif

@@ -4,6 +4,7 @@
 #include <CTkAppOptionValue.h>
 #include <CTkAppEventData.h>
 #include <CTkAppTypes.h>
+#include <CTkAppUtil.h>
 
 #include <CTclApp.h>
 #include <CMatrix2D.h>
@@ -25,6 +26,7 @@ class CTkAppFont;
 class CTkAppTopLevelWidget;
 class CTkAppCursorMgr;
 class CTkAppCursor;
+class CTkAppImageCommand;
 
 using CTkAppImageRef = std::shared_ptr<CTkAppImage>;
 using CTkAppFontRef  = std::shared_ptr<CTkAppFont>;
@@ -66,7 +68,9 @@ class CTkApp : public QObject, public CTclApp {
 
   using Args = std::vector<QVariant>;
 
-  using WidgetSet = std::set<CTkAppWidget *>;
+  using WidgetP   = QPointer<CTkAppWidget>;
+  using WidgetSet = std::set<WidgetP>;
+  using Distance  = CTkAppDistance;
 
  public:
   explicit CTkApp(Tcl_Interp *interp, const QString &context="");
@@ -105,6 +109,9 @@ class CTkApp : public QObject, public CTclApp {
   void processEvents();
 
   void show();
+  void showToplevels();
+
+  int numShowToplevels() const;
 
   //---
 
@@ -132,6 +139,10 @@ class CTkApp : public QObject, public CTclApp {
   void addBitmap(const QString &name, CTkAppImageRef &image);
 
   void getBitmapNames(std::vector<QString> &names) const;
+
+  //---
+
+  CTkAppImageCommand *addImageCommand(const QString &name, const QString &type);
 
   //---
 
@@ -211,14 +222,17 @@ class CTkApp : public QObject, public CTclApp {
   int addWidget(CTkAppWidget *w);
 
   CTkAppWidget *lookupWidget(QWidget *w) const;
+  CTkAppWidget *lookupWidgetId(ulong id) const;
+
+  CTkAppWidget *getWidgetAt(long x, long y) const;
 
   const WidgetSet &widgets() const { return widgets_; }
 
   //---
 
-  uint numRemoveWidgets() const;
-
   void removeWidget(CTkAppWidget *w);
+
+  uint numDeleteWidgets() const;
 
   void addDeleteWidget(CTkAppWidget *w);
 
@@ -306,7 +320,10 @@ class CTkApp : public QObject, public CTclApp {
 
   //---
 
-  bool variantToDistance(const QVariant &var, double &r) const;
+  bool variantIsValid(const QVariant &var) const;
+
+  bool variantToDistance (const QVariant &var, Distance &r) const;
+  bool variantToDistanceI(const QVariant &var, Distance &r) const;
 
   bool variantToInt (const QVariant &var, long &i) const;
   bool variantToReal(const QVariant &var, double &r) const;
@@ -316,9 +333,21 @@ class CTkApp : public QObject, public CTclApp {
 
   //---
 
+  QVariant boolToVariant(bool b) const;
+  QVariant intToVariant(long i) const;
+  QVariant realToVariant(double r) const;
+  QVariant colorToVariant(const QColor &c) const;
+  QVariant fontToVariant(const QFont &f) const;
+  QVariant imageToVariant(const CTkAppImageRef &image) const;
+
+  //---
+
   Msg msg() const { return Msg(this); }
 
   bool wrongNumArgs(const QString &msg) const;
+
+  bool invalidInteger(const QVariant &var) const;
+  bool invalidReal   (const QVariant &var) const;
 
   bool throwError(const Msg &msg) const;
   bool throwError(const QString &msg) const;
@@ -348,14 +377,15 @@ class CTkApp : public QObject, public CTclApp {
   using WidgetClasses    = std::set<QString>;
   using ImageMap         = std::map<QString, CTkAppImageRef>;
   using FontMap          = std::map<QString, CTkAppFontRef>;
-  using TopLevelArray    = std::vector<CTkAppTopLevel *>;
-  using TopLevelSet      = std::set<CTkAppTopLevel *>;
+  using TopLevelP        = QPointer<CTkAppTopLevel>;
+  using TopLevelArray    = std::vector<TopLevelP>;
+  using TopLevelSet      = std::set<TopLevelP>;
   using EventDatas       = std::vector<CTkAppEventData>;
   using ClassEventDatas  = std::map<QString, EventDatas>;
   using TagEventDatas    = std::map<QString, EventDatas>;
-  using WidgetP          = QPointer<CTkAppWidget>;
   using WidgetArray      = std::vector<WidgetP>;
   using VirtualEventData = std::map<CTkAppVirtualEventData, EventDatas>;
+  using ImageCommands    = std::map<QString, CTkAppImageCommand *>;
 
   //--
 
@@ -433,6 +463,8 @@ class CTkApp : public QObject, public CTclApp {
   WmGrid wmGrid_;
 
   CTkAppCursorMgr *cursorMgr_ { nullptr };
+
+  ImageCommands imageCommands_;
 };
 
 #endif
