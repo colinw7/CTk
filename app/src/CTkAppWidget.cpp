@@ -23,6 +23,9 @@ CTkAppWidget::
 CTkAppWidget(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
  tk_(tk), parent_(parent), name_(name)
 {
+  if (getenv("CTK_APP_DEBUG_WIDGET"))
+    std::cerr << "Create widget " << name.toStdString() << "\n";
+
   if      (parent_) {
     setParent(parent->getQWidget());
 
@@ -42,6 +45,9 @@ CTkAppWidget(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
 CTkAppWidget::
 ~CTkAppWidget()
 {
+  if (getenv("CTK_APP_DEBUG_WIDGET"))
+    std::cerr << "Delete widget " << name_.toStdString() << "\n";
+
   if (deleteWindowCmd() != "")
     tk_->eval(deleteWindowCmd());
 
@@ -659,15 +665,18 @@ execConfig(const QString &name, const QVariant &var)
     setCompoundType(compoundType);
   }
   else if (name == "-cursor") {
-    auto value = tk_->variantToString(var);
+    CTkAppCursorData cursorData;
 
-    if (value != "") {
-      auto *cursor = tk_->getCursor(value);
+    if (tk_->variantIsValid(var)) {
+      if (! tk_->variantToCursor(var, cursorData))
+        return tk_->throwError(tk_->msg() + "bad cursor spec \"" + var + "\"");
+
+      auto *cursor = tk_->getCursor(cursorData.name);
       if (! cursor)
-        return tk_->throwError("bad cursor spec \"" + value + "\"");
+        return tk_->throwError(tk_->msg() + "bad cursor spec \"" + var + "\"");
     }
 
-    setCursor(value);
+    setCursor(cursorData);
   }
   else if (name == "-disabledbackground") {
     QColor c;
@@ -1122,9 +1131,9 @@ setImage(const QString &s)
 
 bool
 CTkAppWidget::
-setCursor(const QString &s)
+setCursor(const CTkAppCursorData &c)
 {
-  cursor_ = s;
+  cursor_ = c;
 
   //auto c = CTkAppUtil::stringToCursor(s);
   //qwidget_->setCursor(c);
@@ -1325,6 +1334,7 @@ void
 CTkAppWidget::
 processEvents(QEvent *e, const CTkAppEventData &matchEventData)
 {
+  // apply x11/qt event to widget event handlers
   for (const auto &eventData : eventDatas_) {
     if (eventData == matchEventData) {
       tk_->execEvent(this, e, matchEventData, eventData.command);
@@ -1343,12 +1353,75 @@ processVirtualEvents(const CTkAppEventData &matchEventData)
   }
 }
 
+void
+CTkAppWidget::
+generateEvent(const CTkAppEventData &eventData)
+{
+  if (! qwidget_)
+    return;
+
+  switch (eventData.type) {
+    case CTkAppEventType::Enter: {
+      QEnterEvent e(QPointF(0, 0), QPointF(0, 0), QPointF(0, 0));
+      QApplication::sendEvent(qwidget_, &e);
+      break;
+    }
+    case CTkAppEventType::Button: {
+      auto button  = static_cast<Qt::MouseButton >(eventData.button);
+      auto buttons = static_cast<Qt::MouseButtons>(eventData.button);
+
+      auto pos = QPointF(eventData.x, eventData.y);
+
+      Qt::KeyboardModifiers modifiers = Qt::NoModifier;
+
+      QEvent::Type type = QEvent::MouseButtonPress;
+
+      switch (eventData.mode) {
+        case CTkAppEventMode::Press  : type = QEvent::MouseButtonPress  ; break;
+        case CTkAppEventMode::Release: type = QEvent::MouseButtonRelease; break;
+        case CTkAppEventMode::Motion : type = QEvent::MouseMove         ; break;
+        default: {
+          std::cerr << "Unhandler mouse mode for CTkAppWidget::generateEvent\n";
+          break;
+        }
+      }
+
+      QMouseEvent e(type, pos, button, buttons, modifiers);
+      QApplication::sendEvent(qwidget_, &e);
+
+      break;
+    }
+    case CTkAppEventType::Key: {
+      Qt::KeyboardModifiers modifiers = Qt::NoModifier;
+
+      QKeyEvent e(QEvent::KeyPress, eventData.key, modifiers, eventData.keyStr);
+      QApplication::sendEvent(qwidget_, &e);
+
+      break;
+    }
+    default: {
+      std::cerr << "Unhandled type for CTkAppWidget::generateEvent\n";
+      break;
+    }
+  }
+}
+
 //---
 
 void
 CTkAppWidget::
 deleteLater()
 {
+  if (deleted_)
+    return;
+
+  //---
+
+  for (const auto &pc : children_)
+    pc.second->deleteLater();
+
+  //---
+
   destroySlot(this);
 
   //---
@@ -1357,7 +1430,10 @@ deleteLater()
 
   tk_->addDeleteWidget(this);
 
-  getWidgetCommand()->deleteCommand();
+  auto *command = getWidgetCommand();
+
+  if (command)
+    command->deleteCommand();
 }
 
 void

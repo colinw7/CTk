@@ -103,9 +103,12 @@ struct CTkAppEventData {
   CTkAppEventMode        mode        { CTkAppEventMode::None };
   bool                   anyButton   { false };
   int                    button      { 0 };
+  long                   x           { 0 };
+  long                   y           { 0 };
   int                    clicks      { 1 };
   bool                   anyKey      { false };
-  QString                key;
+  int                    key         { 0 };
+  QString                keyStr;
   bool                   anyModifier { false };
   uint                   modifiers   { 0 };
   QString                command;

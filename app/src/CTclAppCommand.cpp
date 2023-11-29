@@ -3,10 +3,15 @@
 
 #include <tcl.h>
 
+#include <iostream>
+
 CTclAppCommand::
 CTclAppCommand(CTclApp *app, const QString &name) :
  app_(app), name_(name)
 {
+  if (getenv("CTK_APP_DEBUG_CMDS"))
+    std::cerr << "Create command '" << name.toStdString() << "'\n";
+
   Tcl_CreateObjCommand(app_->getInterp(), name_.toLatin1().constData(),
                        static_cast<Tcl_ObjCmdProc *>(&CTclAppCommand::commandProc),
                        static_cast<ClientData>(this), nullptr);
@@ -35,6 +40,9 @@ CTclAppCommand::
 deleteCommand()
 {
   if (! cmdDeleted_) {
+    if (getenv("CTK_APP_DEBUG_CMDS"))
+      std::cerr << "Delete command '" << name_.toStdString() << "'\n";
+
     Tcl_DeleteCommand(app_->getInterp(), name_.toLatin1().constData());
 
     cmdDeleted_ = true;

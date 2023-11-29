@@ -4,6 +4,8 @@
 #include <CTkAppCommand.h>
 #include <CTkAppOptData.h>
 
+#include <QDialog>
+
 class CTkAppRoot;
 class CTkAppWidget;
 
@@ -117,6 +119,18 @@ class CTkWindowVisibleEventLoop : public QObject {
   CTclApp*    app_       { nullptr };
   QWidget*    w_         { nullptr };
   QEventLoop* eventLoop_ { nullptr };
+};
+
+//---
+
+class CTkDialog : public QDialog {
+  Q_OBJECT
+
+ public:
+  CTkDialog(QWidget *parent);
+
+ private Q_SLOTS:
+  void buttonSlot();
 };
 
 #endif

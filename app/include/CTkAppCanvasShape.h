@@ -71,12 +71,12 @@ class CTkAppCanvasShape : public QObject {
 
   enum class IndexType {
     NONE,
+    POS,
     END,
     INSERT,
     SEL_FIRST,
     SEL_LAST,
-    COORD,
-    POS
+    COORD
   };
 
   struct IndexData {
@@ -229,6 +229,10 @@ class CTkAppCanvasShape : public QObject {
 
   //---
 
+  virtual void updateRange() { }
+
+  //---
+
   virtual bool getPoints(Points &) const = 0;
   virtual bool setPoints(const Points &) { return false; }
 
@@ -255,17 +259,32 @@ class CTkAppCanvasShape : public QObject {
 
   //---
 
-  virtual bool parseIndex(const QString &str, IndexData &indexData) const;
+  virtual bool indexPos(const QString &ind, long &pos) const;
 
-  virtual bool indexPos(const QString & /*ind*/, long &pos) { pos = 0; return false; }
+  virtual bool insertChars(const QString &ind, const QString &str);
 
   virtual bool deleteChars(const QString &start, const QString &end);
 
   virtual bool replaceChars(const QString &start, const QString &end, const QString &str);
 
-  virtual void setInsertCursor(const QString &) { }
+  virtual bool setInsertCursor(const QString &ind);
+
+  virtual bool setSelectFrom(const QString &ind);
+  virtual bool setSelectTo  (const QString &ind);
+
+  virtual bool adjustSelect(const QString &ind);
+
+  virtual bool clearSelect();
+
+  virtual bool updateSelection() { return false; }
+
+  virtual bool parseIndex(const QString &str, IndexData &indexData) const;
+
+  virtual bool mapIndex(const IndexData &indexData, long &pos) const;
 
   //---
+
+  virtual bool getShapeDefault(const QString &name, QVariant &value) const;
 
   virtual bool getShapeOpt(const QString &name, QVariant &value) const;
   virtual bool setShapeOpt(const QString &name, const QVariant &value, bool &rc);
@@ -309,6 +328,11 @@ class CTkAppCanvasShape : public QObject {
 
   bool enabled_ { true };
   bool visible_ { true };
+
+  IndexData insertCursor_;
+
+  IndexData selectFrom_;
+  IndexData selectTo_;
 
   mutable QRectF drawRect_;
 };
@@ -441,11 +465,12 @@ class CTkAppCanvasBitmapShape : public CTkAppCanvasShape {
   //---
 
   const Point &pos() const { return p_; }
+  void setPos(const Point &p);
 
   //---
 
   const CTkAppImageRef &getImage() const { return image_; }
-  void setImage(const CTkAppImageRef &i) { image_ = i; }
+  void setImage(const CTkAppImageRef &i);
 
   const CTkAppImageRef &getActiveImage() const { return activeImage_; }
   void setActiveImage(const CTkAppImageRef &i) { activeImage_ = i; }
@@ -472,6 +497,10 @@ class CTkAppCanvasBitmapShape : public CTkAppCanvasShape {
 
   const QColor &disabledForeground() const { return disabledForeground_; }
   void setDisabledForeground(const QColor &c) { disabledForeground_ = c; }
+
+  //---
+
+  QRectF calcDrawRect() const;
 
   //---
 
@@ -650,15 +679,18 @@ class CTkAppCanvasImageShape : public CTkAppCanvasShape {
                                   const CTkAppImageRef &image);
 
   const Point &pos() const { return p_; }
+  void setPos(const Point &p);
 
   const CTkAppImageRef &getImage() const { return image_; }
-  void setImage(const CTkAppImageRef &i) { image_ = i; }
+  void setImage(const CTkAppImageRef &i);
 
   const CTkAppImageRef &getActiveImage() const { return activeImage_; }
   void setActiveImage(const CTkAppImageRef &i) { activeImage_ = i; }
 
   const CTkAppImageRef &getDisabledImage() const { return disabledImage_; }
   void setDisabledImage(const CTkAppImageRef &i) { disabledImage_ = i; }
+
+  //---
 
   QRectF rect() const override { return drawRect(); }
 
@@ -678,6 +710,10 @@ class CTkAppCanvasImageShape : public CTkAppCanvasShape {
     points.push_back(p_);
     return true;
   }
+
+  //---
+
+  QRectF calcDrawRect() const;
 
   //---
 
@@ -775,8 +811,6 @@ class CTkAppCanvasLineShape : public CTkAppCanvasShape {
     return true;
   }
 
-  bool addEndItem(const QString &item) override;
-
   const QPainterPath &qpath() const { return qpath_; }
 
   const QPainterPath &getQStrokePath() const { return qStrokePath_; }
@@ -788,6 +822,8 @@ class CTkAppCanvasLineShape : public CTkAppCanvasShape {
   bool setShapeOpt(const QString &name, const QVariant &value, bool &rc) override;
 
   //---
+
+  bool insertChars(const QString &ind, const QString &str) override;
 
   bool replaceChars(const QString &start, const QString &end, const QString &str) override;
 
@@ -1010,8 +1046,6 @@ class CTkAppCanvasPolygonShape : public CTkAppCanvasShape {
     return true;
   }
 
-  bool addEndItem(const QString &item) override;
-
   const QPainterPath &qpath() const { return qpath_; }
 
   //---
@@ -1020,6 +1054,8 @@ class CTkAppCanvasPolygonShape : public CTkAppCanvasShape {
   bool setShapeOpt(const QString &name, const QVariant &value, bool &rc) override;
 
   //---
+
+  bool insertChars(const QString &ind, const QString &str) override;
 
   bool deleteChars(const QString &start, const QString &end) override;
 
@@ -1101,13 +1137,18 @@ class CTkAppCanvasRectangleShape : public CTkAppCanvasShape {
   bool getPoints(Points &points) const override {
     points.push_back(p1_);
     points.push_back(p2_);
+
     return true;
   }
 
   bool setPoints(const Points &points) override {
     if (points.size() != 2) return false;
+
     p1_ = points[0];
     p2_ = points[1];
+
+    updatePaths();
+
     return true;
   }
 
@@ -1156,27 +1197,34 @@ class CTkAppCanvasTextShape : public CTkAppCanvasShape {
   explicit CTkAppCanvasTextShape(CTkAppCanvasWidget *canvas, const Point &p, const QString &text);
 
   const Point &pos() const { return p_; }
+  void setPos(const Point &p);
 
   const QString &getText() const { return text_; }
-  void setText(const QString &s) { text_ = s; }
+  void setText(const QString &s);
 
   double angle() const { return angle_; }
-  void setAngle(double r) { angle_ = r; }
+  void setAngle(double r);
 
   const QFont &font() const { return font_; }
-  void setFont(const QFont &f) { font_ = f; }
+  void setFont(const QFont &f);
 
   const Qt::Alignment &justify() const { return justify_; }
-  void setJustify(const Qt::Alignment &v) { justify_ = v; }
+  void setJustify(const Qt::Alignment &a);
 
   Qt::Alignment textAnchor() const { return textAnchor_; }
-  void setTextAnchor(const Qt::Alignment &textAnchor) { textAnchor_ = textAnchor; }
+  void setTextAnchor(const Qt::Alignment &textAnchor);
 
   int underLine() const { return underLine_; }
-  void setUnderLine(int i) { underLine_ = i; }
+  void setUnderLine(int i);
 
   double width() const { return width_; }
-  void setWidth(double r) { width_ = r; }
+  void setWidth(double r);
+
+  //---
+
+  QRectF calcRect() const;
+
+  QPointF calcPos() const;
 
   //---
 
@@ -1196,20 +1244,29 @@ class CTkAppCanvasTextShape : public CTkAppCanvasShape {
 
   bool getPoints(Points &points) const override {
     points.push_back(p_);
+
     return true;
   }
 
   bool setPoints(const Points &points) override {
     if (points.size() != 1) return false;
-    p_ = points[0];
+
+    setPos(points[0]);
+
     return true;
   }
 
   //---
 
+  bool insertChars(const QString &ind, const QString &str) override;
+
   bool deleteChars(const QString &start, const QString &end) override;
 
   bool replaceChars(const QString &start, const QString &end, const QString &str) override;
+
+  bool updateSelection() override;
+
+  bool mapIndex(const IndexData &indexData, long &pos) const override;
 
   //---
 
@@ -1233,7 +1290,10 @@ class CTkAppCanvasWindowShape : public CTkAppCanvasShape {
   Q_OBJECT
 
  public:
-  explicit CTkAppCanvasWindowShape(CTkAppCanvasWidget *canvas, double x, double y);
+  explicit CTkAppCanvasWindowShape(CTkAppCanvasWidget *canvas, const Point &p);
+
+  double x() const { return p_.x; }
+  double y() const { return p_.x; }
 
   double width() const { return width_; }
   void setWidth(double r) { width_ = r; }
@@ -1253,15 +1313,19 @@ class CTkAppCanvasWindowShape : public CTkAppCanvasShape {
   bool inside(const Point & /*p*/) const override { return false; }
 
   double distance(double x, double y) override {
-    return Point(x_, y_).distance(x, y);
+    return p_.distance(x, y);
   }
 
-  void moveBy(double dx, double dy) override {
-    x_ += dx; y_ += dy;
-  }
+  //---
+
+  void updateRange() override;
+
+  //---
+
+  void moveBy(double dx, double dy) override;
 
   bool getPoints(Points &points) const override {
-    points.push_back(Point(x_, y_));
+    points.push_back(p_);
     return true;
   }
 
@@ -1271,12 +1335,17 @@ class CTkAppCanvasWindowShape : public CTkAppCanvasShape {
   bool setShapeOpt(const QString &name, const QVariant &value, bool &rc) override;
 
  protected:
-  double x_ { 0.0 };
-  double y_ { 0.0 };
+  void updateWidget();
+
+ protected:
+  using WidgetP = QPointer<QWidget>;
+
+  Point p_;
 
   double  width_  { -1 };
   double  height_ { -1 };
   QString window_;
+  WidgetP widget_;
 };
 
 #endif

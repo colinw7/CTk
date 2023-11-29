@@ -162,7 +162,7 @@ class CTkAppWidget : public QObject {
 
   //---
 
-  virtual const char *getClassName() const = 0;
+  virtual const char *getClassName() const { return ""; }
 
   //---
 
@@ -240,8 +240,8 @@ class CTkAppWidget : public QObject {
   const CTkAppImageRef &getImageRef() const { return imageRef_; }
   virtual void setImageRef(const CTkAppImageRef &i);
 
-  const QString &cursor() const { return cursor_; }
-  bool setCursor(const QString &s);
+  const CTkAppCursorData &cursor() const { return cursor_; }
+  bool setCursor(const CTkAppCursorData &c);
 
   const CTkAppCompoundType &compoundType() const { return compoundType_; }
   void setCompoundType(const CTkAppCompoundType &v) { compoundType_ = v; }
@@ -475,6 +475,8 @@ class CTkAppWidget : public QObject {
   void processEvents(QEvent *e, const CTkAppEventData &matchEventData);
   void processVirtualEvents(const CTkAppEventData &matchEventData);
 
+  void generateEvent(const CTkAppEventData &eventData);
+
   //---
 
   virtual void appearanceChanged() { }
@@ -616,7 +618,7 @@ class CTkAppWidget : public QObject {
 
   bool gridWidget_ { false }; // is size based on number of grid cells (chars)
 
-  QString cursor_;
+  CTkAppCursorData cursor_;
 
   bool initNotify_ { false };
 

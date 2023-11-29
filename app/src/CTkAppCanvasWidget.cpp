@@ -154,9 +154,9 @@ addLine(const Points &points)
 
 CTkAppCanvasOvalShape *
 CTkAppCanvasWidget::
-addOval(double x1, double y1, double x2, double y2)
+addOval(const Point &p1, const Point &p2)
 {
-  auto *ovalShape = new Oval(this, x1, y1, x2, y2);
+  auto *ovalShape = new Oval(this, p1.x, p1.y, p2.x, p2.y);
 
   return static_cast<Oval *>(addShape(ovalShape));
 }
@@ -201,9 +201,9 @@ addText(const Point &pos, const QString &text)
 
 CTkAppCanvasWindowShape *
 CTkAppCanvasWidget::
-addWindow(double x, double y)
+addWindow(const Point &p)
 {
-  auto *windowShape = new Window(this, x, y);
+  auto *windowShape = new Window(this, p);
 
   return static_cast<Window *>(addShape(windowShape));
 }
@@ -221,13 +221,12 @@ getShapeBBox(const QString &name) const
   if (! getShapes(name, shapes))
     return bbox;
 
-  bool bboxSet = false;
-
   for (auto *shape : shapes) {
-    if (! bboxSet) {
-      bbox    = shape->rect();
-      bboxSet = true;
-    }
+    auto bbox1 = shape->rect();
+    if (bbox1.isNull()) continue;
+
+    if (bbox.isNull())
+      bbox = bbox1;
     else {
       bbox = bbox.united(shape->rect());
     }
@@ -236,27 +235,25 @@ getShapeBBox(const QString &name) const
   return bbox;
 }
 
-void
-CTkAppCanvasWidget::
-deleteAllShapes()
-{
-  for (auto *shape : shapes_)
-    delete shape;
-
-  shapes_.clear();
-}
-
 bool
 CTkAppCanvasWidget::
 deleteShape(const QString &name)
 {
-  Shapes shapes;
+  if (name == "all") {
+    for (auto *shape : shapes_)
+      delete shape;
 
-  if (! getShapes(name, shapes))
-    return false;
+    shapes_.clear();
+  }
+  else {
+    Shapes shapes;
 
-  for (auto *shape : shapes)
-    deleteShape(shape);
+    if (! getShapes(name, shapes))
+      return false;
+
+    for (auto *shape : shapes)
+      deleteShape(shape);
+  }
 
   return true;
 }
@@ -1109,6 +1106,9 @@ updateRange()
 
     displayRange_.setWindowRange(0, 0, width() - 1, height() - 1);
   }
+
+  for (auto *s : shapes_)
+    s->updateRange();
 }
 
 void
@@ -1231,25 +1231,10 @@ drawShape(QPainter *p, Shape *s)
 
       auto text = t->getText();
 
-      QFontMetricsF fm(p->font());
-      auto tw = fm.horizontalAdvance(text);
+      auto pt  = t->calcPos();
+      auto pt1 = windowToPixel(pt);
 
-      auto tx = t->pos().x;
-      auto ty = t->pos().y;
-
-      auto j = t->justify();
-
-      double dtx = 0.0, dty = 0.0;
-      if      (j & Qt::AlignLeft   ) { dtx = 0.0; }
-      else if (j & Qt::AlignHCenter) { dtx = -tw/2.0; }
-      else if (j & Qt::AlignRight  ) { dtx = -tw; }
-      if      (j & Qt::AlignTop    ) { dty = fm.ascent(); }
-      else if (j & Qt::AlignVCenter) { dty = (fm.ascent() - fm.descent())/2.0; }
-      else if (j & Qt::AlignBottom ) { dty = -fm.descent(); }
-
-      auto pt = windowToPixel(QPointF(tx + dtx, ty + dty));
-
-      p->drawText(pt, text);
+      p->drawText(pt1, text);
 
       break;
     }
@@ -1258,22 +1243,7 @@ drawShape(QPainter *p, Shape *s)
 
       auto qimage = i->getImage()->getQImage();
 
-      auto iw = qimage.width();
-      auto ih = qimage.height();
-
-      auto a = i->anchor();
-
-      double dtx = 0.0, dty = 0.0;
-      if      (a & Qt::AlignLeft   ) { dtx = 0.0; }
-      else if (a & Qt::AlignHCenter) { dtx = -iw/2.0; }
-      else if (a & Qt::AlignRight  ) { dtx = -iw; }
-      if      (a & Qt::AlignTop    ) { dty = 0.0; }
-      else if (a & Qt::AlignVCenter) { dty = -ih/2.0; }
-      else if (a & Qt::AlignBottom ) { dty = -ih; }
-
-      auto rect = QRectF(i->pos().x + dtx, i->pos().y + dty, iw, ih);
-
-      i->setDrawRect(rect);
+      auto rect = i->calcDrawRect();
 
       auto rect1 = windowToPixel(rect);
 
@@ -1286,14 +1256,11 @@ drawShape(QPainter *p, Shape *s)
 
       auto qimage = i->getImage()->getQImage();
 
-      auto iw = qimage.width();
-      auto ih = qimage.height();
+      auto rect = i->calcDrawRect();
 
-      auto rect = QRectF(i->pos().x, i->pos().y, iw, ih);
+      auto rect1 = windowToPixel(rect);
 
-      i->setDrawRect(rect);
-
-      p->drawImage(i->pos().x, i->pos().y, qimage);
+      p->drawImage(rect1, qimage);
 
       break;
     }

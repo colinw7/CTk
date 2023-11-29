@@ -31,12 +31,25 @@ class CTkAppImageCommand;
 using CTkAppImageRef = std::shared_ptr<CTkAppImage>;
 using CTkAppFontRef  = std::shared_ptr<CTkAppFont>;
 
+enum class CTkAppClipboard {
+  Clipboard,
+  Selection
+};
+
 class QFrame;
 class QWidget;
 class QEvent;
 class QKeyEvent;
 class QMouseEvent;
 class QTimer;
+
+struct CTkAppCursorData {
+  bool    isAt { false };
+  QString name;
+  QString maskName;
+  QString fgColor;
+  QString bgColor;
+};
 
 //---
 
@@ -68,9 +81,10 @@ class CTkApp : public QObject, public CTclApp {
 
   using Args = std::vector<QVariant>;
 
-  using WidgetP   = QPointer<CTkAppWidget>;
-  using WidgetSet = std::set<WidgetP>;
-  using Distance  = CTkAppDistance;
+  using WidgetP    = QPointer<CTkAppWidget>;
+  using WidgetSet  = std::set<WidgetP>;
+  using Distance   = CTkAppDistance;
+  using CursorData = CTkAppCursorData;
 
  public:
   explicit CTkApp(Tcl_Interp *interp, const QString &context="");
@@ -248,6 +262,8 @@ class CTkApp : public QObject, public CTclApp {
 
   bool parseEvent(const QVariant &var, CTkAppEventData &data);
 
+  int stringToKeySym(const QString &key) const;
+
   void addVirtualEventData(const CTkAppVirtualEventData &vdata, const CTkAppEventData &edata);
 
   void deleteAllVirtualEventData(const CTkAppVirtualEventData &vdata);
@@ -315,12 +331,19 @@ class CTkApp : public QObject, public CTclApp {
 
   //---
 
+  QString getClipboardText(CTkAppClipboard type) const;
+  void    setClipboardText(const QString &text, CTkAppClipboard type);
+
+  //---
+
   double getScaling() const;
   void setScaling(double r) { scaling_ = r; }
 
   //---
 
   bool variantIsValid(const QVariant &var) const;
+
+  bool variantToCursor(const QVariant &var, CursorData &c) const;
 
   bool variantToDistance (const QVariant &var, Distance &r) const;
   bool variantToDistanceI(const QVariant &var, Distance &r) const;

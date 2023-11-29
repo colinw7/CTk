@@ -45,7 +45,6 @@
 #include <CScreenUnits.h>
 
 #include <QApplication>
-#include <QClipboard>
 #include <QFontDatabase>
 #include <QMessageBox>
 #include <QFileDialog>
@@ -127,7 +126,7 @@ class CLASS : public DERIVED { \
   // support procs
 //CTkAppCommandDef("tk_bisque"           , CTkAppTkBisqueCmd)
 //CTkAppCommandDef("tk_chooseColor"      , CTkAppTkChooseColorCmd)
-//CTkAppCommandDef("tk_chooseDirectory"  , CTkAppTkChooseDirectoryCmd)
+  CTkAppCommandDef("tk_chooseDirectory"  , CTkAppTkChooseDirectoryCmd)
   CTkAppCommandDef("tk_dialog"           , CTkAppTkDialogCmd)
 //CTkAppCommandDef("tk_focusFollowsMouse", CTkAppTkFocusFollowsMouseCmd)
 //CTkAppCommandDef("tk_focusNext"        , CTkAppTkFocusNextCmd)
@@ -244,13 +243,14 @@ addCommands(CTkApp *tk)
   new CTkAppWInfoCmd      (tk);
   new CTkAppWmCmd         (tk);
 
-  new CTkAppTkDialogCmd     (tk);
-//new CTkAppTkErrorCmd      (tk);
-  new CTkAppTkGetOpenFileCmd(tk);
-  new CTkAppTkGetSaveFileCmd(tk);
-  new CTkAppTkMessageBoxCmd (tk);
-  new CTkAppTkPopupCmd      (tk);
-  new CTkAppTkWaitCmd       (tk);
+  new CTkAppTkChooseDirectoryCmd(tk);
+  new CTkAppTkDialogCmd         (tk);
+//new CTkAppTkErrorCmd          (tk);
+  new CTkAppTkGetOpenFileCmd    (tk);
+  new CTkAppTkGetSaveFileCmd    (tk);
+  new CTkAppTkMessageBoxCmd     (tk);
+  new CTkAppTkPopupCmd          (tk);
+  new CTkAppTkWaitCmd           (tk);
 
 #ifdef CTK_APP_TKPATH
   new CTkAppMatrixCmd           (tk);
@@ -870,8 +870,6 @@ run(const Args &args)
   if (! tk_->lookupOptionName(optionNames, args[0], opt))
     return false;
 
-  auto *clipboard = QApplication::clipboard();
-
   if      (opt == "clear") {
     uint i = 1;
 
@@ -900,7 +898,7 @@ run(const Args &args)
       return tk_->wrongNumArgs("clipboard append ?-displayof window? "
                                "?-format format? ?-type type? ?--? data");
 
-    clipboard->setText("", QClipboard::Clipboard);
+    tk_->setClipboardText("", CTkAppClipboard::Clipboard);
   }
   else if (opt == "append") {
     uint i = 1;
@@ -948,7 +946,8 @@ run(const Args &args)
     if (i >= numArgs)
       return tk_->wrongNumArgs("clipboard append ?-option value ...? data");
 
-    clipboard->setText(clipboard->text(QClipboard::Clipboard) + tk_->variantToString(args[i]));
+    tk_->setClipboardText(tk_->getClipboardText(CTkAppClipboard::Clipboard) +
+                          tk_->variantToString(args[i]), CTkAppClipboard::Clipboard);
   }
   else if (opt == "get") {
     uint i = 1;
@@ -985,7 +984,7 @@ run(const Args &args)
     if (i != numArgs)
       return tk_->wrongNumArgs("clipboard get ?-displayof window? ?-type type?");
 
-    setStringResult(clipboard->text(QClipboard::Clipboard));
+    setStringResult(tk_->getClipboardText(CTkAppClipboard::Clipboard));
   }
 
   return true;
@@ -1041,7 +1040,7 @@ run(const Args &args)
 
     CTkAppEventData edata;
     if (! tk_->parseEvent(args[2], edata))
-      (void) tk_->throwError(tk_->msg() + "bad event pattern \"" + args[2] + "\"");
+      return tk_->throwError(tk_->msg() + "bad event pattern \"" + args[2] + "\"");
 
     tk_->addVirtualEventData(vdata, edata);
   }
@@ -1059,7 +1058,7 @@ run(const Args &args)
       for (uint i = 2; i < numArgs; ++i) {
         CTkAppEventData edata;
         if (! tk_->parseEvent(args[i], edata))
-          (void) tk_->throwError(tk_->msg() + "bad event pattern \"" + args[i] + "\"");
+          return tk_->throwError(tk_->msg() + "bad event pattern \"" + args[i] + "\"");
 
         tk_->deleteVirtualEventData(vdata, edata);
       }
@@ -1074,9 +1073,43 @@ run(const Args &args)
 
     CTkAppEventData data;
     if (! tk_->parseEvent(args[2], data))
-      (void) tk_->throwError(tk_->msg() + "bad event pattern \"" + args[2] + "\"");
+      return tk_->throwError(tk_->msg() + "bad event pattern \"" + args[2] + "\"");
 
-    w->processEvents(nullptr, data);
+    uint i = 3;
+
+    while (i < numArgs) {
+      auto name = tk_->variantToString(args[i++]);
+
+      if (i >= numArgs)
+        return tk_->throwError(tk_->msg() + "missing option value");
+
+      if      (name == "-x") {
+        long x;
+        if (! tk_->variantToInt(args[i], x))
+          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
+
+        data.x = x;
+      }
+      else if (name == "-y") {
+        long y;
+        if (! tk_->variantToInt(args[i], y))
+          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
+
+        data.y = y;
+      }
+      else if (name == "-keysym") {
+        auto str = tk_->variantToString(args[i]);
+
+        data.key    = tk_->stringToKeySym(str);
+        data.keyStr = str;
+      }
+      else
+        return tk_->throwError(tk_->msg() + "bad option \"" + name + "\"");
+
+      ++i;
+    }
+
+    w->generateEvent(data);
   }
   else if (arg == "info") {
     if      (numArgs == 1) {
@@ -4021,8 +4054,6 @@ run(const Args &args)
   if (! tk_->lookupOptionName(optionNames, args[0], opt))
     return false;
 
-  auto *clipboard = QApplication::clipboard();
-
   if      (opt == "clear") {
     uint i = 1;
 
@@ -4060,7 +4091,7 @@ run(const Args &args)
       return tk_->wrongNumArgs("selection clear ?-displayof window? ?-selection selection?");
 
     // -displayof window
-    clipboard->setText("", QClipboard::Selection);
+    tk_->setClipboardText("", CTkAppClipboard::Selection);
   }
   else if (opt == "get") {
     uint i = 1;
@@ -4107,7 +4138,7 @@ run(const Args &args)
       return tk_->wrongNumArgs("selection get ?-displayof window? "
                                "?-selection selection? ?-type type?");
 
-    auto res = clipboard->text(QClipboard::Selection);
+    auto res = tk_->getClipboardText(CTkAppClipboard::Selection);
 
     setStringResult(res);
   }
@@ -4662,6 +4693,59 @@ run(const Args &args)
 //---
 
 bool
+CTkAppTkChooseDirectoryCmd::
+run(const Args &args)
+{
+  tk_->debugCmd(name_, args);
+
+  QWidget *parent = nullptr;
+
+  QString              dir;
+  QFileDialog::Options options;
+
+  options |= QFileDialog::ShowDirsOnly;
+
+  auto file = QFileDialog::getExistingDirectory(parent, "CHoose Directory", dir, options);
+
+  tk_->setStringResult(file);
+
+  return true;
+}
+
+//---
+
+namespace {
+
+static int s_CTkDialogButtonInd = -1;
+
+}
+
+CTkDialog::
+CTkDialog(QWidget *parent) :
+ QDialog(parent)
+{
+  setObjectName("dialog");
+
+  s_CTkDialogButtonInd = -1;
+}
+
+void
+CTkDialog::
+buttonSlot()
+{
+  auto *button = qobject_cast<QPushButton *>(sender());
+  if (! button) return;
+
+  bool ok;
+  s_CTkDialogButtonInd = button->property("ind").toInt(&ok);
+  if (! ok) s_CTkDialogButtonInd = -1;
+
+  close();
+}
+
+//---
+
+bool
 CTkAppTkDialogCmd::
 run(const Args &args)
 {
@@ -4669,8 +4753,8 @@ run(const Args &args)
 
   uint numArgs = args.size();
 
-  if (numArgs < 6)
-    return tk_->wrongNumArgs("tk_dialog w title text bitmap default *");
+  if (numArgs < 5)
+    return tk_->wrongNumArgs("tk_dialog w title text bitmap default ?arg ...?");
 
   uint i = 0;
 
@@ -4695,7 +4779,7 @@ run(const Args &args)
       return tk_->throwError(tk_->msg() + "bitmap \"" + bitmap + "\" not defined");
   }
 
-  long defInd;
+  long defInd = 0;
   if (! tk_->variantToInt(args[i++], defInd))
     return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i - 1] + "\"");
 
@@ -4707,47 +4791,92 @@ run(const Args &args)
     buttons.push_back(name);
   }
 
-  auto *dialog = new QDialog(root()->getQWidget());
+  auto *dialog = new CTkDialog(root()->getQWidget());
 
   dialog->setWindowTitle(title);
 
-  dialog->setProperty("ind", "");
+  auto *widget = new CTkAppWidget(tk_, parent, childName);
+  widget->setQWidget(dialog);
 
+  //---
+
+  // add label
   auto *layout = new QVBoxLayout(dialog);
 
-  auto *label = new QLabel; label->setText(text);
+  auto *llayout = new QHBoxLayout;
+  layout->addLayout(llayout);
 
-  layout->addWidget(label);
+  if (bitmapImage) {
+    auto *blabel  = new QLabel; blabel->setPixmap(bitmapImage->getQPixmap());
+    llayout->addWidget(blabel);
+  }
+
+  auto *label  = new QLabel; label->setText(text);
+  llayout->addWidget(label);
 
   auto *blayout = new QHBoxLayout;
-
   layout->addLayout(blayout);
 
+  // add buttons
   int buttonInd = 0;
+
+  std::vector<CTkAppWidget        *> buttonWidgets;
+  std::vector<CTkAppWidgetCommand *> buttonCmds;
 
   for (const auto &button : buttons) {
     auto *buttonw = new QPushButton;
 
     buttonw->setText(button);
-    buttonw->setProperty("ind", buttonInd++);
+    buttonw->setProperty("ind", buttonInd);
+
+    if (buttonInd == defInd)
+      buttonw->setDefault(true);
+
+    buttonw->connect(buttonw, SIGNAL(clicked()), dialog, SLOT(buttonSlot()));
+
+    auto buttonName    = QString("button%1").arg(buttonInd);
+    auto buttonCmdName = QString("%1.%2").arg(windowName).arg(buttonName);
+
+    auto *buttonWidget = new CTkAppWidget(tk_, widget, buttonName);
+    auto *buttonCmd    = new CTkAppWidgetCommand(this, buttonCmdName, buttonWidget, nullptr);
+
+    buttonWidget->setQWidget(buttonw);
+
+    buttonWidgets.push_back(buttonWidget);
+    buttonCmds   .push_back(buttonCmd);
 
     blayout->addWidget(buttonw);
 
-    buttonw->connect(buttonw, &QPushButton::clicked, [buttonw, dialog]() {
-      dialog->setProperty("ind", buttonw->property("ind")); dialog->close(); } );
+    buttonw->show();
+
+    ++buttonInd;
   }
 
   blayout->addStretch(1);
 
-  (void) dialog->exec();
+  //---
 
-  bool ok;
-  auto ind = dialog->property("ind").toInt(&ok);
-  if (! ok) ind = -1;
+  // show dialog
+  bool modal = true;
+  if (getenv("CTK_APP_NO_MODAL"))
+    modal = false;
 
-  delete dialog;
+  if (modal) {
+    (void) dialog->exec();
 
-  tk_->setIntegerResult(ind);
+  //delete dialog;
+
+  //for (auto *buttonWidget : buttonWidgets)
+  //  delete buttonWidget;
+
+  //delete widget;
+
+    widget->deleteLater();
+
+    tk_->setIntegerResult(s_CTkDialogButtonInd);
+  }
+  else
+    dialog->show();
 
   return true;
 }

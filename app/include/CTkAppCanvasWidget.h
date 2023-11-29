@@ -158,22 +158,20 @@ class CTkAppCanvasWidget : public QWidget {
 #endif
   Image*     addImage    (const Point &pos, const CTkAppImageRef &image=CTkAppImageRef());
   Line*      addLine     (const Points &points);
-  Oval*      addOval     (double x1, double y1, double x2, double y2);
+  Oval*      addOval     (const Point &p1, const Point &p2);
 #ifdef CTK_APP_TKPATH
   Path*      addPath     (const QString &pathStr, const QPainterPath &qpath);
 #endif
   Polygon*   addPolygon  (const Points &points);
   Rectangle* addRectangle(double x1, double y1, double x2, double y2);
   Text*      addText     (const Point &pos, const QString &text);
-  Window*    addWindow   (double x, double y);
+  Window*    addWindow   (const Point &p);
 
   //---
 
   uint nextShapeId() { return ++shapeId_; }
 
   QRectF getShapeBBox(const QString &name) const;
-
-  void deleteAllShapes();
 
   bool deleteShape(const QString &name);
   bool deleteShape(Shape *shape);

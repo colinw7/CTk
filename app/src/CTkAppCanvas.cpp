@@ -35,7 +35,7 @@ execConfig(const QString &name, const QVariant &var)
   }
   else if (name == "-height") {
     CTkAppDistance height;
-    if (! tk_->variantToDistance(var, height))
+    if (! tk_->variantToDistance(var, height) || height.rvalue < 0)
       return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
 
     setHeight(height.rvalue);
@@ -69,7 +69,7 @@ execConfig(const QString &name, const QVariant &var)
   }
   else if (name == "-width") {
     CTkAppDistance width;
-    if (! tk_->variantToDistance(var, width))
+    if (! tk_->variantToDistance(var, width) || width.rvalue < 0)
       return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
 
     setWidth(width.rvalue);
@@ -289,12 +289,17 @@ execOp(const Args &args)
       auto id = tk_->variantToString(args[1]);
 
       auto bbox1 = qcanvas_->getShapeBBox(id);
+      if (bbox1.isNull()) continue;
 
-      bbox = bbox.united(bbox1);
+      if (! bbox.isNull())
+        bbox = bbox.united(bbox1);
+      else
+        bbox = bbox1;
     }
 
-    tk_->setIntegerArrayResult({{ int(bbox.left()), int(bbox.top()),
-                                  int(bbox.right()), int(bbox.bottom()) }});
+    if (! bbox.isNull())
+      tk_->setIntegerArrayResult({{ int(bbox.left()), int(bbox.top()),
+                                    int(bbox.right()), int(bbox.bottom()) }});
   }
   else if (option == "bind") {
     if (numArgs < 2 || numArgs > 4)
@@ -412,7 +417,7 @@ execOp(const Args &args)
           break;
 
         if (i + 1 >= numArgs)
-          return false;
+          return tk_->throwError(tk_->msg() + "odd # coordinates");;
 
         auto yarg = tk_->variantToString(args[i + 1]);
 
@@ -574,16 +579,21 @@ execOp(const Args &args)
     else if (type == "bitmap") {
       uint i = 2;
 
-      if (i + 1 >= numArgs)
+      std::vector<QString> pointStrs;
+      if (! getPointStrs(i, pointStrs, 2) || pointStrs.empty())
         return tk_->wrongNumArgs(getFullName() + " create bitmap coords ?arg ...?");
 
-      CTkAppDistance x, y;
-      if (! variantToDistance(args[i], x) || ! variantToDistance(args[i + 1], y))
+      if (pointStrs.size() & 1)
+        return tk_->throwError(tk_->msg() + "wrong # coordinates: expected 2, got 1");
+
+      CTkAppCanvasWidget::Points points;
+      if (! strsToPoints(pointStrs, points))
         return false;
 
-      auto *bitmap = qcanvas_->addBitmap(CTkAppCanvasWidget::Point(x.rvalue, y.rvalue));
+      if (points.size() != 1)
+        return tk_->wrongNumArgs(getFullName() + " create bitmap coords ?arg ...?");
 
-      i += 2;
+      auto *bitmap = qcanvas_->addBitmap(points[0]);
 
       if (! processShapeOpts(bitmap, i))
         return false;
@@ -654,17 +664,27 @@ execOp(const Args &args)
       tk_->setIntegerResult(line->id());
     }
     else if (type == "oval") {
-      if (numArgs < 6)
+      if (numArgs < 3)
         return tk_->wrongNumArgs(getFullName() + " create oval coords ?arg ...?");
 
-      CTkAppDistance x1, y1, x2, y2;
-      if (! variantToDistance(args[2], x1) || ! variantToDistance(args[3], y1) ||
-          ! variantToDistance(args[4], x2) || ! variantToDistance(args[5], y2))
+      uint i = 2;
+
+      std::vector<QString> pointStrs;
+      if (! getPointStrs(i, pointStrs, 4) || pointStrs.empty())
+        return tk_->wrongNumArgs(getFullName() + " create oval coords ?arg ...?");
+
+      if (pointStrs.size() != 4)
+        return tk_->throwError(tk_->msg() + "wrong # coordinates: expected 4 got " +
+                               QString::number(pointStrs.size()));
+
+      CTkAppCanvasWidget::Points points;
+      if (! strsToPoints(pointStrs, points))
         return false;
 
-      auto *oval = qcanvas_->addOval(x1.rvalue, y1.rvalue, x2.rvalue, y2.rvalue);
+      if (points.size() != 2)
+        return tk_->wrongNumArgs(getFullName() + " create oval coords ?arg ...?");
 
-      uint i = 6;
+      auto *oval = qcanvas_->addOval(points[0], points[1]);
 
       if (! processShapeOpts(oval, i))
         return false;
@@ -792,18 +812,24 @@ execOp(const Args &args)
         return tk_->throwError("ptext supported without tkpath support");
 #endif
 
-      if (numArgs < 4)
+      if (numArgs < 3)
         return tk_->wrongNumArgs(getFullName() + " create text coords ?arg ...?");
 
-      CTkAppDistance x, y;
-      if (! variantToDistance(args[2], x) || ! variantToDistance(args[3], y))
+      uint i = 2;
+
+      std::vector<QString> pointStrs;
+      if (! getPointStrs(i, pointStrs, 2) || pointStrs.empty())
+        return tk_->wrongNumArgs(getFullName() + " create text coords ?arg ...?");
+
+      if (pointStrs.size() != 2)
+       return tk_->wrongNumArgs("wrong # coordinates: expected 2, got " +
+                                QString::number(pointStrs.size()));
+
+      CTkAppCanvasWidget::Points points;
+      if (! strsToPoints(pointStrs, points))
         return false;
 
-      CTkAppCanvasWidget::Point pos(x.rvalue, y.rvalue);
-
-      auto *text = qcanvas_->addText(pos, "");
-
-      uint i = 4;
+      auto *text = qcanvas_->addText(points[0], "");
 
       if (! processShapeOpts(text, i))
         return false;
@@ -815,27 +841,22 @@ execOp(const Args &args)
         return tk_->wrongNumArgs(getFullName() + " create window coords ?arg ...?");
 
       uint i = 2;
-      auto stri = tk_->variantToString(args[i]);
 
-      std::vector<QString> strs;
-      if (! tk_->splitList(stri, strs) ||
-          strs.size() != 2) {
-        if (numArgs < 4)
-          return tk_->wrongNumArgs(getFullName() + " create window coords ?arg ...?");
+      std::vector<QString> pointStrs;
+      if (! getPointStrs(i, pointStrs, 2) || pointStrs.empty())
+        return tk_->wrongNumArgs(getFullName() + " create window coords ?arg ...?");
 
-        strs.push_back(tk_->variantToString(args[i++]));
-        strs.push_back(tk_->variantToString(args[i++]));
-      }
+      if (pointStrs.size() != 2)
+       return tk_->wrongNumArgs("wrong # coordinates: expected 2, got " +
+                                QString::number(pointStrs.size()));
 
-      double x, y;
-      if (! CTkAppUtil::variantToReal(tk_, strs[0], x))
-        return tk_->invalidReal(strs[0]);
-      if (! CTkAppUtil::variantToReal(tk_, strs[1], y))
-        return tk_->invalidReal(strs[1]);
+      CTkAppCanvasWidget::Points points;
+      if (! strsToPoints(pointStrs, points))
+        return false;
 
       //---
 
-      auto *window = qcanvas_->addWindow(x, y);
+      auto *window = qcanvas_->addWindow(points[0]);
 
       if (! processShapeOpts(window, i))
         return false;
@@ -871,19 +892,19 @@ execOp(const Args &args)
     if (numArgs < 2)
       return tk_->wrongNumArgs(getFullName() + " delete ?arg ...?"); // delete all ?
 
-    auto name = tk_->variantToString(args[1]);
+    auto rc = true;
 
-    if (name == "all") {
-      qcanvas_->deleteAllShapes();
+    for (uint i = 1; i < numArgs; ++i) {
+      auto name = tk_->variantToString(args[i]);
 
-      qcanvas_->update();
-    }
-    else {
       if (! qcanvas_->deleteShape(name))
-        return false;
-
-      qcanvas_->update();
+        rc = false;
     }
+
+    if (! rc)
+      return false;
+
+    qcanvas_->update();
   }
   else if (option == "dtag") {
     if (numArgs < 2 || numArgs > 3)
@@ -1120,10 +1141,10 @@ execOp(const Args &args)
     auto opt = tk_->variantToString(args[1]);
 
     if      (opt == "cget") {
-      tk_->TODO(opt, args);
+      tk_->TODO(args);
     }
     else if (opt == "configure" || opt == "config") {
-      tk_->TODO(opt, args);
+      tk_->TODO(args);
     }
     else if (opt == "create") {
       auto type = tk_->variantToString(args[2]);
@@ -1189,7 +1210,7 @@ execOp(const Args &args)
           else if (name == "-units") {
             ++i;
 
-            tk_->TODO(name, args);
+            tk_->TODO(args);
           }
           else
             return false;
@@ -1246,12 +1267,12 @@ execOp(const Args &args)
           else if (name == "-units") {
             ++i;
 
-            tk_->TODO(name, args);
+            tk_->TODO(args);
           }
           else if (name == "-radialtransition") {
             ++i;
 
-            tk_->TODO(name, args);
+            tk_->TODO(args);
           }
           else
             return false;
@@ -1271,22 +1292,22 @@ execOp(const Args &args)
         tk_->setStringResult(name);
       }
       else
-        tk_->TODO(type, args);
+        tk_->TODO(args);
     }
     else if (opt == "delete") {
-      tk_->TODO(opt, args);
+      tk_->TODO(args);
     }
     else if (opt == "inuse") {
-      tk_->TODO(opt, args);
+      tk_->TODO(args);
     }
     else if (opt == "names") {
-      tk_->TODO(opt, args);
+      tk_->TODO(args);
     }
     else if (opt == "type") {
-      tk_->TODO(opt, args);
+      tk_->TODO(args);
     }
     else
-      tk_->TODO(opt, args);
+      tk_->TODO(args);
   }
 #endif
   else if (option == "icursor") {
@@ -1357,39 +1378,26 @@ execOp(const Args &args)
     auto id  = tk_->variantToString(args[1]);
     auto ind = tk_->variantToString(args[2]);
 
-    CTkAppCanvasWidget::Shapes shapes;
-    if (! qcanvas_->getShapes(id, shapes))
+    auto *shape = qcanvas_->getShape(id);
+
+    long pos;
+    if (! shape->indexPos(ind, pos))
       return false;
 
-    for (auto *shape : shapes) {
-      long pos;
-      if (shape->indexPos(ind, pos))
-        continue;
-      tk_->setIntegerResult(pos);
-      break;
-    }
+    tk_->setIntegerResult(pos);
   }
   else if (option == "insert") {
     if (numArgs != 4)
       return tk_->wrongNumArgs(getFullName() + " insert tagOrId beforeThis string");
 
-    auto id = tk_->variantToString(args[1]);
-
-    CTkAppCanvasWidget::Shapes shapes;
-    if (! qcanvas_->getShapes(id, shapes))
-      return false;
-
+    auto id  = tk_->variantToString(args[1]);
     auto pos = tk_->variantToString(args[2]);
-    auto arg = tk_->variantToString(args[3]);
+    auto str = tk_->variantToString(args[3]);
 
-    if (pos == "end") {
-      for (auto *shape : shapes) {
-        if (! shape->addEndItem(arg))
-          return tk_->throwError("insert failed");
-      }
-    }
-    else
-      tk_->TODO(option, args);
+    auto *shape = qcanvas_->getShape(id);
+
+    if (! shape->insertChars(pos, str))
+      return false;
   }
   else if (option == "itemcget") {
     if (numArgs != 3)
@@ -1452,12 +1460,23 @@ execOp(const Args &args)
           for (auto *shape : shapes) {
             QVariant value;
             if (shape->getShapeOpt(name, value)) {
-              auto str1 = tk_->variantToString(value);
-              auto str = QString("%1 {} {} center %2").arg(name).arg(str1);
-              tk_->setStringResult(str);
+              QVariant defValue;
+              (void) shape->getShapeDefault(name, defValue);
+
+              std::vector<QVariant> vars;
+
+              vars.push_back(name);
+              vars.push_back(QString());
+              vars.push_back(QString());
+              vars.push_back(defValue);
+              vars.push_back(value);
+
+              tk_->setVariantArrayResult(vars);
+
               break;
             }
           }
+
           break;
         }
 
@@ -1466,14 +1485,13 @@ execOp(const Args &args)
 
         auto value = tk_->variantToString(args[i + 1]);
 
-        bool rc = false;
+        bool rc = true;
 
+        // setShapeOpt: returns false if not handled, rc is error state
         for (auto *shape : shapes) {
           bool rc1;
-          if (shape->setShapeOpt(name, value, rc1)) {
-            if (! rc1) return false;
-            rc = true;
-          }
+          if (shape->setShapeOpt(name, value, rc1) && ! rc1)
+            rc = false;
         }
 
         if (! rc)
@@ -1529,7 +1547,7 @@ execOp(const Args &args)
       return false;
   }
   else if (option == "postscript") {
-    if (numArgs & 1)
+    if (! (numArgs & 1))
       return tk_->wrongNumArgs(getFullName() + " postscript ?option value option value ...?");
 
     uint i = 1;
@@ -1686,48 +1704,59 @@ execOp(const Args &args)
       return false;
 
     if      (selectName == "adjust") {
-      if (numArgs == 4)
+      if (numArgs != 4)
         return tk_->wrongNumArgs(getFullName() + " select adjust tagOrId index");
 
       auto id  = tk_->variantToString(args[2]);
       auto ind = tk_->variantToString(args[3]);
 
-      tk_->TODO("adjust " + id + " " + ind);
+      auto *shape = qcanvas_->getShape(id);
+
+      if (shape && ! shape->adjustSelect(ind))
+        return false;
     }
     else if (selectName == "clear") {
       if (numArgs != 2)
         return tk_->wrongNumArgs(getFullName() + " select clear");
 
-      tk_->TODO("clear");
+      CTkAppCanvasWidget::Shapes shapes;
+      qcanvas_->getAllShapes(shapes);
+
+      for (auto *shape : shapes)
+        shape->clearSelect();
     }
     else if (selectName == "from") {
-      if (numArgs == 4)
+      if (numArgs != 4)
         return tk_->wrongNumArgs(getFullName() + " select from tagOrId index");
 
       auto id  = tk_->variantToString(args[2]);
       auto ind = tk_->variantToString(args[3]);
 
-      tk_->TODO("from " + id + " " + ind);
+      auto *shape = qcanvas_->getShape(id);
+
+      if (shape && ! shape->setSelectFrom(ind))
+        return false;
     }
     else if (selectName == "item") {
       if (numArgs != 2)
         return tk_->wrongNumArgs(getFullName() + " select item");
 
-      tk_->TODO("item");
+      tk_->TODO(args);
     }
     else if (selectName == "to") {
-      if (numArgs == 4)
+      if (numArgs != 4)
         return tk_->wrongNumArgs(getFullName() + " select to tagOrId index");
 
       auto id  = tk_->variantToString(args[2]);
       auto ind = tk_->variantToString(args[3]);
 
-      tk_->TODO("to " + id + " " + ind);
+      auto *shape = qcanvas_->getShape(id);
+
+      if (shape && ! shape->setSelectTo(ind))
+        return false;
     }
     else
       return tk_->wrongNumArgs("Invalid options \"" + selectName + "\"");
-
-    tk_->TODO(option, args);
   }
 #ifdef CTK_APP_TKPATH
   else if (option == "style") {

@@ -250,6 +250,28 @@ offsetDataToString(const OffsetData &offsetData)
 
 bool
 CTkAppCanvasShape::
+getShapeDefault(const QString &name, QVariant &value) const
+{
+  if      (name == "-activewidth"  ) value = "0.0";
+  else if (name == "-anchor"       ) value = "center";
+  else if (name == "-angle"        ) value = "0.0";
+  else if (name == "-dashoffset"   ) value = "0";
+  else if (name == "-disabledwidth") value = "0.0";
+  else if (name == "-fill"         ) value = "#000000";
+  else if (name == "-font"         ) value = "TkDefaultFont";
+  else if (name == "-justify"      ) value = "left";
+  else if (name == "-offset"       ) value = "0,0";
+  else if (name == "-outline"      ) value = "#000000";
+  else if (name == "-outlineoffset") value = "0,0";
+  else if (name == "-underline"    ) value = "-1";
+  else if (name == "-width"        ) value = "1.0";
+  else                               value = "";
+
+  return true;
+}
+
+bool
+CTkAppCanvasShape::
 getShapeOpt(const QString &name, QVariant &value) const
 {
   auto *tk = canvas()->canvas()->app();
@@ -653,12 +675,16 @@ setShapeOpt(const QString &name, const QVariant &var, bool &rc)
     this->setStippleOutlineOffset(offsetData);
   }
   else if (name == "-stipple") {
-    auto image = tk->getBitmap(value);
-    if (! image) {
-      rc = tk->throwError(tk->msg() + "bitmap \"" + var + "\" not defined");
-      return true;
+    if (tk->variantIsValid(value)) {
+      auto image = tk->getBitmap(value);
+      if (! image) {
+        rc = tk->throwError(tk->msg() + "bitmap \"" + var + "\" not defined");
+        return true;
+      }
+      this->setStipple(value);
     }
-    this->setStipple(value);
+    else
+      this->setStipple("");
   }
   else if (name == "-activestipple") {
     auto image = tk->getBitmap(value);
@@ -721,7 +747,7 @@ setShapeOpt(const QString &name, const QVariant &var, bool &rc)
       return true;
     }
 
-    this->setStrokeWidth(width.rvalue);
+    this->setStrokeWidth(std::max(width.rvalue, 0.0));
   }
   else if (name == "-strokelinecap") {
     Qt::PenCapStyle capStyle;
@@ -780,7 +806,6 @@ setShapeOpt(const QString &name, const QVariant &var, bool &rc)
   }
 #endif
   else {
-    tk->TODO(name);
     return false;
   }
 
@@ -834,23 +859,8 @@ movePoint(const QString &ind, const Point &p)
   getPoints(points);
 
   long iind = -1;
-  if      (indexData.type == IndexType::POS)
-    iind = indexData.ind;
-  else if (indexData.type == IndexType::COORD) {
-    auto p = Point(indexData.x, indexData.y);
-
-    for (uint i = 0; i < points.size(); ++i) {
-      if (points[i] == p) {
-        iind = i;
-        break;
-      }
-    }
-
-    if (iind < 0)
-      return false;
-  }
-  else
-    return tk->throwError(tk->msg() + "bad index \"" + ind + "\"");
+  if (! mapIndex(indexData, iind))
+    return false;
 
   if (iind >= 0 && iind < int(points.size()))
     points[iind] = p;
@@ -861,6 +871,42 @@ movePoint(const QString &ind, const Point &p)
 }
 
 //---
+
+bool
+CTkAppCanvasShape::
+indexPos(const QString &ind, long &pos) const
+{
+  auto *tk = canvas()->canvas()->app();
+
+  IndexData indexData;
+  if (! parseIndex(ind, indexData))
+    return tk->throwError(tk->msg() + "bad index \"" + ind + "\"");
+
+  if (! mapIndex(indexData, pos))
+    return false;
+
+  return true;
+}
+
+//---
+
+bool
+CTkAppCanvasShape::
+insertChars(const QString &ind, const QString &str)
+{
+  std::cerr << "CTkAppCanvasShape::insertChars " << ind.toStdString() << " " <<
+               str.toStdString() << "\n";
+
+  auto *tk = canvas()->canvas()->app();
+
+  IndexData indexData;
+  if (! parseIndex(ind, indexData))
+    return tk->throwError(tk->msg() + "bad index \"" + ind + "\"");
+
+  tk->TODO("insert " + ind + " " + str);
+
+  return false;
+}
 
 bool
 CTkAppCanvasShape::
@@ -878,7 +924,91 @@ replaceChars(const QString &start, const QString &end, const QString &str)
 {
   std::cerr << "CTkAppCanvasShape::replaceChars " << start.toStdString() << " " <<
                end.toStdString() << " " << str.toStdString() << "\n";
+
   return false;
+}
+
+//---
+
+bool
+CTkAppCanvasShape::
+setInsertCursor(const QString &ind)
+{
+  auto *tk = canvas()->canvas()->app();
+
+  IndexData indexData;
+  if (! parseIndex(ind, indexData))
+    return tk->throwError(tk->msg() + "bad index \"" + ind + "\"");
+
+  insertCursor_ = indexData;
+
+  return false;
+}
+
+bool
+CTkAppCanvasShape::
+setSelectFrom(const QString &ind)
+{
+  auto *tk = canvas()->canvas()->app();
+
+  IndexData indexData;
+  if (! parseIndex(ind, indexData))
+    return tk->throwError(tk->msg() + "bad index \"" + ind + "\"");
+
+  selectFrom_ = indexData;
+
+  return true;
+}
+
+bool
+CTkAppCanvasShape::
+setSelectTo(const QString &ind)
+{
+  auto *tk = canvas()->canvas()->app();
+
+  IndexData indexData;
+  if (! parseIndex(ind, indexData))
+    return tk->throwError(tk->msg() + "bad index \"" + ind + "\"");
+
+  selectTo_ = indexData;
+
+  (void) updateSelection();
+
+  return true;
+}
+
+bool
+CTkAppCanvasShape::
+adjustSelect(const QString &ind)
+{
+  auto *tk = canvas()->canvas()->app();
+
+  IndexData indexData;
+  if (! parseIndex(ind, indexData))
+    return tk->throwError(tk->msg() + "bad index \"" + ind + "\"");
+
+  long istart, iend, iind;
+  if (! mapIndex(selectFrom_, istart) || ! mapIndex(selectTo_, iend) || ! mapIndex(indexData, iind))
+    return false;
+
+  if      (iind < istart)
+    selectFrom_ = indexData;
+  else if (iind > iend)
+    selectTo_   = indexData;
+
+  (void) updateSelection();
+
+  return true;
+}
+
+bool
+CTkAppCanvasShape::
+clearSelect()
+{
+  selectFrom_ = IndexData();
+  selectTo_   = IndexData();
+
+  return true;
 }
 
 //------
@@ -916,6 +1046,48 @@ parseIndex(const QString &str, IndexData &indexData) const
   }
 
   return true;
+}
+
+bool
+CTkAppCanvasShape::
+mapIndex(const IndexData &indexData, long &pos) const
+{
+  auto *tk = canvas()->canvas()->app();
+
+  pos = -1;
+
+  if      (indexData.type == IndexType::POS) {
+    pos = indexData.ind;
+
+    return true;
+  }
+  else if (indexData.type == IndexType::END) {
+    // end pos ?
+  }
+  else if (indexData.type == IndexType::INSERT) {
+    return mapIndex(insertCursor_, pos);
+  }
+  else if (indexData.type == IndexType::SEL_FIRST) {
+    return mapIndex(selectFrom_, pos);
+  }
+  else if (indexData.type == IndexType::SEL_LAST) {
+    return mapIndex(selectTo_, pos);
+  }
+  else if (indexData.type == IndexType::COORD) {
+    Points points;
+    getPoints(points);
+
+    auto p = Point(indexData.x, indexData.y);
+
+    for (uint i = 0; i < points.size(); ++i) {
+      if (points[i] == p) {
+        pos = i;
+        return true;
+      }
+    }
+  }
+
+  return tk->throwError(tk->msg() + "bad index");
 }
 
 //---
@@ -1006,6 +1178,46 @@ CTkAppCanvasBitmapShape::
 CTkAppCanvasBitmapShape(CTkAppCanvasWidget *canvas, const Point &p, const CTkAppImageRef &image) :
  CTkAppCanvasShape(canvas, ShapeType::BITMAP), p_(p), image_(image)
 {
+  calcDrawRect();
+}
+
+void
+CTkAppCanvasBitmapShape::
+setPos(const Point &p)
+{
+  p_ = p;
+
+  calcDrawRect();
+}
+
+void
+CTkAppCanvasBitmapShape::
+setImage(const CTkAppImageRef &i)
+{
+  image_ = i;
+
+  calcDrawRect();
+}
+
+QRectF
+CTkAppCanvasBitmapShape::
+calcDrawRect() const
+{
+  if (! getImage())
+    return QRectF();
+
+  auto qimage = getImage()->getQImage();
+
+  auto iw = qimage.width();
+  auto ih = qimage.height();
+
+  auto rect = QRectF(pos().x, pos().y, iw, ih);
+
+  auto *th = const_cast<CTkAppCanvasBitmapShape *>(this);
+
+  th->setDrawRect(rect);
+
+  return rect;
 }
 
 bool
@@ -1248,6 +1460,56 @@ CTkAppCanvasImageShape::
 CTkAppCanvasImageShape(CTkAppCanvasWidget *canvas, const Point &p, const CTkAppImageRef &image) :
  CTkAppCanvasShape(canvas, ShapeType::IMAGE), p_(p), image_(image)
 {
+  calcDrawRect();
+}
+
+void
+CTkAppCanvasImageShape::
+setPos(const Point &p)
+{
+  p_ = p;
+
+  calcDrawRect();
+}
+
+void
+CTkAppCanvasImageShape::
+setImage(const CTkAppImageRef &i)
+{
+  image_ = i;
+
+  calcDrawRect();
+}
+
+QRectF
+CTkAppCanvasImageShape::
+calcDrawRect() const
+{
+  if (! getImage())
+    return QRectF();
+
+  auto qimage = getImage()->getQImage();
+
+  auto iw = qimage.width();
+  auto ih = qimage.height();
+
+  auto a = anchor();
+
+  double dtx = 0.0, dty = 0.0;
+  if      (a & Qt::AlignLeft   ) { dtx = 0.0; }
+  else if (a & Qt::AlignHCenter) { dtx = -iw/2.0; }
+  else if (a & Qt::AlignRight  ) { dtx = -iw; }
+  if      (a & Qt::AlignTop    ) { dty = 0.0; }
+  else if (a & Qt::AlignVCenter) { dty = -ih/2.0; }
+  else if (a & Qt::AlignBottom ) { dty = -ih; }
+
+  auto rect = QRectF(pos().x + dtx, pos().y + dty, iw, ih);
+
+  auto *th = const_cast<CTkAppCanvasImageShape *>(this);
+
+  th->setDrawRect(rect);
+
+  return rect;
 }
 
 bool
@@ -1480,14 +1742,29 @@ setShapeOpt(const QString &name, const QVariant &value, bool &rc)
 
 bool
 CTkAppCanvasLineShape::
-addEndItem(const QString &item)
+insertChars(const QString &ind, const QString &str)
 {
-  CTkAppCanvasWidget::Points points;
-  if (! getItemPoints(item, points))
-    return false;
+  std::cerr << "CTkAppCanvasLineShape::insertChars " << ind.toStdString() << " " <<
+               str.toStdString() << "\n";
 
-  for (const auto &p : points)
-    points_.push_back(p);
+  auto *tk = canvas()->canvas()->app();
+
+  IndexData indexData;
+  if (! parseIndex(ind, indexData))
+    return tk->throwError(tk->msg() + "bad index \"" + ind + "\"");
+
+  if (indexData.type == IndexType::END) {
+    CTkAppCanvasWidget::Points points;
+    if (! getItemPoints(str, points))
+      return false;
+
+    for (const auto &p : points)
+      points_.push_back(p);
+  }
+  else {
+    tk->TODO("insert " + ind + " " + str);
+    return false;
+  }
 
   return true;
 }
@@ -1713,21 +1990,36 @@ setShapeOpt(const QString &name, const QVariant &value, bool &rc)
   return true;
 }
 
+//---
+
 bool
 CTkAppCanvasPolygonShape::
-addEndItem(const QString &item)
+insertChars(const QString &ind, const QString &str)
 {
-  CTkAppCanvasWidget::Points points;
-  if (! getItemPoints(item, points))
-    return false;
+  std::cerr << "CTkAppCanvasPolygonShape::insertChars " << ind.toStdString() << " " <<
+               str.toStdString() << "\n";
 
-  for (const auto &p : points)
-    points_.push_back(p);
+  auto *tk = canvas()->canvas()->app();
+
+  IndexData indexData;
+  if (! parseIndex(ind, indexData))
+    return tk->throwError(tk->msg() + "bad index \"" + ind + "\"");
+
+  if (indexData.type == IndexType::END) {
+    CTkAppCanvasWidget::Points points;
+    if (! getItemPoints(str, points))
+      return false;
+
+    for (const auto &p : points)
+      points_.push_back(p);
+  }
+  else {
+    tk->TODO("insert " + ind + " " + str);
+    return false;
+  }
 
   return true;
 }
-
-//---
 
 bool
 CTkAppCanvasPolygonShape::
@@ -1878,14 +2170,161 @@ CTkAppCanvasTextShape::
 CTkAppCanvasTextShape(CTkAppCanvasWidget *canvas, const Point &p, const QString &text) :
  CTkAppCanvasShape(canvas, ShapeType::TEXT), p_(p), text_(text)
 {
+  calcRect();
+}
+
+void
+CTkAppCanvasTextShape::
+setPos(const Point &p)
+{
+  p_ = p;
+
+  calcRect();
+}
+
+void
+CTkAppCanvasTextShape::
+setText(const QString &text)
+{
+  text_ = text;
+
+  calcRect();
+
+  (void) updateSelection();
+}
+
+void
+CTkAppCanvasTextShape::
+setAngle(double r)
+{
+  angle_ = r;
+
+  calcRect();
+}
+
+void
+CTkAppCanvasTextShape::
+setFont(const QFont &f)
+{
+  font_ = f;
+
+  calcRect();
+}
+
+void
+CTkAppCanvasTextShape::
+setJustify(const Qt::Alignment &a)
+{
+  justify_ = a;
+
+  calcRect();
+}
+
+void
+CTkAppCanvasTextShape::
+setTextAnchor(const Qt::Alignment &textAnchor)
+{
+  textAnchor_ = textAnchor;
+
+  calcRect();
+}
+
+void
+CTkAppCanvasTextShape::
+setUnderLine(int i)
+{
+  underLine_ = i;
+}
+
+void
+CTkAppCanvasTextShape::
+setWidth(double r)
+{
+  width_ = r;
+
+  calcRect();
+}
+
+QRectF
+CTkAppCanvasTextShape::
+calcRect() const
+{
+  auto p = calcPos();
+
+  auto text = getText();
+
+  QFontMetricsF fm(font());
+
+  auto p1 = p + QPointF(                       0.0, -fm.descent());
+  auto p2 = p + QPointF(fm.horizontalAdvance(text),  fm.ascent ());
+
+  QRectF rect(p1, p2);
+
+  auto *th = const_cast<CTkAppCanvasTextShape *>(this);
+
+  th->setDrawRect(rect);
+
+  return rect;
+}
+
+QPointF
+CTkAppCanvasTextShape::
+calcPos() const
+{
+  auto text = getText();
+
+  QFontMetricsF fm(font());
+  auto tw = fm.horizontalAdvance(text);
+
+  auto tx = pos().x;
+  auto ty = pos().y;
+
+  auto j = justify();
+
+  double dtx = 0.0, dty = 0.0;
+  if      (j & Qt::AlignLeft   ) { dtx = 0.0; }
+  else if (j & Qt::AlignHCenter) { dtx = -tw/2.0; }
+  else if (j & Qt::AlignRight  ) { dtx = -tw; }
+  if      (j & Qt::AlignTop    ) { dty = fm.ascent(); }
+  else if (j & Qt::AlignVCenter) { dty = (fm.ascent() - fm.descent())/2.0; }
+  else if (j & Qt::AlignBottom ) { dty = -fm.descent(); }
+
+  return QPointF(tx + dtx, ty + dty);
+}
+
+//---
+
+bool
+CTkAppCanvasTextShape::
+insertChars(const QString &ind, const QString &str)
+{
+//std::cerr << "CTkAppCanvasTextShape::insertChars " << ind.toStdString() << " " <<
+//             str.toStdString() << "\n";
+
+  auto *tk = canvas()->canvas()->app();
+
+  IndexData indexData;
+  if (! parseIndex(ind, indexData))
+    return tk->throwError(tk->msg() + "bad index \"" + ind + "\"");
+
+  long iind;
+  if (! mapIndex(indexData, iind))
+    return false;
+
+  auto lhs = text_.mid(0, iind + 1);
+  auto rhs = text_.mid(iind + 1);
+
+  setText(lhs + str + rhs);
+
+  return true;
 }
 
 bool
 CTkAppCanvasTextShape::
 deleteChars(const QString &start, const QString &end)
 {
-  //std::cerr << "CTkAppCanvasTextShape::deleteChars " << start.toStdString() << " " <<
-  //             end.toStdString()  << "\n";
+//std::cerr << "CTkAppCanvasTextShape::deleteChars " << start.toStdString() << " " <<
+//             end.toStdString()  << "\n";
 
   return replaceChars(start, end, "");
 }
@@ -1894,20 +2333,22 @@ bool
 CTkAppCanvasTextShape::
 replaceChars(const QString &start, const QString &end, const QString &str)
 {
-  //std::cerr << "CTkAppCanvasTextShape::replaceChars " << start.toStdString() << " " <<
-  //             end.toStdString() << " " << str.toStdString() << "\n";
+//std::cerr << "CTkAppCanvasTextShape::replaceChars " << start.toStdString() << " " <<
+//             end.toStdString() << " " << str.toStdString() << "\n";
 
   auto *tk = canvas()->canvas()->app();
 
-  long istart, iend;
-  if (! tk->variantToInt(start, istart))
+  IndexData startIndexData;
+  if (! parseIndex(start, startIndexData))
     return tk->throwError(tk->msg() + "bad index \"" + start + "\"");
-  if (end != "end") {
-    if (! tk->variantToInt(end, iend))
-      return tk->throwError(tk->msg() + "bad index \"" + end + "\"");
-  }
-  else
-    iend = text_.length() - 1;
+
+  IndexData endIndexData;
+  if (! parseIndex(end, endIndexData))
+    return tk->throwError(tk->msg() + "bad index \"" + end + "\"");
+
+  long istart, iend;
+  if (! mapIndex(startIndexData, istart) || ! mapIndex(endIndexData, iend))
+    return false;
 
   if (iend < istart)
     return false;
@@ -1915,9 +2356,73 @@ replaceChars(const QString &start, const QString &end, const QString &str)
   auto lhs = text_.mid(0, istart);
   auto rhs = text_.mid(iend + 1);
 
-  text_ = lhs + str + rhs;
+  setText(lhs + str + rhs);
 
   return true;
+}
+
+//---
+
+
+bool
+CTkAppCanvasTextShape::
+updateSelection()
+{
+  if (selectFrom_.type == IndexType::NONE || selectTo_.type == IndexType::NONE)
+    return true;
+
+  auto *tk = canvas()->canvas()->app();
+
+  long start, end;
+  if (! mapIndex(selectFrom_, start) || ! mapIndex(selectTo_, end))
+    return false;
+
+  if (start > end) {
+    std::swap(start, end);
+
+    --end;
+  }
+
+  start = std::max(start, 0L);
+  end   = std::min(end  , long(text_.length() - 1));
+
+  tk->setClipboardText(text_.mid(start, end - start + 1), CTkAppClipboard::Selection);
+
+  return true;
+}
+
+bool
+CTkAppCanvasTextShape::
+mapIndex(const IndexData &indexData, long &pos) const
+{
+  auto *tk = canvas()->canvas()->app();
+
+  if      (indexData.type == IndexType::POS) {
+    pos = indexData.ind;
+
+    return true;
+  }
+  else if (indexData.type == IndexType::END) {
+    pos = text_.size() - 1;
+
+    return true;
+  }
+  else if (indexData.type == IndexType::INSERT) {
+    return mapIndex(insertCursor_, pos);
+  }
+  else if (indexData.type == IndexType::SEL_FIRST) {
+    return mapIndex(selectFrom_, pos);
+  }
+  else if (indexData.type == IndexType::SEL_LAST) {
+    return mapIndex(selectTo_, pos);
+  }
+  else if (indexData.type == IndexType::COORD) {
+    // TODO: char at x, y pos
+    pos = 0;
+    return true;
+  }
+
+  return tk->throwError(tk->msg() + "bad index");
 }
 
 //---
@@ -1990,6 +2495,9 @@ setShapeOpt(const QString &name, const QVariant &value, bool &rc)
       return true;
     }
 
+    while (a <    0.0) a += 360.0;
+    while (a >= 360.0) a -= 360.0;
+
     this->setAngle(a);
   }
   else if (name == "-font") {
@@ -2058,9 +2566,37 @@ setShapeOpt(const QString &name, const QVariant &value, bool &rc)
 //---
 
 CTkAppCanvasWindowShape::
-CTkAppCanvasWindowShape(CTkAppCanvasWidget *canvas, double x, double y) :
- CTkAppCanvasShape(canvas, ShapeType::WINDOW), x_(x), y_(y)
+CTkAppCanvasWindowShape(CTkAppCanvasWidget *canvas, const Point &p) :
+ CTkAppCanvasShape(canvas, ShapeType::WINDOW), p_(p)
 {
+}
+
+void
+CTkAppCanvasWindowShape::
+updateRange()
+{
+  updateWidget();
+}
+
+void
+CTkAppCanvasWindowShape::
+moveBy(double dx, double dy)
+{
+  p_.moveBy(dx, dy);
+
+  updateWidget();
+}
+
+void
+CTkAppCanvasWindowShape::
+updateWidget()
+{
+  if (! widget_)
+    return;
+
+  auto p = canvas_->windowToPixel(p_);
+
+  widget_->move(p.x, p.y);
 }
 
 bool
@@ -2112,15 +2648,35 @@ setShapeOpt(const QString &name, const QVariant &value, bool &rc)
     this->setWidth(d.rvalue);
   }
   else if (name == "-window") {
-    auto str = tk->variantToString(value);
+    CTkAppWidget *window = nullptr;
+    QString       windowName;
 
-    auto *window = tk->lookupWidgetByName(str, /*quiet*/true);
-    if (! window) {
-      rc = tk->throwError(tk->msg() + "bad window path name \"" + value + "\"");
-      return true;
+    if (tk->variantIsValid(value)) {
+      windowName = tk->variantToString(value);
+
+      window = tk->lookupWidgetByName(windowName, /*quiet*/true);
+      if (! window) {
+        rc = tk->throwError(tk->msg() + "bad window path name \"" + value + "\"");
+        return true;
+      }
     }
 
-    this->setWindow(str);
+    if (widget_)
+      widget_->setParent(nullptr);
+
+    if (window)
+      widget_ = window->getQWidget();
+    else
+      widget_ = WidgetP();
+
+    if (widget_) {
+      widget_->setParent(canvas_);
+      widget_->show();
+    }
+
+    this->setWindow(windowName);
+
+    updateWidget();
   }
   else
     return CTkAppCanvasShape::setShapeOpt(name, value, rc);

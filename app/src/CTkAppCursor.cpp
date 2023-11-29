@@ -105,6 +105,9 @@ getCursor(const QString &name)
   auto pc = cursors_.find(name);
   if (pc != cursors_.end()) return (*pc).second;
 
+  if (name == "none")
+    return getCursor("arrow");
+
   for (int i = 0; nameCursors[i].name != ""; ++i) {
     if (nameCursors[i].name == name) {
       auto *cursor = new CTkAppCursor(tk_, name);
