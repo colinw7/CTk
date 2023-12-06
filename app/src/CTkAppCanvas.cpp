@@ -36,7 +36,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-height") {
     CTkAppDistance height;
     if (! tk_->variantToDistance(var, height) || height.rvalue < 0)
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     setHeight(height.rvalue);
   }
@@ -49,13 +49,13 @@ execConfig(const QString &name, const QVariant &var)
 
     CTkAppDistance x1, y1, x2, y2;
     if (! tk_->variantToDistance(strs[0], x1))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + strs[0] + "\"");
+      return tk_->invalidDistance(strs[0]);
     if (! tk_->variantToDistance(strs[1], y1))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + strs[1] + "\"");
+      return tk_->invalidDistance(strs[1]);
     if (! tk_->variantToDistance(strs[2], x2))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + strs[2] + "\"");
+      return tk_->invalidDistance(strs[2]);
     if (! tk_->variantToDistance(strs[3], y2))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + strs[3] + "\"");
+      return tk_->invalidDistance(strs[3]);
 
     qcanvas_->setScrollRegion(QRectF(x1.rvalue, y1.rvalue, x2.rvalue - x1.rvalue,
                                      y2.rvalue - y1.rvalue));
@@ -70,21 +70,21 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-width") {
     CTkAppDistance width;
     if (! tk_->variantToDistance(var, width) || width.rvalue < 0)
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     setWidth(width.rvalue);
   }
   else if (name == "-xscrollincrement") {
     CTkAppDistance xs;
     if (! tk_->variantToDistance(var, xs))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     qcanvas_->setXScrollIncrement(xs.rvalue);
   }
   else if (name == "-yscrollincrement") {
     CTkAppDistance ys;
     if (! tk_->variantToDistance(var, ys))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     qcanvas_->setYScrollIncrement(ys.rvalue);
   }
@@ -126,7 +126,7 @@ execOp(const Args &args)
 
   auto variantToDistance = [&](const QVariant &var, CTkAppDistance &r) {
     if (! tk_->variantToDistance(var, r))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
     return true;
   };
 
@@ -1356,9 +1356,9 @@ execOp(const Args &args)
 
     CTkAppDistance x, y;
     if (! tk_->variantToDistance(args[3], x))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + args[3] + "\"");
+      return tk_->invalidDistance(args[3]);
     if (! tk_->variantToDistance(args[4], y))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + args[4] + "\"");
+      return tk_->invalidDistance(args[4]);
 
     CTkAppPoint p(x.rvalue, y.rvalue);
 

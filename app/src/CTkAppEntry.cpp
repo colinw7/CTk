@@ -1,6 +1,7 @@
 #include <CTkAppEntry.h>
 
 #include <CQUtil.h>
+#include <CQStrParse.h>
 
 class CTkAppEntryVarProc : public CTclTraceProc {
  public:
@@ -76,27 +77,35 @@ CTkAppEntry::
 execConfig(const QString &name, const QVariant &var)
 {
   if      (name == "-exportselection") {
-    tk_->TODO(name);
+    bool b;
+    if (! tk_->variantToBool(var, b))
+      return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
+
+    setExportSelection(b);
   }
   else if (name == "-invalidcommand") {
-    tk_->TODO(name);
+    auto value = tk_->variantToString(var);
+
+    setInvalidCommand(value);
   }
   else if (name == "-placeholder") {
-    tk_->TODO(name);
+    auto value = tk_->variantToString(var);
+
+    setPlaceHolder(value);
   }
   else if (name == "-placeholderforeground") {
     QColor c;
     if (! CTkAppUtil::variantToQColor(tk_, var, c))
       return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
 
-    tk_->TODO(name);
+    setPlaceHolderForeground(c);
   }
   else if (name == "-readonlybackground") {
     QColor c;
     if (! CTkAppUtil::variantToQColor(tk_, var, c))
       return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
 
-    tk_->TODO(name);
+    setReadOnlyBackground(c);
   }
   else if (name == "-show") {
     qedit_->setEchoMode(QLineEdit::Password);
@@ -109,7 +118,7 @@ execConfig(const QString &name, const QVariant &var)
     else {
       if (! setWidgetStateFromString(value))
         return tk_->throwError(tk_->msg() + "bad state \"" + value + "\": must be "
-                               "active, disabled, or normal");
+                               "disabled, normal, or readonly");
     }
   }
   else if (name == "-textvariable") {
@@ -118,7 +127,7 @@ execConfig(const QString &name, const QVariant &var)
     setVarName(value);
 
     if (! tk_->hasGlobalVar(varName()))
-      tk_->setStringGlobalVar(varName(), QString());
+      tk_->setStringGlobalVar(varName(), qedit_->text());
     else
       setText(tk_->getStringGlobalVar(varName()));
 
@@ -180,10 +189,41 @@ execOp(const Args &args)
 
   auto stringToIndex = [&](const QVariant &var, int &ind) {
     auto str = tk_->variantToString(var);
-    if (! CTkAppUtil::stringToIndex(tk_, var, ind))
-      return false;
-    if (ind == CTkAppUtil::END_INDEX)
+
+    CQStrParse parse(str);
+
+    parse.skipSpace();
+
+    if      (parse.isString("anchor")) {
+      // TODO: cursor pos in selection ?
+      ind = qedit_->selectionStart();
+    }
+    else if (parse.isString("end")) {
       ind = qedit_->text().length() - 1;
+    }
+    else if (parse.isString("insert")) {
+      ind = qedit_->cursorPosition();
+    }
+    else if (parse.isString("sel.first")) {
+      ind = qedit_->selectionStart();
+    }
+    else if (parse.isString("sel.last")) {
+      ind = qedit_->selectionEnd();
+    }
+    else if (parse.isChar('@')) {
+      parse.skipChar();
+
+      int x;
+      if (! parse.readInteger(&x))
+        return false;
+
+      ind = 0; // TODO
+    }
+    else {
+      if (! parse.readInteger(&ind))
+        return false;
+    }
+
     return true;
   };
 
@@ -201,20 +241,33 @@ execOp(const Args &args)
     if (numArgs != 2)
       return tk_->wrongNumArgs(getFullName() + " bbox index");
 
-    tk_->TODO(args);
+    int ind;
+    if (! stringToIndex(args[1], ind))
+      return tk_->throwError(tk_->msg() + "bad entry index \"" + args[1] + "\"");
+
+    tk_->setStringResult("0 0 4 4");
   }
   else if (option == "delete") {
-    if (numArgs != 3 && numArgs != 4)
+    if (numArgs != 2 && numArgs != 3)
       return tk_->wrongNumArgs(getFullName() + " delete firstIndex ?lastIndex?");
 
     int startIndex, endIndex;
     if (! stringToIndex(args[1], startIndex))
-      return false;
-    if (! stringToIndex(args[2], endIndex))
-      return false;
+      return tk_->throwError(tk_->msg() + "bad entry index \"" + args[1] + "\"");
+
+    if (numArgs == 3) {
+      if (! stringToIndex(args[2], endIndex))
+        return tk_->throwError(tk_->msg() + "bad entry index \"" + args[2] + "\"");
+    }
+    else
+      endIndex = startIndex;
 
     qedit_->setSelection(startIndex, endIndex - startIndex);
+
     qedit_->del();
+
+    if (isExportSelection())
+      tk_->setClipboardText(qedit_->selectedText(), CTkAppClipboard::Selection);
   }
   else if (option == "get") {
     if (numArgs != 1)
@@ -226,13 +279,21 @@ execOp(const Args &args)
     if (numArgs != 2)
       return tk_->wrongNumArgs(getFullName() + " icursor pos");
 
-    tk_->TODO(args);
+    int ind;
+    if (! stringToIndex(args[1], ind))
+      return tk_->throwError(tk_->msg() + "bad entry index \"" + args[1] + "\"");
+
+    qedit_->setCursorPosition(ind);
   }
   else if (option == "index") {
     if (numArgs != 2)
       return tk_->wrongNumArgs(getFullName() + " index string");
 
-    tk_->TODO(args);
+    int ind;
+    if (! stringToIndex(args[1], ind))
+      return tk_->throwError(tk_->msg() + "bad entry index \"" + args[1] + "\"");
+
+    tk_->setIntegerResult(ind);
   }
   else if (option == "insert") {
     if (numArgs != 3)
@@ -240,7 +301,7 @@ execOp(const Args &args)
 
     int ind;
     if (! stringToIndex(args[1], ind))
-      return false;
+      return tk_->throwError(tk_->msg() + "bad entry index \"" + args[1] + "\"");
 
     qedit_->setCursorPosition(ind);
 
@@ -250,66 +311,120 @@ execOp(const Args &args)
     if (numArgs != 3)
       return tk_->wrongNumArgs(getFullName() + " scan mark|dragto x");
 
+    static auto optionNames = std::vector<QString>({"dragto", "mark"});
+
+    QString option;
+    if (! tk_->lookupName("option", optionNames, args[1], option))
+      return tk_->throwError(tk_->msg() + "bad scan option \"" + args[1] + "\": must be "
+                             "dragto or mark");
+
+    long x;
+    if (! tk_->variantToInt(args[2], x))
+      return tk_->invalidInteger(args[2]);
+
     tk_->TODO(args);
   }
   else if (option == "selection") {
     if (numArgs < 2)
       return tk_->wrongNumArgs(getFullName() + " selection option ?index?");
 
-    if      (args[1] == "adjust") {
-      tk_->TODO(option + " " + tk_->variantToString(args[1]));
+    static auto optionNames = std::vector<QString>(
+      {"adjust", "clear", "from", "present", "range", "to"});
+
+    QString option;
+    if (! tk_->lookupName("option", optionNames, args[1], option))
+      return tk_->throwError(tk_->msg() + "bad selection option \"" + args[1] + "\": must be "
+                             "adjust, clear, from, present, range, or to");
+
+    if      (option == "adjust") {
+      if (numArgs != 3)
+        return tk_->wrongNumArgs(getFullName() + " selection adjust index");
+
+      int ind;
+      if (! stringToIndex(args[2], ind))
+        return tk_->throwError(tk_->msg() + "bad entry index \"" + args[2] + "\"");
+
+      int start = qedit_->selectionStart();
+      int len   = qedit_->selectionLength();
+
+      if (start >= 0) {
+        int end = start + len;
+
+        if      (ind < start) start = ind;
+        else if (ind > end  ) end   = ind;
+
+        qedit_->setSelection(start, end - start);
+
+        if (isExportSelection())
+          tk_->setClipboardText(qedit_->selectedText(), CTkAppClipboard::Selection);
+      }
     }
-    else if (args[1] == "clear") {
+    else if (option == "clear") {
       if (numArgs != 2)
         return tk_->wrongNumArgs(getFullName() + " selection clear");
 
       qedit_->deselect();
     }
-    else if (args[1] == "from") {
+    else if (option == "from") {
       if (numArgs != 3)
         return tk_->wrongNumArgs(getFullName() + " selection from index");
 
       int ind;
       if (! stringToIndex(args[2], ind))
-        return false;
+        return tk_->throwError(tk_->msg() + "bad entry index \"" + args[2] + "\"");
 
+      qedit_->setSelection(ind, ind);
       qedit_->setCursorPosition(ind);
+
+      if (isExportSelection())
+        tk_->setClipboardText(qedit_->selectedText(), CTkAppClipboard::Selection);
     }
-    else if (args[1] == "present") {
-      tk_->TODO(option + " " + tk_->variantToString(args[1]));
+    else if (option == "present") {
+      int start = qedit_->selectionStart();
+      int end   = qedit_->selectionEnd  ();
+
+      auto ind = (start >= 0 && end >= start ? 1 : 0);
+
+      tk_->setIntegerResult(ind);
     }
-    else if (args[1] == "range") {
+    else if (option == "range") {
       if (numArgs != 4)
-        return tk_->wrongNumArgs(getFullName() + " selection clear");
+        return tk_->wrongNumArgs(getFullName() + " selection range start end");
 
       int startIndex, endIndex;
       if (! stringToIndex(args[2], startIndex))
-        return false;
+        return tk_->throwError(tk_->msg() + "bad entry index \"" + args[2] + "\"");
       if (! stringToIndex(args[3], endIndex))
-        return false;
+        return tk_->throwError(tk_->msg() + "bad entry index \"" + args[3] + "\"");
 
       qedit_->setSelection(startIndex, endIndex - startIndex);
+
+      if (isExportSelection())
+        tk_->setClipboardText(qedit_->selectedText(), CTkAppClipboard::Selection);
     }
-    else if (args[1] == "to") {
+    else if (option == "to") {
       if (numArgs != 3)
         return tk_->wrongNumArgs(getFullName() + " selection to index");
 
       int endIndex;
       if (! stringToIndex(args[2], endIndex))
-        return false;
+        return tk_->throwError(tk_->msg() + "bad entry index \"" + args[2] + "\"");
 
       int startIndex = qedit_->cursorPosition();
 
       qedit_->setSelection(startIndex, endIndex - startIndex);
+
+      if (isExportSelection())
+        tk_->setClipboardText(qedit_->selectedText(), CTkAppClipboard::Selection);
     }
-    else
-      return false;
   }
   else if (option == "validate") {
     if (numArgs != 1)
       return tk_->wrongNumArgs(getFullName() + " validate");
 
-    tk_->TODO(args);
+    auto rc = validate(qedit_->text());
+
+    tk_->setBoolResult(rc);
   }
   else if (option == "xview") {
     if      (numArgs == 1) {
@@ -330,11 +445,11 @@ execOp(const Args &args)
     }
     else if (args[1] == "scroll") {
       if (numArgs != 4)
-        return tk_->wrongNumArgs(getFullName() + " xview scroll number what");
+        return tk_->wrongNumArgs(getFullName() + " xview scroll number pages|units");
 
-      long i;
-      if (! tk_->variantToInt(args[2], i))
-        return false;
+      double i;
+      if (! tk_->variantToReal(args[2], i))
+        return tk_->invalidReal(args[2]);
 
       static auto names = std::vector<QString>({"pages", "units"});
 
@@ -356,7 +471,7 @@ execOp(const Args &args)
 
       int ind;
       if (! stringToIndex(args[1], ind))
-        return false;
+        return tk_->throwError(tk_->msg() + "bad entry index \"" + args[1] + "\"");
 
       qedit_->setCursorPosition(ind);
     }
@@ -418,9 +533,20 @@ validate(const QString &s) const
 
     auto cmd = validateCmd_;
 
-    auto pos = cmd.indexOf("%P");
-    if (pos >= 0)
-      cmd = cmd.mid(0, pos) + "{" + s + "}" + cmd.mid(pos + 2);
+    auto replaceStr = [&](const QString &from, const QString &to) {
+      auto pos = cmd.indexOf(from);
+      if (pos >= 0)
+        cmd = cmd.mid(0, pos) + "{" + to + "}" + cmd.mid(pos + from.length());
+    };
+
+    replaceStr("%d", "-1");
+    replaceStr("%i", "-1");
+    replaceStr("%P", s);
+    replaceStr("%s", s);
+    replaceStr("%S", "");
+    replaceStr("%v", "all");
+    replaceStr("%V", "forced");
+    replaceStr("%W", getFullName());
 
     if (! tk_->eval(cmd))
       return true;

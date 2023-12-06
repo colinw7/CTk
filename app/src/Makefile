@@ -89,6 +89,7 @@ SOURCES       = CTkAppBitmaps.cpp \
 		CTkAppTopLevel.cpp \
 		CTkAppTreeView.cpp \
 		CTkAppUtil.cpp \
+		CTkAppWidgetCommand.cpp \
 		CTkAppWidget.cpp \
 		CTkAppX11.cpp \
 		CTclApp.cpp \
@@ -188,6 +189,7 @@ OBJECTS       = ../obj/CTkAppBitmaps.o \
 		../obj/CTkAppTopLevel.o \
 		../obj/CTkAppTreeView.o \
 		../obj/CTkAppUtil.o \
+		../obj/CTkAppWidgetCommand.o \
 		../obj/CTkAppWidget.o \
 		../obj/CTkAppX11.o \
 		../obj/CTclApp.o \
@@ -386,6 +388,7 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		../include/CTkAppTypes.h \
 		../include/CTkAppUtil.h \
 		../include/CTkAppWidget.h \
+		../include/CTkAppWidgetCommand.h \
 		../include/CTkAppX11.h \
 		../include/CTclApp.h \
 		../include/CTclAppCommand.h \
@@ -437,6 +440,7 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		CTkAppTopLevel.cpp \
 		CTkAppTreeView.cpp \
 		CTkAppUtil.cpp \
+		CTkAppWidgetCommand.cpp \
 		CTkAppWidget.cpp \
 		CTkAppX11.cpp \
 		CTclApp.cpp \
@@ -666,8 +670,8 @@ distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents ../include/CTkAppBitmaps.h ../include/CTkAppButton.h ../include/CTkAppButtonWidget.h ../include/CTkAppCanvas.h ../include/CTkAppCanvasShape.h ../include/CTkAppCanvasWidget.h ../include/CTkAppCheckButton.h ../include/CTkAppComboBox.h ../include/CTkAppCommand.h ../include/CTkAppCommands.h ../include/CTkAppCursor.h ../include/CTkAppDebug.h ../include/CTkAppEntry.h ../include/CTkAppEventData.h ../include/CTkAppFont.h ../include/CTkAppFrame.h ../include/CTkAppGridLayout.h ../include/CTkApp.h ../include/CTkAppImageCommand.h ../include/CTkAppImage.h ../include/CTkAppLabelFrame.h ../include/CTkAppLabel.h ../include/CTkAppLayout.h ../include/CTkAppLayoutWidget.h ../include/CTkAppListBox.h ../include/CTkAppMenuButton.h ../include/CTkAppMenu.h ../include/CTkAppMessage.h ../include/CTkAppNoteBook.h ../include/CTkAppOptData.h ../include/CTkAppOptionValue.h ../include/CTkAppPackLayout.h ../include/CTkAppPanedWindow.h ../include/CTkAppPlaceLayout.h ../include/CTkAppPoint.h ../include/CTkAppRadioButton.h ../include/CTkAppRoot.h ../include/CTkAppScale.h ../include/CTkAppScrollBar.h ../include/CTkAppSpinBox.h ../include/CTkAppSpinBoxWidget.h ../include/CTkAppText.h ../include/CTkAppTextWidget.h ../include/CTkAppTopLevel.h ../include/CTkAppTreeView.h ../include/CTkAppTypes.h ../include/CTkAppUtil.h ../include/CTkAppWidget.h ../include/CTkAppX11.h ../include/CTclApp.h ../include/CTclAppCommand.h ../include/CTkWidget.h ../include/CQLabelImage.h ../include/CQButtonImage.h ../include/CQTextWidget.h ../include/CQSpinList.h ../include/CSVGUtil.h ../include/CQRotatedText.h ../include/CQSlider.h CQOptEdit.h $(DISTDIR)/
-	$(COPY_FILE) --parents CTkAppBitmaps.cpp CTkAppButton.cpp CTkAppButtonWidget.cpp CTkAppCanvas.cpp CTkAppCanvasShape.cpp CTkAppCanvasWidget.cpp CTkAppCheckButton.cpp CTkAppComboBox.cpp CTkAppCommands.cpp CTkApp.cpp CTkAppCursor.cpp CTkAppDebug.cpp CTkAppEntry.cpp CTkAppFont.cpp CTkAppFrame.cpp CTkAppGridLayout.cpp CTkAppImageCommand.cpp CTkAppImage.cpp CTkAppLabel.cpp CTkAppLabelFrame.cpp CTkAppLayout.cpp CTkAppLayoutWidget.cpp CTkAppListBox.cpp CTkAppMenuButton.cpp CTkAppMenu.cpp CTkAppMessage.cpp CTkAppNoteBook.cpp CTkAppOptData.cpp CTkAppPackLayout.cpp CTkAppPanedWindow.cpp CTkAppPlaceLayout.cpp CTkAppRadioButton.cpp CTkAppRoot.cpp CTkAppScale.cpp CTkAppScrollBar.cpp CTkAppSpinBox.cpp CTkAppText.cpp CTkAppTopLevel.cpp CTkAppTreeView.cpp CTkAppUtil.cpp CTkAppWidget.cpp CTkAppX11.cpp CTclApp.cpp CTclAppCommand.cpp CTkWidget.cpp CQLabelImage.cpp CQButtonImage.cpp CQTextWidget.cpp CQSpinList.cpp CSVGUtil.cpp CQRotatedText.cpp CQOptEdit.cpp CQSlider.cpp CXBMImage.cpp CGIFImage.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents ../include/CTkAppBitmaps.h ../include/CTkAppButton.h ../include/CTkAppButtonWidget.h ../include/CTkAppCanvas.h ../include/CTkAppCanvasShape.h ../include/CTkAppCanvasWidget.h ../include/CTkAppCheckButton.h ../include/CTkAppComboBox.h ../include/CTkAppCommand.h ../include/CTkAppCommands.h ../include/CTkAppCursor.h ../include/CTkAppDebug.h ../include/CTkAppEntry.h ../include/CTkAppEventData.h ../include/CTkAppFont.h ../include/CTkAppFrame.h ../include/CTkAppGridLayout.h ../include/CTkApp.h ../include/CTkAppImageCommand.h ../include/CTkAppImage.h ../include/CTkAppLabelFrame.h ../include/CTkAppLabel.h ../include/CTkAppLayout.h ../include/CTkAppLayoutWidget.h ../include/CTkAppListBox.h ../include/CTkAppMenuButton.h ../include/CTkAppMenu.h ../include/CTkAppMessage.h ../include/CTkAppNoteBook.h ../include/CTkAppOptData.h ../include/CTkAppOptionValue.h ../include/CTkAppPackLayout.h ../include/CTkAppPanedWindow.h ../include/CTkAppPlaceLayout.h ../include/CTkAppPoint.h ../include/CTkAppRadioButton.h ../include/CTkAppRoot.h ../include/CTkAppScale.h ../include/CTkAppScrollBar.h ../include/CTkAppSpinBox.h ../include/CTkAppSpinBoxWidget.h ../include/CTkAppText.h ../include/CTkAppTextWidget.h ../include/CTkAppTopLevel.h ../include/CTkAppTreeView.h ../include/CTkAppTypes.h ../include/CTkAppUtil.h ../include/CTkAppWidget.h ../include/CTkAppWidgetCommand.h ../include/CTkAppX11.h ../include/CTclApp.h ../include/CTclAppCommand.h ../include/CTkWidget.h ../include/CQLabelImage.h ../include/CQButtonImage.h ../include/CQTextWidget.h ../include/CQSpinList.h ../include/CSVGUtil.h ../include/CQRotatedText.h ../include/CQSlider.h CQOptEdit.h $(DISTDIR)/
+	$(COPY_FILE) --parents CTkAppBitmaps.cpp CTkAppButton.cpp CTkAppButtonWidget.cpp CTkAppCanvas.cpp CTkAppCanvasShape.cpp CTkAppCanvasWidget.cpp CTkAppCheckButton.cpp CTkAppComboBox.cpp CTkAppCommands.cpp CTkApp.cpp CTkAppCursor.cpp CTkAppDebug.cpp CTkAppEntry.cpp CTkAppFont.cpp CTkAppFrame.cpp CTkAppGridLayout.cpp CTkAppImageCommand.cpp CTkAppImage.cpp CTkAppLabel.cpp CTkAppLabelFrame.cpp CTkAppLayout.cpp CTkAppLayoutWidget.cpp CTkAppListBox.cpp CTkAppMenuButton.cpp CTkAppMenu.cpp CTkAppMessage.cpp CTkAppNoteBook.cpp CTkAppOptData.cpp CTkAppPackLayout.cpp CTkAppPanedWindow.cpp CTkAppPlaceLayout.cpp CTkAppRadioButton.cpp CTkAppRoot.cpp CTkAppScale.cpp CTkAppScrollBar.cpp CTkAppSpinBox.cpp CTkAppText.cpp CTkAppTopLevel.cpp CTkAppTreeView.cpp CTkAppUtil.cpp CTkAppWidgetCommand.cpp CTkAppWidget.cpp CTkAppX11.cpp CTclApp.cpp CTclAppCommand.cpp CTkWidget.cpp CQLabelImage.cpp CQButtonImage.cpp CQTextWidget.cpp CQSpinList.cpp CSVGUtil.cpp CQRotatedText.cpp CQOptEdit.cpp CQSlider.cpp CXBMImage.cpp CGIFImage.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -1410,6 +1414,7 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../include/CTkAppCommand.h \
 		../include/CTclAppCommand.h \
 		../include/CTkAppOptData.h \
+		../include/CTkAppWidgetCommand.h \
 		../include/CTkAppImage.h \
 		../../../CQUtil/include/CQUtil.h \
 		../../../CQUtil/include/CQUtilMeta.h
@@ -1562,6 +1567,7 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../include/CTclAppCommand.h \
 		../include/CTkAppOptData.h \
 		../include/CTkAppOptionValue.h \
+		../include/CTkAppWidgetCommand.h \
 		../include/CTkAppImageCommand.h \
 		../include/CTkApp.h \
 		../include/CTkAppEventData.h \
@@ -1635,6 +1641,7 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../include/CTkAppCommand.h \
 		../include/CTclAppCommand.h \
 		../include/CTkAppOptData.h \
+		../include/CTkAppWidgetCommand.h \
 		../include/CTkAppImageCommand.h \
 		../include/CTkAppDebug.h \
 		../include/CTkAppBitmaps.h \
@@ -1715,7 +1722,8 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../../../COS/include/COSNaN.h \
 		../include/CQLabelImage.h \
 		../../../CQUtil/include/CQUtil.h \
-		../../../CQUtil/include/CQUtilMeta.h
+		../../../CQUtil/include/CQUtilMeta.h \
+		../../../CQUtil/include/CQStrParse.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTkAppEntry.o CTkAppEntry.cpp
 
 ../obj/CTkAppFont.o: CTkAppFont.cpp ../include/CTkAppFont.h \
@@ -2147,6 +2155,7 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../include/CTkAppCommand.h \
 		../include/CTclAppCommand.h \
 		../include/CTkAppOptData.h \
+		../include/CTkAppWidgetCommand.h \
 		../include/CQSlider.h \
 		../../../CQUtil/include/CQUtil.h \
 		../../../CQUtil/include/CQUtilMeta.h
@@ -2295,6 +2304,28 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../../../CUtil/include/CRGB.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTkAppUtil.o CTkAppUtil.cpp
 
+../obj/CTkAppWidgetCommand.o: CTkAppWidgetCommand.cpp ../include/CTkAppWidgetCommand.h \
+		../include/CTkAppCommands.h \
+		../include/CTkAppCommand.h \
+		../include/CTclAppCommand.h \
+		../include/CTkAppOptData.h \
+		../include/CTkAppOptionValue.h \
+		../include/CTkAppWidget.h \
+		../include/CTkAppEventData.h \
+		../include/CTkApp.h \
+		../include/CTkAppTypes.h \
+		../include/CTkAppUtil.h \
+		../include/CTclApp.h \
+		../../../CMath/include/CMatrix2D.h \
+		../../../CMath/include/CPoint2D.h \
+		../../../CMath/include/CVector2D.h \
+		../../../CMath/include/CMathGen.h \
+		../../../CMath/include/CIPoint2D.h \
+		../../../CMath/include/CMathUtil.h \
+		../../../COS/include/COSNaN.h \
+		../include/CQLabelImage.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTkAppWidgetCommand.o CTkAppWidgetCommand.cpp
+
 ../obj/CTkAppWidget.o: CTkAppWidget.cpp ../include/CTkAppWidget.h \
 		../include/CTkAppEventData.h \
 		../include/CTkApp.h \
@@ -2310,12 +2341,13 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../../../CMath/include/CMathUtil.h \
 		../../../COS/include/COSNaN.h \
 		../include/CQLabelImage.h \
-		../include/CTkAppRoot.h \
-		../include/CTkAppTopLevel.h \
+		../include/CTkAppWidgetCommand.h \
 		../include/CTkAppCommands.h \
 		../include/CTkAppCommand.h \
 		../include/CTclAppCommand.h \
 		../include/CTkAppOptData.h \
+		../include/CTkAppRoot.h \
+		../include/CTkAppTopLevel.h \
 		../include/CTkAppPackLayout.h \
 		../include/CTkAppLayout.h \
 		../include/CTkAppLayoutWidget.h \

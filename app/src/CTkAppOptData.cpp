@@ -28,7 +28,7 @@ QVariant
 CTkAppOptData::
 getOptsVar() const
 {
-  QVariantList vars;
+  std::map<QString, QVariant> vars;
 
   for (uint i = 0; opts_[i].name != nullptr; ++i) {
     const auto &opt = opts_[i];
@@ -53,10 +53,15 @@ getOptsVar() const
         vars1.push_back(opt.def);
     }
 
-    vars.push_back(vars1);
+    vars[opt.name] = vars1;
   }
 
-  return vars;
+  QVariantList vars1;
+
+  for (const auto &pv : vars)
+    vars1.push_back(pv.second);
+
+  return vars1;
 }
 
 bool

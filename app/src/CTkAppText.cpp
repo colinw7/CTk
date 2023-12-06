@@ -55,6 +55,13 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-endline") {
     tk_->TODO(name);
   }
+  else if (name == "-exportselection") {
+    bool b;
+    if (! tk_->variantToBool(var, b))
+      return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
+
+    setExportSelection(b);
+  }
   else if (name == "-height") {
     long h;
     if (! tk_->variantToInt(var, h))
@@ -842,7 +849,7 @@ execOp(const Args &args)
             if (! nextI()) return false;
             CTkAppDistance w;
             if (! tk_->variantToDistance(var1, w))
-              return tk_->throwError(tk_->msg() + "bad screen distance \"" + var1 + "\"");
+              return tk_->invalidDistance(var1);
 
             tagData.borderWidth = w.rvalue;
           }

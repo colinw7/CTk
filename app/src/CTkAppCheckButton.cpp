@@ -54,7 +54,7 @@ execConfig(const QString &name, const QVariant &var)
     // height of image (pixels) or text (chars)
     CTkAppDistance h;
     if (! tk_->variantToDistance(var, h))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     qcheck_->setHeight(h.rvalue);
   }
@@ -173,7 +173,7 @@ execConfig(const QString &name, const QVariant &var)
     // width of image (pixels) or text (chars)
     CTkAppDistance w;
     if (! tk_->variantToDistance(var, w))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     qcheck_->setWidth(w.rvalue);
   }
@@ -198,7 +198,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-wraplength") {
     CTkAppDistance length;
     if (! tk_->variantToDistance(var, length))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     qcheck_->setWrapLength(length.rvalue);
   }

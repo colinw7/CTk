@@ -65,14 +65,30 @@ CTkAppTopLevel::
 execConfig(const QString &name, const QVariant &var)
 {
   if      (name == "-class") {
-    tk_->TODO(name);
+    if (! isInCreate())
+      return tk_->throwError("can't modify -class option after widget is created");
+
+    auto value = tk_->variantToString(var);
+
+    setOptionClass(value);
   }
   else if (name == "-container") {
+    if (! isInCreate())
+      return tk_->throwError("can't modify -container option after widget is created");
+
     bool b;
     if (! tk_->variantToBool(var, b))
       return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
 
     setContainer(b);
+  }
+  else if (name == "-menu") {
+    auto value = tk_->variantToString(var);
+
+    setMenuName(value);
+  }
+  else if (name == "-screen") {
+    tk_->TODO(name);
   }
   else if (name == "-use") {
     tk_->TODO(name);

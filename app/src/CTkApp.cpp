@@ -5,6 +5,7 @@
 #include <CTkAppImage.h>
 #include <CTkAppFont.h>
 #include <CTkAppCommands.h>
+#include <CTkAppWidgetCommand.h>
 #include <CTkAppImageCommand.h>
 #include <CTkAppEventData.h>
 #include <CTkAppUtil.h>
@@ -66,6 +67,7 @@ static VirtualEventData virtualEventData[] = {
   { "<<NextLine>>"       , CTkAppVirtualEventType::NextLine        },
   { "<<NextPara>>"       , CTkAppVirtualEventType::NextPara        },
   { "<<NextWord>>"       , CTkAppVirtualEventType::NextWord        },
+  { "<<NoManagedChild>>" , CTkAppVirtualEventType::NoManagedChild  },
   { "<<Paste>>"          , CTkAppVirtualEventType::Paste           },
   { "<<PasteSelection>>" , CTkAppVirtualEventType::PasteSelection  },
   { "<<PrevChar>>"       , CTkAppVirtualEventType::PrevChar        },
@@ -96,7 +98,7 @@ static VirtualEventData virtualEventData[] = {
   { "<<TkFontchooserFontChanged>>", CTkAppVirtualEventType::FontchooserFontChanged },
 #endif
 
-  { ""                   , CTkAppVirtualEventType::None            }
+  { "", CTkAppVirtualEventType::None }
 };
 
 #if 0
@@ -226,15 +228,15 @@ construct(int argc, const char **argv)
   //---
 
   // standard fonts
-  createFont("TkCaptionFont");
-  createFont("TkSmallCaptionFont");
-  createFont("TkTooltipFont");
-  createFont("TkFixedFont");
-  createFont("TkHeadingFont");
-  createFont("TkMenuFont");
-  createFont("TkIconFont");
-  createFont("TkTextFont");
-  createFont("TkDefaultFont");
+  createFont("TkCaptionFont"     )->setPointSize(12).setBold(true);
+  createFont("TkSmallCaptionFont")->setPointSize(9);
+  createFont("TkTooltipFont"     )->setPointSize(9);
+  createFont("TkFixedFont"       )->setPointSize(10).setFamily("monospace");
+  createFont("TkHeadingFont"     )->setPointSize(10).setBold(true);
+  createFont("TkMenuFont"        )->setPointSize(10);
+  createFont("TkIconFont"        )->setPointSize(10);
+  createFont("TkTextFont"        )->setPointSize(10);
+  createFont("TkDefaultFont"     )->setPointSize(10);
 
   //---
 
@@ -649,8 +651,7 @@ QString
 CTkApp::
 getNewFontName() const
 {
-  static uint id = 1;
-
+  uint id   = 1;
   auto name = QString("font%1").arg(id);
 
   while (fonts_.find(name) != fonts_.end()) {
@@ -714,25 +715,6 @@ getQFont(const QVariant &var) const
   CTkAppUtil::variantToQFont(const_cast<CTkApp *>(this), var, qfont);
 
   return qfont;
-}
-
-void
-CTkApp::
-getFontData(const QFont &qfont, FontData &data) const
-{
-  data.family     = qfont.family();
-  data.size       = qfont.pointSizeF();
-  data.weight     = (qfont.bold() ? "bold" : "normal");
-  data.slant      = (qfont.italic() ? "italic" : "roman");
-  data.underline  = qfont.underline();
-  data.overstrike = qfont.strikeOut();
-
-  QFontMetricsF fm(qfont);
-
-  data.ascent    = fm.ascent();
-  data.descent   = fm.descent();
-  data.linespace = fm.height();
-  data.fixed     = qfont.fixedPitch();
 }
 
 void
@@ -1171,6 +1153,23 @@ getWidgetAt(long x, long y) const
     return nullptr;
 
   return (*depthWidgets.rbegin()).second.front();
+}
+
+CTkAppWidget *
+CTkApp::
+getWidgetForWin(ulong xwin) const
+{
+  for (const auto &tw : widgets_) {
+    if (! tw || tw->isDeleted())
+      continue;
+
+    auto xwin1 = tw->getQWidget()->winId();
+
+    if (xwin1 == xwin)
+      return tw;
+  }
+
+  return nullptr;
 }
 
 //---
@@ -3751,9 +3750,14 @@ lookupName(const QString &msg, const std::vector<QString> &names,
     return str;
   };
 
-  if (! CTkAppUtil::uniqueMatch(names, arg, opt)) {
-    if (! quiet)
-      return throwError("bad " + msg + " \"" + arg + "\": must be " + concatOptionNames());
+  int nmatch;
+  if (! CTkAppUtil::uniqueMatch(names, arg, opt, nmatch)) {
+    if (! quiet) {
+      if (nmatch > 1)
+        return throwError("ambiguous " + msg + " \"" + arg + "\": must be " + concatOptionNames());
+      else
+        return throwError("bad " + msg + " \"" + arg + "\": must be " + concatOptionNames());
+    }
     else
       return false;
   }
@@ -4010,6 +4014,13 @@ variantToString(const QVariant &var) const
   return CTkAppUtil::variantToString(const_cast<CTkApp *>(this), var);
 }
 
+bool
+CTkApp::
+variantToAlign(const QVariant &var, Qt::Alignment &align) const
+{
+  return CTkAppUtil::variantToAlign(const_cast<CTkApp *>(this), var, align);
+}
+
 //--
 
 QVariant
@@ -4085,6 +4096,13 @@ CTkApp::
 invalidReal(const QVariant &var) const
 {
   return throwError(msg() + "expected floating-point number but got \"" + var + "\"");
+}
+
+bool
+CTkApp::
+invalidDistance(const QVariant &var) const
+{
+  return throwError(msg() + "bad screen distance \"" + var + "\"");
 }
 
 bool

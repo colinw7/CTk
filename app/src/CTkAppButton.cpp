@@ -1,6 +1,7 @@
 #include <CTkAppButton.h>
 #include <CTkAppButtonWidget.h>
 #include <CTkAppCommands.h>
+#include <CTkAppWidgetCommand.h>
 #include <CTkAppImage.h>
 
 #include <CQUtil.h>
@@ -78,7 +79,7 @@ execConfig(const QString &name, const QVariant &var)
     // height of image (pixels) or text (chars)
     CTkAppDistance h;
     if (! tk_->variantToDistanceI(var, h))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     qbutton_->setUserHeight(h.ivalue);
   }
@@ -127,14 +128,14 @@ execConfig(const QString &name, const QVariant &var)
     // width of image (pixels) or text (chars)
     CTkAppDistance w;
     if (! tk_->variantToDistance(var, w))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     qbutton_->setUserWidth(w.rvalue);
   }
   else if (name == "-wraplength") {
     CTkAppDistance length;
     if (! tk_->variantToDistance(var, length))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     qbutton_->setWrapLength(length.rvalue);
   }

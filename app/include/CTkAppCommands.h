@@ -50,33 +50,6 @@ class CTkAppRootCommand :  public CTkAppOptsCommand {
 
 //---
 
-class CTkAppWidgetCommand : public CTkAppOptsCommand {
- public:
-  using Args = std::vector<QVariant>;
-
- public:
-  explicit CTkAppWidgetCommand(CTkAppCommand *command, const QString &name,
-                               CTkAppWidget *w, const CTkAppOpt *opts);
-  explicit CTkAppWidgetCommand(CTkApp *app, const QString &name,
-                               CTkAppWidget *w, const CTkAppOpt *opts);
-
- ~CTkAppWidgetCommand();
-
-  bool run(const Args &args) override;
-
-  bool processArgs(const Args &args);
-
-  bool setOptValue(const QString &name, const QVariant &value) override;
-
-  bool setNameValue(const QString &name, const QVariant &value);
-
- private:
-  CTkAppCommand* command_ { nullptr };
-  CTkAppWidget*  w_       { nullptr };
-};
-
-//---
-
 class QEventLoop;
 
 class CTkWindowDestroyEventLoop : public QObject {

@@ -2,6 +2,7 @@
 #define CTkAppLayout_H
 
 #include <QLayout>
+#include <QPointer>
 
 class CTkAppLayoutWidget;
 class CTkAppWidget;
@@ -23,13 +24,17 @@ class CTkAppLayout : public QLayout {
 
   virtual QString name() const = 0;
 
+  CTkAppWidget *widget() const;
+
   virtual std::vector<CTkAppLayoutWidget *> getLayoutWidgets(bool flat=false) const = 0;
 
  protected:
+  using WidgetP = QPointer<CTkAppWidget>;
+
   enum SizeType { MinimumSize, SizeHint };
 
-  CTkAppWidget* w_    { nullptr };
-  Type          type_ { Type::NONE };
+  WidgetP widget_;
+  Type    type_ { Type::NONE };
 };
 
 #endif

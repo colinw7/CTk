@@ -48,7 +48,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-elementborderwidth") {
     CTkAppDistance w;
     if (! tk_->variantToDistance(var, w))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     setElementBorderWidth(w.rvalue);
   }

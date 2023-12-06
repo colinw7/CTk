@@ -16,6 +16,14 @@ class CTkAppFrame : public CTkAppWidget {
   bool isContainer() const { return container_; }
   void setContainer(bool b) { container_ = b; }
 
+  void setBackgroundImage(const CTkAppImageRef &i) { backgroundImage_ = i; }
+  const CTkAppImageRef &backgroundImage() const { return backgroundImage_; }
+
+  bool isTile() const { return tile_; }
+  void setTile(bool b) { tile_ = b; }
+
+  //---
+
   bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
@@ -23,8 +31,12 @@ class CTkAppFrame : public CTkAppWidget {
  private:
   CTkAppFrameWidget* qframe_ { nullptr };
 
-  bool container_ { false };
+  bool           container_ { false };
+  CTkAppImageRef backgroundImage_;
+  bool           tile_ { false };
 };
+
+//---
 
 class CTkAppFrameWidget : public QFrame {
  public:

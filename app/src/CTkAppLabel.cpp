@@ -56,7 +56,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-height") {
     CTkAppDistance height;
     if (! tk_->variantToDistanceI(var, height))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     qlabel_->setHeight(height.ivalue);
   }
@@ -91,14 +91,14 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-width") {
     CTkAppDistance width;
     if (! tk_->variantToDistanceI(var, width))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     qlabel_->setWidth(width.rvalue);
   }
   else if (name == "-wraplength") {
     CTkAppDistance length;
     if (! tk_->variantToDistance(var, length))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     qlabel_->setWrapLength(length.rvalue);
   }

@@ -54,22 +54,24 @@ class CTkAppGridLayoutInfo {
   QString getSticky() const { return sticky_.value_or(""); }
   void setSticky(const QString &sticky) { sticky_ = sticky; }
 
-  uint getStickySides() const {
+  uint getStickySides(bool &valid) const {
+    valid = true;
+
     if (sticky_)
-      sticky_sides_ = decodeStickySides();
+      sticky_sides_ = decodeStickySides(valid);
     else
       sticky_sides_ = uint(StickySide::NONE);
 
     return sticky_sides_;
   }
 
-  bool isPadXValid() const { return bool(padx_); }
-  int  getPadX    () const { return padx_.value_or(0); }
-  void setPadX    (int padx) { padx_ = padx; }
+  bool isPadXValid() const { return bool(padl_); }
+  int  getPadX    () const { return padl_.value_or(0); }
+  void setPadX    (int padl, int padr) { padl_ = padl; padr_ = padr; }
 
-  bool isPadYValid() const { return bool(pady_); }
-  int  getPadY    () const { return pady_.value_or(0); }
-  void setPadY    (int pady) { pady_ = pady; }
+  bool isPadYValid() const { return bool(padb_); }
+  int  getPadY    () const { return padb_.value_or(0); }
+  void setPadY    (int padb, int pady) { padb_ = padb; padt_ = pady; }
 
   bool isIPadXValid() const { return bool(ipadx_); }
   int  getIPadX    () const { return ipadx_.value_or(0); }
@@ -93,8 +95,8 @@ class CTkAppGridLayoutInfo {
     if (info.rowSpan_) rowSpan_ = info.rowSpan_;
     if (info.colSpan_) colSpan_ = info.colSpan_;
     if (info.sticky_ ) sticky_  = info.sticky_ ;
-    if (info.padx_   ) padx_    = info.padx_   ;
-    if (info.pady_   ) pady_    = info.pady_   ;
+    if (info.padl_   ) padl_    = info.padl_   ;
+    if (info.padb_   ) padb_    = info.padb_   ;
     if (info.ipadx_  ) ipadx_   = info.ipadx_  ;
     if (info.ipady_  ) ipady_   = info.ipady_  ;
     if (info.in_     ) in_      = info.in_     ;
@@ -102,12 +104,14 @@ class CTkAppGridLayoutInfo {
   }
 
  private:
-  uint decodeStickySides() const {
+  uint decodeStickySides(bool &valid) const {
     uint sides = 0;
 
     auto sticky = sticky_.value_or("");
 
     auto len = sticky.size();
+
+    valid = true;
 
     for (int i = 0; i < len; ++i) {
       switch (sticky[i].toLatin1()) {
@@ -115,7 +119,9 @@ class CTkAppGridLayoutInfo {
         case 's': case 'S': sides |= uint(StickySide::S); break;
         case 'e': case 'E': sides |= uint(StickySide::E); break;
         case 'w': case 'W': sides |= uint(StickySide::W); break;
-        default: break;
+        case ' ': case '\t': break;
+        case ',': break;
+        default: valid = false; break;
       }
     }
 
@@ -128,8 +134,8 @@ class CTkAppGridLayoutInfo {
   OptInt    rowSpan_;
   OptInt    colSpan_;
   OptString sticky_;
-  OptInt    padx_;
-  OptInt    pady_;
+  OptInt    padl_, padr_;
+  OptInt    padb_, padt_;
   OptInt    ipadx_;
   OptInt    ipady_;
   OptString in_;
@@ -251,17 +257,39 @@ class CTkAppGridLayout : public CTkAppLayout {
 
   int count() const override;
 
+  bool isRowUsed   (int) const;
+  bool isColumnUsed(int) const;
+
+  uint numRows() const { return numRows_; }
+  uint numCols() const { return numCols_; }
+
   QLayoutItem *itemAt(int index) const override;
 
   QSize minimumSize() const override;
 
+  //---
+
   void setGeometry(const QRect &rect) override;
 
+  int colX(uint c) const;
+  int rowY(uint r) const;
+
   QSize sizeHint() const override;
+
+  //---
 
   QLayoutItem *takeAt(int index) override;
 
   void add(QLayoutItem *item);
+
+  //---
+
+  void getBBox(QRect &r) const;
+  void getCellBBox(QRect &r, int row1, int col1, int row2, int col2) const;
+
+  bool getCellAt(double x, double y, int &row, int &col) const;
+
+  //---
 
   void draw(QPainter *p) const;
 
@@ -297,6 +325,12 @@ class CTkAppGridLayout : public CTkAppLayout {
   RowColUniform rowUniform_;
   RowColMinSize rowMinSize_;
   RowColPad     rowPad_;
+
+  QRect            rect_;
+  uint             numRows_ { 0 };
+  uint             numCols_ { 0 };
+  std::vector<int> colWidths_;
+  std::vector<int> rowHeights_;
 };
 
 #endif

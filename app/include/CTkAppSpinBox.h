@@ -30,6 +30,12 @@ class CTkAppSpinBox : public CTkAppWidget {
   const QString &getInvalidCommand() const { return invalidCommand_; }
   void setInvalidCommand(const QString &command) { invalidCommand_ = command; }
 
+  bool isExportSelection() const { return exportSelection_; }
+  void setExportSelection(bool b) { exportSelection_ = b; }
+
+  const QColor &readOnlyBackground() const { return readOnlyBackground_; }
+  void setReadOnlyBackground(const QColor &c) { readOnlyBackground_ = c; }
+
   //---
 
   void setText(const QString &text) override;
@@ -54,13 +60,20 @@ class CTkAppSpinBox : public CTkAppWidget {
     ALL
   };
 
-  CTkAppSpinBoxWidget*    qspin_ { nullptr };
-  QString                 varName_;
-  CTkAppSpinBoxVarProc*   varProc_;
+  CTkAppSpinBoxWidget* qspin_ { nullptr };
+
+  QString               varName_;
+  CTkAppSpinBoxVarProc* varProc_;
+
   ValidateMode            validateMode_ { ValidateMode::NONE };
   QString                 validateCmd_;
   CTkAppSpinBoxValidator* validateProc_ { nullptr };
-  QString                 invalidCommand_;
+
+  QString invalidCommand_;
+
+  bool exportSelection_ { true };
+
+  QColor readOnlyBackground_;
 };
 
 #endif

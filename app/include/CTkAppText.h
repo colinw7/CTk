@@ -56,6 +56,8 @@ class CTkAppText : public CTkAppWidget {
 
   bool stringToTextInd(const QVariant &str, TextInd &ind) const;
 
+  //---
+
   void setMark(const QString &mark, const TextInd &ind);
   bool getMark(const QString &mark, TextInd &ind) const;
   void getMarkNames(std::vector<QString> &names) const;
@@ -63,10 +65,19 @@ class CTkAppText : public CTkAppWidget {
   bool getMarkGravity(const QString &name, QString &gravity) const;
   bool setMarkGravity(const QString &name, const QString &gravity);
 
+  //---
+
   TextIndRange remapIndRange(const TextIndRange &ind) const;
   TextInd remapInd(const TextInd &ind) const;
 
   void setText(const QString &text) override;
+
+  //---
+
+  bool isExportSelection() const { return exportSelection_; }
+  void setExportSelection(bool b) { exportSelection_ = b; }
+
+  //---
 
   void lowerTag(const QString &tag, const QString &aboveTag);
   void raiseTag(const QString &tag, const QString &aboveTag);
@@ -108,8 +119,11 @@ class CTkAppText : public CTkAppWidget {
   using Tags  = std::map<QString, TagData>;
 
   CTkAppTextWidget* qtext_ { nullptr };
-  Marks             marks_;
-  Tags              tags_;
+
+  Marks marks_;
+  Tags  tags_;
+
+  bool exportSelection_ { true };
 };
 
 #endif

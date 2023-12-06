@@ -664,7 +664,7 @@ childSelectionSlot()
 
   if (currentChild_)
     childName = QString("%1 (%2)").
-      arg(currentChild_->getName()).arg(currentChild_->getClassName());
+      arg(currentChild_->getName()).arg(currentChild_->calcClassName());
 
   layoutWidgetLabel_->setText(childName);
 
@@ -1274,8 +1274,8 @@ intChanged(int i)
     else if (id == "col"    ) { info.setCol(i); }
     else if (id == "rowspan") { info.setRowSpan(i); }
     else if (id == "colspan") { info.setColSpan(i); }
-    else if (id == "padx"   ) info.setPadX(i);
-    else if (id == "pady"   ) info.setPadY(i);
+    else if (id == "padx"   ) info.setPadX(i, i);
+    else if (id == "pady"   ) info.setPadY(i, i);
     else if (id == "ipadx"  ) info.setIPadX(i);
     else if (id == "ipady"  ) info.setIPadY(i);
     else std::cerr << "Invalid id: " << id.toStdString() << "\n";

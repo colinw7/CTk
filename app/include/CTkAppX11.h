@@ -27,6 +27,8 @@ namespace CTkAppX11 {
 
   bool getWindowListProperty(ulong xwin, uint atom, std::vector<uint> &windows);
   bool setWindowListProperty(ulong xwin, uint atom, const std::vector<uint> &windows);
+
+  bool getSelectionOwner(ulong &xwin);
 }
 
 #endif

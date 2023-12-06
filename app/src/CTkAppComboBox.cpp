@@ -45,13 +45,29 @@ CTkAppComboBox::
 execConfig(const QString &name, const QVariant &var)
 {
   if      (name == "-exportselection") {
-    tk_->TODO(name);
+    bool b;
+    if (! tk_->variantToBool(var, b))
+      return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
+
+    setExportSelection(b);
   }
   else if (name == "-height") {
     tk_->TODO(name);
   }
+  else if (name == "-invalidcommand") {
+    auto value = tk_->variantToString(var);
+
+    setInvalidCommand(value);
+  }
   else if (name == "-postcommand") {
     tk_->TODO(name);
+  }
+  else if (name == "-readonlybackground") {
+    QColor c;
+    if (! CTkAppUtil::variantToQColor(tk_, var, c))
+      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+
+    setReadOnlyBackground(c);
   }
   else if (name == "-state") {
     auto value = tk_->variantToString(var);

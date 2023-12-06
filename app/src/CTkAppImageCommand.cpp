@@ -197,7 +197,7 @@ run(const Args &args)
           else if (name == "-height") {
             long h;
             if (! tk_->variantToInt(args[i], h))
-              return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
+              return tk_->invalidInteger(args[i]);
             image->setHeight(h);
           }
           else if (name == "-palette") {
@@ -224,7 +224,7 @@ run(const Args &args)
           else if (name == "-width") {
             long w;
             if (! tk_->variantToInt(args[i], w))
-              return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
+              return tk_->invalidInteger(args[i]);
             image->setWidth(w);
           }
           else
@@ -290,13 +290,13 @@ run(const Args &args)
       else if (name == "-from") {
         long x1, y1, x2, y2;
         if (! tk_->variantToInt(args[i++], x1))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i - 1] + "\"");
+          return tk_->invalidInteger(args[i - 1]);
         if (! tk_->variantToInt(args[i++], y1))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i - 1] + "\"");
+          return tk_->invalidInteger(args[i - 1]);
         if (! tk_->variantToInt(args[i++], x2))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i - 1] + "\"");
+          return tk_->invalidInteger(args[i - 1]);
         if (! tk_->variantToInt(args[i++], y2))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i - 1] + "\"");
+          return tk_->invalidInteger(args[i - 1]);
       }
       else if (name == "-grayscale") {
         tk_->TODO(args);
@@ -318,11 +318,11 @@ run(const Args &args)
 
     long x;
     if (! tk_->variantToInt(args[1], x))
-      return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[1] + "\"");
+      return tk_->invalidInteger(args[1]);
 
     long y;
     if (! tk_->variantToInt(args[2], y))
-      return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[2] + "\"");
+      return tk_->invalidInteger(args[2]);
 
     QColor c;
     if (! image->getPixel(x, y, c))
@@ -358,26 +358,26 @@ run(const Args &args)
 
         long x1;
         if (i >= numArgs || ! tk_->variantToInt(args[i], x1))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
+          return tk_->invalidInteger(args[i]);
 
         ++i;
 
         long y1;
         if (i >= numArgs || ! tk_->variantToInt(args[i], y1))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
+          return tk_->invalidInteger(args[i]);
 
         if (i < numArgs) {
           ++i;
 
           long x2;
           if (i >= numArgs || ! tk_->variantToInt(args[i], x2))
-            return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
+            return tk_->invalidInteger(args[i]);
 
           ++i;
 
           long y2;
           if (i >= numArgs || ! tk_->variantToInt(args[i], y2))
-            return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
+            return tk_->invalidInteger(args[i]);
 
           image->setPixels(x1, y1, x2, y2, c);
         }
@@ -402,36 +402,36 @@ run(const Args &args)
       else if (args[i] == "-from") {
         long x1;
         if (i >= numArgs || ! tk_->variantToInt(args[i], x1))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
+          return tk_->invalidInteger(args[i]);
 
         ++i;
 
         long y1;
         if (i >= numArgs || ! tk_->variantToInt(args[i], y1))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
+          return tk_->invalidInteger(args[i]);
 
         ++i;
 
         long x2;
         if (i >= numArgs || ! tk_->variantToInt(args[i], x2))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
+          return tk_->invalidInteger(args[i]);
 
         ++i;
 
         long y2;
         if (i >= numArgs || ! tk_->variantToInt(args[i], y2))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
+          return tk_->invalidInteger(args[i]);
       }
       else if (args[i] == "-to") {
         long x1;
         if (i >= numArgs || ! tk_->variantToInt(args[i], x1))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
+          return tk_->invalidInteger(args[i]);
 
         ++i;
 
         long y1;
         if (i >= numArgs || ! tk_->variantToInt(args[i], y1))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
+          return tk_->invalidInteger(args[i]);
 
         ++i;
       }
@@ -459,11 +459,11 @@ run(const Args &args)
 
       long x;
       if (! tk_->variantToInt(args[1], x))
-        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[1] + "\"");
+        return tk_->invalidInteger(args[1]);
 
       long y;
       if (! tk_->variantToInt(args[2], y))
-        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[2] + "\"");
+        return tk_->invalidInteger(args[2]);
 
       QColor c;
       if (! image->getPixel(x, y, c))
@@ -477,11 +477,11 @@ run(const Args &args)
 
       long x;
       if (! tk_->variantToInt(args[1], x))
-        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[1] + "\"");
+        return tk_->invalidInteger(args[1]);
 
       long y;
       if (! tk_->variantToInt(args[2], y))
-        return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[2] + "\"");
+        return tk_->invalidInteger(args[2]);
 
       bool b;
       if (! tk_->variantToBool(args[3], b))
@@ -518,25 +518,25 @@ run(const Args &args)
       else if (args[i] == "-from") {
         long x1;
         if (i >= numArgs || ! tk_->variantToInt(args[i], x1))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
+          return tk_->invalidInteger(args[i]);
 
         ++i;
 
         long y1;
         if (i >= numArgs || ! tk_->variantToInt(args[i], y1))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
+          return tk_->invalidInteger(args[i]);
 
         ++i;
 
         long x2;
         if (i >= numArgs || ! tk_->variantToInt(args[i], x2))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
+          return tk_->invalidInteger(args[i]);
 
         ++i;
 
         long y2;
         if (i >= numArgs || ! tk_->variantToInt(args[i], y2))
-          return tk_->throwError(tk_->msg() + "expected integer but got \"" + args[i] + "\"");
+          return tk_->invalidInteger(args[i]);
       }
       else if (args[i] == "-grayscale") {
         tk_->TODO(args);

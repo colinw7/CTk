@@ -34,9 +34,12 @@ class CTkAppRoot : public CTkAppWidget {
 
  private:
   QFrame* qroot_ { nullptr };
-  bool    needsShow_  { false };
+
+  bool    needsShow_ { false };
   QString menuName_;
 };
+
+//---
 
 class CTkAppRootWidget : public QFrame {
   Q_OBJECT

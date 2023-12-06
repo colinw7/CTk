@@ -130,6 +130,8 @@ class CTkAppPlaceLayout : public CTkAppLayout {
   void addWidgets(const std::vector<CTkAppWidget *> &widgets, const Info &info);
   void addWidget(CTkAppWidget *widget, const Info &info);
 
+  void removeWidget(CTkAppWidget *widget);
+
   QLayoutItem *getItem(CTkAppWidget *widget) const;
 
   bool getChildInfo(CTkAppWidget *widget, Info &info);

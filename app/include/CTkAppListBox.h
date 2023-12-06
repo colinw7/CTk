@@ -25,6 +25,9 @@ class CTkAppListBox : public CTkAppWidget {
   const QString &varName() const { return varName_; }
   void setVarName(const QString &s) { varName_ = s; }
 
+  bool isExportSelection() const { return exportSelection_; }
+  void setExportSelection(bool b) { exportSelection_ = b; }
+
   //---
 
   void updateFromVar();
@@ -39,10 +42,12 @@ class CTkAppListBox : public CTkAppWidget {
   void hscrollSlot(int value);
 
  private:
-  CTkAppListBoxWidget*  qlist_ { nullptr };
+  CTkAppListBoxWidget* qlist_ { nullptr };
+
   QString               varName_;
   CTkAppListBoxVarProc* varProc_ { nullptr };
-  bool                  exportSelection_ { true };
+
+  bool exportSelection_ { true };
 };
 
 //---

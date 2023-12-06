@@ -50,8 +50,10 @@ geometry() const
 {
   QRect rect;
 
-  if (widget_)
-    rect = widget_->getQWidget()->geometry();
+  if (widget_) {
+    if (widget_->getQWidget())
+      rect = widget_->getQWidget()->geometry();
+  }
   else if (layout_)
     rect = layout_->geometry();
 
@@ -86,8 +88,10 @@ maximumSize() const
 {
   QSize s;
 
-  if      (widget_)
-    s = widget_->getQWidget()->maximumSize();
+  if      (widget_) {
+    if (widget_->getQWidget())
+      s = widget_->getQWidget()->maximumSize();
+  }
   else if (layout_)
     s = layout_->maximumSize();
 
@@ -100,8 +104,10 @@ minimumSize() const
 {
   QSize s;
 
-  if      (widget_)
-    s = widget_->getQWidget()->minimumSize();
+  if      (widget_) {
+    if (widget_->getQWidget())
+      s = widget_->getQWidget()->minimumSize();
+  }
   else if (layout_)
     s = layout_->minimumSize();
 
@@ -112,8 +118,10 @@ void
 CTkAppLayoutWidget::
 setGeometry(const QRect &rect)
 {
-  if      (widget_)
-    widget_->getQWidget()->setGeometry(rect);
+  if      (widget_) {
+    if (widget_->getQWidget())
+      widget_->getQWidget()->setGeometry(rect);
+  }
   else if (layout_)
     layout_->setGeometry(rect);
 }

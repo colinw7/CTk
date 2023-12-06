@@ -8,6 +8,20 @@
 
 class CTkApp;
 
+struct CTkAppFontData {
+  QString family     { };
+  double  size       { 12.0 };
+  QString weight     { "normal" };
+  QString slant      { "roman" };
+  bool    underline  { false };
+  bool    overstrike { false };
+
+  double ascent    { 10 };
+  double descent   { 2 };
+  double linespace { 12 };
+  bool   fixed     { false };
+};
+
 class CTkAppFont : public QObject {
   Q_OBJECT
 
@@ -28,28 +42,39 @@ class CTkAppFont : public QObject {
   const QString &name() const { return name_; }
 
   QString family() const;
-  void setFamily(const QString &name);
+  CTkAppFont &setFamily(const QString &name);
 
   QFont getQFont() const;
 
   //--
 
-  void setPointSize(double size);
-  void setPixelSize(double size);
+  double pointSize() const;
+  CTkAppFont &setPointSize(double size);
 
-  void setNormal();
+  double pixelSize() const;
+  CTkAppFont &setPixelSize(double size);
+
+  //---
+
+  CTkAppFont &setNormal();
 
   bool isBold() const;
-  void setBold(bool b=true);
+  CTkAppFont &setBold(bool b=true);
 
   bool isItalic() const;
-  void setItalic(bool b);
+  CTkAppFont &setItalic(bool b);
 
   bool isUnderline() const;
-  void setUnderline(bool b);
+  CTkAppFont &setUnderline(bool b);
 
   bool isOverstrike() const;
-  void setOverstrike(bool b);
+  CTkAppFont &setOverstrike(bool b);
+
+  //---
+
+  void getFontData(CTkAppFontData &data) const;
+
+  static void getFontData(const QFont &qfont, CTkAppFontData &data);
 
  private:
   CTkApp* tk_ { nullptr };

@@ -1,5 +1,6 @@
 #include <CTkAppScale.h>
 #include <CTkAppCommands.h>
+#include <CTkAppWidgetCommand.h>
 
 #include <CQSlider.h>
 #include <CQUtil.h>
@@ -88,7 +89,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-length") {
     CTkAppDistance l;
     if (! tk_->variantToDistanceI(var, l))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     length_ = l.ivalue;
 
@@ -128,7 +129,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-sliderlength") {
     CTkAppDistance w;
     if (! tk_->variantToDistanceI(var, w))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     tk_->TODO(name);
   }
@@ -194,7 +195,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-width") {
     CTkAppDistance w;
     if (! tk_->variantToDistanceI(var, w))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     width_ = w.ivalue;
 

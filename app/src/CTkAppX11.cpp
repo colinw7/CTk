@@ -215,4 +215,21 @@ setWindowListProperty(ulong xwin, uint atom, const std::vector<uint> &windows)
 #endif
 }
 
+bool
+getSelectionOwner(ulong &xwin)
+{
+  xwin = 0;
+
+#ifndef QT_NO_X11
+  auto *disp = QX11Info::display();
+  if (! disp) return false;
+
+  xwin = XGetSelectionOwner(disp, XA_PRIMARY);
+
+  return (xwin > 0);
+#else
+  return false;
+#endif
+}
+
 }

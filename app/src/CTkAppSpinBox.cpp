@@ -111,6 +111,13 @@ execConfig(const QString &name, const QVariant &var)
       return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
     tk_->TODO(name);
   }
+  else if (name == "-exportselection") {
+    bool b;
+    if (! tk_->variantToBool(var, b))
+      return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
+
+    setExportSelection(b);
+  }
   else if (name == "-format") {
     tk_->TODO(name);
   }
@@ -138,7 +145,7 @@ execConfig(const QString &name, const QVariant &var)
     if (! CTkAppUtil::variantToQColor(tk_, var, c))
       return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
 
-    tk_->TODO(name);
+    setReadOnlyBackground(c);
   }
   else if (name == "-state") {
     auto value = tk_->variantToString(var);

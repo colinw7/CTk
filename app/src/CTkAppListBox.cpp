@@ -69,7 +69,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-height") {
     CTkAppDistance h;
     if (! tk_->variantToDistance(var, h))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     qlist_->setHeight(CTkAppListBoxWidget::OptReal(h.rvalue));
   }
@@ -118,7 +118,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-width") {
     CTkAppDistance w;
     if (! tk_->variantToDistance(var, w))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     qlist_->setWidth(CTkAppListBoxWidget::OptReal(w.rvalue));
   }

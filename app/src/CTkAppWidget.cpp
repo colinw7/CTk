@@ -1,4 +1,5 @@
 #include <CTkAppWidget.h>
+#include <CTkAppWidgetCommand.h>
 #include <CTkAppRoot.h>
 #include <CTkAppTopLevel.h>
 #include <CTkAppCommands.h>
@@ -83,9 +84,11 @@ setParentWidget(QWidget *w)
 {
   assert(! isTopLevel());
 
-  getQWidget()->setParent(w);
+  auto *qwidget = getQWidget();
+  if (! qwidget) return;
 
-  getQWidget()->setVisible(true);
+  qwidget->setParent(w);
+  qwidget->setVisible(true);
 }
 
 CTkAppRoot *
@@ -103,6 +106,18 @@ toplevel() const
   if (top) return const_cast<CTkAppTopLevel *>(top);
 
   return (parent_ ? parent_->toplevel() : nullptr);
+}
+
+QString
+CTkAppWidget::
+calcClassName() const
+{
+  auto className = getOptionClass();
+
+  if (className == "")
+    className = getClassName();
+
+  return className;
 }
 
 QString
@@ -131,6 +146,8 @@ void
 CTkAppWidget::
 setQWidget(QWidget *w)
 {
+  assert(w);
+
   qwidget_ = w;
 
   if (name_ != "")
@@ -180,6 +197,13 @@ CTkAppWidget::
 getOpts() const
 {
   return getWidgetCommand()->getOpts();
+}
+
+bool
+CTkAppWidget::
+isInCreate() const
+{
+  return getWidgetCommand()->isInCreate();
 }
 
 //---
@@ -271,10 +295,13 @@ void
 CTkAppWidget::
 updatePalette()
 {
-  auto pal = qwidget_->palette();
+  auto *qwidget = getQWidget();
+  if (! qwidget) return;
 
-  auto bgRole = getQWidget()->backgroundRole();
-  auto fgRole = getQWidget()->foregroundRole();
+  auto pal = qwidget->palette();
+
+  auto bgRole = qwidget->backgroundRole();
+  auto fgRole = qwidget->foregroundRole();
 
   if (background_.isValid()) {
     pal.setColor(QPalette::Normal  , bgRole, background_);
@@ -318,12 +345,12 @@ updatePalette()
                  CTkAppUtil::grayColor(highlightForeground_));
   }
 
-  qwidget_->setBackgroundRole(bgRole);
-  qwidget_->setForegroundRole(fgRole);
+  qwidget->setBackgroundRole(bgRole);
+  qwidget->setForegroundRole(fgRole);
 
-  qwidget_->setPalette(pal);
+  qwidget->setPalette(pal);
 
-  qwidget_->update();
+  qwidget->update();
 }
 
 //---
@@ -343,6 +370,8 @@ getWidth() const
 {
   if (w_ > 0) return w_;
 
+  if (! qwidget_) return 0;
+
   auto s = qwidget_->sizeHint();
 
   auto w = s.width();
@@ -358,6 +387,8 @@ CTkAppWidget::
 getHeight() const
 {
   if (h_ > 0) return h_;
+
+  if (! qwidget_) return 0;
 
   auto s = qwidget_->sizeHint();
 
@@ -391,14 +422,20 @@ void
 CTkAppWidget::
 updateWmSizeHints()
 {
-  if (wmMinAspect_ && wmMaxAspect_)
-    CTkAppX11::setWmAspect(getQWidget()->winId(), *wmMinAspect_, *wmMaxAspect_);
+  if (wmMinAspect_ && wmMaxAspect_) {
+    auto *qwidget = getQWidget();
+
+    if (qwidget)
+      CTkAppX11::setWmAspect(qwidget->winId(), *wmMinAspect_, *wmMaxAspect_);
+  }
 }
 
 QSize
 CTkAppWidget::
 sizeHint() const
 {
+  if (! qwidget_) return QSize();
+
   auto s = qwidget_->sizeHint();
 
   auto w = (w_ > 0 ? w_ : s.width());
@@ -411,6 +448,8 @@ QSize
 CTkAppWidget::
 minimumSizeHint() const
 {
+  if (! qwidget_) return QSize();
+
   auto s = qwidget_->minimumSizeHint();
 
   auto w = (w_ > 0 ? w_ : s.width());
@@ -424,7 +463,6 @@ CTkAppWidget::
 contentsMargins() const
 {
   return QMargins(padX(), padY(), padX(), padY());
-  //return qwidget_->contentsMargins();
 }
 
 void
@@ -525,9 +563,9 @@ CTkAppLayout *
 CTkAppWidget::
 getTkLayout()
 {
-  auto *pack  = getTkPackLayout (/*create*/false); if (pack ) return pack;
-  auto *grid  = getTkGridLayout (/*create*/false); if (grid ) return grid;
-  auto *place = getTkPlaceLayout(/*create*/false); if (place) return place;
+  auto *pack  = getTkPackLayout (); if (pack ) return pack;
+  auto *grid  = getTkGridLayout (); if (grid ) return grid;
+  auto *place = getTkPlaceLayout(); if (place) return place;
 
   return nullptr;
 }
@@ -612,7 +650,7 @@ execConfig(const QString &name, const QVariant &var)
   }
   else if (name == "-anchor") {
     Qt::Alignment align;
-    if (! CTkAppUtil::variantToAlign(tk_, var, align))
+    if (! tk_->variantToAlign(var, align))
       return tk_->throwError("bad anchor \"" + tk_->variantToString(var) + "\": must be "
                              "n, ne, e, se, s, sw, w, nw, or center");
 
@@ -640,21 +678,28 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-borderwidth" || name == "-bd") {
     CTkAppDistance w;
     if (! tk_->variantToDistance(var, w))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     setBorderWidth(w.rvalue);
   }
   else if (name == "-colormap") {
+    if (! isInCreate())
+      return tk_->throwError("can't modify -colormap option after widget is created");
+
     auto value = tk_->variantToString(var);
 
     if (value == "new") {
       setColormap(true, nullptr);
     }
     else {
-      auto *w = tk_->lookupWidgetByName(value);
-      if (! w) return false;
+      CTkAppWidget *widget = nullptr;
 
-      setColormap(true, w);
+      if (tk_->variantIsValid(var)) {
+        widget = tk_->lookupWidgetByName(value);
+        if (! widget) return false;
+      }
+
+      setColormap(true, widget);
     }
   }
   else if (name == "-compound") {
@@ -700,8 +745,9 @@ execConfig(const QString &name, const QVariant &var)
 
     auto f = tk_->getQFont(value);
 
-    qwidget_->setFont(f);
+    if (! qwidget_) return false;
 
+    qwidget_->setFont(f);
     qwidget_->update();
   }
   else if (name == "-foreground" || name == "-fg") {
@@ -714,9 +760,11 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-height") {
     CTkAppDistance h;
     if (! tk_->variantToDistanceI(var, h))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     setHeight(h.ivalue);
+
+    if (! qwidget_) return false;
 
     qwidget_->resize(getWidth(), getHeight());
   }
@@ -736,7 +784,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-highlightthickness") {
     CTkAppDistance thickness;
     if (! tk_->variantToDistance(var, thickness))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     setHighlightThickness(thickness.rvalue);
   }
@@ -756,7 +804,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-insertborderwidth") {
     CTkAppDistance w;
     if (! tk_->variantToDistance(var, w))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     setInsertBorderWidth(w.rvalue);
   }
@@ -777,7 +825,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-insertwidth") {
     CTkAppDistance w;
     if (! tk_->variantToDistance(var, w))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     setInsertWidth(w.rvalue);
   }
@@ -792,14 +840,14 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-padx") {
     CTkAppDistance pad;
     if (! tk_->variantToDistanceI(var, pad))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     setPadX(pad.ivalue);
   }
   else if (name == "-pady") {
     CTkAppDistance pad;
     if (! tk_->variantToDistanceI(var, pad))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     setPadY(pad.ivalue);
   }
@@ -832,7 +880,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-selectborderwidth") {
     CTkAppDistance w;
     if (! tk_->variantToDistance(var, w))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     setSelectBorderWidth(w.rvalue);
   }
@@ -849,6 +897,8 @@ execConfig(const QString &name, const QVariant &var)
     setGridWidget(b);
   }
   else if (name == "-takefocus") {
+    if (! qwidget_) return false;
+
     bool b;
     if (tk_->variantToBool(var, b))
       qwidget_->setFocusPolicy(b ? Qt::TabFocus : Qt::NoFocus);
@@ -861,6 +911,9 @@ execConfig(const QString &name, const QVariant &var)
     setText(value);
   }
   else if (name == "-visual") {
+    if (! isInCreate())
+      return tk_->throwError("can't modify -visual option after widget is created");
+
     // implement Tk_GetVisual
     auto value = tk_->variantToString(var);
 
@@ -876,11 +929,12 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-width") {
     CTkAppDistance w;
     if (! tk_->variantToDistanceI(var, w))
-      return tk_->throwError(tk_->msg() + "bad screen distance \"" + var + "\"");
+      return tk_->invalidDistance(var);
 
     setWidth(w.ivalue);
 
-    qwidget_->resize(getWidth(), getHeight());
+    if (qwidget_)
+      qwidget_->resize(getWidth(), getHeight());
   }
   else if (name == "-xscrollcommand") {
     auto value = tk_->variantToString(var);
@@ -894,7 +948,7 @@ execConfig(const QString &name, const QVariant &var)
   }
   else
     return tk_->throwError("Invalid value name \"" + name + "\" "
-                           "for " + QString(getClassName()));
+                           "for " + QString(calcClassName()));
 
   return true;
 }
@@ -922,7 +976,7 @@ execOp(const Args &args)
 {
   auto arg = tk_->variantToString(args[0]);
 
-  return tk_->throwError("bad option \"" + arg + "\" for " + QString(getClassName()));
+  return tk_->throwError("bad option \"" + arg + "\" for " + QString(calcClassName()));
 }
 
 bool
@@ -947,14 +1001,15 @@ void
 CTkAppWidget::
 setTitle(const QString &title)
 {
-  qwidget_->setWindowTitle(title);
+  if (qwidget_)
+    qwidget_->setWindowTitle(title);
 }
 
 QString
 CTkAppWidget::
 getTitle() const
 {
-  return qwidget_->windowTitle();
+  return (qwidget_ ? qwidget_->windowTitle() : QString());
 }
 
 void
@@ -964,7 +1019,8 @@ setIcon(const QString &name)
   icon_     = QIcon(name);
   iconName_ = name;
 
-  qwidget_->setWindowIcon(icon_);
+  if (qwidget_)
+    qwidget_->setWindowIcon(icon_);
 }
 
 QString
@@ -985,6 +1041,8 @@ bool
 CTkAppWidget::
 setTransientGeometry(CTkAppWidget *pw, const QString &str)
 {
+  if (! qwidget_) return false;
+
   auto rect = qwidget_->geometry();
 
   int x = rect.x    (), y = rect.y     ();
@@ -1046,7 +1104,14 @@ setTransientGeometry(CTkAppWidget *pw, const QString &str)
   QRect r(x, y, w, h);
 
   if (pw) {
-    auto p = pw->getQWidget()->mapToGlobal(r.topLeft());
+    auto *pqwidget = pw->getQWidget();
+
+    QPoint p;
+
+    if (pqwidget)
+      p = pqwidget->mapToGlobal(r.topLeft());
+    else
+      p = r.topLeft();
 
     r.setTopLeft(p);
   }
@@ -1060,6 +1125,8 @@ QString
 CTkAppWidget::
 getGeometry() const
 {
+  if (! qwidget_) return QString();
+
   auto r = qwidget_->geometry();
 
   auto str = QString("%1x%2+%3+%4").arg(r.width()).arg(r.height()).arg(r.x()).arg(r.y());
@@ -1073,9 +1140,11 @@ setPadX(int padx)
 {
   padx_ = padx;
 
-  auto m = qwidget_->contentsMargins();
-  m.setLeft(padx); m.setRight(padx);
-  qwidget_->setContentsMargins(m);
+  if (qwidget_) {
+    auto m = qwidget_->contentsMargins();
+    m.setLeft(padx); m.setRight(padx);
+    qwidget_->setContentsMargins(m);
+  }
 }
 
 void
@@ -1084,9 +1153,11 @@ setPadY(int pady)
 {
   pady_ = pady;
 
-  auto m = qwidget_->contentsMargins();
-  m.setTop(pady); m.setBottom(pady);
-  qwidget_->setContentsMargins(m);
+  if (qwidget_) {
+    auto m = qwidget_->contentsMargins();
+    m.setTop(pady); m.setBottom(pady);
+    qwidget_->setContentsMargins(m);
+  }
 }
 
 bool
@@ -1094,10 +1165,12 @@ CTkAppWidget::
 setAnchorStr(const QString &str)
 {
   Qt::Alignment align;
-  if (! CTkAppUtil::variantToAlign(tk_, str, align))
+  if (! tk_->variantToAlign(str, align))
     return false;
+
   anchorStr_ = str;
   setAnchor(align);
+
   return true;
 }
 
@@ -1136,7 +1209,7 @@ setCursor(const CTkAppCursorData &c)
   cursor_ = c;
 
   //auto c = CTkAppUtil::stringToCursor(s);
-  //qwidget_->setCursor(c);
+  //if (qwidget_) qwidget_->setCursor(c);
 
   return true;
 }
@@ -1212,7 +1285,7 @@ bindtags() const
 
   if (bindtags.empty()) {
     bindtags.push_back(getName());
-    bindtags.push_back(getClassName());
+    bindtags.push_back(calcClassName());
 
     if (! isTopLevel()) {
       if (toplevel())
@@ -1317,7 +1390,7 @@ triggerEvents(QEvent *e, const CTkAppEventData &matchEventData)
   processEvents(e, matchEventData);
 
   // class and global events
-  return tk_->triggerEvents(getClassName(), this, e, matchEventData);
+  return tk_->triggerEvents(calcClassName(), this, e, matchEventData);
 }
 
 bool
@@ -1327,7 +1400,7 @@ triggerVirtualEvents(const CTkAppEventData &matchEventData)
   processVirtualEvents(matchEventData);
 
   // class and global events
-  return tk_->triggerVirtualEvents(getClassName(), this, matchEventData);
+  return tk_->triggerVirtualEvents(calcClassName(), this, matchEventData);
 }
 
 void
@@ -1460,7 +1533,7 @@ getOptionValue(const QString &optName, const QString &optClass, QVariant &optVal
     return true;
   }
 
-  auto widgetClass = QString(getClassName());
+  auto widgetClass = QString(calcClassName());
 
   if (getOptionClass() != "")
     widgetClass = getOptionClass();
@@ -1509,11 +1582,14 @@ setOverrideRedirect(bool b)
 {
   overrideRedirect_ = b;
 
+  auto *qwidget = getQWidget();
+  if (! qwidget) return;
+
   if (b)
-    getQWidget()->setWindowFlags(Qt::Tool | Qt::FramelessWindowHint |
-                                 Qt::X11BypassWindowManagerHint);
+    qwidget->setWindowFlags(Qt::Tool | Qt::FramelessWindowHint |
+                            Qt::X11BypassWindowManagerHint);
   else
-    getQWidget()->setWindowFlags(Qt::Window);
+    qwidget->setWindowFlags(Qt::Window);
 }
 
 bool

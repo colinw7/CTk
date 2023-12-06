@@ -164,9 +164,11 @@ class CTkAppWidget : public QObject {
 
   virtual const char *getClassName() const { return ""; }
 
+  QString calcClassName() const;
+
   //---
 
-  QString getType() const { return QString(getClassName()); }
+  QString getType() const { return calcClassName(); }
 
   const QString &getName() const { return name_; }
 
@@ -187,6 +189,8 @@ class CTkAppWidget : public QObject {
   void setWidgetCommand(CTkAppWidgetCommand *p) { widgetCommand_ = p; }
 
   const CTkAppOptData &getOpts() const;
+
+  bool isInCreate() const;
 
   //---
 
@@ -325,7 +329,7 @@ class CTkAppWidget : public QObject {
   CTkAppLayout *getTkLayout();
 
   CTkAppPackLayout  *getTkPackLayout(bool create=true);
-  CTkAppGridLayout  *getTkGridLayout(bool create=true);
+  CTkAppGridLayout  *getTkGridLayout(bool create=false);
   CTkAppPlaceLayout *getTkPlaceLayout(bool create=true);
 
   const Qt::Alignment &getGridAnchor() const { return gridAnchor_; }

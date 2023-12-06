@@ -41,6 +41,7 @@ enum class CTkAppVirtualEventType {
   NextLine,
   NextPara,
   NextWord,
+  NoManagedChild,
   Paste,
   PasteSelection,
   PrevChar,

@@ -53,7 +53,7 @@ addWidgets(const std::vector<WidgetData> &widgets, const Info &info)
   if (info1.isRowValid()) row_ = info1.getRow();
   if (info1.isColValid()) col_ = info1.getCol();
 
-  uint num_added = 0;
+  uint numAdded = 0;
 
   auto num = widgets.size();
 
@@ -77,7 +77,7 @@ addWidgets(const std::vector<WidgetData> &widgets, const Info &info)
 
         rowSpan = std::max(rowSpan, info1.getRowSpan());
 
-        ++num_added;
+        ++numAdded;
       }
       else {
         auto *widget = dynamic_cast<CTkAppGridLayoutWidget *>(item);
@@ -89,7 +89,7 @@ addWidgets(const std::vector<WidgetData> &widgets, const Info &info)
     else if (widgetData.type == WidgetType::EMPTY) {
       ++col_;
 
-      ++num_added;
+      ++numAdded;
     }
     else if (widgetData.type == WidgetType::COL_SPAN) {
       for (int i = col_ - 1; i >= 0; --i) {
@@ -105,7 +105,7 @@ addWidgets(const std::vector<WidgetData> &widgets, const Info &info)
 
       ++col_;
 
-      ++num_added;
+      ++numAdded;
     }
     else if (widgetData.type == WidgetType::ROW_SPAN) {
       for (int i = row_ - 1; i >= 0; --i) {
@@ -119,14 +119,14 @@ addWidgets(const std::vector<WidgetData> &widgets, const Info &info)
         break;
       }
 
-      ++num_added;
+      ++numAdded;
     }
     else {
       assert(false);
     }
   }
 
-  if (num_added > 0) {
+  if (numAdded > 0) {
     row_ += rowSpan;
     col_  = 0;
   }
@@ -263,6 +263,9 @@ getChildInfo(CTkAppWidget *widget, Info &info)
   if (! w) return false;
 
   info = w->info();
+
+  if (info.getIn() == "")
+    info.setIn(this->widget() ? this->widget()->getFullName() : "");
 
   return true;
 }
@@ -437,6 +440,44 @@ count() const
   return list_.size();
 }
 
+bool
+CTkAppGridLayout::
+isRowUsed(int row) const
+{
+  for (int i = 0; i < list_.size(); ++i) {
+    auto *item = list_.at(i);
+
+    auto *w = dynamic_cast<CTkAppGridLayoutWidget *>(item);
+    if (! w) continue;
+
+    int row1 = w->info().getRow();
+
+    if (row == row1)
+      return true;
+  }
+
+  return false;
+}
+
+bool
+CTkAppGridLayout::
+isColumnUsed(int col) const
+{
+  for (int i = 0; i < list_.size(); ++i) {
+    auto *item = list_.at(i);
+
+    auto *w = dynamic_cast<CTkAppGridLayoutWidget *>(item);
+    if (! w) continue;
+
+    int col1 = w->info().getCol();
+
+    if (col == col1)
+      return true;
+  }
+
+  return false;
+}
+
 QLayoutItem *
 CTkAppGridLayout::
 itemAt(int index) const
@@ -478,14 +519,14 @@ void
 CTkAppGridLayout::
 setGeometry(const QRect &rect)
 {
+  rect_ = rect;
+
   CTkAppLayout::setGeometry(rect);
 
   //---
 
   // get num rows and columns
-  uint num_rows, num_cols;
-
-  calculateDims(num_rows, num_cols);
+  calculateDims(numRows_, numCols_);
 
   std::vector<int> prefColWidths, prefRowHeights;
   int              prefWidth, prefHeight;
@@ -496,20 +537,18 @@ setGeometry(const QRect &rect)
 
   std::vector<int> weights;
 
-  weights.resize(std::max(num_rows, num_cols));
+  weights.resize(std::max(numRows_, numCols_));
 
   //---
 
-  std::vector<int> colWidths, rowHeights;
+  colWidths_ .resize(size_t(numCols_));
+  rowHeights_.resize(size_t(numRows_));
 
-  colWidths .resize(size_t(num_cols));
-  rowHeights.resize(size_t(num_rows));
+  for (uint i = 0; i < numCols_; ++i)
+    colWidths_[i] = prefColWidths[i];
 
-  for (uint i = 0; i < num_cols; ++i)
-    colWidths[i] = prefColWidths[i];
-
-  for (uint i = 0; i < num_rows; ++i)
-    rowHeights[i] = prefRowHeights[i];
+  for (uint i = 0; i < numRows_; ++i)
+    rowHeights_[i] = prefRowHeights[i];
 
   int width  = prefWidth;
   int height = prefHeight;
@@ -520,7 +559,7 @@ setGeometry(const QRect &rect)
   if (rect.width() > width) {
     //int maxWeight = 0;
 
-    for (uint j = 0; j < num_cols; ++j) {
+    for (uint j = 0; j < numCols_; ++j) {
       auto w = getColumnWeight(j);
 
       weights[j] = w;
@@ -530,7 +569,7 @@ setGeometry(const QRect &rect)
 
     int sumWeights = 0;
 
-    for (uint j = 0; j < num_cols; ++j) {
+    for (uint j = 0; j < numCols_; ++j) {
       //if (maxWeight == 0)
       //  weights[j] = 1;
 
@@ -543,13 +582,13 @@ setGeometry(const QRect &rect)
       int dw1 = dw/sumWeights;
       int dw2 = dw - dw1*sumWeights;
 
-      for (uint j = 0; j < num_cols; ++j) {
+      for (uint j = 0; j < numCols_; ++j) {
         if (weights[j] == 0)
           continue;
 
         int dr = (dw2 > 0 ? 1 : 0); --dw2;
 
-        colWidths[j] += (dw1 + dr)*weights[j];
+        colWidths_[j] += (dw1 + dr)*weights[j];
       }
     }
   }
@@ -557,7 +596,7 @@ setGeometry(const QRect &rect)
   if (rect.height() > height) {
     //int maxWeight = 0;
 
-    for (uint j = 0; j < num_rows; ++j) {
+    for (uint j = 0; j < numRows_; ++j) {
       auto w = getRowWeight(j);
 
       weights[j] = w;
@@ -567,7 +606,7 @@ setGeometry(const QRect &rect)
 
     int sumWeights = 0;
 
-    for (uint j = 0; j < num_rows; ++j) {
+    for (uint j = 0; j < numRows_; ++j) {
       //if (maxWeight == 0)
       //  weights[j] = 1;
 
@@ -580,36 +619,16 @@ setGeometry(const QRect &rect)
       int dh1 = dh/sumWeights;
       int dh2 = dh - dh1*sumWeights;
 
-      for (uint j = 0; j < num_rows; ++j) {
+      for (uint j = 0; j < numRows_; ++j) {
         if (weights[j] == 0)
           continue;
 
         int dr = (dh2 > 0 ? 1 : 0); --dh2;
 
-        rowHeights[j] += (dh1 + dr)*weights[j];
+        rowHeights_[j] += (dh1 + dr)*weights[j];
       }
     }
   }
-
-  //---
-
-  auto colX = [&](int c) {
-    int x = rect.x();
-
-    for (int i = 0; i < c; ++i)
-      x += colWidths[i];
-
-    return x;
-  };
-
-  auto rowX = [&](int r) {
-    int y = rect.y();
-
-    for (int i = 0; i < r; ++i)
-      y += rowHeights[i];
-
-    return y;
-  };
 
   //---
 
@@ -631,7 +650,8 @@ setGeometry(const QRect &rect)
       int col1 = widget->info().getCol();
       int col2 = (col1 >= 0 ? col1 + colSpan : -1);
 
-      uint sides = widget->info().getStickySides();
+      bool valid;
+      uint sides = widget->info().getStickySides(valid);
 
       int padx = widget->info().getPadX();
       int pady = widget->info().getPadY();
@@ -648,14 +668,14 @@ setGeometry(const QRect &rect)
 
       int colWidth1 = 0;
       for (int col = col1; col < col2; ++col)
-        colWidth1 += colWidths[size_t(col)];
+        colWidth1 += colWidths_[size_t(col)];
 
       int colHeight1 = 0;
       for (int row = row1; row < row2; ++row)
-        colHeight1 += rowHeights[size_t(row)];
+        colHeight1 += rowHeights_[size_t(row)];
 
       int x1 = colX(col1);
-      int y1 = rowX(row1);
+      int y1 = rowY(row1);
 
       int dx = 0, dy = 0;
 
@@ -688,6 +708,34 @@ setGeometry(const QRect &rect)
 
   placeWidgets();
 }
+
+//---
+
+int
+CTkAppGridLayout::
+colX(uint c) const
+{
+  int x = rect_.x();
+
+  for (uint i = 0; i < c && i < numCols_; ++i)
+    x += colWidths_[i];
+
+  return x;
+}
+
+int
+CTkAppGridLayout::
+rowY(uint r) const
+{
+  int y = rect_.y();
+
+  for (uint i = 0; i < r && i < numRows_; ++i)
+    y += rowHeights_[i];
+
+  return y;
+}
+
+//---
 
 QSize
 CTkAppGridLayout::
@@ -734,11 +782,11 @@ calculateSize(SizeType sizeType) const
 
 void
 CTkAppGridLayout::
-calculateDims(uint &num_rows, uint &num_cols) const
+calculateDims(uint &numRows, uint &numCols) const
 {
   // get num rows and columns
-  num_rows = 0;
-  num_cols = 0;
+  numRows = 0;
+  numCols = 0;
 
   for (int i = 0; i < list_.size(); ++i) {
     auto *item = list_.at(i);
@@ -752,8 +800,8 @@ calculateDims(uint &num_rows, uint &num_cols) const
     int rowSpan = widget->info().getRowSpan();
     int colSpan = widget->info().getColSpan();
 
-    num_rows = std::max(num_rows, uint(row + rowSpan));
-    num_cols = std::max(num_cols, uint(col + colSpan));
+    numRows = std::max(numRows, uint(row + rowSpan));
+    numCols = std::max(numCols, uint(col + colSpan));
   }
 }
 
@@ -763,26 +811,25 @@ calcPrefSizes(SizeType sizeType, std::vector<int> &prefColWidths,
               std::vector<int> &prefRowHeights, int &prefWidth, int &prefHeight) const
 {
   // get num rows and columns
-  uint num_rows, num_cols;
-
-  calculateDims(num_rows, num_cols);
+  uint numRows, numCols;
+  calculateDims(numRows, numCols);
 
   //---
 
   std::vector<int> weights;
 
-  weights.resize(std::max(num_rows, num_cols));
+  weights.resize(std::max(numRows, numCols));
 
   //---
 
   // calculate preferred (min) size for rows/cols
-  prefColWidths .resize(size_t(num_cols));
-  prefRowHeights.resize(size_t(num_rows));
+  prefColWidths .resize(size_t(numCols));
+  prefRowHeights.resize(size_t(numRows));
 
-  for (uint i = 0; i < num_cols; ++i)
+  for (uint i = 0; i < numCols; ++i)
     prefColWidths[i] = 0;
 
-  for (uint i = 0; i < num_rows; ++i)
+  for (uint i = 0; i < numRows; ++i)
     prefRowHeights[i] = 0;
 
   //---
@@ -953,12 +1000,88 @@ calcPrefSizes(SizeType sizeType, std::vector<int> &prefColWidths,
   prefWidth = 0;
   prefHeight = 0;
 
-  for (uint i = 0; i < num_cols; ++i)
+  for (uint i = 0; i < numCols; ++i)
     prefWidth += prefColWidths[i];
 
-  for (uint i = 0; i < num_rows; ++i)
+  for (uint i = 0; i < numRows; ++i)
     prefHeight += prefRowHeights[i];
 }
+
+//---
+
+void
+CTkAppGridLayout::
+getBBox(QRect &r) const
+{
+  double x = colX(0);
+  double y = rowY(0);
+
+  double w = 0;
+  for (uint i = 0; i < numCols_; ++i)
+    w += colWidths_[i];
+
+  double h = 0;
+  for (uint i = 0; i < numRows_; ++i)
+    h += rowHeights_[i];
+
+  r = QRect(x, y, w, h);
+}
+
+void
+CTkAppGridLayout::
+getCellBBox(QRect &r, int row1, int col1, int row2, int col2) const
+{
+  double x = colX(col1);
+  double y = rowY(row1);
+
+  double w = 0;
+  for (int i = col1; i <= col2; ++i) {
+    if (i >= 0 && uint(i) < numCols_)
+      w += colWidths_[i];
+  }
+
+  double h = 0;
+  for (int i = row1; i < row2; ++i) {
+    if (i >= 0 && uint(i) < numRows_)
+      h += rowHeights_[i];
+  }
+
+  r = QRect(x, y, w, h);
+}
+
+bool
+CTkAppGridLayout::
+getCellAt(double x, double y, int &row, int &col) const
+{
+  auto p = QPoint(int(x), int(y));
+
+  double y1 = rowY(0);
+
+  for (uint ir = 0; ir < numRows_; ++ir) {
+    double x1 = colX(0);
+    double h  = rowHeights_[ir];
+
+    for (uint ic = 0; ic < numCols_; ++ic) {
+      double w = colWidths_[ic];
+
+      auto r = QRect(x1, y1, w, h);
+
+      if (r.contains(p)) {
+        row = ir;
+        col = ic;
+        return true;
+      }
+
+      x1 += colWidths_[ic];
+    }
+
+    y1 += h;
+  }
+
+  return false;
+}
+
+//---
 
 void
 CTkAppGridLayout::

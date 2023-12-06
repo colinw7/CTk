@@ -48,6 +48,8 @@ class CTkAppPackLayoutInfo {
   int ipadY() const { return ipady_; }
   void setIPadY(int i) { ipady_ = i; }
 
+  QString getIn() const { return ""; }
+
   const char *getSideStr() const {
     switch (side_) {
       case Side::LEFT  : return "left";

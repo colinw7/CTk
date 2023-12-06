@@ -82,7 +82,8 @@ bool stringToInt(const QString &str, long &i);
 bool stringToReal(const QString &str, double &r);
 bool stringToBool(const QString &str, bool &b);
 
-bool uniqueMatch(const std::vector<QString> &values, const QString &str, QString &match);
+bool uniqueMatch(const std::vector<QString> &values, const QString &str,
+                 QString &match, int &nmatch);
 
 bool variantToQColor(CTclApp *app, const QVariant &var, QColor &c);
 bool variantToQFont (CTclApp *app, const QVariant &var, QFont  &f);

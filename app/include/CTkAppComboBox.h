@@ -9,7 +9,8 @@ class CTkAppComboBoxVarProc;
 class CTkAppComboBox : public CTkAppWidget {
   Q_OBJECT
 
-  Q_PROPERTY(QString varName READ varName WRITE setVarName)
+  Q_PROPERTY(QString varName        READ varName           WRITE setVarName)
+  Q_PROPERTY(QString invalidCommand READ getInvalidCommand WRITE setInvalidCommand)
 
  public:
   explicit CTkAppComboBox(CTkApp *tk, CTkAppWidget *parent=nullptr, const QString &name="");
@@ -25,6 +26,15 @@ class CTkAppComboBox : public CTkAppWidget {
   const QString &varName() const { return varName_; }
   void setVarName(const QString &s) { varName_ = s; }
 
+  const QString &getInvalidCommand() const { return invalidCommand_; }
+  void setInvalidCommand(const QString &command) { invalidCommand_ = command; }
+
+  bool isExportSelection() const { return exportSelection_; }
+  void setExportSelection(bool b) { exportSelection_ = b; }
+
+  const QColor &readOnlyBackground() const { return readOnlyBackground_; }
+  void setReadOnlyBackground(const QColor &c) { readOnlyBackground_ = c; }
+
   //---
 
   void updateFromVar();
@@ -36,10 +46,19 @@ class CTkAppComboBox : public CTkAppWidget {
   void indexChangedSlot(int);
 
  private:
-  CTkAppComboBoxWidget*  qcombo_ { nullptr };
+  CTkAppComboBoxWidget* qcombo_ { nullptr };
+
   QString                varName_;
   CTkAppComboBoxVarProc* varProc_ { nullptr };
+
+  QString invalidCommand_;
+
+  bool exportSelection_ { true };
+
+  QColor readOnlyBackground_;
 };
+
+//---
 
 class CTkAppComboBoxWidget : public QComboBox {
   Q_OBJECT

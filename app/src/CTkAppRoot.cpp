@@ -65,6 +65,9 @@ execConfig(const QString &name, const QVariant &var)
 
     setMenuName(name);
   }
+  else if (name == "-screen") {
+    tk_->TODO(name);
+  }
   else if (name == "-use") {
     tk_->TODO(name);
   }
@@ -192,10 +195,6 @@ CTkAppRootWidget::
 paintEvent(QPaintEvent *e)
 {
   QFrame::paintEvent(e);
-
-//QPainter painter(this);
-//auto *pack = root_->getTkPackLayout();
-//if (pack) pack->draw(&painter);
 
   QPainter painter(this);
   auto *grid = root_->getTkGridLayout(/*create*/false);

@@ -69,6 +69,41 @@ addWidget(CTkAppWidget *widget, const Info &info)
   }
 }
 
+void
+CTkAppPlaceLayout::
+removeWidget(CTkAppWidget *widget)
+{
+  int ind = -1;
+
+  for (int i = 0; i < list_.size(); ++i) {
+    auto *item = list_.at(i);
+
+    auto *w = dynamic_cast<CTkAppPlaceLayoutWidget *>(item);
+    if (! w) continue;
+
+    auto *widget1 = w->getTkWidget();
+    auto *layout1 = dynamic_cast<CTkAppPlaceLayout *>(w->getLayout());
+
+    if      (widget1 == widget) {
+      ind = i;
+      break;
+    }
+    else if (layout1) {
+      layout1->removeWidget(widget);
+    }
+  }
+
+  if (ind != -1) {
+    auto *item = takeAt(ind);
+
+    delete item;
+  }
+
+  widget->hide();
+
+  invalidate();
+}
+
 QLayoutItem *
 CTkAppPlaceLayout::
 getItem(CTkAppWidget *widget) const

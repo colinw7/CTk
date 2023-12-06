@@ -500,7 +500,7 @@ setShapeOpt(const QString &name, const QVariant &var, bool &rc)
 
   if      (name == "-anchor") {
     Qt::Alignment align;
-    if (! CTkAppUtil::variantToAlign(tk, var, align)) {
+    if (! tk->variantToAlign(var, align)) {
       rc = tk->throwError(tk->msg() + "bad anchor position \"" + var + "\": must be "
                           "n, ne, e, se, s, sw, w, nw, or center");
       return true;
@@ -743,7 +743,7 @@ setShapeOpt(const QString &name, const QVariant &var, bool &rc)
   else if (name == "-width" || name == "-strokewidth") {
     CTkAppDistance width;
     if (! tk->variantToDistance(var, width)) {
-      rc = tk->throwError(tk->msg() + "bad screen distance \"" + var + "\"");
+      rc = tk->invalidDistance(var);
       return true;
     }
 
@@ -770,7 +770,7 @@ setShapeOpt(const QString &name, const QVariant &var, bool &rc)
   else if (name == "-activewidth") {
     CTkAppDistance width;
     if (! tk->variantToDistance(var, width)) {
-      rc = tk->throwError(tk->msg() + "bad screen distance \"" + var + "\"");
+      rc = tk->invalidDistance(var);
       return true;
     }
 
@@ -781,7 +781,7 @@ setShapeOpt(const QString &name, const QVariant &var, bool &rc)
   else if (name == "-disabledwidth") {
     CTkAppDistance width;
     if (! tk->variantToDistance(var, width)) {
-      rc = tk->throwError(tk->msg() + "bad screen distance \"" + var + "\"");
+      rc = tk->invalidDistance(var);
       return true;
     }
 
@@ -2488,7 +2488,23 @@ setShapeOpt(const QString &name, const QVariant &value, bool &rc)
 
   auto *tk = canvas()->canvas()->app();
 
-  if      (name == "-angle") {
+  //---
+
+  static auto names = std::vector<QString>({
+    "-angle", "-font", "-justify", "-text",
+#ifdef CTK_APP_TKPATH
+    "-textanchor",
+#endif
+    "-underline", "-width" });
+
+  QString name1;
+  int     nmatch;
+  if (! CTkAppUtil::uniqueMatch(names, name, name1, nmatch))
+    return CTkAppCanvasShape::setShapeOpt(name, value, rc);
+
+  //---
+
+  if      (name1 == "-angle") {
     double a;
     if (! tk->variantToReal(value, a)) {
       rc = tk->invalidReal(value);
@@ -2500,7 +2516,7 @@ setShapeOpt(const QString &name, const QVariant &value, bool &rc)
 
     this->setAngle(a);
   }
-  else if (name == "-font") {
+  else if (name1 == "-font") {
     auto str = tk->variantToString(value);
 
     if (str == "") {
@@ -2512,7 +2528,7 @@ setShapeOpt(const QString &name, const QVariant &value, bool &rc)
 
     this->setFont(f);
   }
-  else if (name == "-justify") {
+  else if (name1 == "-justify") {
     Qt::Alignment align;
     if (! CTkAppUtil::variantToJustify(value, align)) {
       rc = tk->throwError(tk->msg() + "bad justification \"" + value + "\": must be "
@@ -2522,15 +2538,15 @@ setShapeOpt(const QString &name, const QVariant &value, bool &rc)
 
     this->setJustify(align);
   }
-  else if (name == "-text") {
+  else if (name1 == "-text") {
     auto str = tk->variantToString(value);
 
     this->setText(str);
   }
 #ifdef CTK_APP_TKPATH
-  else if (name == "-textanchor") {
+  else if (name1 == "-textanchor") {
     Qt::Alignment align;
-    if (! CTkAppUtil::variantToAlign(tk, value, align)) {
+    if (! tk->variantToAlign(value, align)) {
       rc = tk->throwError(tk->msg() + "bad anchor position \"" + value + "\": must be "
                           "n, ne, e, se, s, sw, w, nw, or center");
       return true;
@@ -2539,26 +2555,24 @@ setShapeOpt(const QString &name, const QVariant &value, bool &rc)
     this->setTextAnchor(align);
   }
 #endif
-  else if (name == "-underline") {
+  else if (name1 == "-underline") {
     long pos = -1;
-    if (! tk->getOptionInt(name, value, pos)) {
+    if (! tk->getOptionInt(name1, value, pos)) {
       rc = tk->invalidInteger(value);
       return true;
     }
 
     this->setUnderLine(pos);
   }
-  else if (name == "-width") {
+  else if (name1 == "-width") {
     CTkAppDistance d;
     if (! tk->variantToDistance(value, d)) {
-      rc = tk->throwError(tk->msg() + "bad screen distance \"" + value + "\"");
+      rc = tk->invalidDistance(value);
       return true;
     }
 
     this->setWidth(d.rvalue);
   }
-  else
-    return CTkAppCanvasShape::setShapeOpt(name, value, rc);
 
   return true;
 }
@@ -2632,7 +2646,7 @@ setShapeOpt(const QString &name, const QVariant &value, bool &rc)
   if      (name == "-height") {
     CTkAppDistance d;
     if (! tk->variantToDistance(value, d)) {
-      rc = tk->throwError(tk->msg() + "bad screen distance \"" + value + "\"");
+      rc = tk->invalidDistance(value);
       return true;
     }
 
@@ -2641,7 +2655,7 @@ setShapeOpt(const QString &name, const QVariant &value, bool &rc)
   else if (name == "-width") {
     CTkAppDistance d;
     if (! tk->variantToDistance(value, d)) {
-      rc = tk->throwError(tk->msg() + "bad screen distance \"" + value + "\"");
+      rc = tk->invalidDistance(value);
       return true;
     }
 

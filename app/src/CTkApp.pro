@@ -61,6 +61,7 @@ CTkAppText.cpp \
 CTkAppTopLevel.cpp \
 CTkAppTreeView.cpp \
 CTkAppUtil.cpp \
+CTkAppWidgetCommand.cpp \
 CTkAppWidget.cpp \
 CTkAppX11.cpp \
 \
@@ -130,6 +131,7 @@ HEADERS += \
 ../include/CTkAppTypes.h \
 ../include/CTkAppUtil.h \
 ../include/CTkAppWidget.h \
+../include/CTkAppWidgetCommand.h \
 ../include/CTkAppX11.h \
 \
 ../include/CTclApp.h \

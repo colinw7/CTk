@@ -143,6 +143,8 @@ variantToQFont(CTclApp *app, const QVariant &var, QFont &f)
       f.setBold(true);
     else if (style == "italic")
       f.setItalic(true);
+    else if (style == "underline")
+      f.setUnderline(true);
     else
       std::cerr << "Unhandled style '" << style.toStdString() << "'\n";
   }
@@ -234,7 +236,8 @@ variantToOrient(CTclApp *app, const QVariant &var, Qt::Orientation &orient)
   auto str = variantToString(app, var);
 
   QString match;
-  if (! uniqueMatch(names, str, match))
+  int     nmatch;
+  if (! uniqueMatch(names, str, match, nmatch))
     return false;
 
   orient = Qt::Horizontal;
@@ -331,7 +334,7 @@ QString fillRuleToString(const Qt::FillRule &fillRule)
 }
 
 bool
-uniqueMatch(const std::vector<QString> &values, const QString &str, QString &match)
+uniqueMatch(const std::vector<QString> &values, const QString &str, QString &match, int &nmatch)
 {
   std::set<QString> partialValues;
 
@@ -345,7 +348,9 @@ uniqueMatch(const std::vector<QString> &values, const QString &str, QString &mat
       partialValues.insert(value);
   }
 
-  if (partialValues.size() != 1)
+  nmatch = partialValues.size();
+
+  if (nmatch != 1)
     return false;
 
   match = *partialValues.begin();
@@ -534,7 +539,8 @@ variantToRelief(CTkApp *app, const QVariant &var, CTkAppWidgetRelief &relief)
   auto str = variantToString(app, var);
 
   QString match;
-  if (! uniqueMatch(names, str, match))
+  int     nmatch;
+  if (! uniqueMatch(names, str, match, nmatch))
     return false;
 
   if      (match == "raised") relief = CTkAppWidgetRelief::RAISED;
@@ -557,7 +563,8 @@ variantToState(CTkApp *app, const QVariant &var, CTkAppWidgetState &state)
   auto str = variantToString(app, var);
 
   QString match;
-  if (! uniqueMatch(names, str, match))
+  int     nmatch;
+  if (! uniqueMatch(names, str, match, nmatch))
     return false;
 
   if      (match == "active"  ) state = CTkAppWidgetState::ACTIVE;
@@ -795,7 +802,7 @@ formatStringInWidth(const QString &text, int wrapWidth, const QFont &font)
 {
   assert(wrapWidth > 0);
 
-  QFontMetrics fm(font);
+  QFontMetricsF fm(font);
 
   auto tw = fm.horizontalAdvance(text);
 

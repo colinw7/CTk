@@ -169,22 +169,6 @@ class CTkApp : public QObject, public CTclApp {
 
   QFont getQFont(const QVariant &var) const;
 
-  struct FontData {
-    QString family     { };
-    double  size       { 12.0 };
-    QString weight     { "normal" };
-    QString slant      { "roman" };
-    bool    underline  { false };
-    bool    overstrike { false };
-
-    double ascent    { 10 };
-    double descent   { 2 };
-    double linespace { 12 };
-    bool   fixed     { false };
-  };
-
-  void getFontData(const QFont &qfont, FontData &data) const;
-
   void getFontNames(std::vector<QString> &names) const;
 
   void showFontDialog(bool b);
@@ -239,6 +223,8 @@ class CTkApp : public QObject, public CTclApp {
   CTkAppWidget *lookupWidgetId(ulong id) const;
 
   CTkAppWidget *getWidgetAt(long x, long y) const;
+
+  CTkAppWidget *getWidgetForWin(ulong xwin) const;
 
   const WidgetSet &widgets() const { return widgets_; }
 
@@ -354,6 +340,8 @@ class CTkApp : public QObject, public CTclApp {
 
   QString variantToString(const QVariant &var) const;
 
+  bool variantToAlign(const QVariant &var, Qt::Alignment &align) const;
+
   //---
 
   QVariant boolToVariant(bool b) const;
@@ -369,8 +357,9 @@ class CTkApp : public QObject, public CTclApp {
 
   bool wrongNumArgs(const QString &msg) const;
 
-  bool invalidInteger(const QVariant &var) const;
-  bool invalidReal   (const QVariant &var) const;
+  bool invalidInteger (const QVariant &var) const;
+  bool invalidReal    (const QVariant &var) const;
+  bool invalidDistance(const QVariant &var) const;
 
   bool throwError(const Msg &msg) const;
   bool throwError(const QString &msg) const;
