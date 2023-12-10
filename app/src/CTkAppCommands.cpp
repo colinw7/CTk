@@ -300,7 +300,11 @@ run(const Args &args)
     return tk_->wrongNumArgs("bell ?-displayof window? ?-nice?");
 
   for (uint i = 0; i < numArgs; ++i) {
-    auto arg = tk_->variantToString(args[i]);
+    static auto argNames = std::vector<QString>({ "-displayof", "-nice" });
+    QString arg;
+    if (! tk_->lookupName("option", argNames, args[i], arg, /*quiet*/true))
+      return tk_->throwError(tk_->msg() + "bad option \"" + args[i] + "\": must be "
+                             "-displayof or -nice");
 
     if      (arg == "-displayof") {
       ++i;
@@ -319,9 +323,6 @@ run(const Args &args)
     else if (arg == "-nice") {
       //tk_->TODO(args);
     }
-    else
-      return tk_->throwError("bad option \"" + arg + "\": must be "
-                             "-displayof, or -nice");
   }
 
   QApplication::beep();
@@ -1373,7 +1374,8 @@ run(const Args &args)
 
         bool b;
         if (! tk_->variantToBool(args[i], b))
-          return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + args[i] + "\"");
+          return tk_->invalidBool(args[i]);
+
         font->setUnderline(b);
       }
       else if (option == "-overstrike") {
@@ -1381,7 +1383,8 @@ run(const Args &args)
 
         bool b;
         if (! tk_->variantToBool(args[i], b))
-          return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + args[i] + "\"");
+          return tk_->invalidBool(args[i]);
+
         font->setOverstrike(b);
       }
     }
@@ -2255,7 +2258,7 @@ run(const Args &args)
     else {
       bool b;
       if (! tk_->variantToBool(args[i], b))
-        return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + args[i] + "\"");
+        return tk_->invalidBool(args[i]);
       ++i;
 
       window->setGridPropagate(b);
@@ -2691,127 +2694,210 @@ run(const Args &args)
   if (numArgs < 1)
     return tk_->wrongNumArgs("image option ?args?");
 
+  uint i = 0;
+
   static auto optionNames = std::vector<QString>({
     "create", "delete", "height", "inuse", "names", "type", "types", "width"});
 
   QString name;
-  if (! tk_->lookupOptionName(optionNames, args[0], name))
+  if (! tk_->lookupOptionName(optionNames, args[i], name))
     return false;
+  ++i;
 
   if      (name == "create") {
     if (numArgs < 2)
       return tk_->wrongNumArgs("image create type ?name? ?-option value ...?");
 
-    auto type = tk_->variantToString(args[1]);
+    static auto typeNames = std::vector<QString>({"photo", "bitmap", "svg"});
 
-    if (type != "photo" && type != "bitmap" && type != "svg")
-      return tk_->throwError("image type \"" + type + "\" doesn't exist");
+    QString type;
+    if (! tk_->lookupOptionName(typeNames, args[i], type, /*quiet*/true))
+      return tk_->throwError(tk_->msg() + "image type \"" + args[i] + "\" doesn't exist");
+    ++i;
 
-    long        width { -1 }, height { -1 };
-    QString     name, format, filename, background, foreground;
-    std::string data;
+    using OptInt    = std::optional<long>;
+    using OptString = std::optional<QString>;
 
-    for (uint i = 2; i < numArgs; ++i) {
-      auto arg = tk_->variantToString(args[i]);
+    OptInt    width, height;
+    QVariant  data, maskdata;
+    OptString imageName, format, filename, maskfilename;
 
-      if      (arg == "-file") {
+    std::vector<QVariant> args1;
+
+    for ( ; i < numArgs; ++i) {
+      static auto argNames = std::vector<QString>({
+        "-background", "-data", "-file", "-foreground", "-format", "-gamma", "-height",
+        "-maskdata", "-maskfile", "-palette", "-width"});
+
+      QString arg;
+      if (tk_->lookupOptionName(argNames, args[i], arg, /*quiet*/true)) {
         ++i;
 
         if (i >= numArgs)
           return tk_->throwError("value for \"" + arg + "\" missing");
 
-        filename = tk_->variantToString(args[i]);
-      }
-      else if (arg == "-data") {
-        ++i;
+        if      (arg == "-file") {
+          filename = tk_->variantToString(args[i]);
+        }
+        else if (arg == "-data") {
+          data = args[i];
+        }
+        else if (arg == "-format") {
+          static auto formatNames = std::vector<QString>({
+             "png", "jpg", "jpeg", "bmp", "xpm", "xbm", "gif", "ppm"});
 
-        if (i >= numArgs)
-          return tk_->throwError("value for \"" + arg + "\" missing");
+          QString format1;
+          if (! tk_->lookupOptionName(formatNames, args[i], format1, /*quiet*/true))
+            return tk_->throwError(tk_->msg() + "image file format \"" +
+                                   args[i] + "\" is not supported");
 
-        data = tk_->variantToString(args[i]).toStdString();
-      }
-      else if (arg == "-format") {
-        ++i;
+          format = format1;
+        }
+        else if (arg == "-height") {
+          long iheight;
+          if (! tk_->variantToInt(args[i], iheight))
+            return tk_->throwError(tk_->msg() + "bad image height \"" + args[i] + "\"");
 
-        if (i >= numArgs)
-          return tk_->throwError("value for \"" + arg + "\" missing");
+          height = iheight;
+        }
+        else if (arg == "-maskdata") {
+          maskdata = args[i];
+        }
+        else if (arg == "-maskfile") {
+          maskfilename = tk_->variantToString(args[i]);
+        }
+        else if (arg == "-width") {
+          long iwidth;
+          if (! tk_->variantToInt(args[i], iwidth))
+            return tk_->throwError(tk_->msg() + "bad image width \"" + args[i] + "\"");
 
-        format = tk_->variantToString(args[i]);
-      }
-      else if (arg == "-background") {
-        ++i;
-
-        if (i >= numArgs)
-          return tk_->throwError("value for \"" + arg + "\" missing");
-
-        background = tk_->variantToString(args[i]);
-      }
-      else if (arg == "-foreground") {
-        ++i;
-
-        if (i >= numArgs)
-          return tk_->throwError("value for \"" + arg + "\" missing");
-
-        foreground = tk_->variantToString(args[i]);
-      }
-      else if (arg == "-width") {
-        ++i;
-
-        if (i >= numArgs)
-          return tk_->throwError("value for \"" + arg + "\" missing");
-
-        if (! tk_->variantToInt(args[i], width))
-          return tk_->throwError(tk_->msg() + "bad image width \"" + args[i] + "\"");
-      }
-      else if (arg == "-height") {
-        ++i;
-
-        if (i >= numArgs)
-          return tk_->throwError("value for \"" + arg + "\" missing");
-
-        if (! tk_->variantToInt(args[i], height))
-          return tk_->throwError(tk_->msg() + "bad image height \"" + args[i] + "\"");
-      }
-      else if (arg[0] == '-') {
-        return tk_->throwError("unknown image create option \"" + arg + "\"");
+          width = iwidth;
+        }
+        else {
+          args1.push_back(args[i - 1]);
+          args1.push_back(args[i    ]);
+        }
       }
       else {
-        name = arg;
+        if (imageName)
+          return tk_->wrongNumArgs("image option ?args?");
+
+        imageName = tk_->variantToString(args[i]);
+
+        if ((*imageName)[0] == '-')
+          return tk_->throwError("unknown option \"" + *imageName + "\"");
       }
     }
 
-    if (name == "")
-      name = tk_->getNewImageName();
+    if (i < numArgs)
+      return tk_->wrongNumArgs("image option ?args?");
 
-    auto image = tk_->createImage(type, format, name, width, height);
+    if (! imageName)
+      imageName = tk_->getNewImageName();
 
-    if      (filename != "") {
-      if (format == "svg")
-        image->loadSVG(filename);
-      else
-        image->loadFile(filename);
+    if (imageName == ".")
+      return tk_->throwError("bad image name");
+
+    if (! format) format = "";
+    if (! width ) width  = 0;
+    if (! height) height = 0;
+
+    //---
+
+    auto image = tk_->createImage(type, *format, *imageName, *width, *height);
+
+    if      (filename) {
+      if (format == "svg") {
+        if (! image->loadSVG(*filename)) {
+          tk_->deleteImage(image);
+          return tk_->throwError("couldn't read svg file \"" + *filename + "\": "
+                                 "no such file or directory");
+        }
+      }
+      else {
+        if (! image->loadFile(*filename)) {
+          tk_->deleteImage(image);
+          return tk_->throwError("couldn't open \"" + *filename + "\": "
+                                 "no such file or directory");
+        }
+      }
     }
-    else if (data != "") {
+    else if (tk_->variantIsValid(data)) {
+      if (type == "bitmap" && *format == "")
+        format = "xbm";
+
+      if (! image->loadVarData(data, *format)) {
+        tk_->deleteImage(image);
+        return tk_->throwError("couldn't load data");
+      }
+    }
+
+    if (format)
+      image->setFormat(*format);
+
+    //---
+
+    if      (maskfilename) {
+      if (format == "svg") {
+        if (! image->loadMaskSVG(*maskfilename)) {
+          tk_->deleteImage(image);
+          return tk_->throwError("couldn't read svg file \"" + *maskfilename + "\": "
+                                 "no such file or directory");
+        }
+      }
+      else {
+        if (! image->loadMaskFile(*maskfilename)) {
+          tk_->deleteImage(image);
+          return tk_->throwError("couldn't open \"" + *maskfilename + "\": "
+                                 "no such file or directory");
+        }
+      }
+    }
+    else if (tk_->variantIsValid(maskdata)) {
+      auto maskStr = tk_->variantToString(maskdata).toStdString();
+
       if (type == "bitmap" && format == "")
         format = "xbm";
 
       if (format == "xbm") {
-        if (! image->loadXBM(name, data))
-          return false;
+        if (! image->loadMaskXBM(*imageName, maskStr)) {
+          tk_->deleteImage(image);
+          return tk_->throwError("couldn't load mask bitmap data");
+        }
       }
-      else
-        image->loadEncodedData(name, format, data);
+      else {
+        if (! image->loadMaskEncodedData(*imageName, *format, maskStr)) {
+          if (! image->loadMaskData(*imageName, *format, maskStr)) {
+            tk_->deleteImage(image);
+            return tk_->throwError("couldn't load mask data");
+          }
+        }
+      }
     }
 
-    if (format != "")
-      image->setFormat(format);
+    //---
 
-    (void) tk_->addImageCommand(name, type);
+    uint i1       = 0;
+    uint numArgs1 = args1.size();
 
-    setResult(name);
+    while (i1 < numArgs1) {
+      auto name = tk_->variantToString(args1[i1++]);
+      auto var  = args1[i1++];
+
+      if (! CTkAppImageCommand::processOption(tk_, image, type, name, var)) {
+        tk_->deleteImage(image);
+        return false;
+      }
+    }
+
+    //---
+
+    (void) tk_->addImageCommand(*imageName, type);
+
+    setResult(*imageName);
   }
   else if (name == "delete") {
-    for (uint i = 1; i < numArgs; ++i) {
+    for ( ; i < numArgs; ++i) {
       auto image = tk_->getImage(args[i]);
       if (! image) return false;
 
@@ -2822,8 +2908,8 @@ run(const Args &args)
     if (numArgs != 2)
       return tk_->wrongNumArgs("image height name");
 
-    auto image = tk_->getImage(args[1]);
-    if (! image) return false;
+    auto image = tk_->getImage(args[i]);
+    if (! image) return tk_->throwError(tk_->msg() + "image \"" + args[i] + "\" doesn't exist");
 
     tk_->setIntegerResult(image->height());
   }
@@ -2831,12 +2917,15 @@ run(const Args &args)
     if (numArgs != 2)
       return tk_->wrongNumArgs("image inuse name");
 
-    auto image = tk_->getImage(args[1]);
-    if (! image) return false;
+    auto image = tk_->getImage(args[i]);
+    if (! image) return tk_->throwError(tk_->msg() + "image \"" + args[i] + "\" doesn't exist");
 
     setBoolResult(image->numRefs() > 0 ? true : false);
   }
   else if (name == "names") {
+    if (numArgs != 1)
+      return tk_->wrongNumArgs("image names");
+
     std::vector<QString> names;
     tk_->getImageNames(names);
     setStringArrayResult(names);
@@ -2845,8 +2934,8 @@ run(const Args &args)
     if (numArgs != 2)
       return tk_->wrongNumArgs("image type name");
 
-    auto image = tk_->getImage(args[1]);
-    if (! image) return false;
+    auto image = tk_->getImage(args[i]);
+    if (! image) return tk_->throwError(tk_->msg() + "image \"" + args[i] + "\" doesn't exist");
 
     tk_->setStringResult(image->type());
   }
@@ -2867,8 +2956,8 @@ run(const Args &args)
     if (numArgs != 2)
       return tk_->wrongNumArgs("image width name");
 
-    auto image = tk_->getImage(args[1]);
-    if (! image) return false;
+    auto image = tk_->getImage(args[i]);
+    if (! image) return tk_->throwError(tk_->msg() + "image \"" + args[i] + "\" doesn't exist");
 
     tk_->setIntegerResult(image->width());
   }
@@ -3606,20 +3695,20 @@ run(const Args &args)
   static auto optionNames = std::vector<QString>({
     "configure", "content", "forget", "info", "propagate", "slaves" });
 
-  QString option;
-  (void) tk_->lookupName("option", optionNames, args[0], option, /*quiet*/true);
+  uint i = 0;
 
-  int ic = 0;
+  QString option;
+  if (tk_->lookupName("option", optionNames, args[0], option, /*quiet*/true))
+    ++i;
 
   if      (option == "configure") {
     configure = true;
-    ++ic;
   }
   else if (option == "forget") {
     if (numArgs < 2)
       return tk_->wrongNumArgs("pack forget slave ?slave ...?");
 
-    for (uint i = 1; i < numArgs; ++i) {
+    for ( ; i < numArgs; ++i) {
       auto *child = tk_->lookupWidgetByName(args[i], /*quiet*/true);
       if (! child || ! child->getParent()) continue;
 
@@ -3633,19 +3722,13 @@ run(const Args &args)
     if (numArgs != 2)
       return tk_->wrongNumArgs("pack info window");
 
-    auto arg = tk_->variantToString(args[1]);
+    auto *child = tk_->lookupWidgetByName(args[i]);
+    if (! child || ! child->getParent()) return false;
 
-    CTkAppWidget* parent;
-    QString       childName;
+    auto *layout = child->getParent()->getTkPackLayout();
+    if (! layout) return tk_->throwError(tk_->msg() + "no pack layout for \"" + args[i] + "\"");
 
-    if (! root()->decodeWidgetName(arg, &parent, childName))
-      return tk_->throwError("bad window path name \"" + arg + "\"");
-
-    auto *child = parent->getChild(childName);
-    if (! child) return tk_->throwError("bad window path name \"" + arg + "\"");
-
-    auto *layout = parent->getTkPackLayout();
-    if (! layout) return tk_->throwError("no pack layout for \"" + arg + "\"");
+    ++i;
 
     CTkAppPackLayout::Info info;
     layout->getChildInfo(child, info);
@@ -3683,7 +3766,7 @@ run(const Args &args)
 
       bool b;
       if (! tk_->variantToBool(var, b))
-        return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
+        return tk_->invalidBool(var);
 
       layout->setPropagate(b);
     }
@@ -3736,7 +3819,7 @@ run(const Args &args)
 
     CTkAppOptionValueMap optValues;
 
-    for (uint i = ic; i < numArgs; ++i) {
+    for ( ; i < numArgs; ++i) {
       auto arg = tk_->variantToString(args[i]);
 
       if (arg.size() > 0 && arg[0] == '-') {
@@ -3850,6 +3933,11 @@ run(const Args &args)
       side = Info::Side::TOP;
 
     Info info(side, fill, expand, padx, pady, ipadx, ipady);
+
+    for (auto *child : children) {
+      if (child == parent)
+        return tk_->throwError("can't pack \"" + child->getFullName() + "\" inside itself");
+    }
 
     layout->addWidgets(children, info);
 
@@ -5169,8 +5257,7 @@ run(const Args &args)
             else if (optionName == "-visible") {
               bool b;
               if (! tk_->variantToBool(args[2], b))
-                return tk_->throwError(tk_->msg() +
-                  "expected boolean value but got \"" + value + "\"");
+                return tk_->invalidBool(args[2]);
 
               fontChooserData.visible = b;
             }
@@ -6213,7 +6300,7 @@ run(const Args &args)
 
     auto r = qwidget->geometry();
 
-    auto res = QString("%1x%2+%3+%4").arg(r.width()).arg(r.height()).arg(r.x()).arg(r.y());
+    auto res = tk_->geometryStr(r);
 
     setStringResult(res);
   }
@@ -6378,7 +6465,7 @@ run(const Args &args)
     if (! w) return false;
 
     QColor c;
-    if (! CTkAppUtil::variantToQColor(tk_, args[2], c))
+    if (! tk_->variantToQColor(args[2], c))
       return tk_->throwError(tk_->msg() + "invalid color name \"" + args[2] + "\"");
 
     tk_->setIntegerArrayResult({int(65535*c.redF()), int(65535*c.greenF()), int(65535*c.blueF())});
@@ -7236,7 +7323,7 @@ run(const Args &args)
     else if (numArgs == 3) {
       bool b;
       if (! tk_->variantToBool(args[2], b))
-        return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + args[2] + "\"");
+        return tk_->invalidBool(args[2]);
 
       w->setOverrideRedirect(b);
     }
@@ -7297,9 +7384,9 @@ run(const Args &args)
     else if (numArgs == 4) {
       bool wf, hf;
       if (! tk_->variantToBool(args[2], wf))
-        return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + args[2] + "\"");
+        return tk_->invalidBool(args[2]);
       if (! tk_->variantToBool(args[3], hf))
-        return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + args[3] + "\"");
+        return tk_->invalidBool(args[3]);
 
       w->setResizable(wf, hf);
     }
@@ -7393,7 +7480,7 @@ run(const Args &args)
 
       setStringResult(title);
     }
-    else if (numArgs == 2) {
+    else if (numArgs == 3) {
       auto title = tk_->variantToString(args[2]);
 
       w->setTitle(title);

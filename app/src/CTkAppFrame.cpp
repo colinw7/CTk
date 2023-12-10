@@ -34,14 +34,14 @@ execConfig(const QString &name, const QVariant &var)
 
     bool b;
     if (! tk_->variantToBool(var, b))
-      return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
+      return tk_->invalidBool(var);
 
     setContainer(b);
   }
   else if (name == "-tile") {
     bool b;
     if (! tk_->variantToBool(var, b))
-      return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
+      return tk_->invalidBool(var);
 
     setTile(b);
   }

@@ -171,6 +171,8 @@ class CTkAppPlaceLayout : public CTkAppLayout {
   QSize calculateSize(SizeType sizeType) const;
 
   QList<QLayoutItem *> list_;
+
+  mutable bool calculating_ { false };
 };
 
 #endif

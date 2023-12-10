@@ -75,7 +75,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-indicatoron") {
     bool b;
     if (! tk_->variantToBool(var, b))
-      return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
+      return tk_->invalidBool(var);
 
     setShowIndicator(b);
   }
@@ -109,8 +109,8 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-selectcolor") {
     QColor c;
     if (tk_->variantIsValid(var)) {
-      if (! CTkAppUtil::variantToQColor(tk_, var, c))
-        return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+      if (! tk_->variantToQColor(var, c))
+        return tk_->invalidQColor(var);
     }
 
     setSelectColor(c);

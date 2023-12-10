@@ -1784,7 +1784,6 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 ../obj/CTkAppImageCommand.o: CTkAppImageCommand.cpp ../include/CTkAppImageCommand.h \
 		../include/CTkAppCommand.h \
 		../include/CTclAppCommand.h \
-		../include/CTkAppImage.h \
 		../include/CTkApp.h \
 		../include/CTkAppOptionValue.h \
 		../include/CTkAppEventData.h \
@@ -1797,7 +1796,8 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../../../CMath/include/CMathGen.h \
 		../../../CMath/include/CIPoint2D.h \
 		../../../CMath/include/CMathUtil.h \
-		../../../COS/include/COSNaN.h
+		../../../COS/include/COSNaN.h \
+		../include/CTkAppImage.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTkAppImageCommand.o CTkAppImageCommand.cpp
 
 ../obj/CTkAppImage.o: CTkAppImage.cpp ../include/CTkAppImage.h \

@@ -62,7 +62,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-exportselection") {
     bool b;
     if (! tk_->variantToBool(var, b))
-      return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
+      return tk_->invalidBool(var);
 
     exportSelection_ = b;
   }
@@ -311,29 +311,29 @@ execOp(const Args &args)
 
     if      (opt == "-background") {
       QColor c;
-      if (! CTkAppUtil::variantToQColor(tk_, args[2], c))
-        return tk_->throwError(tk_->msg() + "unknown color name \"" + args[2] + "\"");
+      if (! tk_->variantToQColor(args[2], c))
+        return tk_->invalidQColor(args[2]);
 
       tk_->TODO(option + " " + opt);
     }
     else if (opt == "-foreground") {
       QColor c;
-      if (! CTkAppUtil::variantToQColor(tk_, args[2], c))
-        return tk_->throwError(tk_->msg() + "unknown color name \"" + args[2] + "\"");
+      if (! tk_->variantToQColor(args[2], c))
+        return tk_->invalidQColor(args[2]);
 
       tk_->TODO(option + " " + opt);
     }
     else if (opt == "-selectbackground") {
       QColor c;
-      if (! CTkAppUtil::variantToQColor(tk_, args[2], c))
-        return tk_->throwError(tk_->msg() + "unknown color name \"" + args[2] + "\"");
+      if (! tk_->variantToQColor(args[2], c))
+        return tk_->invalidQColor(args[2]);
 
       tk_->TODO(option + " " + opt);
     }
     else if (opt == "-selectforeground") {
       QColor c;
-      if (! CTkAppUtil::variantToQColor(tk_, args[2], c))
-        return tk_->throwError(tk_->msg() + "unknown color name \"" + args[2] + "\"");
+      if (! tk_->variantToQColor(args[2], c))
+        return tk_->invalidQColor(args[2]);
 
       tk_->TODO(option + " " + opt);
     }
@@ -362,28 +362,30 @@ execOp(const Args &args)
 
         if      (name == "-background") {
           QColor c;
-          if (i >= numArgs - 1 || ! CTkAppUtil::variantToQColor(tk_, args[++i], c))
-            return tk_->throwError(tk_->msg() + "unknown color name \"" + args[i] + "\"");
+          if (i >= numArgs - 1 || ! tk_->variantToQColor(args[++i], c))
+            return tk_->invalidQColor(args[i]);
 
           tk_->TODO(args);
         }
         else if (name == "-foreground") {
           QColor c;
-          if (i >= numArgs - 1 || ! CTkAppUtil::variantToQColor(tk_, args[++i], c))
-            return tk_->throwError(tk_->msg() + "unknown color name \"" + args[i] + "\"");
+          if (i >= numArgs - 1 || ! tk_->variantToQColor(args[++i], c))
+            return tk_->invalidQColor(args[i]);
+
           tk_->TODO(args);
         }
         else if (name == "-selectbackground") {
           QColor c;
-          if (i >= numArgs - 1 || ! CTkAppUtil::variantToQColor(tk_, args[++i], c))
-            return tk_->throwError(tk_->msg() + "unknown color name \"" + args[i] + "\"");
+          if (i >= numArgs - 1 || ! tk_->variantToQColor(args[++i], c))
+            return tk_->invalidQColor(args[i]);
 
           tk_->TODO(args);
         }
         else if (name == "-selectforeground") {
           QColor c;
-          if (i >= numArgs - 1 || ! CTkAppUtil::variantToQColor(tk_, args[++i], c))
-            return tk_->throwError(tk_->msg() + "unknown color name \"" + args[i] + "\"");
+          if (i >= numArgs - 1 || ! tk_->variantToQColor(args[++i], c))
+            return tk_->invalidQColor(args[i]);
+
           tk_->TODO(args);
         }
         else

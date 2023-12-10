@@ -29,7 +29,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-confine") {
     bool b;
     if (! tk_->variantToBool(var, b))
-      return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
+      return tk_->invalidBool(var);
 
     qcanvas_->setConfine(b);
   }
@@ -189,20 +189,20 @@ execOp(const Args &args)
         return tk_->wrongNumArgs(getFullName() + " addtag tag closest x y ?halo? ?start?");
 
       double x, y;
-      if (! CTkAppUtil::variantToReal(tk_, args[3], x))
+      if (! tk_->variantToReal(args[3], x))
         return tk_->invalidReal(args[3]);
-      if (! CTkAppUtil::variantToReal(tk_, args[4], y))
+      if (! tk_->variantToReal(args[4], y))
         return tk_->invalidReal(args[4]);
 
       long halo = -1;
       if (numArgs > 4) {
-        if (! CTkAppUtil::variantToInt(tk_, args[5], halo))
+        if (! tk_->variantToInt(args[5], halo))
           return tk_->invalidInteger(args[5]);
       }
 
       long start;
       if (numArgs > 5) {
-        if (! CTkAppUtil::variantToInt(tk_, args[6], start))
+        if (! tk_->variantToInt(args[6], start))
           return tk_->invalidInteger(args[6]);
       }
 
@@ -221,13 +221,13 @@ execOp(const Args &args)
         return tk_->wrongNumArgs(getFullName() + " addtag tag enclosed x1 y1 x2 y2");
 
       double x1, y1, x2, y2;
-      if (! CTkAppUtil::variantToReal(tk_, args[3], x1))
+      if (! tk_->variantToReal(args[3], x1))
         return tk_->invalidReal(args[3]);
-      if (! CTkAppUtil::variantToReal(tk_, args[4], y1))
+      if (! tk_->variantToReal(args[4], y1))
         return tk_->invalidReal(args[4]);
-      if (! CTkAppUtil::variantToReal(tk_, args[5], x2))
+      if (! tk_->variantToReal(args[5], x2))
         return tk_->invalidReal(args[5]);
-      if (! CTkAppUtil::variantToReal(tk_, args[6], y2))
+      if (! tk_->variantToReal(args[6], y2))
         return tk_->invalidReal(args[6]);
 
       auto r = QRectF(x1, y1, x2 - x1, y2 - y1);
@@ -243,13 +243,13 @@ execOp(const Args &args)
         return tk_->wrongNumArgs(getFullName() + " addtag tag overlapping x1 y1 x2 y2");
 
       double x1, y1, x2, y2;
-      if (! CTkAppUtil::variantToReal(tk_, args[3], x1))
+      if (! tk_->variantToReal(args[3], x1))
         return tk_->invalidReal(args[3]);
-      if (! CTkAppUtil::variantToReal(tk_, args[4], y1))
+      if (! tk_->variantToReal(args[4], y1))
         return tk_->invalidReal(args[4]);
-      if (! CTkAppUtil::variantToReal(tk_, args[5], x2))
+      if (! tk_->variantToReal(args[5], x2))
         return tk_->invalidReal(args[5]);
-      if (! CTkAppUtil::variantToReal(tk_, args[6], y2))
+      if (! tk_->variantToReal(args[6], y2))
         return tk_->invalidReal(args[5]);
 
       auto r = QRectF(x1, y1, x2 - x1, y2 - y1);
@@ -359,7 +359,7 @@ execOp(const Args &args)
       return tk_->wrongNumArgs(getFullName() + " canvasx screenx ?gridspacing?");
 
     double x;
-    if (! CTkAppUtil::variantToReal(tk_, args[1], x))
+    if (! tk_->variantToReal(args[1], x))
       return tk_->invalidReal(args[1]);
 
     auto p = qcanvas_->pixelToWindow(CTkAppPoint(x, 0.0));
@@ -371,7 +371,7 @@ execOp(const Args &args)
       return tk_->wrongNumArgs(getFullName() + " canvasy screenx ?gridspacing?");
 
     double y;
-    if (! CTkAppUtil::variantToReal(tk_, args[1], y))
+    if (! tk_->variantToReal(args[1], y))
       return tk_->invalidReal(args[1]);
 
     auto p = qcanvas_->pixelToWindow(CTkAppPoint(0.0, y));
@@ -998,20 +998,20 @@ execOp(const Args &args)
         return tk_->wrongNumArgs(getFullName() + " find closest x y ?halo? ?start?");
 
       double x, y;
-      if (! CTkAppUtil::variantToReal(tk_, args[2], x))
+      if (! tk_->variantToReal(args[2], x))
         return tk_->invalidReal(args[2]);
-      if (! CTkAppUtil::variantToReal(tk_, args[3], y))
+      if (! tk_->variantToReal(args[3], y))
         return tk_->invalidReal(args[3]);
 
       long halo = -1;
       if (numArgs > 4) {
-        if (! CTkAppUtil::variantToInt(tk_, args[4], halo))
+        if (! tk_->variantToInt(args[4], halo))
           return tk_->invalidInteger(args[4]);
       }
 
       long start;
       if (numArgs > 5) {
-        if (! CTkAppUtil::variantToInt(tk_, args[5], start))
+        if (! tk_->variantToInt(args[5], start))
           return tk_->invalidInteger(args[5]);
       }
 
@@ -1032,13 +1032,13 @@ execOp(const Args &args)
         return tk_->wrongNumArgs(getFullName() + " find enclosed x1 y1 x2 y2");
 
       double x1, y1, x2, y2;
-      if (! CTkAppUtil::variantToReal(tk_, args[2], x1))
+      if (! tk_->variantToReal(args[2], x1))
         return tk_->invalidReal(args[2]);
-      if (! CTkAppUtil::variantToReal(tk_, args[3], y1))
+      if (! tk_->variantToReal(args[3], y1))
         return tk_->invalidReal(args[3]);
-      if (! CTkAppUtil::variantToReal(tk_, args[4], x2))
+      if (! tk_->variantToReal(args[4], x2))
         return tk_->invalidReal(args[4]);
-      if (! CTkAppUtil::variantToReal(tk_, args[5], y2))
+      if (! tk_->variantToReal(args[5], y2))
         return tk_->invalidReal(args[5]);
 
       auto r = QRectF(x1, y1, x2 - x1, y2 - y1);
@@ -1053,13 +1053,13 @@ execOp(const Args &args)
         return tk_->wrongNumArgs(getFullName() + " find overlapping x1 y1 x2 y2");
 
       double x1, y1, x2, y2;
-      if (! CTkAppUtil::variantToReal(tk_, args[2], x1))
+      if (! tk_->variantToReal(args[2], x1))
         return tk_->invalidReal(args[2]);
-      if (! CTkAppUtil::variantToReal(tk_, args[3], y1))
+      if (! tk_->variantToReal(args[3], y1))
         return tk_->invalidReal(args[3]);
-      if (! CTkAppUtil::variantToReal(tk_, args[4], x2))
+      if (! tk_->variantToReal(args[4], x2))
         return tk_->invalidReal(args[4]);
-      if (! CTkAppUtil::variantToReal(tk_, args[5], y2))
+      if (! tk_->variantToReal(args[5], y2))
         return tk_->invalidReal(args[5]);
 
       auto r = QRectF(x1, y1, x2 - x1, y2 - y1);
@@ -1177,12 +1177,12 @@ execOp(const Args &args)
                 return tk_->throwError("Invalid -stops \"" + value + "\"");
 
               double r;
-              if (! CTkAppUtil::variantToReal(tk_, strs1[0], r))
+              if (! tk_->variantToReal(strs1[0], r))
                 return tk_->invalidReal(strs1[0]);
 
               QColor c;
-              if (! CTkAppUtil::variantToQColor(tk_, strs1[1], c))
-                return tk_->throwError(tk_->msg() + "unknown color name \"" + strs1[1] + "\"");
+              if (! tk_->variantToQColor(strs1[1], c))
+                return tk_->invalidQColor(strs1[1]);
               stops[r] = c;
             }
           }
@@ -1198,13 +1198,13 @@ execOp(const Args &args)
             if (strs.size() != 4)
               return tk_->throwError("Invalid -lineartransition \"" + value + "\"");
 
-            if (! CTkAppUtil::variantToReal(tk_, strs[0], x1))
+            if (! tk_->variantToReal(strs[0], x1))
               return tk_->invalidReal(strs[0]);
-            if (! CTkAppUtil::variantToReal(tk_, strs[1], y1))
+            if (! tk_->variantToReal(strs[1], y1))
               return tk_->invalidReal(strs[1]);
-            if (! CTkAppUtil::variantToReal(tk_, strs[2], x2))
+            if (! tk_->variantToReal(strs[2], x2))
               return tk_->invalidReal(strs[2]);
-            if (! CTkAppUtil::variantToReal(tk_, strs[3], y2))
+            if (! tk_->variantToReal(strs[3], y2))
               return tk_->invalidReal(strs[3]);
           }
           else if (name == "-units") {
@@ -1255,12 +1255,12 @@ execOp(const Args &args)
                 return tk_->throwError("Invalid -stops \"" + value + "\"");
 
               double r;
-              if (! CTkAppUtil::variantToReal(tk_, strs1[0], r))
+              if (! tk_->variantToReal(strs1[0], r))
                 return tk_->invalidReal(strs1[0]);
 
               QColor c;
-              if (! CTkAppUtil::variantToQColor(tk_, strs1[1], c))
-                return tk_->throwError(tk_->msg() + "unknown color name \"" + strs1[1] + "\"");
+              if (! tk_->variantToQColor(strs1[1], c))
+                return tk_->invalidQColor(strs1[1]);
               stops[r] = c;
             }
           }

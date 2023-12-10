@@ -292,7 +292,16 @@ QSize
 CTkAppPlaceLayout::
 sizeHint() const
 {
-  return calculateSize(SizeHint);
+  if (calculating_)
+    return QSize();
+
+  calculating_ = true;
+
+  auto s = calculateSize(SizeHint);
+
+  calculating_ = false;
+
+  return s;
 }
 
 QLayoutItem *

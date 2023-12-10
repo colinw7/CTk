@@ -150,6 +150,13 @@ setStringResult(const QString &value)
 
 void
 CTclApp::
+setBytesResult(const QByteArray &ba)
+{
+  CQTclUtil::setBytesResult(app_->interp_, ba);
+}
+
+void
+CTclApp::
 setBoolResult(bool b)
 {
   CQTclUtil::setResult(app_->interp_, b);

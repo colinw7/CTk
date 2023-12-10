@@ -78,17 +78,22 @@ CTkAppWidget::
     imageRef_->removeRef(getName());
 }
 
-void
+bool
 CTkAppWidget::
 setParentWidget(QWidget *w)
 {
   assert(! isTopLevel());
 
   auto *qwidget = getQWidget();
-  if (! qwidget) return;
+  if (! qwidget) return false;
+
+  if (w == qwidget)
+    return false;
 
   qwidget->setParent(w);
   qwidget->setVisible(true);
+
+  return true;
 }
 
 CTkAppRoot *
@@ -636,15 +641,15 @@ execConfig(const QString &name, const QVariant &var)
 {
   if      (name == "-activebackground") {
     QColor c;
-    if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+    if (! tk_->variantToQColor(var, c))
+      return tk_->invalidQColor(var);
 
     setActiveBackground(c);
   }
   else if (name == "-activeforeground") {
     QColor c;
-    if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+    if (! tk_->variantToQColor(var, c))
+      return tk_->invalidQColor(var);
 
     setActiveForeground(c);
   }
@@ -658,8 +663,8 @@ execConfig(const QString &name, const QVariant &var)
   }
   else if (name == "-background" || name == "-bg") {
     QColor c;
-    if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+    if (! tk_->variantToQColor(var, c))
+      return tk_->invalidQColor(var);
 
     setBackground(c);
   }
@@ -725,15 +730,15 @@ execConfig(const QString &name, const QVariant &var)
   }
   else if (name == "-disabledbackground") {
     QColor c;
-    if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+    if (! tk_->variantToQColor(var, c))
+      return tk_->invalidQColor(var);
 
     setDisabledBackground(c);
   }
   else if (name == "-disabledforeground") {
     QColor c;
-    if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+    if (! tk_->variantToQColor(var, c))
+      return tk_->invalidQColor(var);
 
     setDisabledBackground(c);
   }
@@ -752,8 +757,8 @@ execConfig(const QString &name, const QVariant &var)
   }
   else if (name == "-foreground" || name == "-fg") {
     QColor c;
-    if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+    if (! tk_->variantToQColor(var, c))
+      return tk_->invalidQColor(var);
 
     setForeground(c);
   }
@@ -770,15 +775,16 @@ execConfig(const QString &name, const QVariant &var)
   }
   else if (name == "-highlightbackground") {
     QColor c;
-    if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+    if (! tk_->variantToQColor(var, c))
+      return tk_->invalidQColor(var);
 
     setHighlightBackground(c);
   }
   else if (name == "-highlightcolor") {
     QColor c;
-    if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+    if (! tk_->variantToQColor(var, c))
+      return tk_->invalidQColor(var);
+
     setHighlightForeground(c);
   }
   else if (name == "-highlightthickness") {
@@ -796,8 +802,8 @@ execConfig(const QString &name, const QVariant &var)
   }
   else if (name == "-insertbackground") {
     QColor c;
-    if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+    if (! tk_->variantToQColor(var, c))
+      return tk_->invalidQColor(var);
 
     setInsertBackground(c);
   }
@@ -872,8 +878,8 @@ execConfig(const QString &name, const QVariant &var)
   }
   else if (name == "-selectbackground") {
     QColor c;
-    if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+    if (! tk_->variantToQColor(var, c))
+      return tk_->invalidQColor(var);
 
     selectBackground_ = c;
   }
@@ -886,14 +892,16 @@ execConfig(const QString &name, const QVariant &var)
   }
   else if (name == "-selectforeground") {
     QColor c;
-    if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+    if (! tk_->variantToQColor(var, c))
+      return tk_->invalidQColor(var);
+
     selectForeground_ = c;
   }
   else if (name == "-setgrid") {
     bool b;
     if (! tk_->variantToBool(var, b))
-      return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
+      return tk_->invalidBool(var);
+
     setGridWidget(b);
   }
   else if (name == "-takefocus") {
@@ -1129,9 +1137,7 @@ getGeometry() const
 
   auto r = qwidget_->geometry();
 
-  auto str = QString("%1x%2+%3+%4").arg(r.width()).arg(r.height()).arg(r.x()).arg(r.y());
-
-  return str;
+  return tk_->geometryStr(r);
 }
 
 void

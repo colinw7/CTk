@@ -461,8 +461,8 @@ setShapeOpt(const QString &name, const QVariant &var, bool &rc)
       stroke = QPen(Qt::NoPen);
     else {
       QColor c;
-      if (! CTkAppUtil::variantToQColor(tk, var, c)) {
-        rc = tk->throwError(tk->msg() + "unknown color name \"" + var + "\"");
+      if (! tk->variantToQColor(var, c)) {
+        rc = tk->invalidQColor(var);
         return true;
       }
       stroke.setColor(c);
@@ -481,8 +481,8 @@ setShapeOpt(const QString &name, const QVariant &var, bool &rc)
       fill = QBrush(*g);
     else {
       QColor c;
-      if (! CTkAppUtil::variantToQColor(tk, var, c)) {
-        rc = tk->throwError(tk->msg() + "unknown color name \"" + var + "\"");
+      if (! tk->variantToQColor(var, c)) {
+        rc = tk->invalidQColor(var);
         return true;
       }
 
@@ -556,7 +556,7 @@ setShapeOpt(const QString &name, const QVariant &var, bool &rc)
     auto b = this->brush();
     if (tk->variantIsValid(var)) {
       if (! variantToFill(var, b)) {
-        rc = tk->throwError(tk->msg() + "unknown color name \"" + var + "\"");
+        rc = tk->invalidQColor(var);
         return true;
       }
     }
@@ -576,7 +576,7 @@ setShapeOpt(const QString &name, const QVariant &var, bool &rc)
   }
   else if (name == "-fillopacity") {
     double a;
-    if (! CTkAppUtil::variantToReal(tk, var, a)) {
+    if (! tk->variantToReal(var, a)) {
       rc = tk->invalidReal(var);
       return true;
     }
@@ -586,7 +586,7 @@ setShapeOpt(const QString &name, const QVariant &var, bool &rc)
   else if (name == "-activefill") {
     auto b = this->activeBrush();
     if (! variantToFill(var, b)) {
-      rc = tk->throwError(tk->msg() + "unknown color name \"" + var + "\"");
+      rc = tk->invalidQColor(var);
       return true;
     }
     this->setActiveBrush(b);
@@ -594,7 +594,7 @@ setShapeOpt(const QString &name, const QVariant &var, bool &rc)
   else if (name == "-disabledfill") {
     auto b = this->disabledBrush();
     if (! variantToFill(var, b)) {
-      rc = tk->throwError(tk->msg() + "unknown color name \"" + var + "\"");
+      rc = tk->invalidQColor(var);
       return true;
     }
     this->setDisabledBrush(b);
@@ -602,7 +602,7 @@ setShapeOpt(const QString &name, const QVariant &var, bool &rc)
   else if (name == "-filloverstroke") { // tkpath
     auto p = this->fillOverPen();
     if (! variantToStroke(var, p)) {
-      rc = tk->throwError(tk->msg() + "unknown color name \"" + var + "\"");
+      rc = tk->invalidQColor(var);
       return true;
     }
     this->setFillOverPen(p);
@@ -610,7 +610,7 @@ setShapeOpt(const QString &name, const QVariant &var, bool &rc)
   else if (name == "-outline" || name == "-stroke") {
     auto p = this->pen();
     if (! variantToStroke(var, p)) {
-      rc = tk->throwError(tk->msg() + "unknown color name \"" + var + "\"");
+      rc = tk->invalidQColor(var);
       return true;
     }
     this->setPen(p);
@@ -618,7 +618,7 @@ setShapeOpt(const QString &name, const QVariant &var, bool &rc)
   else if (name == "-activeoutline") {
     auto p = this->activePen();
     if (! variantToStroke(var, p)) {
-      rc = tk->throwError(tk->msg() + "unknown color name \"" + var + "\"");
+      rc = tk->invalidQColor(var);
       return true;
     }
     this->setActivePen(p);
@@ -626,7 +626,7 @@ setShapeOpt(const QString &name, const QVariant &var, bool &rc)
   else if (name == "-disabledoutline") {
     auto p = this->disabledPen();
     if (! variantToStroke(var, p)) {
-      rc = tk->throwError(tk->msg() + "unknown color name \"" + var + "\"");
+      rc = tk->invalidQColor(var);
       return true;
     }
     this->setDisabledPen(p);
@@ -760,7 +760,7 @@ setShapeOpt(const QString &name, const QVariant &var, bool &rc)
   }
   else if (name == "-strokeopacity") {
     double a;
-    if (! CTkAppUtil::variantToReal(tk, var, a)) {
+    if (! tk->variantToReal(var, a)) {
       rc = tk->invalidReal(var);
       return true;
     }
@@ -1270,8 +1270,8 @@ setShapeOpt(const QString &name, const QVariant &value, bool &rc)
 
   if      (name == "-background") {
     QColor c;
-    if (! CTkAppUtil::variantToQColor(tk, value, c)) {
-      rc = tk->throwError(tk->msg() + "unknown color name \"" + value + "\"");
+    if (! tk->variantToQColor(value, c)) {
+      rc = tk->invalidQColor(value);
       return true;
     }
 
@@ -1279,8 +1279,8 @@ setShapeOpt(const QString &name, const QVariant &value, bool &rc)
   }
   else if (name == "-activebackground") {
     QColor c;
-    if (! CTkAppUtil::variantToQColor(tk, value, c)) {
-      rc = tk->throwError(tk->msg() + "unknown color name \"" + value + "\"");
+    if (! tk->variantToQColor(value, c)) {
+      rc = tk->invalidQColor(value);
       return true;
     }
 
@@ -1288,8 +1288,8 @@ setShapeOpt(const QString &name, const QVariant &value, bool &rc)
   }
   else if (name == "-disabledbackground") {
     QColor c;
-    if (! CTkAppUtil::variantToQColor(tk, value, c)) {
-      rc = tk->throwError(tk->msg() + "unknown color name \"" + value + "\"");
+    if (! tk->variantToQColor(value, c)) {
+      rc = tk->invalidQColor(value);
       return true;
     }
 
@@ -1315,8 +1315,8 @@ setShapeOpt(const QString &name, const QVariant &value, bool &rc)
   }
   else if (name == "-foreground") {
     QColor c;
-    if (! CTkAppUtil::variantToQColor(tk, value, c)) {
-      rc = tk->throwError(tk->msg() + "unknown color name \"" + value + "\"");
+    if (! tk->variantToQColor(value, c)) {
+      rc = tk->invalidQColor(value);
       return true;
     }
 
@@ -1324,8 +1324,8 @@ setShapeOpt(const QString &name, const QVariant &value, bool &rc)
   }
   else if (name == "-activeforeground") {
     QColor c;
-    if (! CTkAppUtil::variantToQColor(tk, value, c)) {
-      rc = tk->throwError(tk->msg() + "unknown color name \"" + value + "\"");
+    if (! tk->variantToQColor(value, c)) {
+      rc = tk->invalidQColor(value);
       return true;
     }
 
@@ -1333,8 +1333,8 @@ setShapeOpt(const QString &name, const QVariant &value, bool &rc)
   }
   else if (name == "-disabledforeground") {
     QColor c;
-    if (! CTkAppUtil::variantToQColor(tk, value, c)) {
-      rc = tk->throwError(tk->msg() + "unknown color name \"" + value + "\"");
+    if (! tk->variantToQColor(value, c)) {
+      rc = tk->invalidQColor(value);
       return true;
     }
 
@@ -1461,6 +1461,9 @@ CTkAppCanvasImageShape(CTkAppCanvasWidget *canvas, const Point &p, const CTkAppI
  CTkAppCanvasShape(canvas, ShapeType::IMAGE), p_(p), image_(image)
 {
   calcDrawRect();
+
+  if (image_.get())
+    connect(image_.get(), SIGNAL(imageChanged()), this, SLOT(updateImage()));
 }
 
 void
@@ -1476,8 +1479,21 @@ void
 CTkAppCanvasImageShape::
 setImage(const CTkAppImageRef &i)
 {
+  if (image_.get())
+    disconnect(image_.get(), SIGNAL(imageChanged()), this, SLOT(updateImage()));
+
   image_ = i;
 
+  if (image_.get())
+    connect(image_.get(), SIGNAL(imageChanged()), this, SLOT(updateImage()));
+
+  calcDrawRect();
+}
+
+void
+CTkAppCanvasImageShape::
+updateImage()
+{
   calcDrawRect();
 }
 

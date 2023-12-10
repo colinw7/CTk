@@ -58,7 +58,7 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-exportselection") {
     bool b;
     if (! tk_->variantToBool(var, b))
-      return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
+      return tk_->invalidBool(var);
 
     setExportSelection(b);
   }
@@ -71,8 +71,8 @@ execConfig(const QString &name, const QVariant &var)
   }
   else if (name == "-inactiveselectbackground") {
     QColor c;
-    if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+    if (! tk_->variantToQColor(var, c))
+      return tk_->invalidQColor(var);
 
     tk_->TODO(name);
   }
@@ -824,16 +824,16 @@ execOp(const Args &args)
           if      (arg1 == "-background") {
             if (! nextI()) return false;
             QColor c;
-            if (! CTkAppUtil::variantToQColor(tk_, var1, c))
-              return tk_->throwError(tk_->msg() + "unknown color name \"" + var1 + "\"");
+            if (! tk_->variantToQColor(var1, c))
+              return tk_->invalidQColor(var1);
 
             tagData.background = c;
           }
           else if (arg1 == "-foreground") {
             if (! nextI()) return false;
             QColor c;
-            if (! CTkAppUtil::variantToQColor(tk_, var1, c))
-              return tk_->throwError(tk_->msg() + "unknown color name \"" + var1 + "\"");
+            if (! tk_->variantToQColor(var1, c))
+              return tk_->invalidQColor(var1);
 
             tagData.foreground = c;
           }
@@ -875,8 +875,8 @@ execOp(const Args &args)
             if (! nextI()) return false;
             bool b;
             if (! tk_->variantToBool(var1, b))
-              return tk_->throwError(tk_->msg() +
-                "expected boolean value but got \"" + var1 + "\"");
+              return tk_->invalidBool(var1);
+
             tagData.underline = b;
           }
           else {

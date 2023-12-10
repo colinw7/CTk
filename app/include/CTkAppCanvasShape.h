@@ -720,6 +720,9 @@ class CTkAppCanvasImageShape : public CTkAppCanvasShape {
   bool getShapeOpt(const QString &name, QVariant &value) const override;
   bool setShapeOpt(const QString &name, const QVariant &value, bool &rc) override;
 
+ private Q_SLOTS:
+  void updateImage();
+
  protected:
   Point          p_;
   CTkAppImageRef image_;

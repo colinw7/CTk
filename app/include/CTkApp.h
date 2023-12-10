@@ -138,6 +138,10 @@ class CTkApp : public QObject, public CTclApp {
 
   //---
 
+  bool commandExists(const QString &name) const;
+
+  //---
+
   QString getNewImageName() const;
 
   CTkAppImageRef createImage(const QString &type, const QString &format,
@@ -331,6 +335,8 @@ class CTkApp : public QObject, public CTclApp {
 
   bool variantToCursor(const QVariant &var, CursorData &c) const;
 
+  bool variantToQColor(const QVariant &var, QColor &c) const;
+
   bool variantToDistance (const QVariant &var, Distance &r) const;
   bool variantToDistanceI(const QVariant &var, Distance &r) const;
 
@@ -353,13 +359,23 @@ class CTkApp : public QObject, public CTclApp {
 
   //---
 
+  bool fileExists(const QString &filename) const;
+
+  //---
+
+  QString geometryStr(const QRect &r) const;
+
+  //---
+
   Msg msg() const { return Msg(this); }
 
   bool wrongNumArgs(const QString &msg) const;
 
+  bool invalidBool    (const QVariant &var) const;
   bool invalidInteger (const QVariant &var) const;
   bool invalidReal    (const QVariant &var) const;
   bool invalidDistance(const QVariant &var) const;
+  bool invalidQColor  (const QVariant &var) const;
 
   bool throwError(const Msg &msg) const;
   bool throwError(const QString &msg) const;

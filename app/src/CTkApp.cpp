@@ -24,6 +24,7 @@
 #include <QThread>
 #include <QAbstractEventDispatcher>
 #include <QClipboard>
+#include <QFileInfo>
 
 #include <tcl.h>
 
@@ -511,6 +512,17 @@ processOption(CTkAppOption *opts, const Args &args, uint &i, CTkAppOptionValueMa
 
 //---
 
+bool
+CTkApp::
+commandExists(const QString &name) const
+{
+  Tcl_CmdInfo info;
+  auto rc = Tcl_GetCommandInfo(getInterp(), name.toLatin1().constData(), &info);
+  return (rc != 0);
+}
+
+//---
+
 QString
 CTkApp::
 getNewImageName() const
@@ -519,7 +531,17 @@ getNewImageName() const
 
   auto name = QString("image%1").arg(id);
 
-  while (images_.find(name) != images_.end()) {
+  auto isValidImageName = [&](const QString &name) {
+    if (images_.find(name) != images_.end())
+      return false;
+
+    if (commandExists(name))
+      return false;
+
+    return true;
+  };
+
+  while (! isValidImageName(name)) {
     ++id;
 
     name = QString("image%1").arg(id);
@@ -3974,6 +3996,13 @@ variantToCursor(const QVariant &var, CursorData &c) const
 
 bool
 CTkApp::
+variantToQColor(const QVariant &var, QColor &c) const
+{
+  return CTkAppUtil::variantToQColor(const_cast<CTkApp *>(this), var, c);
+}
+
+bool
+CTkApp::
 variantToDistance(const QVariant &var, Distance &d) const
 {
   return CTkAppUtil::variantToDistance(const_cast<CTkApp *>(this), var, d);
@@ -4072,6 +4101,32 @@ imageToVariant(const CTkAppImageRef &image) const
 
 bool
 CTkApp::
+fileExists(const QString &filename) const
+{
+  QFileInfo fi(filename);
+
+  return fi.exists();
+}
+
+//---
+
+QString
+CTkApp::
+geometryStr(const QRect &r) const
+{
+  auto xStr = (r.x() ? "+" : "-");
+  auto yStr = (r.y() ? "+" : "-");
+
+  auto str = QString("%1x%2%3%4%5%6").arg(r.width()).arg(r.height()).
+    arg(xStr).arg(r.x()).arg(yStr).arg(r.y());
+
+  return str;
+}
+
+//---
+
+bool
+CTkApp::
 wrongNumArgs(const QString &msg) const
 {
   auto cmsg = "wrong # args: should be \"" + msg.toStdString() + "\"";
@@ -4082,6 +4137,13 @@ wrongNumArgs(const QString &msg) const
   Tcl_SetObjResult(getInterp(), sobj);
 
   return false;
+}
+
+bool
+CTkApp::
+invalidBool(const QVariant &var) const
+{
+  return throwError(msg() + "expected boolean value but got \"" + var + "\"");
 }
 
 bool
@@ -4103,6 +4165,13 @@ CTkApp::
 invalidDistance(const QVariant &var) const
 {
   return throwError(msg() + "bad screen distance \"" + var + "\"");
+}
+
+bool
+CTkApp::
+invalidQColor(const QVariant &var) const
+{
+  return throwError(msg() + "unknown color name \"" + var + "\"");
 }
 
 bool

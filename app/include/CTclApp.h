@@ -72,6 +72,7 @@ class CTclApp {
   void setIntegerResult(int value);
   void setRealResult   (double value);
   void setStringResult (const QString &value);
+  void setBytesResult  (const QByteArray &value);
   void setBoolResult   (bool b);
   void setResult       (const QVariant &var);
 

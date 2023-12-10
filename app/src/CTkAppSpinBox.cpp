@@ -69,8 +69,8 @@ execConfig(const QString &name, const QVariant &var)
 {
   if      (name == "-buttonbackground") {
     QColor c;
-    if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+    if (! tk_->variantToQColor(var, c))
+      return tk_->invalidQColor(var);
 
     tk_->TODO(name);
   }
@@ -100,21 +100,22 @@ execConfig(const QString &name, const QVariant &var)
   }
   else if (name == "-disabledbackground") {
     QColor c;
-    if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+    if (! tk_->variantToQColor(var, c))
+      return tk_->invalidQColor(var);
 
     tk_->TODO(name);
   }
   else if (name == "-disabledforeground") {
     QColor c;
-    if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+    if (! tk_->variantToQColor(var, c))
+      return tk_->invalidQColor(var);
+
     tk_->TODO(name);
   }
   else if (name == "-exportselection") {
     bool b;
     if (! tk_->variantToBool(var, b))
-      return tk_->throwError(tk_->msg() + "expected boolean value but got \"" + var + "\"");
+      return tk_->invalidBool(var);
 
     setExportSelection(b);
   }
@@ -142,8 +143,8 @@ execConfig(const QString &name, const QVariant &var)
   }
   else if (name == "-readonlybackground") {
     QColor c;
-    if (! CTkAppUtil::variantToQColor(tk_, var, c))
-      return tk_->throwError(tk_->msg() + "unknown color name \"" + var + "\"");
+    if (! tk_->variantToQColor(var, c))
+      return tk_->invalidQColor(var);
 
     setReadOnlyBackground(c);
   }

@@ -149,7 +149,7 @@ class CTkAppWidget : public QObject {
   CTkAppWidget *getParent() const { return parent_; }
 
   QWidget *parentWidget() const { return parent_->getQWidget(); }
-  void setParentWidget(QWidget *w);
+  bool setParentWidget(QWidget *w);
 
   CTkAppRoot *root() const;
 

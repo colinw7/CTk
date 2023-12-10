@@ -150,8 +150,9 @@ inline bool isSupportedVariant(const QVariant &var) {
 inline Tcl_Obj *variantToObj(Tcl_Interp *interp, const QVariant &var) {
   if      (var.type() == QVariant::String) {
     auto str = var.toString();
+    auto len = str.length();
 
-    return Tcl_NewStringObj(str.toLatin1().constData(), -1);
+    return Tcl_NewStringObj(str.toLatin1().constData(), len);
   }
   else if (var.type() == QVariant::Double) {
     return Tcl_NewDoubleObj(var.value<double>());
@@ -280,7 +281,9 @@ inline Tcl_Obj *variantToObj(Tcl_Interp *interp, const QVariant &var) {
     if (var.canConvert(QVariant::String))
       str = var.toString();
 
-    return Tcl_NewStringObj(str.toLatin1().constData(), -1);
+    auto len = str.length();
+
+    return Tcl_NewStringObj(str.toLatin1().constData(), len);
   }
 }
 
@@ -291,18 +294,17 @@ inline QVariant variantFromObj(Tcl_Interp *interp, const Tcl_Obj *obj) {
   static const Tcl_ObjType *rtype;
   static const Tcl_ObjType *stype;
   static const Tcl_ObjType *ltype;
+  static const Tcl_ObjType *btype;
 
   if (! itype) {
     itype = Tcl_GetObjType("int");
     rtype = Tcl_GetObjType("double");
     stype = Tcl_GetObjType("string");
     ltype = Tcl_GetObjType("list");
+    btype = Tcl_GetObjType("bytearray");
   }
 
   auto *obj1 = const_cast<Tcl_Obj *>(obj);
-
-  double real    = 0.0;
-  int    integer = 0;
 
   Tcl_IncrRefCount(obj1);
 
@@ -312,10 +314,14 @@ inline QVariant variantFromObj(Tcl_Interp *interp, const Tcl_Obj *obj) {
 
   if (type) {
     if      (type == itype) {
+      int integer = 0;
+
       if (Tcl_GetIntFromObj(interp, obj1, &integer) == TCL_OK)
         var = QVariant(integer);
     }
     else if (type == rtype) {
+      double real = 0.0;
+
       if (Tcl_GetDoubleFromObj(interp, obj1, &real) == TCL_OK)
         var = QVariant(real);
     }
@@ -340,15 +346,26 @@ inline QVariant variantFromObj(Tcl_Interp *interp, const Tcl_Obj *obj) {
     }
     else if (type == stype) {
     }
+    else if (type == btype) {
+      int len;
+      uchar *data = Tcl_GetByteArrayFromObj(obj1, &len);
+
+      if (! data) return QVariant();
+
+      var = QVariant(QByteArray(reinterpret_cast<char *>(data), len));
+    }
     else {
       //assert(false);
     }
   }
+  else {
+    //assert(false);
+  }
 
   if (! var.isValid()) {
     int len = 0;
-
     char *str = Tcl_GetStringFromObj(obj1, &len);
+    if (len == 0) return var;
 
     std::string cstr(str, size_t(len));
 
@@ -504,6 +521,11 @@ inline Vars getListVar(Tcl_Interp *interp, const QString &name) {
 inline void setResult(Tcl_Interp *interp, const QVariant &var) {
   if (var.isValid())
     Tcl_SetObjResult(interp, variantToObj(interp, var));
+}
+
+inline void setBytesResult(Tcl_Interp *interp, const QByteArray &ba) {
+  Tcl_SetObjResult(interp,
+    Tcl_NewByteArrayObj(reinterpret_cast<const uchar *>(ba.constData()), ba.length()));
 }
 
 //---
