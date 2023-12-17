@@ -10,7 +10,7 @@
 
 + user longest match lookup everywhere
 
-+ grid -in ****
++ grid -in
 
 + grid -minsize
 
@@ -25,8 +25,10 @@
 
 + entry moveto 1
 
-state readonly ? (entry/text ?)
++ state readonly ? (entry/text ?)
 
-listbox see 0
++ listbox see 0
 
-list selected to variable ? test
++ list selected to variable ? test
+
++ GIF meta data (comment)

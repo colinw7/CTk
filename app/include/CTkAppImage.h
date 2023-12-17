@@ -6,8 +6,10 @@
 
 #include <string>
 #include <set>
+#include <optional>
 
 class CTkApp;
+class CTkAppImageCommand;
 
 class CTkAppImage : public QObject {
   Q_OBJECT
@@ -23,14 +25,42 @@ class CTkAppImage : public QObject {
   Q_PROPERTY(QColor background READ background WRITE setBackground)
   Q_PROPERTY(QColor foreground READ foreground WRITE setForeground)
 
+  Q_PROPERTY(QString metaData READ metaData WRITE setMetaData)
+
+ public:
+  enum class ColorFormat {
+    RGB,
+    RGBA,
+    LIST
+  };
+
+  struct FormatData {
+    bool        set { false };
+    QString     format;
+    ColorFormat colorformat { ColorFormat::RGB };
+    QString     index;
+    QString     dpi;
+    double      scale       { 1.0 };
+    long        widthScale  { 1 };
+    long        heightScale { 1 };
+  };
+
  public:
   explicit CTkAppImage(CTkApp *tk, const QString &name, int width=0, int height=0);
 
  ~CTkAppImage();
 
+  CTkAppImage(const CTkAppImage &image) = delete;
+  CTkAppImage &operator=(const CTkAppImage &image) = delete;
+
   //---
 
+  uint id() const { return id_; }
+
   const QString &name() const { return name_; }
+
+  CTkAppImageCommand *command() const { return command_; }
+  void setCommand(CTkAppImageCommand *c);
 
   //---
 
@@ -41,6 +71,9 @@ class CTkAppImage : public QObject {
 
   int height() const;
   void setHeight(int h);
+
+  bool isWidthSet () const { return (width_  > 0); }
+  bool isHeightSet() const { return (height_ > 0); }
 
   const QString &maskFilename() const { return maskFilename_; }
 
@@ -75,6 +108,11 @@ class CTkAppImage : public QObject {
 
   //---
 
+  const QString &metaData() const { return metaData_; }
+  void setMetaData(const QString &s) { metaData_ = s; }
+
+  //---
+
   QImage getQImage() const;
   QPixmap getQPixmap() const;
 
@@ -90,6 +128,8 @@ class CTkAppImage : public QObject {
   bool loadFile(const QString &filename);
   bool loadSVG (const QString &filename);
 
+  bool loadImageFile(const QString &filename, QImage &qimage) const;
+
   bool loadMaskFile(const QString &filename);
   bool loadMaskSVG (const QString &filename);
 
@@ -100,6 +140,8 @@ class CTkAppImage : public QObject {
   bool loadMaskEncodedData(const QString &name, const QString &format, const std::string &data);
 
   bool loadVarData(const QVariant &var, const QString &format);
+
+  bool loadColorList(const QVariant &var);
 
   bool loadData    (const QString &name, const QString &format, const std::string &data);
   bool loadMaskData(const QString &name, const QString &format, const std::string &data);
@@ -123,6 +165,8 @@ class CTkAppImage : public QObject {
 
   void resize(int w, int h);
 
+  void copy(int x, int y, const QImage &qimage);
+
   bool getPixel(int x, int y, QColor &c) const;
   bool setPixel(int x, int y, const QColor &c);
 
@@ -135,8 +179,10 @@ class CTkAppImage : public QObject {
 
   //---
 
-  QString dataString() const;
-  static QString dataString(CTkApp *tk, const QImage &image);
+  QString dataString(const ColorFormat &colorFormat=ColorFormat::RGB) const;
+
+  static QString dataString(CTkApp *tk, const QImage &image,
+                            const ColorFormat &colorFormat=ColorFormat::RGB);
 
   //---
 
@@ -153,6 +199,10 @@ class CTkAppImage : public QObject {
     return true;
   }
 
+  //---
+
+  static bool lookupFormatName(CTkApp *tk, const QString &format, FormatData &formatData);
+
  Q_SIGNALS:
   void imageChanged();
   void maskImageChanged();
@@ -164,15 +214,22 @@ class CTkAppImage : public QObject {
  private:
   using RefNames = std::set<QString>;
 
+  static uint s_nextId;
+
   CTkApp* tk_ { nullptr };
+
+  CTkAppImageCommand *command_ { nullptr };
+
+  uint id_ { 0 };
 
   QString name_;
   QString type_;
 
   QImage  qimage_;
   QString filename_;
-  int     width_  { 0 };
-  int     height_ { 0 };
+
+  int width_  { 0 };
+  int height_ { 0 };
 
   QImage  maskQImage_;
   QString maskFilename_;
@@ -183,6 +240,8 @@ class CTkAppImage : public QObject {
   double  gamma_  { 1.0 };
   QColor  background_;
   QColor  foreground_;
+
+  QString metaData_;
 
   int rbits_ { 8 }, gbits_ { 8 }, bbits_ { 8 };
 

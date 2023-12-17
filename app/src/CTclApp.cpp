@@ -1,5 +1,6 @@
 #include <CTclApp.h>
 #include <CTkAppUtil.h>
+#include <CTkAppCmdNotify.h>
 #include <CQTclUtil.h>
 
 #ifdef CTCL_APP_READLINE
@@ -13,6 +14,51 @@
 extern "C" {
 #include <tcl.h>
 }
+
+namespace {
+
+int
+CTclAppTraceProc(ClientData clientData, Tcl_Interp *, int level, const char *command,
+                 Tcl_Command /*commandToken*/ , int /*objc*/ , Tcl_Obj *const /*objv*/ [])
+{
+  auto *th = static_cast<CTclApp *>(clientData);
+  assert(th);
+
+  std::cerr << "Trace: " << command << " " << level << "\n";
+
+  return TCL_OK;
+}
+
+void
+CTclAppTraceDeleteProc(ClientData clientData)
+{
+  auto *th = static_cast<CTclApp *>(clientData);
+  assert(th);
+}
+
+void
+CTclAppCommandTraceProc(ClientData clientData, Tcl_Interp *, const char *oldName,
+                        const char *newName, int flags)
+{
+  auto *notify = static_cast<CTkAppCmdNotify *>(clientData);
+  assert(notify);
+
+  //std::string desc;
+  //if (flags & TCL_TRACE_RENAME   ) desc += " rename";
+  //if (flags & TCL_TRACE_DELETE   ) desc += " delete";
+  //if (flags & TCL_TRACE_DESTROYED) desc += " destroyed";
+
+  //std::cerr << "TraceCmd: " << oldName << " " << newName << " " << desc << "\n";
+
+  if      (flags & TCL_TRACE_RENAME)
+    notify->handleRename(oldName, newName);
+  else if (flags & TCL_TRACE_DELETE)
+    notify->handleDelete(oldName);
+}
+
+}
+
+//---
 
 CTclApp *CTclApp::app_ = nullptr;
 
@@ -90,6 +136,37 @@ initInteractive()
   app_->startup();
 
   app_->mainLoop();
+}
+
+void
+CTclApp::
+addTrace()
+{
+  int level = 1;
+  int flags = TCL_ALLOW_INLINE_COMPILATION;
+
+  Tcl_CreateObjTrace(interp_, level, flags, &CTclAppTraceProc, static_cast<ClientData>(this),
+                     &CTclAppTraceDeleteProc);
+}
+
+void
+CTclApp::
+addCommandTrace(const char *command, class CTkAppCmdNotify *notify)
+{
+  int flags = TCL_TRACE_RENAME | TCL_TRACE_DELETE;
+
+  Tcl_TraceCommand(interp_, command, flags, &CTclAppCommandTraceProc,
+                   static_cast<ClientData>(notify));
+}
+
+void
+CTclApp::
+removeCommandTrace(const char *command, class CTkAppCmdNotify *notify)
+{
+  int flags = TCL_TRACE_RENAME | TCL_TRACE_DELETE;
+
+  Tcl_UntraceCommand(interp_, command, flags, &CTclAppCommandTraceProc,
+                     static_cast<ClientData>(notify));
 }
 
 void

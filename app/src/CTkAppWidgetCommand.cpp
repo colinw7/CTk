@@ -99,10 +99,8 @@ setOptValue(const QString &name, const QVariant &value)
 {
   const CTkAppOpt *opt;
 
-  if (! opts_.setOptValue(name, value, &opt)) {
-    getTk()->throwError("unknown option \"" + name + "\"");
-    return false;
-  }
+  if (! opts_.setOptValue(name, value, &opt))
+    return getTk()->unknownOption(name);
 
   if (! w_->execConfig(opt->name, value))
     return false;

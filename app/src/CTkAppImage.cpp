@@ -1,4 +1,5 @@
 #include <CTkAppImage.h>
+#include <CTkAppImageCommand.h>
 #include <CTkApp.h>
 
 #ifdef CTK_CIMAGE
@@ -18,51 +19,54 @@
 #include <fstream>
 #include <sstream>
 
+uint CTkAppImage::s_nextId = 1;
+
 CTkAppImage::
 CTkAppImage(CTkApp *tk, const QString &name, int width, int height) :
  tk_(tk), name_(name), width_(width), height_(height)
 {
-  if (width_ > 0 && height_ > 0)
+  id_ = s_nextId++;
+
+  if (isWidthSet() && isHeightSet()) {
     qimage_ = QImage(width_, height_, QImage::Format_ARGB32);
+    qimage_.fill(0);
+  }
+
+  //std::cerr << "Create Image " << id_ << "\n";
 }
 
 CTkAppImage::
 ~CTkAppImage()
 {
+  //std::cerr << "Destroy Image " << id_ << "\n";
+
+  delete command_;
+}
+
+void
+CTkAppImage::
+setCommand(CTkAppImageCommand *c)
+{
+  assert(c->imageId() == 0);
+
+  command_ = c;
+
+  command_->setImageId(id());
 }
 
 bool
 CTkAppImage::
 loadFile(const QString &filename)
 {
-  if (! tk_->fileExists(filename))
-    return tk_->throwError("couldn't open \"" + filename + "\": no such file or directory");
-
-#ifdef CTK_CIMAGE
-  CImageFileSrc src(filename.toStdString());
-
-  auto image = CImageMgrInst->lookupImage(src);
-
-  if (! image.isValid())
-    return tk_->throwError("Failed to read image file \"" + filename + "\"");
-
-  auto *cqimage = image.cast<CQImage>();
-  assert(cqimage);
-
-  qimage_ = cqimage->getQImage();
-#else
-  qimage_ = QImage(filename);
-#endif
-
-  if (qimage_.isNull())
-    return tk_->throwError("Failed to read image file \"" + filename + "\"");
+  if (! loadImageFile(filename, qimage_))
+    return false;
 
   //---
 
-  if (width_ <= 0)
+  if (! isWidthSet())
     width_ = qimage_.width();
 
-  if (height_ <= 0)
+  if (! isHeightSet())
     height_ = qimage_.height();
 
   updateImageSize();
@@ -80,26 +84,7 @@ bool
 CTkAppImage::
 loadMaskFile(const QString &filename)
 {
-  if (! tk_->fileExists(filename))
-    return tk_->throwError("couldn't open \"" + filename + "\": no such file or directory");
-
-#ifdef CTK_CIMAGE
-  CImageFileSrc src(filename.toStdString());
-
-  auto image = CImageMgrInst->lookupImage(src);
-
-  if (! image.isValid())
-    return tk_->throwError("Failed to read image file '" + filename + "'");
-
-  auto *cqimage = image.cast<CQImage>();
-  assert(cqimage);
-
-  maskQImage_ = cqimage->getQImage();
-#else
-  maskQImage_ = QImage(filename);
-#endif
-
-  if (maskQImage_.isNull())
+  if (! loadImageFile(filename, maskQImage_))
     return false;
 
   //---
@@ -123,6 +108,35 @@ loadMaskFile(const QString &filename)
 
 bool
 CTkAppImage::
+loadImageFile(const QString &filename, QImage &qimage) const
+{
+  if (! tk_->fileExists(filename))
+    return tk_->throwError("couldn't open \"" + filename + "\": no such file or directory");
+
+#ifdef CTK_CIMAGE
+  CImageFileSrc src(filename.toStdString());
+
+  auto image = CImageMgrInst->lookupImage(src);
+
+  if (! image.isValid())
+    return tk_->throwError("couldn't recognize data in image file \"" + filename + "\"");
+
+  auto *cqimage = image.cast<CQImage>();
+  assert(cqimage);
+
+  qimage = cqimage->getQImage();
+#else
+  qimage = QImage(filename);
+#endif
+
+  if (qimage.isNull())
+    return tk_->throwError("couldn't recognize data in image file \"" + filename + "\"");
+
+  return true;
+}
+
+bool
+CTkAppImage::
 loadSVG(const QString &filename)
 {
   QSvgRenderer renderer(filename);
@@ -130,10 +144,10 @@ loadSVG(const QString &filename)
   if (! renderer.isValid())
     return tk_->throwError("Failed to read SVG image file '" + filename + "'");
 
-  if (width_ <= 0)
+  if (! isWidthSet())
     width_ = 256;
 
-  if (height_ <= 0)
+  if (! isHeightSet())
     height_ = 256;
 
   qimage_ = QImage(width_, height_, QImage::Format_ARGB32);
@@ -184,10 +198,10 @@ loadXBM(const QString &, const std::string &data)
   if (! CXBMImageInst->read(fs, &image))
     return tk_->throwError("format error in bitmap data");
 
-  if (width_ <= 0)
+  if (! isWidthSet())
     width_ = image.getWidth();
 
-  if (height_ <= 0)
+  if (! isHeightSet())
     height_ = image.getHeight();
 
   qimage_ = QImage(width_, height_, QImage::Format_ARGB32);
@@ -333,65 +347,10 @@ loadVarData(const QVariant &var, const QString &format)
     data = std::string(ba.constData(), ba.length());
   }
   else {
-    using RowColors   = std::vector<QColor>;
-    using ImageColors = std::vector<RowColors>;
-
-    ImageColors imageColors;
-
-    bool valid = true;
-
-    int nr = -1, nc = -1;
+    if (format == "" && loadColorList(var))
+      return true;
 
     auto value = tk_->variantToString(var);
-
-    std::vector<QString> strs;
-    if (tk_->splitList(value, strs)) {
-      nr = strs.size();
-
-      for (int iy = 0; iy < nr; ++iy) {
-        std::vector<QString> strs1;
-        if (tk_->splitList(strs[iy], strs1)) {
-          int nc1 = strs1.size();
-
-          if (nc < 0)
-            nc = nc1;
-
-          if (nc != nc1) {
-            valid = false;
-            break;
-          }
-
-          RowColors rowColors;
-
-          for (int ix = 0; ix < nc; ++ix) {
-            QColor c;
-            if (! tk_->variantToQColor(strs1[ix], c)) {
-              valid = false;
-              break;
-            }
-
-            rowColors.push_back(c);
-          }
-
-          if (! valid)
-            break;
-
-          imageColors.push_back(rowColors);
-        }
-      }
-
-      if (valid) {
-        resize(nc, nr);
-
-        for (int iy = 0; iy < nr; ++iy) {
-          for (int ix = 0; ix < nc; ++ix) {
-            setPixel(ix, iy, imageColors[iy][ix]);
-          }
-        }
-
-        return true;
-      }
-    }
 
     data = value.toStdString();
   }
@@ -403,6 +362,73 @@ loadVarData(const QVariant &var, const QString &format)
   if (! loadEncodedData("", format, data)) {
     if (! loadData("", format, data))
       return false;
+  }
+
+  return true;
+}
+
+bool
+CTkAppImage::
+loadColorList(const QVariant &var)
+{
+  using RowColors   = std::vector<QColor>;
+  using ImageColors = std::vector<RowColors>;
+
+  ImageColors imageColors;
+
+  bool valid = true;
+
+  auto value = tk_->variantToString(var);
+
+  std::vector<QString> strs;
+  if (! tk_->splitList(value, strs))
+    return false;
+
+  int nr = strs.size();
+
+  int nc = -1;
+
+  for (int iy = 0; iy < nr; ++iy) {
+    std::vector<QString> strs1;
+    if (tk_->splitList(strs[iy], strs1)) {
+      int nc1 = strs1.size();
+
+      if (nc < 0)
+        nc = nc1;
+
+      if (nc != nc1) {
+        valid = false;
+        break;
+      }
+
+      RowColors rowColors;
+
+      for (int ix = 0; ix < nc; ++ix) {
+        QColor c;
+        if (! tk_->variantToQColor(strs1[ix], c)) {
+          valid = false;
+          break;
+        }
+
+        rowColors.push_back(c);
+      }
+
+      if (! valid)
+        break;
+
+      imageColors.push_back(rowColors);
+    }
+  }
+
+  if (! valid)
+    return false;
+
+  resize(nc, nr);
+
+  for (int iy = 0; iy < nr; ++iy) {
+    for (int ix = 0; ix < nc; ++ix) {
+      setPixel(ix, iy, imageColors[iy][ix]);
+    }
   }
 
   return true;
@@ -438,17 +464,62 @@ loadData(const QString & /*name*/, const QString & /*format*/, const std::string
 #else
   assert(data.size());
 
-  if (! qimage_.loadFromData(reinterpret_cast<const uchar *>(data.c_str()), data.size()))
-    return tk_->throwError("Failed to read image data");
+  auto *cdata = data.c_str();
+
+  if (data.size() > 3 && strncmp(cdata, "GIF", 3) == 0) {
+#if 0
+    std::istringstream ss(data);
+
+    CImageData image;
+    if (! CGIFImageInst->read(ss, &image))
+      return tk_->throwError("Failed to read image data");
+
+    qimage_ = QImage(image.getWidth(), image.getHeight(), QImage::Format_ARGB32);
+
+    if (image.hasColormap()) {
+      for (uint iy = 0; iy < image.getHeight(); ++iy) {
+        for (uint ix = 0; ix < image.getWidth(); ++ix) {
+          auto ind = image.getColorIndex(ix, iy);
+
+          const auto &rgba = image.getColor(ind);
+
+          uint r, g, b, a;
+          rgba.getRGBAI(&r, &g, &b, &a);
+
+          qimage_.setPixelColor(ix, iy, QColor(r, g, b, a));
+        }
+      }
+    }
+    else {
+      for (uint iy = 0; iy < image.getHeight(); ++iy) {
+        for (uint ix = 0; ix < image.getWidth(); ++ix) {
+          uint pixel = image.getPixel(ix, iy);
+
+          CGenImage::RGBA rgba;
+          CGenImage::RGBA::decodeARGB(pixel, rgba);
+
+          uint r, g, b, a;
+          rgba.getRGBAI(&r, &g, &b, &a);
+
+          qimage_.setPixelColor(ix, iy, QColor(r, g, b, a));
+        }
+      }
+    }
+#else
+    if (! qimage_.loadFromData(reinterpret_cast<const uchar *>(data.c_str()), data.size()))
+      return tk_->throwError("Failed to read image data");
+#endif
+  }
+  else {
+    if (! qimage_.loadFromData(reinterpret_cast<const uchar *>(data.c_str()), data.size()))
+      return tk_->throwError("Failed to read image data");
+  }
 #endif
 
-  if (qimage_.isNull())
-    return false;
-
-  if (width_ <= 0)
+  if (! isWidthSet())
     width_ = qimage_.width();
 
-  if (height_ <= 0)
+  if (! isHeightSet())
     height_ = qimage_.height();
 
   updateImageSize();
@@ -669,9 +740,9 @@ getBitmapStr() const
 
   for (int y = 0; y < height_; ++y) {
     for (int x = 0; x < width_; ++x) {
-      auto rgba = qimage_.pixel(x, y);
+      auto c = qimage_.pixelColor(x, y);
 
-      auto g = qGray(rgba);
+      auto g = qGray(c.rgba());
 
       image.setColorIndex(x, y, (g < 0.5 ? 0 : 1));
     }
@@ -702,9 +773,9 @@ getMaskBitmapStr() const
 
   for (int y = 0; y < maskHeight_; ++y) {
     for (int x = 0; x < maskWidth_; ++x) {
-      auto rgba = maskQImage_.pixel(x, y);
+      auto c = maskQImage_.pixelColor(x, y);
 
-      auto g = qGray(rgba);
+      auto g = qGray(c.rgba());
 
       image.setColorIndex(x, y, (g < 0.5 ? 0 : 1));
     }
@@ -775,7 +846,7 @@ int
 CTkAppImage::
 width() const
 {
-  if (! qimage_.isNull())
+  if (! isWidthSet())
     return qimage_.width();
 
   return width_;
@@ -787,17 +858,17 @@ setWidth(int w)
 {
   width_ = w;
 
-  if      (! qimage_.isNull())
-    qimage_ = qimage_.scaledToWidth(width_);
-  else if (width_ > 0)
+  if (isWidthSet() && isHeightSet()) {
     qimage_ = QImage(width_, height_, QImage::Format_ARGB32);
+    qimage_.fill(0);
+  }
 }
 
 int
 CTkAppImage::
 height() const
 {
-  if (! qimage_.isNull())
+  if (! isHeightSet())
     return qimage_.height();
 
   return height_;
@@ -809,10 +880,10 @@ setHeight(int h)
 {
   height_ = h;
 
-  if      (! qimage_.isNull())
-    qimage_ = qimage_.scaledToHeight(height_);
-  else if (width_ > 0)
+  if (isWidthSet() && isHeightSet()) {
     qimage_ = QImage(width_, height_, QImage::Format_ARGB32);
+    qimage_.fill(0);
+  }
 }
 
 int
@@ -831,10 +902,10 @@ setMaskWidth(int w)
 {
   maskWidth_ = w;
 
-  if      (! maskQImage_.isNull())
-    maskQImage_ = maskQImage_.scaledToWidth(maskWidth_);
-  else if (maskWidth_ > 0)
+  if (maskHeight_ > 0) {
     maskQImage_ = QImage(maskWidth_, maskHeight_, QImage::Format_ARGB32);
+    maskQImage_.fill(0);
+  }
 }
 
 int
@@ -853,10 +924,10 @@ setMaskHeight(int h)
 {
   maskHeight_ = h;
 
-  if      (! maskQImage_.isNull())
-    maskQImage_ = maskQImage_.scaledToHeight(maskHeight_);
-  else if (maskHeight_ > 0)
+  if (maskHeight_ > 0) {
     maskQImage_ = QImage(maskWidth_, maskHeight_, QImage::Format_ARGB32);
+    maskQImage_.fill(0);
+  }
 }
 
 //---
@@ -906,15 +977,39 @@ resize(int w, int h)
 
   qimage.fill(Qt::transparent);
 
-  for (int iy = 0; iy < qimage_.height(); ++iy) {
-    for (int ix = 0; ix < qimage_.width(); ++ix) {
-      auto rgb = qimage_.pixel(ix, iy);
+  for (int iy = 0; iy < qimage_.height() && iy < h; ++iy) {
+    for (int ix = 0; ix < qimage_.width() && ix < w; ++ix) {
+      auto c = qimage_.pixelColor(ix, iy);
 
-      qimage.setPixel(ix, iy, rgb);
+      qimage.setPixelColor(ix, iy, c);
     }
   }
 
   std::swap(qimage_, qimage);
+
+  if (width_ > 0)
+    width_ = w;
+
+  if (height_ > 0)
+    height_ = h;
+
+  Q_EMIT imageChanged();
+}
+
+void
+CTkAppImage::
+copy(int x, int y, const QImage &qimage)
+{
+  assert(! qimage.isNull());
+
+  if (qimage_.isNull()) {
+    qimage_ = QImage(x + qimage.width(), y + qimage.height(), QImage::Format_ARGB32);
+    qimage_.fill(0);
+  }
+
+  QPainter p(&qimage_);
+
+  p.drawImage(x, y, qimage);
 
   Q_EMIT imageChanged();
 }
@@ -926,9 +1021,10 @@ getPixel(int x, int y, QColor &c) const
   if (x < 0 || x >= width() || y < 0 || y >= height())
     return false;
 
-  auto rgb = qimage_.pixel(x, y);
-
-  c = QColor(rgb);
+  if (x < qimage_.width() && y < qimage_.height())
+    c = qimage_.pixelColor(x, y);
+  else
+    c = QColor();
 
   return true;
 }
@@ -940,7 +1036,8 @@ setPixel(int x, int y, const QColor &c)
   if (x < 0 || x >= width() || y < 0 || y >= height())
     return false;
 
-  qimage_.setPixel(x, y, c.rgba());
+  if (x < qimage_.width() && y < qimage_.height() && c.isValid())
+    qimage_.setPixelColor(x, y, c);
 
   return true;
 }
@@ -964,7 +1061,7 @@ setPixels(int x1, int y1, int x2, int y2, const QColor &c)
 
     for (int y = 0; y < oldH; ++y)
       for (int x = 0; x < oldW; ++x)
-        newImage.setPixel(x, y, qimage_.pixel(x, y));
+        newImage.setPixelColor(x, y, qimage_.pixelColor(x, y));
 
     qimage_ = newImage;
   }
@@ -994,14 +1091,14 @@ removeRef(const QString &ref)
 
 QString
 CTkAppImage::
-dataString() const
+dataString(const ColorFormat &colorFormat) const
 {
-  return dataString(tk_, qimage_);
+  return dataString(tk_, qimage_, colorFormat);
 }
 
 QString
 CTkAppImage::
-dataString(CTkApp *tk, const QImage &qimage)
+dataString(CTkApp *tk, const QImage &qimage, const ColorFormat &colorFormat)
 {
   auto hexStr = [&](int i) {
     static const char *hexChars = "0123456789abcdef";
@@ -1021,12 +1118,28 @@ dataString(CTkApp *tk, const QImage &qimage)
     QVariantList rowVars;
 
     for (int x = 0; x < width; ++x) {
-      auto rgba = qimage.pixel(x, y);
+      auto c = qimage.pixelColor(x, y);
 
-      auto str = QString("#%1%2%3").
-        arg(hexStr(qRed(rgba))).arg(hexStr(qGreen(rgba))).arg(hexStr(qBlue(rgba)));
+      QVariant var;
 
-      rowVars.push_back(str);
+      if      (colorFormat == ColorFormat::RGBA)
+        var = QString("#%1%2%3%4").
+          arg(hexStr(c.red())).arg(hexStr(c.green())).arg(hexStr(c.blue())).arg(hexStr(c.alpha()));
+      else if (colorFormat == ColorFormat::LIST) {
+        QVariantList colVars;
+
+        colVars << c.red  ();
+        colVars << c.green();
+        colVars << c.blue ();
+        colVars << c.alpha();
+
+        var = QVariant(colVars);
+      }
+      else
+        var = QString("#%1%2%3").
+          arg(hexStr(c.red())).arg(hexStr(c.green())).arg(hexStr(c.blue()));
+
+      rowVars.push_back(var);
     }
 
     vars.push_back(rowVars);
@@ -1041,6 +1154,9 @@ void
 CTkAppImage::
 updateImageSize()
 {
+  if (! isWidthSet() || ! isHeightSet())
+    return;
+
   if (qimage_.width() != width_ || qimage_.height() != height_)
     qimage_ = qimage_.scaled(width_, height_, Qt::IgnoreAspectRatio, Qt::FastTransformation);
 }
@@ -1051,4 +1167,116 @@ updateMaskImageSize()
 {
   maskQImage_ =
     maskQImage_.scaled(maskWidth_, maskHeight_, Qt::IgnoreAspectRatio, Qt::FastTransformation);
+}
+
+bool
+CTkAppImage::
+lookupFormatName(CTkApp *tk, const QString &format, FormatData &formatData)
+{
+  std::vector<QString> strs;
+  if (! tk->splitList(format, strs))
+    strs.push_back(format);
+
+  uint i = 0;
+
+  auto name = strs[i].toLower();
+
+  if (name == "default") {
+    formatData.format = "";
+  }
+  else {
+    static auto formatNames = std::vector<QString>({
+      "png", "jpg", "jpeg", "bmp", "xpm", "xbm", "gif", "ppm", "svg"});
+
+    if (! tk->lookupOptionName(formatNames, name, formatData.format, /*quiet*/true))
+      return false;
+  }
+
+  ++i;
+
+  uint numStrs = strs.size();
+
+  while (i < numStrs) {
+    if      (strs[i] == "-colorformat") {
+      ++i;
+
+      if (i >= numStrs)
+        return tk->throwError("missing value for -colorformat");
+
+      if      (strs[i] == "rgb")
+        formatData.colorformat = ColorFormat::RGB;
+      else if (strs[i] == "rgba")
+        formatData.colorformat = ColorFormat::RGBA;
+      else if (strs[i] == "list")
+        formatData.colorformat = ColorFormat::LIST;
+      else
+        return tk->throwError("Invalid colorformat \"" + strs[i] + "\"");
+
+      ++i;
+    }
+    else if (strs[i] == "-index") {
+      ++i;
+
+      if (i >= numStrs)
+        return tk->throwError("missing value for -index");
+
+      formatData.index = strs[i++];
+    }
+    else if (strs[i] == "-dpi") {
+      ++i;
+
+      if (i >= numStrs)
+        return tk->throwError("missing value for -dpi");
+
+      formatData.dpi = strs[i++];
+    }
+    else if (strs[i] == "-scale") {
+      ++i;
+
+      if (i >= numStrs)
+        return tk->throwError("missing value for -scale");
+
+      if (! tk->variantToReal(strs[i], formatData.scale))
+        return tk->invalidReal(strs[i]);
+
+      if (formatData.scale <= 0)
+        return tk->throwError("-scale value must be positive");
+
+      ++i;
+    }
+    else if (strs[i] == "-scaletowidth") {
+      ++i;
+
+      if (i >= numStrs)
+        return tk->throwError("missing value for -scaletowidth");
+
+      if (! tk->variantToInt(strs[i], formatData.widthScale))
+        return tk->invalidInteger(strs[i]);
+
+      if (formatData.widthScale <= 0)
+        return tk->throwError("-scaletowidth value must be positive");
+
+      ++i;
+    }
+    else if (strs[i] == "-scaletoheight") {
+      ++i;
+
+      if (i >= numStrs)
+        return tk->throwError("missing value for -scaletoheight");
+
+      if (! tk->variantToInt(strs[i], formatData.heightScale))
+        return tk->invalidInteger(strs[i]);
+
+      if (formatData.heightScale <= 0)
+        return tk->throwError("-scaletoheight value must be positive");
+
+      ++i;
+    }
+    else
+      return tk->throwError("invalid format option \"" + strs[i] + "\"");
+  }
+
+  formatData.set = true;
+
+  return true;
 }

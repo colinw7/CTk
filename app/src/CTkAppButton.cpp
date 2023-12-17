@@ -207,7 +207,10 @@ setImageRef(const CTkAppImageRef &image)
 {
   CTkAppWidget::setImageRef(image);
 
-  qbutton_->setImage(image->getQImage());
+  if (image)
+    qbutton_->setImage(image->getQImage());
+  else
+    qbutton_->setImage(QImage());
 }
 
 void

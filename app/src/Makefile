@@ -1581,6 +1581,7 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../../../CMath/include/CIPoint2D.h \
 		../../../CMath/include/CMathUtil.h \
 		../../../COS/include/COSNaN.h \
+		../include/CTkAppCmdNotify.h \
 		../include/CTkAppWidget.h \
 		../include/CQLabelImage.h \
 		../include/CTkAppRoot.h \
@@ -1643,6 +1644,7 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../include/CTkAppOptData.h \
 		../include/CTkAppWidgetCommand.h \
 		../include/CTkAppImageCommand.h \
+		../include/CTkAppCmdNotify.h \
 		../include/CTkAppDebug.h \
 		../include/CTkAppBitmaps.h \
 		../include/CTkAppCursor.h \
@@ -1797,10 +1799,14 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../../../CMath/include/CIPoint2D.h \
 		../../../CMath/include/CMathUtil.h \
 		../../../COS/include/COSNaN.h \
+		../include/CTkAppCmdNotify.h \
 		../include/CTkAppImage.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTkAppImageCommand.o CTkAppImageCommand.cpp
 
 ../obj/CTkAppImage.o: CTkAppImage.cpp ../include/CTkAppImage.h \
+		../include/CTkAppImageCommand.h \
+		../include/CTkAppCommand.h \
+		../include/CTclAppCommand.h \
 		../include/CTkApp.h \
 		../include/CTkAppOptionValue.h \
 		../include/CTkAppEventData.h \
@@ -1814,6 +1820,7 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../../../CMath/include/CIPoint2D.h \
 		../../../CMath/include/CMathUtil.h \
 		../../../COS/include/COSNaN.h \
+		../include/CTkAppCmdNotify.h \
 		../../../CImageLib/include/CImageLib.h \
 		../../../CUtil/include/CAlignType.h \
 		../../../CUtil/include/CRGBA.h \
@@ -1934,6 +1941,11 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../../../CMath/include/CMathUtil.h \
 		../../../COS/include/COSNaN.h \
 		../include/CQLabelImage.h \
+		../include/CTkAppWidgetCommand.h \
+		../include/CTkAppCommands.h \
+		../include/CTkAppCommand.h \
+		../include/CTclAppCommand.h \
+		../include/CTkAppOptData.h \
 		../../../CQUtil/include/CQUtil.h \
 		../../../CQUtil/include/CQUtilMeta.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTkAppListBox.o CTkAppListBox.cpp
@@ -2301,7 +2313,8 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../../../CUtil/include/CScreenUnits.h \
 		../../../CRGBName/include/CRGBName.h \
 		../../../CUtil/include/CRGBA.h \
-		../../../CUtil/include/CRGB.h
+		../../../CUtil/include/CRGB.h \
+		../../../CStrUtil/include/CStrUtil.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTkAppUtil.o CTkAppUtil.cpp
 
 ../obj/CTkAppWidgetCommand.o: CTkAppWidgetCommand.cpp ../include/CTkAppWidgetCommand.h \
@@ -2366,6 +2379,7 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 ../obj/CTclApp.o: CTclApp.cpp ../include/CTclApp.h \
 		../include/CTkAppUtil.h \
 		../include/CTkAppTypes.h \
+		../include/CTkAppCmdNotify.h \
 		CQTclUtil.h \
 		CTclUtil.h \
 		../../../CReadLine/include/CReadLine.h \

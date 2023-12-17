@@ -366,7 +366,8 @@ setImageRef(const CTkAppImageRef &i)
 {
   imageRef_ = i;
 
-  imageRef_->addRef(getName());
+  if (imageRef_)
+    imageRef_->addRef(getName());
 }
 
 double
@@ -905,13 +906,9 @@ execConfig(const QString &name, const QVariant &var)
     setGridWidget(b);
   }
   else if (name == "-takefocus") {
-    if (! qwidget_) return false;
+    auto value = tk_->variantToString(var);
 
-    bool b;
-    if (tk_->variantToBool(var, b))
-      qwidget_->setFocusPolicy(b ? Qt::TabFocus : Qt::NoFocus);
-    else
-      tk_->TODO(name); // allow arbritray value
+    setTakeFocus(value);
   }
   else if (name == "-text") {
     auto value = tk_->variantToString(var);
@@ -1198,8 +1195,12 @@ bool
 CTkAppWidget::
 setImage(const QString &s)
 {
-  auto image = tk_->getImage(s);
-  if (! image) return false;
+  CTkAppImageRef image;
+
+  if (s != "") {
+    image = tk_->getImage(s);
+    if (! image) return false;
+  }
 
   image_ = s;
 

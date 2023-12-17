@@ -6,6 +6,7 @@
 #include <CScreenUnits.h>
 #include <CMatrix2D.h>
 #include <CRGBName.h>
+#include <CStrUtil.h>
 
 #include <QFrame>
 #include <QLineEdit>
@@ -67,6 +68,29 @@ variantToQColor(CTclApp *app, const QVariant &var, QColor &c)
 {
   auto str = variantToString(app, var);
 
+  if (str == "green") {
+    c = QColor(0, 128, 0); // html green
+    return true;
+  }
+
+  std::vector<QString> strs;
+  if (app->splitList(str, strs) && (strs.size() == 3 || strs.size() == 4)) {
+    long r, g, b, a;
+    if (strs.size() == 3) {
+      if (stringToInt(strs[0], r) && stringToInt(strs[1], g) && stringToInt(strs[2], b)) {
+        c = QColor(r, g, b);
+        return true;
+      }
+    }
+    else {
+      if (stringToInt(strs[0], r) && stringToInt(strs[1], g) &&
+          stringToInt(strs[2], b) && stringToInt(strs[3], a)) {
+        c = QColor(r, g, b, a);
+        return true;
+      }
+    }
+  }
+
   double r, g, b, a;
   if (CRGBName::lookup(str.toStdString(), &r, &g, &b, &a))
     c = QColor(255*r, 255*g, 255*b, 255*a);
@@ -74,7 +98,23 @@ variantToQColor(CTclApp *app, const QVariant &var, QColor &c)
     if (str[0] == '#')
       return false;
 
-    c = QColor(str);
+    auto pos = str.indexOf('#');
+
+    if (pos > 0) {
+      auto lhs = str.mid(0, pos);
+      auto rhs = str.mid(pos + 1);
+
+      if (! CStrUtil::isBaseInteger(rhs.toStdString(), 16))
+        return false;
+
+      auto a = CStrUtil::toBaseInteger(rhs.toStdString(), 16);
+
+      c = QColor(lhs);
+
+      c.setAlpha(a);
+    }
+    else
+      c = QColor(str);
   }
 
   return c.isValid();
@@ -340,7 +380,8 @@ uniqueMatch(const std::vector<QString> &values, const QString &str, QString &mat
 
   for (const auto &value : values) {
     if (value == str) {
-      match = value;
+      match  = value;
+      nmatch = 1;
       return true;
     }
 

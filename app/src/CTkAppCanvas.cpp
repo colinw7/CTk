@@ -537,11 +537,10 @@ execOp(const Args &args)
             continue;
           }
           else
-            return tk_->throwError(tk_->msg() + "unknown option \"" + name + "\"");
+            return tk_->unknownOption(name);
         }
-        else {
-          return tk_->throwError(tk_->msg() + "unknown option \"" + name + "\"");
-        }
+        else
+          return tk_->unknownOption(name);
       }
 
       return true;

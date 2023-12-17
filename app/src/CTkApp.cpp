@@ -271,6 +271,10 @@ construct(int argc, const char **argv)
   //---
 
   cursorMgr_ = new CTkAppCursorMgr(this);
+
+  //---
+
+  //addTrace();
 }
 
 int
@@ -554,23 +558,55 @@ getNewImageName() const
 
 CTkAppImageRef
 CTkApp::
-createImage(const QString &type, const QString & /*format*/, const QString &name,
-            int width, int height)
+createImage(const QString &type, const QString &format,
+            const QString &name, int width, int height)
 {
   auto image = std::make_shared<CTkAppImage>(this, name, width, height);
 
   image->setType(type);
 
-  images_[name] = image;
+  image->setFormat(format);
 
-  return image;
+  auto p = images_.find(name);
+  assert(p == images_.end());
+
+  p = images_.insert(p, ImageMap::value_type(name, image));
+
+  return (*p).second;
 }
 
 void
 CTkApp::
 deleteImage(const CTkAppImageRef &image)
 {
-  images_.erase(image->name());
+  auto p = images_.begin();
+
+  while (p != images_.end()) {
+    if ((*p).second->id() == image->id()) {
+      images_.erase(p);
+
+      p = images_.begin();
+    }
+    else
+      ++p;
+  }
+}
+
+void
+CTkApp::
+renameImage(const QString &oldName, const QString &newName)
+{
+  auto p = images_.find(oldName);
+  assert(p != images_.end());
+
+  auto image = (*p).second;
+
+  auto p1 = images_.find(newName);
+  assert(p1 == images_.end());
+
+  (void) images_.insert(p, ImageMap::value_type(newName, image));
+
+//images_.erase(p);
 }
 
 CTkAppImageRef
@@ -657,14 +693,15 @@ getBitmapNames(std::vector<QString> &names) const
 
 CTkAppImageCommand *
 CTkApp::
-addImageCommand(const QString &name, const QString &type)
+addImageCommand(const CTkAppImageRef &image)
 {
-  auto pi = imageCommands_.find(name);
+  assert(! image->command());
 
-  if (pi == imageCommands_.end())
-    pi = imageCommands_.emplace_hint(pi, name, new CTkAppImageCommand(this, name, type));
+  auto *command = new CTkAppImageCommand(this, image->name(), image->type());
 
-  return (*pi).second;
+  image->setCommand(command);
+
+  return command;
 }
 
 //---
@@ -3749,36 +3786,15 @@ CTkApp::
 lookupName(const QString &msg, const std::vector<QString> &names,
            const QString &arg, QString &opt, bool quiet) const
 {
-  auto concatOptionNames = [&]() {
-    QString str;
-
-    auto n = names.size();
-
-    for (uint i = 0; i < n; ++i) {
-      if (i > 0) {
-        if (i == n - 1) {
-          if (n > 2)
-            str += ",";
-
-          str += " or ";
-        }
-        else
-          str += ", ";
-      }
-
-      str += names[i];
-    }
-
-    return str;
-  };
-
   int nmatch;
   if (! CTkAppUtil::uniqueMatch(names, arg, opt, nmatch)) {
     if (! quiet) {
       if (nmatch > 1)
-        return throwError("ambiguous " + msg + " \"" + arg + "\": must be " + concatOptionNames());
+        return throwError("ambiguous " + msg + " \"" + arg + "\": must be " +
+                          concatOptionNames(names));
       else
-        return throwError("bad " + msg + " \"" + arg + "\": must be " + concatOptionNames());
+        return throwError("bad " + msg + " \"" + arg + "\": must be " +
+                          concatOptionNames(names));
     }
     else
       return false;
@@ -3786,6 +3802,34 @@ lookupName(const QString &msg, const std::vector<QString> &names,
 
   return true;
 }
+
+QString
+CTkApp::
+concatOptionNames(const std::vector<QString> &names) const
+{
+  QString str;
+
+  auto n = names.size();
+
+  for (uint i = 0; i < n; ++i) {
+    if (i > 0) {
+      if (i == n - 1) {
+        if (n > 2)
+          str += ",";
+
+        str += " or ";
+      }
+      else
+        str += ", ";
+    }
+
+    str += names[i];
+  }
+
+  return str;
+}
+
+//---
 
 bool
 CTkApp::
@@ -4172,6 +4216,20 @@ CTkApp::
 invalidQColor(const QVariant &var) const
 {
   return throwError(msg() + "unknown color name \"" + var + "\"");
+}
+
+bool
+CTkApp::
+invalidQColor1(const QVariant &var) const
+{
+  return throwError(msg() + "invalid color name \"" + var + "\"");
+}
+
+bool
+CTkApp::
+unknownOption(const QVariant &var) const
+{
+  return throwError(msg() + "unknown option \"" + var + "\"");
 }
 
 bool

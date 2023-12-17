@@ -37,9 +37,14 @@ class CTkAppOptData {
   bool setOptValue(const QString &name, const QVariant &value, const CTkAppOpt **opt);
 
  private:
+  bool lookupName(const QString &name, QString &name1) const;
+
+ private:
   CTkApp*              tk_   { nullptr };
   const CTkAppOpt*     opts_ { nullptr };
   CTkAppOptionValueMap values_;
+
+  mutable std::vector<QString> names_;
 };
 
 #endif

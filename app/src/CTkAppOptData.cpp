@@ -68,13 +68,17 @@ bool
 CTkAppOptData::
 getOptVar(const QString &name, QVariant &var) const
 {
+  QString name1;
+  if (! lookupName(name, name1))
+    return false;
+
   QVariantList vars;
 
   for (uint i = 0; opts_[i].name != nullptr; ++i) {
     const auto &opt = opts_[i];
 
     auto optName = QString(opt.name);
-    if (optName != name) continue;
+    if (optName != name1) continue;
 
     if (opt.isAlias())
       return getOptVar(opt.dname, var);
@@ -123,17 +127,20 @@ bool
 CTkAppOptData::
 getOptValue(const QString &name, QVariant &value) const
 {
+  QString name1;
+  if (! lookupName(name, name1))
+    return false;
+
   for (uint i = 0; opts_[i].name != nullptr; ++i) {
     const auto &opt = opts_[i];
 
     auto optName = QString(opt.name);
-
-    if (optName != name) continue;
+    if (optName != name1) continue;
 
     if (opt.isAlias())
       return getOptValue(opt.dname, value);
 
-    auto p = values_.find(name);
+    auto p = values_.find(name1);
 
     if (p != values_.end())
       value = (*p).second.getValue();
@@ -191,21 +198,25 @@ bool
 CTkAppOptData::
 setOptValue(const QString &name, const QVariant &value, const CTkAppOpt **opt)
 {
+  QString name1;
+  if (! lookupName(name, name1))
+    return false;
+
   // exact match
   for (uint i = 0; opts_[i].name != nullptr; ++i) {
     const auto &opt1 = opts_[i];
 
-    if (opt1.name != name) continue;
+    if (opt1.name != name1) continue;
 
     if (opt1.isAlias())
       return setOptValue(opt1.dname, value, opt);
 
     *opt = &opt1;
 
-    auto pv = values_.find(name);
+    auto pv = values_.find(name1);
 
     if (pv == values_.end())
-      pv = values_.emplace_hint(values_.end(), name, CTkAppOptionValue());
+      pv = values_.emplace_hint(values_.end(), name1, CTkAppOptionValue());
 
     if (value.type() == QVariant::String) {
       if      (opt1.type == QVariant::Int) {
@@ -233,7 +244,7 @@ setOptValue(const QString &name, const QVariant &value, const CTkAppOpt **opt)
   for (uint i = 0; opts_[i].name != nullptr; ++i) {
     const auto &opt1 = opts_[i];
 
-    auto pos = QString(opt1.name).indexOf(name);
+    auto pos = QString(opt1.name).indexOf(name1);
     if (pos != 0) continue;
 
     if (opt)
@@ -245,7 +256,29 @@ setOptValue(const QString &name, const QVariant &value, const CTkAppOpt **opt)
   if (! *opt)
     return false;
 
-  values_[name].setValue(value);
+  values_[name1].setValue(value);
+
+  return true;
+}
+
+bool
+CTkAppOptData::
+lookupName(const QString &name, QString &name1) const
+{
+  if (names_.empty()) {
+    for (uint i = 0; opts_[i].name != nullptr; ++i) {
+      const auto &opt = opts_[i];
+
+      names_.push_back(opt.name);
+    }
+  }
+
+  int nmatch;
+  if (! CTkAppUtil::uniqueMatch(names_, name, name1, nmatch))
+    return false;
+
+  if (nmatch != 1)
+    return false;
 
   return true;
 }

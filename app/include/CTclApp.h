@@ -49,6 +49,8 @@ class CTclTraceProc {
 
 //---
 
+class CTkAppCmdNotify;
+
 class CTclApp {
  public:
   Tcl_Interp *getInterp() const { return interp_; }
@@ -64,6 +66,13 @@ class CTclApp {
   virtual void idle() { }
 
   void interactiveMainLoop();
+
+  //---
+
+  void addTrace();
+
+  void addCommandTrace   (const char *command, CTkAppCmdNotify *notify);
+  void removeCommandTrace(const char *command, CTkAppCmdNotify *notify);
 
   //---
 

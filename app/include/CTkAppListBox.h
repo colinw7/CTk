@@ -25,8 +25,22 @@ class CTkAppListBox : public CTkAppWidget {
   const QString &varName() const { return varName_; }
   void setVarName(const QString &s) { varName_ = s; }
 
+  //---
+
   bool isExportSelection() const { return exportSelection_; }
   void setExportSelection(bool b) { exportSelection_ = b; }
+
+  int activeIndex() const { return activeIndex_; }
+  void setActiveIndex(int i) { activeIndex_ = i; }
+
+  int selectionIndex() const { return selectionIndex_; }
+  void setSelectionIndex(int i) { selectionIndex_ = i; }
+
+  const QString &activeStyle() const { return activeStyle_; }
+  void setActiveStyle(const QString &s) { activeStyle_ = s; }
+
+  const QString &selectMode() const { return selectMode_; }
+  void setSelectMode(const QString &s) { selectMode_ = s; }
 
   //---
 
@@ -47,7 +61,11 @@ class CTkAppListBox : public CTkAppWidget {
   QString               varName_;
   CTkAppListBoxVarProc* varProc_ { nullptr };
 
-  bool exportSelection_ { true };
+  bool    exportSelection_ { true };
+  int     activeIndex_     { -1 };
+  QString activeStyle_;
+  int     selectionIndex_  { -1 };
+  QString selectMode_;
 };
 
 //---

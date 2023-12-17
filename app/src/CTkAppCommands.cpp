@@ -2715,19 +2715,21 @@ run(const Args &args)
       return tk_->throwError(tk_->msg() + "image type \"" + args[i] + "\" doesn't exist");
     ++i;
 
-    using OptInt    = std::optional<long>;
-    using OptString = std::optional<QString>;
+    using OptInt     = std::optional<int>;
+    using OptString  = std::optional<QString>;
+    using FormatData = CTkAppImage::FormatData;
 
-    OptInt    width, height;
-    QVariant  data, maskdata;
-    OptString imageName, format, filename, maskfilename;
+    FormatData formatData;
+    OptInt     width, height;
+    QVariant   data, maskdata;
+    OptString  imageName, filename, maskfilename, metadata;
 
     std::vector<QVariant> args1;
 
     for ( ; i < numArgs; ++i) {
       static auto argNames = std::vector<QString>({
         "-background", "-data", "-file", "-foreground", "-format", "-gamma", "-height",
-        "-maskdata", "-maskfile", "-palette", "-width"});
+        "-maskdata", "-maskfile", "-metadata", "-palette", "-width"});
 
       QString arg;
       if (tk_->lookupOptionName(argNames, args[i], arg, /*quiet*/true)) {
@@ -2743,15 +2745,10 @@ run(const Args &args)
           data = args[i];
         }
         else if (arg == "-format") {
-          static auto formatNames = std::vector<QString>({
-             "png", "jpg", "jpeg", "bmp", "xpm", "xbm", "gif", "ppm"});
+          auto str = tk_->variantToString(args[i]);
 
-          QString format1;
-          if (! tk_->lookupOptionName(formatNames, args[i], format1, /*quiet*/true))
-            return tk_->throwError(tk_->msg() + "image file format \"" +
-                                   args[i] + "\" is not supported");
-
-          format = format1;
+          if (! CTkAppImage::lookupFormatName(tk_, str, formatData))
+            return false;
         }
         else if (arg == "-height") {
           long iheight;
@@ -2765,6 +2762,9 @@ run(const Args &args)
         }
         else if (arg == "-maskfile") {
           maskfilename = tk_->variantToString(args[i]);
+        }
+        else if (arg == "-metadata") {
+          metadata = tk_->variantToString(args[i]);
         }
         else if (arg == "-width") {
           long iwidth;
@@ -2785,7 +2785,7 @@ run(const Args &args)
         imageName = tk_->variantToString(args[i]);
 
         if ((*imageName)[0] == '-')
-          return tk_->throwError("unknown option \"" + *imageName + "\"");
+          return tk_->unknownOption(*imageName);
       }
     }
 
@@ -2798,76 +2798,85 @@ run(const Args &args)
     if (imageName == ".")
       return tk_->throwError("bad image name");
 
-    if (! format) format = "";
-    if (! width ) width  = 0;
-    if (! height) height = 0;
-
     //---
 
-    auto image = tk_->createImage(type, *format, *imageName, *width, *height);
+    auto image = tk_->getImage(*imageName);
+
+    if (! image) {
+      image = tk_->createImage(type, formatData.format, *imageName, *width, *height);
+
+      (void) tk_->addImageCommand(image);
+    }
+    else {
+      image->setType(type);
+
+      image->setFormat(formatData.format);
+
+      image->setWidth (*width);
+      image->setHeight(*height);
+    }
 
     if      (filename) {
-      if (format == "svg") {
+      if (formatData.format == "svg") {
         if (! image->loadSVG(*filename)) {
           tk_->deleteImage(image);
-          return tk_->throwError("couldn't read svg file \"" + *filename + "\": "
-                                 "no such file or directory");
+          return false;
         }
       }
       else {
         if (! image->loadFile(*filename)) {
           tk_->deleteImage(image);
-          return tk_->throwError("couldn't open \"" + *filename + "\": "
-                                 "no such file or directory");
+          return false;
         }
       }
     }
     else if (tk_->variantIsValid(data)) {
-      if (type == "bitmap" && *format == "")
-        format = "xbm";
+      if (type == "bitmap" && formatData.format == "")
+        formatData.format = "xbm";
 
-      if (! image->loadVarData(data, *format)) {
+      if (! image->loadVarData(data, formatData.format)) {
         tk_->deleteImage(image);
-        return tk_->throwError("couldn't load data");
+        return false;
       }
     }
 
-    if (format)
-      image->setFormat(*format);
+    if (formatData.set)
+      image->setFormat(formatData.format);
+
+    if (metadata)
+      image->setMetaData(*metadata);
 
     //---
 
     if      (maskfilename) {
-      if (format == "svg") {
+      if (formatData.format == "svg") {
         if (! image->loadMaskSVG(*maskfilename)) {
           tk_->deleteImage(image);
-          return tk_->throwError("couldn't read svg file \"" + *maskfilename + "\": "
-                                 "no such file or directory");
+          return false;
         }
       }
       else {
         if (! image->loadMaskFile(*maskfilename)) {
           tk_->deleteImage(image);
-          return tk_->throwError("couldn't open \"" + *maskfilename + "\": "
-                                 "no such file or directory");
+          return false;
         }
       }
     }
     else if (tk_->variantIsValid(maskdata)) {
       auto maskStr = tk_->variantToString(maskdata).toStdString();
 
-      if (type == "bitmap" && format == "")
-        format = "xbm";
+      if (type == "bitmap" && formatData.format == "")
+        formatData.format = "xbm";
 
-      if (format == "xbm") {
+      if (formatData.format == "xbm") {
         if (! image->loadMaskXBM(*imageName, maskStr)) {
           tk_->deleteImage(image);
-          return tk_->throwError("couldn't load mask bitmap data");
+          return false;
         }
       }
       else {
-        if (! image->loadMaskEncodedData(*imageName, *format, maskStr)) {
-          if (! image->loadMaskData(*imageName, *format, maskStr)) {
+        if (! image->loadMaskEncodedData(*imageName, formatData.format, maskStr)) {
+          if (! image->loadMaskData(*imageName, formatData.format, maskStr)) {
             tk_->deleteImage(image);
             return tk_->throwError("couldn't load mask data");
           }
@@ -2891,8 +2900,6 @@ run(const Args &args)
     }
 
     //---
-
-    (void) tk_->addImageCommand(*imageName, type);
 
     setResult(*imageName);
   }
@@ -5141,7 +5148,7 @@ run(const Args &args)
         if (args[i] == "-cursor")
           ++i;
         else
-          return getTk()->throwError(tk_->msg() + "unknown option \"" + args[i] + "\"");
+          return tk_->unknownOption(args[i]);
 
         ++i;
       }
@@ -6466,7 +6473,7 @@ run(const Args &args)
 
     QColor c;
     if (! tk_->variantToQColor(args[2], c))
-      return tk_->throwError(tk_->msg() + "invalid color name \"" + args[2] + "\"");
+      return tk_->invalidQColor(args[2]);
 
     tk_->setIntegerArrayResult({int(65535*c.redF()), int(65535*c.greenF()), int(65535*c.blueF())});
   }
@@ -7788,7 +7795,7 @@ getNameValue(const Args &args, QString &name, QVariant &value)
   name = tk_->variantToString(args[1]);
 
   if (! getOptValue(name, value))
-    return tk_->throwError("unknown option \"" + name + "\"");
+    return tk_->unknownOption(name);
 
   return true;
 }
@@ -7824,7 +7831,7 @@ execConfigure(const Args &args)
 
     QVariant var;
     if (! opts_.getOptVar(name, var))
-      return tk_->throwError("unknown option \"" + name + "\"");
+      return tk_->unknownOption(name);
 
     tk_->setResult(var);
   }
@@ -7866,10 +7873,8 @@ setOptValue(const QString &name, const QVariant &value)
 {
   const CTkAppOpt *opt;
 
-  if (! opts_.setOptValue(name, value, &opt)) {
-    getTk()->throwError("unknown option \"" + name + "\"");
-    return false;
-  }
+  if (! opts_.setOptValue(name, value, &opt))
+    return tk_->unknownOption(name);
 
   return true;
 }

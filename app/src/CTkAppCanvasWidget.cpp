@@ -1044,13 +1044,25 @@ saveImage(const QString &imageName, int /*subsample*/, int /*zoom*/, CTkAppImage
 
   auto *tk = canvas_->app();
 
-  image = tk->createImage(type, format, imageName, width(), height());
+  image = tk->getImage(imageName);
+
+  if (! image) {
+    image = tk->createImage(type, format, imageName, width(), height());
+
+    (void) tk->addImageCommand(image);
+  }
+  else {
+    image->setType(type);
+
+    image->setFormat(format);
+
+    image->setWidth (width());
+    image->setHeight(height());
+  }
 
   auto pixmap = this->grab();
 
   image->setQImage(pixmap.toImage());
-
-  (void) tk->addImageCommand(imageName, type);
 
   return true;
 }

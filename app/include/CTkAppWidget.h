@@ -250,6 +250,9 @@ class CTkAppWidget : public QObject {
   const CTkAppCompoundType &compoundType() const { return compoundType_; }
   void setCompoundType(const CTkAppCompoundType &v) { compoundType_ = v; }
 
+  const QString &takeFocus() const { return takeFocus_; }
+  void setTakeFocus(const QString &s) { takeFocus_ = s; }
+
   //---
 
   virtual double getWidth() const;
@@ -627,6 +630,8 @@ class CTkAppWidget : public QObject {
   bool initNotify_ { false };
 
   CTkAppCompoundType compoundType_ { CTkAppCompoundType::NONE };
+
+  QString takeFocus_;
 
   CTkAppWidgetEventFilter *eventFilter_ { nullptr };
 

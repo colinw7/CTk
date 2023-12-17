@@ -1,4 +1,5 @@
 #include <CTkAppListBox.h>
+#include <CTkAppWidgetCommand.h>
 
 #include <CQUtil.h>
 
@@ -54,17 +55,19 @@ execConfig(const QString &name, const QVariant &var)
   if      (name == "-activestyle") {
     static auto names = std::vector<QString>({"dotbox", "none", "underline"});
     QString value;
-    if (! tk_->lookupName("activestyle", names, tk_->variantToString(var), value))
+    if (! tk_->lookupName("activestyle", names, var, value))
       return false;
 
-    tk_->TODO(name);
+    setActiveStyle(value);
+
+    widgetCommand_->setNameValue("-activestyle", value);
   }
   else if (name == "-exportselection") {
     bool b;
     if (! tk_->variantToBool(var, b))
       return tk_->invalidBool(var);
 
-    exportSelection_ = b;
+    setExportSelection(b);
   }
   else if (name == "-height") {
     CTkAppDistance h;
@@ -85,7 +88,10 @@ execConfig(const QString &name, const QVariant &var)
     tk_->traceGlobalVar(varName(), varProc_);
   }
   else if (name == "-selectmode") {
-    auto value = tk_->variantToString(var);
+    static auto names = std::vector<QString>({"single", "browse", "multiple", "extended"});
+    QString value;
+    if (! tk_->lookupName("selectmode", names, var, value, /*quiet*/true))
+      value = tk_->variantToString(var);
 
     if      (value == "single") {
       qlist_->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -99,20 +105,21 @@ execConfig(const QString &name, const QVariant &var)
     else if (value == "extended") {
       qlist_->setSelectionMode(QAbstractItemView::ExtendedSelection);
     }
-    else {
-      tk_->TODO(name + " " + value);
-      return true; // arbitrary value allowed
-    }
+
+    setSelectMode(value);
   }
   else if (name == "-state") {
-    auto value = tk_->variantToString(var);
+    static auto names = std::vector<QString>({"disabled", "normal"});
+    QString value;
+    if (! tk_->lookupName("state", names, var, value, /*quiet*/true))
+      value = tk_->variantToString(var);
 
     if (value == "readonly")
       qlist_->setReadOnly(true);
     else {
       if (! setWidgetStateFromString(value))
         return tk_->throwError(tk_->msg() + "bad state \"" + var + "\": must be "
-                               "active, disabled, or normal");
+                               "disabled or normal");
     }
   }
   else if (name == "-width") {
@@ -144,14 +151,21 @@ execOp(const Args &args)
     END
   };
 
-  auto stringToIndex = [&](const QVariant &var, int &ind, IndexPosition pos=IndexPosition::NONE,
-                           bool rangeCheck=true) {
+  auto varToIndex = [&](const QVariant &var, int &ind, IndexPosition pos=IndexPosition::NONE,
+                        bool rangeCheck=true) {
     auto str = tk_->variantToString(var);
 
     ind = -1;
 
-    if (str == "active") return false;
-    if (str == "anchor") return false;
+    if (str == "active") {
+      ind = activeIndex();
+      return true;
+    }
+
+    if (str == "anchor") {
+      ind = selectionIndex();
+      return true;
+    }
 
     if (str == "end") {
       if (rangeCheck && pos != IndexPosition::END) {
@@ -164,7 +178,7 @@ execOp(const Args &args)
       return true;
     }
 
-    if (str[0] == '@') {
+    if (str.length() > 1 && str[0] == '@') {
       return false; // @x, y
     }
 
@@ -184,9 +198,9 @@ execOp(const Args &args)
     return true;
   };
 
-  auto stringToItem = [&](const QVariant &var) {
+  auto varToItem = [&](const QVariant &var) {
     int i;
-    if (! stringToIndex(var, i))
+    if (! varToIndex(var, i))
       return static_cast<QListWidgetItem *>(nullptr);
 
     return qlist_->item(i);
@@ -207,13 +221,18 @@ execOp(const Args &args)
     if (numArgs != 2)
       return tk_->wrongNumArgs(getFullName() + " activate index");
 
-    tk_->TODO(args);
+    int activeIndex;
+    if (! varToIndex(args[1], activeIndex, IndexPosition::NONE, /*rangeCheck*/false))
+      return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[1] + "\": must be "
+                             "active, anchor, end, @x,y, or an index");
+
+    setActiveIndex(activeIndex);
   }
   else if (option == "bbox") {
     if (numArgs != 2)
       return tk_->wrongNumArgs(getFullName() + " bbox index");
 
-    auto *item = stringToItem(args[1]);
+    auto *item = varToItem(args[1]);
     if (! item) return true;
 
     auto r = qlist_->visualItemRect(item);
@@ -238,13 +257,15 @@ execOp(const Args &args)
       return tk_->wrongNumArgs(getFullName() + " delete firstIndex ?lastIndex?");
 
     int startIndex;
-    if (! stringToIndex(args[1], startIndex, IndexPosition::NONE, /*rangeCheck*/false))
-      return false;
+    if (! varToIndex(args[1], startIndex, IndexPosition::NONE, /*rangeCheck*/false))
+      return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[1] + "\": must be "
+                             "active, anchor, end, @x,y, or an index");
 
     int endIndex = startIndex;
     if (numArgs == 3) {
-      if (! stringToIndex(args[2], endIndex, IndexPosition::NONE, /*rangeCheck*/false))
-        return false;
+      if (! varToIndex(args[2], endIndex, IndexPosition::NONE, /*rangeCheck*/false))
+        return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[2] + "\": must be "
+                               "active, anchor, end, @x,y, or an index");
     }
 
     for (int i = endIndex; i >= startIndex; --i) {
@@ -257,13 +278,15 @@ execOp(const Args &args)
       return tk_->wrongNumArgs(getFullName() + " get firstIndex ?lastIndex?");
 
     int startIndex;
-    if (! stringToIndex(args[1], startIndex, IndexPosition::NONE, /*rangeCheck*/false))
-      return false;
+    if (! varToIndex(args[1], startIndex, IndexPosition::NONE, /*rangeCheck*/false))
+      return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[1] + "\": must be "
+                             "active, anchor, end, @x,y, or an index");
 
     int endIndex = startIndex;
     if (numArgs == 3) {
-      if (! stringToIndex(args[2], endIndex, IndexPosition::NONE, /*rangeCheck*/false))
-        return false;
+      if (! varToIndex(args[2], endIndex, IndexPosition::NONE, /*rangeCheck*/false))
+        return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[2] + "\": must be "
+                               "active, anchor, end, @x,y, or an index");
     }
     else
       endIndex = startIndex;
@@ -281,15 +304,21 @@ execOp(const Args &args)
     if (numArgs != 2)
       return tk_->wrongNumArgs(getFullName() + " index index");
 
-    tk_->TODO(args);
+    int index;
+    if (! varToIndex(args[1], index, IndexPosition::NONE, /*rangeCheck*/false))
+      return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[1] + "\": must be "
+                             "active, anchor, end, @x,y, or an index");
+
+    tk_->setIntegerResult(index);
   }
   else if (option == "insert") {
     if (numArgs < 2)
       return tk_->wrongNumArgs(getFullName() + " insert index ?element ...?");
 
     int ind;
-    if (! stringToIndex(args[1], ind, IndexPosition::END))
-      return false;
+    if (! varToIndex(args[1], ind, IndexPosition::END))
+      return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[1] + "\": must be "
+                             "active, anchor, end, @x,y, or an index");
 
     uint i = 2;
 
@@ -304,8 +333,9 @@ execOp(const Args &args)
       return tk_->wrongNumArgs(getFullName() + " itemcget index option");
 
     int ind;
-    if (! stringToIndex(args[1], ind))
-      return false;
+    if (! varToIndex(args[1], ind))
+      return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[1] + "\": must be "
+                             "active, anchor, end, @x,y, or an index");
 
     auto opt = tk_->variantToString(args[2]);
 
@@ -345,8 +375,9 @@ execOp(const Args &args)
       return tk_->wrongNumArgs(getFullName() + " itemcget index option");
 
     int ind;
-    if (! stringToIndex(args[1], ind))
-      return false;
+    if (! varToIndex(args[1], ind))
+      return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[1] + "\": must be "
+                             "active, anchor, end, @x,y, or an index");
 
     if      (numArgs == 2) {
       tk_->TODO(args);
@@ -413,7 +444,7 @@ execOp(const Args &args)
     if (numArgs != 2)
       return tk_->wrongNumArgs(getFullName() + " see index");
 
-    auto *item = stringToItem(args[1]);
+    auto *item = varToItem(args[1]);
     if (! item) return true;
 
     qlist_->scrollToItem(item);
@@ -425,17 +456,24 @@ execOp(const Args &args)
     auto option = tk_->variantToString(args[1]);
 
     if      (option == "anchor") {
-      tk_->TODO(args);
+      int index;
+      if (! varToIndex(args[2], index, IndexPosition::NONE, /*rangeCheck*/false))
+        return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[2] + "\": must be "
+                               "active, anchor, end, @x,y, or an index");
+
+      setSelectionIndex(index);
     }
     else if (option == "clear") {
       int startIndex;
-      if (! stringToIndex(args[2], startIndex, IndexPosition::NONE, /*rangeCheck*/false))
-        return false;
+      if (! varToIndex(args[2], startIndex, IndexPosition::NONE, /*rangeCheck*/false))
+        return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[2] + "\": must be "
+                               "active, anchor, end, @x,y, or an index");
 
       int endIndex = startIndex;
       if (numArgs == 4) {
-        if (! stringToIndex(args[3], endIndex, IndexPosition::NONE, /*rangeCheck*/false))
-          return false;
+        if (! varToIndex(args[3], endIndex, IndexPosition::NONE, /*rangeCheck*/false))
+          return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[3] + "\": must be "
+                                 "active, anchor, end, @x,y, or an index");
       }
 
       for (int i = startIndex; i <= endIndex; ++i) {
@@ -445,8 +483,9 @@ execOp(const Args &args)
     }
     else if (option == "includes") {
       int ind;
-      if (! stringToIndex(args[2], ind, IndexPosition::NONE, /*rangeCheck*/false))
-        return false;
+      if (! varToIndex(args[2], ind, IndexPosition::NONE, /*rangeCheck*/false))
+        return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[2] + "\": must be "
+                               "active, anchor, end, @x,y, or an index");
 
       bool includes = false;
 
@@ -464,13 +503,15 @@ execOp(const Args &args)
     }
     else if (option == "set") {
       int startIndex;
-      if (! stringToIndex(args[2], startIndex, IndexPosition::NONE, /*rangeCheck*/false))
-        return false;
+      if (! varToIndex(args[2], startIndex, IndexPosition::NONE, /*rangeCheck*/false))
+        return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[2] + "\": must be "
+                               "active, anchor, end, @x,y, or an index");
 
       int endIndex = startIndex;
       if (numArgs == 4) {
-        if (! stringToIndex(args[3], endIndex, IndexPosition::NONE, /*rangeCheck*/false))
-          return false;
+        if (! varToIndex(args[3], endIndex, IndexPosition::NONE, /*rangeCheck*/false))
+          return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[3] + "\": must be "
+                                 "active, anchor, end, @x,y, or an index");
       }
 
       for (int i = startIndex; i <= endIndex; ++i) {
@@ -664,8 +705,11 @@ updateFromVar()
 
      qlist_->clear();
 
-     for (const auto &str : strs)
-       qlist_->addItem(str);
+     for (const auto &str : strs) {
+       auto *item = new QListWidgetItem(str);
+
+       qlist_->addItem(item);
+     }
   }
 }
 

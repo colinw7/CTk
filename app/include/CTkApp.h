@@ -17,6 +17,7 @@
 #include <vector>
 #include <set>
 #include <map>
+#include <optional>
 
 class CTkAppRoot;
 class CTkAppTopLevel;
@@ -144,10 +145,12 @@ class CTkApp : public QObject, public CTclApp {
 
   QString getNewImageName() const;
 
-  CTkAppImageRef createImage(const QString &type, const QString &format,
-                             const QString &name, int width=-1, int height=-1);
+  CTkAppImageRef createImage(const QString &type, const QString &format, const QString &name,
+                             int width=0, int height=0);
 
   void deleteImage(const CTkAppImageRef &image);
+
+  void renameImage(const QString &oldName, const QString &newName);
 
   CTkAppImageRef getImage(const QVariant &var) const;
 
@@ -160,7 +163,7 @@ class CTkApp : public QObject, public CTclApp {
 
   //---
 
-  CTkAppImageCommand *addImageCommand(const QString &name, const QString &type);
+  CTkAppImageCommand *addImageCommand(const CTkAppImageRef &image);
 
   //---
 
@@ -284,6 +287,10 @@ class CTkApp : public QObject, public CTclApp {
   bool lookupName(const QString &msg, const std::vector<QString> &names,
                   const QString &arg, QString &opt, bool quiet=false) const;
 
+  QString concatOptionNames(const std::vector<QString> &names) const;
+
+  //---
+
   bool getOptionInt (const QString &name, const QVariant &value, long &i) const;
   bool getOptionReal(const QString &name, const QVariant &value, double &r) const;
 
@@ -376,6 +383,8 @@ class CTkApp : public QObject, public CTclApp {
   bool invalidReal    (const QVariant &var) const;
   bool invalidDistance(const QVariant &var) const;
   bool invalidQColor  (const QVariant &var) const;
+  bool invalidQColor1 (const QVariant &var) const;
+  bool unknownOption  (const QVariant &var) const;
 
   bool throwError(const Msg &msg) const;
   bool throwError(const QString &msg) const;
@@ -413,7 +422,7 @@ class CTkApp : public QObject, public CTclApp {
   using TagEventDatas    = std::map<QString, EventDatas>;
   using WidgetArray      = std::vector<WidgetP>;
   using VirtualEventData = std::map<CTkAppVirtualEventData, EventDatas>;
-  using ImageCommands    = std::map<QString, CTkAppImageCommand *>;
+  using ImageCommands    = std::map<uint, CTkAppImageCommand *>;
 
   //--
 
@@ -491,8 +500,6 @@ class CTkApp : public QObject, public CTclApp {
   WmGrid wmGrid_;
 
   CTkAppCursorMgr *cursorMgr_ { nullptr };
-
-  ImageCommands imageCommands_;
 };
 
 #endif
