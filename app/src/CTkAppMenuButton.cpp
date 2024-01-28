@@ -51,6 +51,41 @@ execConfig(const QString &name, const QVariant &var)
 
     setCommand(value);
   }
+  else if (name == "-direction") {
+    static auto optNames = std::vector<QString>({
+      "above", "below", "flush", "left", "right"});
+
+    QString opt;
+    if (! tk_->lookupName("direction", optNames, var, opt))
+      return false;
+
+    tk_->TODO(name);
+  }
+  else if (name == "-indicatoron") {
+    bool b;
+    if (! tk_->variantToBool(var, b))
+      return tk_->invalidBool(var);
+
+    showIndicator_ = b;
+  }
+  else if (name == "-menu") {
+    auto value = tk_->variantToString(var);
+
+    setMenuName(value);
+
+    updateMenu();
+  }
+  else if (name == "-state") {
+    auto value = tk_->variantToString(var);
+
+    if (value == "readonly")
+      qbutton_->setReadOnly(true);
+    else {
+      if (! setWidgetStateFromString(value))
+        return tk_->throwError(tk_->msg() + "bad state \"" + value + "\": must be "
+                               "active, disabled, or normal");
+    }
+  }
   else if (name == "-textvariable") {
     auto value = tk_->variantToString(var);
 
@@ -66,39 +101,25 @@ execConfig(const QString &name, const QVariant &var)
 
     tk_->traceGlobalVar(varName(), varProc_);
   }
-  else if (name == "-width") {
-    // width in characters for text or screen units for image
-    tk_->TODO(name);
-  }
-  else if (name == "-menu") {
-    auto value = tk_->variantToString(var);
-
-    setMenuName(value);
-
-    updateMenu();
-  }
   else if (name == "-underline") {
     long pos;
     if (! tk_->getOptionInt(name, var, pos))
       return tk_->invalidInteger(var);
   }
-  else if (name == "-indicatoron") {
-    bool b;
-    if (! tk_->variantToBool(var, b))
-      return tk_->invalidBool(var);
+  else if (name == "-width") {
+    // width of image (pixels) or text (chars)
+    CTkAppDistance w;
+    if (! tk_->variantToDistance(var, w))
+      return tk_->invalidDistance(var);
 
-    showIndicator_ = b;
+    setUserWidth(w.rvalue);
   }
-  else if (name == "-state") {
-    auto value = tk_->variantToString(var);
+  else if (name == "-wraplength") {
+    CTkAppDistance length;
+    if (! tk_->variantToDistance(var, length))
+      return tk_->invalidDistance(var);
 
-    if (value == "readonly")
-      qbutton_->setReadOnly(true);
-    else {
-      if (! setWidgetStateFromString(value))
-        return tk_->throwError(tk_->msg() + "bad state \"" + value + "\": must be "
-                               "active, disabled, or normal");
-    }
+    setWrapLength(length.rvalue);
   }
   else
     return CTkAppWidget::execConfig(name, var);
@@ -115,25 +136,13 @@ execOp(const Args &args)
   if (numArgs == 0)
     return tk_->wrongNumArgs(getFullName() + " option ?arg ...?");
 
-  static auto optionNames = std::vector<QString>({
-    "cget", "configure", "invoke"});
+  static auto optionNames = std::vector<QString>({"cget", "configure"});
 
   QString option;
   if (! tk_->lookupOptionName(optionNames, args[0], option))
     return false;
 
-  if (option == "invoke") {
-    if (numArgs == 1) {
-      if (getQWidget()->isEnabled())
-        runCommand();
-    }
-    else
-      return tk_->wrongNumArgs(getFullName() + " invoke");
-  }
-  else
-    return CTkAppWidget::execDefaultOp(option, args);
-
-  return true;
+  return CTkAppWidget::execDefaultOp(option, args);
 }
 
 void
@@ -151,9 +160,11 @@ setImageRef(const CTkAppImageRef &image)
 {
   CTkAppWidget::setImageRef(image);
 
-  auto pixmap = image->getQPixmap();
+  if (image) {
+    auto pixmap = image->getQPixmap();
 
-  qbutton_->setIcon(QIcon(pixmap));
+    qbutton_->setIcon(QIcon(pixmap));
+  }
 }
 
 void

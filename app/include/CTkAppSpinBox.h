@@ -16,7 +16,7 @@ class CTkAppSpinBox : public CTkAppWidget {
  public:
   explicit CTkAppSpinBox(CTkApp *tk, CTkAppWidget *parent=nullptr, const QString &name="");
 
-  const char *getClassName() const override { return "SpinBox"; }
+  const char *getClassName() const override { return "Spinbox"; }
 
   bool execConfig(const QString &name, const QVariant &value) override;
 
@@ -35,6 +35,24 @@ class CTkAppSpinBox : public CTkAppWidget {
 
   const QColor &readOnlyBackground() const { return readOnlyBackground_; }
   void setReadOnlyBackground(const QColor &c) { readOnlyBackground_ = c; }
+
+  const QColor &buttonBackground() const { return buttonBackground_; }
+  void setButtonBackground(const QColor &c) { buttonBackground_ = c; }
+
+  const CTkAppCursorData &buttonCursor() const { return buttonCursor_; }
+  void setButtonCursor(const CTkAppCursorData &c) { buttonCursor_ = c; }
+
+  const QColor &disabledBackground() const { return disabledBackground_; }
+  void setDisabledBackground(const QColor &c) { disabledBackground_ = c; }
+
+  const QColor &disabledForeground() const { return disabledForeground_; }
+  void setDisabledForeground(const QColor &c) { disabledForeground_ = c; }
+
+  const QString &format() const { return format_; }
+  void setFormat(const QString &s) { format_ = s; }
+
+  bool isWrap() const { return wrap_; }
+  void setWrap(bool b) { wrap_ = b; }
 
   //---
 
@@ -74,6 +92,16 @@ class CTkAppSpinBox : public CTkAppWidget {
   bool exportSelection_ { true };
 
   QColor readOnlyBackground_;
+
+  QColor           buttonBackground_;
+  CTkAppCursorData buttonCursor_;
+
+  QColor disabledBackground_;
+  QColor disabledForeground_;
+
+  QString format_;
+
+  bool wrap_ { false };
 };
 
 #endif

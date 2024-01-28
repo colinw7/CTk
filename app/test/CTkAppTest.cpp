@@ -97,7 +97,7 @@ main(int argc, char **argv)
   for (int i = 1; i < argc; ++i) {
     auto arg = std::string(argv[i]);
 
-    if      (arg == "-args") {
+    if      (arg == "--") {
       processing = false;
     }
     else if (! processing) {

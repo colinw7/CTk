@@ -206,16 +206,21 @@ interactiveMainLoop()
 
 void
 CTclApp::
-setIntegerResult(int value)
+setIntegerResult(long value)
 {
-  CQTclUtil::setResult(app_->interp_, QVariant(value));
+  CQTclUtil::setResult(app_->interp_, QVariant(static_cast<qlonglong>(value)));
 }
 
 void
 CTclApp::
 setRealResult(double value)
 {
-  CQTclUtil::setResult(app_->interp_, QVariant(value));
+  long ivalue = long(value);
+
+  if (ivalue == value)
+    setIntegerResult(ivalue);
+  else
+    CQTclUtil::setResult(app_->interp_, QVariant(value));
 }
 
 void
@@ -241,33 +246,40 @@ setBoolResult(bool b)
 
 void
 CTclApp::
-setIntegerArrayResult(int *values, int num_values)
+setColorResult(const QColor &c)
+{
+  CQTclUtil::setResult(app_->interp_, c.name());
+}
+
+void
+CTclApp::
+setIntegerArrayResult(long *values, uint num_values)
 {
   QVariantList vars;
 
-  for (int i = 0; i < num_values; ++i)
-    vars.push_back(values[i]);
+  for (uint i = 0; i < num_values; ++i)
+    vars.push_back(QVariant(static_cast<qlonglong>(values[i])));
 
   setVariantListResult(vars);
 }
 
 void
 CTclApp::
-setIntegerArrayResult(const std::vector<int> &values)
+setIntegerArrayResult(const std::vector<long> &values)
 {
   QVariantList vars;
 
   for (const auto &value : values)
-    vars.push_back(value);
+    vars.push_back(static_cast<qlonglong>(value));
 
   setVariantListResult(vars);
 }
 
 void
 CTclApp::
-setIntegerArrayResult(std::initializer_list<int> l)
+setIntegerArrayResult(std::initializer_list<long> l)
 {
-  std::vector<int> il;
+  std::vector<long> il;
 
   for (const auto &i : l)
     il.push_back(i);
@@ -277,11 +289,11 @@ setIntegerArrayResult(std::initializer_list<int> l)
 
 void
 CTclApp::
-setRealArrayResult(double *values, int num_values)
+setRealArrayResult(double *values, uint num_values)
 {
   QVariantList vars;
 
-  for (int i = 0; i < num_values; ++i)
+  for (uint i = 0; i < num_values; ++i)
     vars.push_back(values[i]);
 
   setVariantListResult(vars);
@@ -368,9 +380,9 @@ getResult(QVariant &res) const
 
 void
 CTclApp::
-setIntegerGlobalVar(const QString &name, int value)
+setIntegerGlobalVar(const QString &name, long value)
 {
-  setGlobalVar(name, QVariant(value));
+  setGlobalVar(name, QVariant(static_cast<qlonglong>(value)));
 }
 
 void
@@ -428,7 +440,7 @@ setStringArrayGlobalVar(const QString &name, const std::vector<QString> &strs)
 
 void
 CTclApp::
-setIntegerArrayGlobalVar(const QString &name, const std::vector<int> &values)
+setIntegerArrayGlobalVar(const QString &name, const std::vector<long> &values)
 {
   std::vector<QString> strs;
 
@@ -449,7 +461,7 @@ setStringArrayLocalVar(const QString &name, const std::vector<QString> &strs)
 
 void
 CTclApp::
-setIntegerArrayLocalVar(const QString &name, const std::vector<int> &values)
+setIntegerArrayLocalVar(const QString &name, const std::vector<long> &values)
 {
   std::vector<QString> strs;
 

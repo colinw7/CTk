@@ -2,6 +2,7 @@
 #include <CTkAppSpinBoxWidget.h>
 
 #include <CQUtil.h>
+#include <CQStrParse.h>
 
 class CTkAppSpinBoxVarProc : public CTclTraceProc {
  public:
@@ -72,10 +73,21 @@ execConfig(const QString &name, const QVariant &var)
     if (! tk_->variantToQColor(var, c))
       return tk_->invalidQColor(var);
 
-    tk_->TODO(name);
+    setButtonBackground(c);
   }
   else if (name == "-buttoncursor") {
-    tk_->TODO(name);
+    CTkAppCursorData cursorData;
+
+    if (tk_->variantIsValid(var)) {
+      if (! tk_->variantToCursor(var, cursorData))
+        return tk_->invalidCursor(var);
+
+      auto *cursor = tk_->getCursor(cursorData.name);
+      if (! cursor)
+        return tk_->invalidCursor(var);
+    }
+
+    setButtonCursor(cursorData);
   }
   else if (name == "-buttondownrelief") {
     Relief relief { Relief::NONE };
@@ -103,14 +115,14 @@ execConfig(const QString &name, const QVariant &var)
     if (! tk_->variantToQColor(var, c))
       return tk_->invalidQColor(var);
 
-    tk_->TODO(name);
+    setDisabledBackground(c);
   }
   else if (name == "-disabledforeground") {
     QColor c;
     if (! tk_->variantToQColor(var, c))
       return tk_->invalidQColor(var);
 
-    tk_->TODO(name);
+    setDisabledForeground(c);
   }
   else if (name == "-exportselection") {
     bool b;
@@ -120,14 +132,40 @@ execConfig(const QString &name, const QVariant &var)
     setExportSelection(b);
   }
   else if (name == "-format") {
-    tk_->TODO(name);
+    auto value = tk_->variantToString(var);
+
+    auto checkFormat = [&](const QString &str) {
+      CQStrParse parse(str);
+      parse.skipSpace();
+      if (! parse.isChar('%'))
+        return false;
+      parse.skipChar();
+      int i;
+      if (! parse.readInteger(&i))
+        return false;
+      if (! parse.isChar('.'))
+        return false;
+      parse.skipChar();
+      if (! parse.readInteger(&i))
+        return false;
+      if (! parse.isChar('f'))
+        return false;
+      parse.skipChar();
+      parse.skipSpace();
+      return parse.eof();
+    };
+
+    if (! checkFormat(value))
+      return tk_->throwError("bad spinbox format specifier \"" + value + "\"");
+
+    setFormat(value);
   }
   else if (name == "-from") {
-    long from;
-    if (! tk_->getOptionInt(name, var, from))
-      return tk_->invalidInteger(var);
+    double from;
+    if (! tk_->getOptionReal(name, var, from))
+      return tk_->invalidReal(var);
 
-    qspin_->setMinimum(from);
+    qspin_->setRMin(int(from));
   }
   else if (name == "-invalidcommand") {
     auto value = tk_->variantToString(var);
@@ -135,11 +173,11 @@ execConfig(const QString &name, const QVariant &var)
     setInvalidCommand(value);
   }
   else if (name == "-increment") {
-    long step;
-    if (! tk_->getOptionInt(name, var, step))
-      return tk_->invalidInteger(var);
+    double step;
+    if (! tk_->getOptionReal(name, var, step))
+      return tk_->invalidReal(var);
 
-    qspin_->setSingleStep(step);
+    qspin_->setRStep(step);
   }
   else if (name == "-readonlybackground") {
     QColor c;
@@ -156,7 +194,7 @@ execConfig(const QString &name, const QVariant &var)
     else {
       if (! setWidgetStateFromString(value))
         return tk_->throwError(tk_->msg() + "bad state \"" + value + "\": must be "
-                               "active, disabled, or normal");
+                               "disabled, normal, or readonly");
     }
   }
   else if (name == "-textvariable") {
@@ -175,28 +213,27 @@ execConfig(const QString &name, const QVariant &var)
     tk_->traceGlobalVar(varName(), varProc_);
   }
   else if (name == "-to") {
-    long to;
-    if (! tk_->getOptionInt(name, var, to))
-      return tk_->invalidInteger(var);
+    double to;
+    if (! tk_->getOptionReal(name, var, to))
+      return tk_->invalidReal(var);
 
-    qspin_->setMaximum(to);
+    qspin_->setRMax(to);
   }
   else if (name == "-validate") {
-    auto value = tk_->variantToString(var);
-
     static auto names =
       std::vector<QString>({"none", "focus", "focusin", "focusout", "key", "all"});
 
     QString value1;
-    if (! tk_->lookupName("validate", names, value, value1))
-      return tk_->throwError("Invalid validate mode '" + value + "'");
+    if (! tk_->lookupName("validate", names, var, value1))
+      return tk_->throwError(tk_->msg() + "bad validate \"" + var + "\": must be "
+                             "all, key, focus, focusin, focusout, or none");
 
-    if      (value1 == "none"    ) validateMode_ = ValidateMode::NONE;
+    if      (value1 == "all"     ) validateMode_ = ValidateMode::ALL;
+    else if (value1 == "key"     ) validateMode_ = ValidateMode::KEY;
     else if (value1 == "focus"   ) validateMode_ = ValidateMode::FOCUS;
     else if (value1 == "focusin" ) validateMode_ = ValidateMode::FOCUSIN;
     else if (value1 == "focusout") validateMode_ = ValidateMode::FOCUSOUT;
-    else if (value1 == "key"     ) validateMode_ = ValidateMode::KEY;
-    else if (value1 == "all"     ) validateMode_ = ValidateMode::ALL;
+    else if (value1 == "none"    ) validateMode_ = ValidateMode::NONE;
 
     if (! validateProc_) {
       validateProc_ = new CTkAppSpinBoxValidator(tk_, this);
@@ -226,11 +263,15 @@ execConfig(const QString &name, const QVariant &var)
   else if (name == "-width") {
     long w;
     if (! tk_->variantToInt(var, w))
-      return tk_->throwError(tk_->msg() + "bad integer \"" + var + "\"");
+      return tk_->invalidInteger(var);
     qspin_->setWidth(w);
   }
   else if (name == "-wrap") {
-    tk_->TODO(name);
+    bool b;
+    if (! tk_->variantToBool(var, b))
+      return tk_->invalidBool(var);
+
+    setWrap(b);
   }
   else
     return CTkAppWidget::execConfig(name, var);
@@ -257,6 +298,19 @@ execOp(const Args &args)
     return true;
   };
 
+  auto fixInd = [&](int &ind) {
+    auto text = qspin_->getText();
+
+    int len = text.length();
+
+    if      (ind == CTkAppUtil::END_INDEX)
+      ind = len - 1;
+    else if (ind <  0)
+      ind = 0;
+    else if (ind >= len)
+      ind = len - 1;
+  };
+
   //---
 
   static auto optionNames = std::vector<QString>({
@@ -273,7 +327,10 @@ execOp(const Args &args)
 
     int index;
     if (! stringToIndex(args[1], index))
-      return false;
+      return tk_->throwError(tk_->msg() + "bad spinbox index \"" + args[1] + "\"");
+
+    QRect bbox;
+    tk_->setIntegerArrayResult({ bbox.left(), bbox.top(), bbox.width(), bbox.height() });
   }
   else if (option == "delete") {
     if (numArgs != 2 && numArgs != 3)
@@ -281,9 +338,17 @@ execOp(const Args &args)
 
     int startIndex, endIndex;
     if (! stringToIndex(args[1], startIndex))
-      return false;
-    if (! stringToIndex(args[2], endIndex))
-      return false;
+      return tk_->throwError(tk_->msg() + "bad spinbox index \"" + args[1] + "\"");
+
+    if (numArgs == 3) {
+      if (! stringToIndex(args[2], endIndex))
+        return tk_->throwError(tk_->msg() + "bad spinbox index \"" + args[2] + "\"");
+    }
+    else
+      endIndex = startIndex;
+
+    fixInd(startIndex);
+    fixInd(endIndex);
 
     qspin_->deleteChars(startIndex, endIndex - startIndex);
   }
@@ -324,7 +389,9 @@ execOp(const Args &args)
 
     int ind;
     if (! stringToIndex(args[1], ind))
-      return false;
+      return tk_->throwError(tk_->msg() + "bad spinbox index \"" + args[1] + "\"");
+
+    fixInd(ind);
 
     qspin_->insertChars(ind, tk_->variantToString(args[2]));
   }
@@ -362,7 +429,7 @@ execOp(const Args &args)
 
       int ind;
       if (! stringToIndex(args[2], ind))
-        return false;
+        return tk_->throwError(tk_->msg() + "bad spinbox index \"" + args[2] + "\"");
 
       qspin_->setCursorPos(ind);
     }
@@ -375,9 +442,9 @@ execOp(const Args &args)
 
       int startIndex, endIndex;
       if (! stringToIndex(args[2], startIndex))
-        return false;
+        return tk_->throwError(tk_->msg() + "bad spinbox index \"" + args[2] + "\"");
       if (! stringToIndex(args[3], endIndex))
-        return false;
+        return tk_->throwError(tk_->msg() + "bad spinbox index \"" + args[3] + "\"");
 
       //qspin_->setSelection(startIndex, endIndex - startIndex);
     }
@@ -387,7 +454,7 @@ execOp(const Args &args)
 
       int endIndex;
       if (! stringToIndex(args[2], endIndex))
-        return false;
+        return tk_->throwError(tk_->msg() + "bad spinbox index \"" + args[2] + "\"");
 
       int startIndex = qspin_->cursorPos();
 
@@ -459,8 +526,8 @@ execOp(const Args &args)
         return tk_->wrongNumArgs(getFullName() + " xview index");
 
       int ind;
-      if (! stringToIndex(args[2], ind))
-        return false;
+      if (! stringToIndex(args[1], ind))
+        return tk_->throwError(tk_->msg() + "bad spinbox index \"" + args[1] + "\"");
 
       //qspin_->setCursorPosition(ind);
 

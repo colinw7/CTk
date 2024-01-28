@@ -29,6 +29,13 @@ setValidator(QValidator *validator)
   lineEdit()->setValidator(validator);
 }
 
+QString
+CQSpinList::
+getText() const
+{
+  return lineEdit()->text();
+}
+
 void
 CQSpinList::
 setText(const QString &text)

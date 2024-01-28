@@ -1113,7 +1113,7 @@ CTkApp::
 installToplevel(const QString &id, CTkAppTopLevelWidget *qtoplevel)
 {
   static CTkAppOpt opts[] = {
-    { nullptr, nullptr, nullptr, nullptr }
+    { nullptr, nullptr, nullptr, nullptr, QVariant::Invalid }
   };
 
   auto widgetName = "." + id;
@@ -3846,7 +3846,7 @@ CTkApp::
 getOptionReal(const QString &, const QVariant &var, double &r) const
 {
   if (! variantToReal(var, r))
-    return throwError(msg() + "expected floating-point number but got \"" + var + "\"");
+    return invalidReal(var);
 
   return true;
 }
@@ -4223,6 +4223,13 @@ CTkApp::
 invalidQColor1(const QVariant &var) const
 {
   return throwError(msg() + "invalid color name \"" + var + "\"");
+}
+
+bool
+CTkApp::
+invalidCursor(const QVariant &var) const
+{
+  return throwError(msg() + "bad cursor spec \"" + var + "\"");
 }
 
 bool

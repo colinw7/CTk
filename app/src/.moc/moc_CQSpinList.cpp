@@ -22,8 +22,8 @@ QT_BEGIN_MOC_NAMESPACE
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
 struct qt_meta_stringdata_CQSpinList_t {
-    QByteArrayData data[5];
-    char stringdata0[37];
+    QByteArrayData data[6];
+    char stringdata0[42];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -36,10 +36,12 @@ QT_MOC_LITERAL(0, 0, 10), // "CQSpinList"
 QT_MOC_LITERAL(1, 11, 4), // "mode"
 QT_MOC_LITERAL(2, 16, 4), // "Mode"
 QT_MOC_LITERAL(3, 21, 7), // "INTEGER"
-QT_MOC_LITERAL(4, 29, 7) // "STRINGS"
+QT_MOC_LITERAL(4, 29, 4), // "REAL"
+QT_MOC_LITERAL(5, 34, 7) // "STRINGS"
 
     },
-    "CQSpinList\0mode\0Mode\0INTEGER\0STRINGS"
+    "CQSpinList\0mode\0Mode\0INTEGER\0REAL\0"
+    "STRINGS"
 };
 #undef QT_MOC_LITERAL
 
@@ -60,11 +62,12 @@ static const uint qt_meta_data_CQSpinList[] = {
        1, 0x80000000 | 2, 0x0009510b,
 
  // enums: name, alias, flags, count, data
-       2,    2, 0x2,    2,   22,
+       2,    2, 0x2,    3,   22,
 
  // enum data: key, value
        3, uint(CQSpinList::Mode::INTEGER),
-       4, uint(CQSpinList::Mode::STRINGS),
+       4, uint(CQSpinList::Mode::REAL),
+       5, uint(CQSpinList::Mode::STRINGS),
 
        0        // eod
 };

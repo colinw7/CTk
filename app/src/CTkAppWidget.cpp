@@ -720,11 +720,11 @@ execConfig(const QString &name, const QVariant &var)
 
     if (tk_->variantIsValid(var)) {
       if (! tk_->variantToCursor(var, cursorData))
-        return tk_->throwError(tk_->msg() + "bad cursor spec \"" + var + "\"");
+        return tk_->invalidCursor(var);
 
       auto *cursor = tk_->getCursor(cursorData.name);
       if (! cursor)
-        return tk_->throwError(tk_->msg() + "bad cursor spec \"" + var + "\"");
+        return tk_->invalidCursor(var);
     }
 
     setCursor(cursorData);
@@ -1181,12 +1181,19 @@ bool
 CTkAppWidget::
 setBitmap(const QString &s)
 {
-  auto image = tk_->getBitmap(s);
-  if (! image) return false;
+  if (s != "") {
+    auto image = tk_->getBitmap(s);
+    if (! image) return false;
 
-  bitmap_ = s;
+    bitmap_ = s;
 
-  setImageRef(image);
+    setImageRef(image);
+  }
+  else {
+    bitmap_ = "";
+
+    setImageRef(CTkAppImageRef());
+  }
 
   return true;
 }
@@ -1533,7 +1540,10 @@ bool
 CTkAppWidget::
 getOptionValue(const QString &optName, const QString &optClass, QVariant &optValue) const
 {
-  const auto &opts = getWidgetCommand()->getOpts();
+  auto *command =  getWidgetCommand();
+  if (! command) return false;
+
+  const auto &opts = command->getOpts();
 
   if (opts.getDefValue(optName, optClass, optValue)) {
     //std::cerr << "getOptionValue: " << optName << " " << optClass << " = " << optValue << "\n";
@@ -1646,6 +1656,14 @@ widgetStateToString(const CTkAppWidgetState &state) const
     case CTkAppWidgetState::HIDDEN  : return "hidden";
     default: return "";
   }
+}
+
+//----------
+
+CTkAppWidgetRoot::
+CTkAppWidgetRoot(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
+ CTkAppWidget(tk, parent, name)
+{
 }
 
 //----------

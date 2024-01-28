@@ -5,13 +5,10 @@
 
 class CTkAppTopLevelWidget;
 
-class CTkAppTopLevel : public CTkAppWidget {
+class CTkAppTopLevel : public CTkAppWidgetRoot {
   Q_OBJECT
 
   Q_PROPERTY(bool iconWindow READ isIconWindow WRITE setIconWindow)
-
- public:
-  using TopLevelP = QPointer<CTkAppTopLevel>;
 
  public:
   explicit CTkAppTopLevel(CTkApp *tk, CTkAppWidget *parent=nullptr, const QString &name="");
@@ -19,20 +16,6 @@ class CTkAppTopLevel : public CTkAppWidget {
  ~CTkAppTopLevel();
 
   const char *getClassName() const override { return "TopLevel"; }
-
-  bool isTopLevel() const override { return true; }
-
-  bool isNeedsShow() const { return needsShow_; }
-  void setNeedsShow(bool b) override { needsShow_ = b; }
-
-  const QString &menuName() const { return menuName_; }
-  void setMenuName(const QString &s) { menuName_ = s; }
-
-  bool isIconWindow() const { return iconWindow_; }
-  void setIconWindow(bool b) { iconWindow_ = b; }
-
-  const TopLevelP iconWindowP() const { return iconWindowP_; }
-  void setIconWindowP(const TopLevelP &w) { iconWindowP_ = w; }
 
   bool isContainer() const { return container_; }
   void setContainer(bool b) { container_ = b; }
@@ -51,11 +34,7 @@ class CTkAppTopLevel : public CTkAppWidget {
  private:
   CTkAppTopLevelWidget* qtoplevel_ { nullptr };
 
-  bool      needsShow_  { false };
-  QString   menuName_;
-  bool      iconWindow_ { false };
-  TopLevelP iconWindowP_;
-  bool      container_  { false };
+  bool container_ { false };
 };
 
 //---

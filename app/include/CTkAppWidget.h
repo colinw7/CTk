@@ -655,6 +655,38 @@ class CTkAppWidget : public QObject {
 
 //---
 
+class CTkAppWidgetRoot : public CTkAppWidget {
+  Q_OBJECT
+
+ public:
+  using TopLevelP = QPointer<CTkAppWidgetRoot>;
+
+ public:
+  explicit CTkAppWidgetRoot(CTkApp *tk, CTkAppWidget *parent=nullptr, const QString &name="");
+
+  bool isTopLevel() const override { return true; }
+
+  bool isNeedsShow() const { return needsShow_; }
+  void setNeedsShow(bool b) override { needsShow_ = b; }
+
+  bool isIconWindow() const { return iconWindow_; }
+  void setIconWindow(bool b) { iconWindow_ = b; }
+
+  const TopLevelP iconWindowP() const { return iconWindowP_; }
+  void setIconWindowP(const TopLevelP &w) { iconWindowP_ = w; }
+
+  const QString &menuName() const { return menuName_; }
+  void setMenuName(const QString &s) { menuName_ = s; }
+
+ protected:
+  bool      needsShow_ { false };
+  bool      iconWindow_ { false };
+  TopLevelP iconWindowP_;
+  QString   menuName_;
+};
+
+//---
+
 class CTkAppWidgetEventFilter :  public QObject {
   Q_OBJECT
 

@@ -28,21 +28,21 @@ class CTclAppCommand {
 
   //---
 
-  void setIntegerResult(int value);
+  void setIntegerResult(long value);
   void setRealResult   (double value);
   void setStringResult (const QString &value);
   void setBoolResult   (bool b);
   void setResult       (const QVariant &var);
 
-  void setIntegerArrayResult(int *values, int num_values);
-  void setIntegerArrayResult(const std::vector<int> &values);
-  void setRealArrayResult   (double *values, int num_values);
+  void setIntegerArrayResult(long *values, uint num_values);
+  void setIntegerArrayResult(const std::vector<long> &values);
+  void setRealArrayResult   (double *values, uint num_values);
   void setRealArrayResult   (const std::vector<double> &values);
   void setStringArrayResult (const std::vector<QString> &strs);
 
   //---
 
-  void setIntegerVar(const QString &var, int value);
+  void setIntegerVar(const QString &var, long value);
   void setRealVar   (const QString &var, double value);
   void setStringVar (const QString &var, const QString &value);
   void setBoolVar   (const QString &var, bool value);

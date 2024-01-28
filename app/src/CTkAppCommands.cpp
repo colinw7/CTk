@@ -585,7 +585,7 @@ run(const Args &args)
   {              "-relief"             , "relief"             , "Relief"             , "flat"   },
   Opt::optString("-scrollregion"       , "scrollRegion"       , "ScrollRegion"       , ""       ),
   {              "-selectbackground"   , "selectBackground"   , "Foreground"         , "#c3c3c3"},
-  {              "-selectborderwidth"  , "selectBorderWidth"  , "BorderWidth"        , "1"      },
+  Opt::optInt   ("-selectborderwidth"  , "selectBorderWidth"  , "BorderWidth"        , "1"      ),
   Opt::optColor ("-selectforeground"   , "selectForeground"   , "Background"         , "#000000"),
   {              "-state"              , "state"              , "State"              , "normal" },
   Opt::optString("-takefocus"          , "takeFocus"          , "TakeFocus"          , ""       ),
@@ -599,7 +599,7 @@ run(const Args &args)
   Opt::optSynonym("-bg", "-background" ),
 
   Opt::optEnd()
-};
+  };
 
   QVariant widgetName;
 
@@ -659,50 +659,50 @@ run(const Args &args)
   using Opt = CTkAppOpt;
 
   static Opt opts[] = {
-    { "-activebackground"   , "activeBackground"   , "Foreground"         , "#ececec"       },
-    { "-activeforeground"   , "activeForeground"   , "Background"         , "#000000"       },
-    { "-anchor"             , "anchor"             , "Anchor"             , "center"        },
-    { "-background"         , "background"         , "Background"         , "#d9d9d9"       },
-    { "-bitmap"             , "bitmap"             , "Bitmap"             , ""              },
-    { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "1"             },
-    { "-command"            , "command"            , "Command"            , ""              },
-    { "-compound"           , "compound"           , "Compound"           , "none"          },
-    { "-cursor"             , "cursor"             , "Cursor"             , ""              },
-    { "-disabledforeground" , "disabledForeground" , "DisabledForeground" , "#a3a3a3"       },
-    { "-font"               , "font"               , "Font"               , "TkDefaultFont" },
-    { "-foreground"         , "foreground"         , "Foreground"         , "#000000"       },
-    { "-height"             , "height"             , "Height"             , "0"             },
-    { "-highlightbackground", "highlightBackground", "HighlightBackground", "#d9d9d9"       },
-    { "-highlightcolor"     , "highlightColor"     , "HighlightColor"     , "#000000"       },
-    { "-highlightthickness" , "highlightThickness" , "HighlightThickness" , "1"             },
-    { "-image"              , "image"              , "Image"              , ""              },
-    Opt::optBool("-indicatoron", "indicatorOn", "IndicatorOn", "1"),
-    { "-justify"            , "justify"            , "Justify"            , "center"        },
-    { "-offrelief"          , "offRelief"          , "OffRelief"          , "raised"        },
-    { "-offvalue"           , "offValue"           , "Value"              , "0"             },
-    { "-onvalue"            , "onValue"            , "Value"              , "1"             },
-    { "-overrelief"         , "overRelief"         , "OverRelief"         , ""              },
-    { "-padx"               , "padX"               , "Pad"                , "1"             },
-    { "-pady"               , "padY"               , "Pad"                , "1"             },
-    { "-relief"             , "relief"             , "Relief"             , "flat"          },
-    { "-selectcolor"        , "selectColor"        , "Background"         , "#ffffff"       },
-    { "-selectimage"        , "selectImage"        , "SelectImage"        , ""              },
-    { "-state"              , "state"              , "State"              , "normal"        },
-    { "-takefocus"          , "takeFocus"          , "TakeFocus"          , ""              },
-    { "-text"               , "text"               , "Text"               , ""              },
-    { "-textvariable"       , "textVariable"       , "Variable"           , ""              },
-    { "-tristateimage"      , "tristateImage"      , "TristateImage"      , ""              },
-    { "-tristatevalue"      , "tristateValue"      , "TristateValue"      , ""              },
-    { "-underline"          , "underline"          , "Underline"          , "-1"            },
-    { "-variable"           , "variable"           , "Variable"           , ""              },
-    { "-width"              , "width"              , "Width"              , "0"             },
-    { "-wraplength"         , "wrapLength"         , "WrapLength"         , "0"             },
+  { "-activebackground"   , "activeBackground"   , "Foreground"         , "#ececec"       },
+  { "-activeforeground"   , "activeForeground"   , "Background"         , "#000000"       },
+  { "-anchor"             , "anchor"             , "Anchor"             , "center"        },
+  { "-background"         , "background"         , "Background"         , "#d9d9d9"       },
+  { "-bitmap"             , "bitmap"             , "Bitmap"             , ""              },
+  { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "1"             },
+  { "-command"            , "command"            , "Command"            , ""              },
+  { "-compound"           , "compound"           , "Compound"           , "none"          },
+  { "-cursor"             , "cursor"             , "Cursor"             , ""              },
+  { "-disabledforeground" , "disabledForeground" , "DisabledForeground" , "#a3a3a3"       },
+  { "-font"               , "font"               , "Font"               , "TkDefaultFont" },
+  { "-foreground"         , "foreground"         , "Foreground"         , "#000000"       },
+  { "-height"             , "height"             , "Height"             , "0"             },
+  { "-highlightbackground", "highlightBackground", "HighlightBackground", "#d9d9d9"       },
+  { "-highlightcolor"     , "highlightColor"     , "HighlightColor"     , "#000000"       },
+  { "-highlightthickness" , "highlightThickness" , "HighlightThickness" , "1"             },
+  { "-image"              , "image"              , "Image"              , ""              },
+  Opt::optBool("-indicatoron", "indicatorOn", "IndicatorOn", "1"),
+  { "-justify"            , "justify"            , "Justify"            , "center"        },
+  { "-offrelief"          , "offRelief"          , "OffRelief"          , "raised"        },
+  { "-offvalue"           , "offValue"           , "Value"              , "0"             },
+  { "-onvalue"            , "onValue"            , "Value"              , "1"             },
+  { "-overrelief"         , "overRelief"         , "OverRelief"         , ""              },
+  { "-padx"               , "padX"               , "Pad"                , "1"             },
+  { "-pady"               , "padY"               , "Pad"                , "1"             },
+  { "-relief"             , "relief"             , "Relief"             , "flat"          },
+  { "-selectcolor"        , "selectColor"        , "Background"         , "#ffffff"       },
+  { "-selectimage"        , "selectImage"        , "SelectImage"        , ""              },
+  { "-state"              , "state"              , "State"              , "normal"        },
+  { "-takefocus"          , "takeFocus"          , "TakeFocus"          , ""              },
+  { "-text"               , "text"               , "Text"               , ""              },
+  { "-textvariable"       , "textVariable"       , "Variable"           , ""              },
+  { "-tristateimage"      , "tristateImage"      , "TristateImage"      , ""              },
+  { "-tristatevalue"      , "tristateValue"      , "TristateValue"      , ""              },
+  { "-underline"          , "underline"          , "Underline"          , "-1"            },
+  { "-variable"           , "variable"           , "Variable"           , ""              },
+  { "-width"              , "width"              , "Width"              , "0"             },
+  { "-wraplength"         , "wrapLength"         , "WrapLength"         , "0"             },
 
-    Opt::optSynonym("-bd", "-borderwidth"),
-    Opt::optSynonym("-bg", "-background" ),
-    Opt::optSynonym("-fg", "-foreground" ),
+  Opt::optSynonym("-bd", "-borderwidth"),
+  Opt::optSynonym("-bg", "-background" ),
+  Opt::optSynonym("-fg", "-foreground" ),
 
-    Opt::optEnd()
+  Opt::optEnd()
   };
 
   QVariant widgetName;
@@ -769,7 +769,7 @@ run(const Args &args)
     { "-exportselection"    , "exportSelection"    , "ExportSelection"    , "1"          },
     { "-font"               , "font"               , "Font"               , "TkTextFont" },
     { "-foreground"         , "foreground"         , "Foreground"         , "#000000"    },
-    { "-height"             , "height"             , "Height"             , "0"       },
+    { "-height"             , "height"             , "Height"             , "0"          },
     { "-highlightbackground", "highlightBackground", "HighlightBackground", "#d9d9d9"    },
     { "-highlightcolor"     , "highlightColor"     , "HighlightColor"     , "#000000"    },
     { "-highlightthickness" , "highlightThickness" , "HighlightThickness" , "1"          },
@@ -1999,7 +1999,7 @@ run(const Args &args)
     if (! window) return false;
 
     auto *layout = window->getTkGridLayout();
-    if (! layout) { setIntegerArrayResult({ 0, 0, 0, 0 }); return true; }
+    if (! layout) { setIntegerArrayResult({ 0L, 0L, 0L, 0L }); return true; }
 
     ++i;
 
@@ -2010,7 +2010,8 @@ run(const Args &args)
 
       QRect bbox;
       layout->getBBox(bbox);
-      setIntegerArrayResult({ bbox.left(), bbox.top(), bbox.width(), bbox.height() });
+      setIntegerArrayResult({ long(bbox.left()), long(bbox.top()),
+                              long(bbox.width()), long(bbox.height()) });
     }
     else if (numArgs == 4) {
       long column, row;
@@ -2047,7 +2048,7 @@ run(const Args &args)
       ++i;
 
       //window->setGridBBox(column1, row1, column2, row2);
-      //setIntegerArrayResult({ 0, 0, 0, 0 }); // TODO
+      //setIntegerArrayResult({ 0L, 0L, 0L, 0L }); // TODO
 
       QRect bbox;
       layout->getCellBBox(bbox, row1, column1, row2, column2);
@@ -3156,38 +3157,40 @@ run(const Args &args)
 {
   tk_->debugCmd(name_, args);
 
+  using Opt = CTkAppOpt;
+
   static CTkAppOpt opts[] = {
-    { "-activestyle"        , "activeStyle"        , "ActiveStyle"        , "dotbox"        },
-    { "-background"         , "background"         , "Background"         , "#ffffff"       },
-    { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "1"             },
-    { "-cursor"             , "cursor"             , "Cursor"             , ""              },
-    { "-disabledforeground" , "disabledForeground" , "DisabledForeground" , "#a3a3a3"       },
-    { "-exportselection"    , "exportSelection"    , "ExportSelection"    , "1"             },
-    { "-font"               , "font"               , "Font"               , "TkDefaultFont" },
-    { "-foreground"         , "foreground"         , "Foreground"         , "#000000"       },
-    { "-height"             , "height"             , "Height"             , "10"            },
-    { "-highlightbackground", "highlightBackground", "HighlightBackground", "#d9d9d9"       },
-    { "-highlightcolor"     , "highlightColor"     , "HighlightColor"     , "#000000"       },
-    { "-highlightthickness" , "highlightThickness" , "HighlightThickness" , "1"             },
-    { "-justify"            , "justify"            , "Justify"            , "center"        },
-    { "-listvariable"       , "listVariable"       , "Variable"           , ""              },
-    { "-relief"             , "relief"             , "Relief"             , "sunken"        },
-    { "-selectbackground"   , "selectBackground"   , "Foreground"         , "#c3c3c3"       },
-    { "-selectborderwidth"  , "selectBorderWidth"  , "BorderWidth"        , "0"             },
-    { "-selectforeground"   , "selectForeground"   , "Background"         , "#000000"       },
-    { "-selectmode"         , "selectMode"         , "SelectMode"         , "browse"        },
-    { "-setgrid"            , "setGrid"            , "SetGrid"            , "0"             },
-    { "-state"              , "state"              , "State"              , "normal"        },
-    { "-takefocus"          , "takeFocus"          , "TakeFocus"          , ""              },
-    { "-width"              , "width"              , "Width"              , "20"            },
-    { "-xscrollcommand"     , "xScrollCommand"     , "ScrollCommand"      , ""              },
-    { "-yscrollcommand"     , "yScrollCommand"     , "ScrollCommand"      , ""              },
+  {              "-activestyle"        , "activeStyle"        , "ActiveStyle"        , "dotbox"  },
+  {              "-background"         , "background"         , "Background"         , "#ffffff" },
+  Opt::optInt   ("-borderwidth"        , "borderWidth"        , "BorderWidth"        , "1"       ),
+  Opt::optCursor("-cursor"             , "cursor"             , "Cursor"             , ""        ),
+  {              "-disabledforeground" , "disabledForeground" , "DisabledForeground" , "#a3a3a3" },
+  Opt::optBool  ("-exportselection"    , "exportSelection"    , "ExportSelection"    , "1"       ),
+  {              "-font"               , "font"               , "Font"               , "TkDefaultFont" },
+  {              "-foreground"         , "foreground"         , "Foreground"         , "#000000" },
+  {              "-height"             , "height"             , "Height"             , "10"      },
+  Opt::optColor ("-highlightbackground", "highlightBackground", "HighlightBackground", "#d9d9d9" ),
+  Opt::optColor ("-highlightcolor"     , "highlightColor"     , "HighlightColor"     , "#000000" ),
+  Opt::optInt   ("-highlightthickness" , "highlightThickness" , "HighlightThickness" , "0"       ),
+  {              "-justify"            , "justify"            , "Justify"            , "center"  },
+  {              "-listvariable"       , "listVariable"       , "Variable"           , ""        },
+  {              "-relief"             , "relief"             , "Relief"             , "sunken"  },
+  {              "-selectbackground"   , "selectBackground"   , "Foreground"         , "#c3c3c3" },
+  {              "-selectborderwidth"  , "selectBorderWidth"  , "BorderWidth"        , "0"       },
+  {              "-selectforeground"   , "selectForeground"   , "Background"         , "#000000" },
+  {              "-selectmode"         , "selectMode"         , "SelectMode"         , "browse"  },
+  {              "-setgrid"            , "setGrid"            , "SetGrid"            , "0"       },
+  {              "-state"              , "state"              , "State"              , "normal"  },
+  {              "-takefocus"          , "takeFocus"          , "TakeFocus"          , ""        },
+  {              "-width"              , "width"              , "Width"              , "20"      },
+  {              "-xscrollcommand"     , "xScrollCommand"     , "ScrollCommand"      , ""        },
+  {              "-yscrollcommand"     , "yScrollCommand"     , "ScrollCommand"      , ""        },
 
-    CTkAppOpt::optSynonym("-bd", "-borderwidth"),
-    CTkAppOpt::optSynonym("-bg", "-background" ),
-    CTkAppOpt::optSynonym("-fg", "-foreground" ),
+  Opt::optSynonym("-bd", "-borderwidth"),
+  Opt::optSynonym("-bg", "-background" ),
+  Opt::optSynonym("-fg", "-foreground" ),
 
-    CTkAppOpt::optEnd()
+  Opt::optEnd()
   };
 
   QVariant widgetName;
@@ -3353,42 +3356,42 @@ run(const Args &args)
   using Opt = CTkAppOpt;
 
   static Opt opts[] = {
-    { "-activebackground"   , "activeBackground"   , "Foreground"         , "#ececec"       },
-    { "-activeforeground"   , "activeForeground"   , "Background"         , "#000000"       },
-    { "-anchor"             , "anchor"             , "Anchor"             , "center"        },
-    { "-background"         , "background"         , "Background"         , "#ffffff"       },
-    { "-bitmap"             , "bitmap"             , "Bitmap"             , ""              },
-    { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "1"             },
-    { "-cursor"             , "cursor"             , "Cursor"             , ""              },
-    { "-direction"          , "direction"          , "Direction"          , ""              },
-    { "-disabledforeground" , "disabledForeground" , "DisabledForeground" , "#a3a3a3"       },
-    { "-font"               , "font"               , "Font"               , "TkDefaultFont" },
-    { "-foreground"         , "foreground"         , "Foreground"         , "#000000"       },
-    { "-height"             , "height"             , "Height"             , "10"            },
-    { "-highlightbackground", "highlightBackground", "HighlightBackground", "#d9d9d9"       },
-    { "-highlightcolor"     , "highlightColor"     , "HighlightColor"     , "#000000"       },
-    { "-highlightthickness" , "highlightThickness" , "HighlightThickness" , "1"             },
-    { "-image"              , "image"              , "Image"              , ""              },
-    Opt::optBool("-indicatoron", "indicatorOn", "IndicatorOn", "1"),
-    { "-justify"            , "justify"            , "Justify"            , "center"        },
-    { "-menu"               , "menu"               , "Menu"               , ""              },
-    { "-padx"               , "padX"               , "Pad"                , "1"             },
-    { "-pady"               , "padY"               , "Pad"                , "1"             },
-    { "-relief"             , "relief"             , "Relief"             , "sunken"        },
-    { "-compound"           , "compound"           , "Compound"           , "none"          },
-    { "-state"              , "state"              , "State"              , "normal"        },
-    { "-takefocus"          , "takeFocus"          , "TakeFocus"          , ""              },
-    { "-text"               , "text"               , "Text"               , ""              },
-    { "-textvariable"       , "textVariable"       , "Variable"           , ""              },
-    { "-underline"          , "underline"          , "Underline"          , "-1"            },
-    { "-width"              , "width"              , "Width"              , "20"            },
-    { "-wraplength"         , "wrapLength"         , "WrapLength"         , "0"             },
+  { "-activebackground"   , "activeBackground"   , "Foreground"         , "#ececec"       },
+  { "-activeforeground"   , "activeForeground"   , "Background"         , "#000000"       },
+  { "-anchor"             , "anchor"             , "Anchor"             , "center"        },
+  { "-background"         , "background"         , "Background"         , "#ffffff"       },
+  { "-bitmap"             , "bitmap"             , "Bitmap"             , ""              },
+  { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "1"             },
+  { "-cursor"             , "cursor"             , "Cursor"             , ""              },
+  { "-direction"          , "direction"          , "Direction"          , "below"         },
+  { "-disabledforeground" , "disabledForeground" , "DisabledForeground" , "#a3a3a3"       },
+  { "-font"               , "font"               , "Font"               , "TkDefaultFont" },
+  { "-foreground"         , "foreground"         , "Foreground"         , "#000000"       },
+  { "-height"             , "height"             , "Height"             , "10"            },
+  { "-highlightbackground", "highlightBackground", "HighlightBackground", "#d9d9d9"       },
+  { "-highlightcolor"     , "highlightColor"     , "HighlightColor"     , "#000000"       },
+  { "-highlightthickness" , "highlightThickness" , "HighlightThickness" , "0"             },
+  { "-image"              , "image"              , "Image"              , ""              },
+  Opt::optBool("-indicatoron", "indicatorOn", "IndicatorOn", "0"),
+  { "-justify"            , "justify"            , "Justify"            , "center"        },
+  { "-menu"               , "menu"               , "Menu"               , ""              },
+  { "-padx"               , "padX"               , "Pad"                , "4p"            },
+  { "-pady"               , "padY"               , "Pad"                , "3p"            },
+  { "-relief"             , "relief"             , "Relief"             , "flat"          },
+  { "-compound"           , "compound"           , "Compound"           , "none"          },
+  { "-state"              , "state"              , "State"              , "normal"        },
+  { "-takefocus"          , "takeFocus"          , "TakeFocus"          , ""              },
+  { "-text"               , "text"               , "Text"               , ""              },
+  { "-textvariable"       , "textVariable"       , "Variable"           , ""              },
+  { "-underline"          , "underline"          , "Underline"          , "-1"            },
+  { "-width"              , "width"              , "Width"              , "0"             },
+  { "-wraplength"         , "wrapLength"         , "WrapLength"         , "0"             },
 
-    Opt::optSynonym("-bd", "-borderwidth"),
-    Opt::optSynonym("-bg", "-background" ),
-    Opt::optSynonym("-fg", "-foreground" ),
+  Opt::optSynonym("-bd", "-borderwidth"),
+  Opt::optSynonym("-bg", "-background" ),
+  Opt::optSynonym("-fg", "-foreground" ),
 
-    Opt::optEnd()
+  Opt::optEnd()
   };
 
   QVariant widgetName;
@@ -4866,59 +4869,61 @@ run(const Args &args)
 {
   tk_->debugCmd(name_, args);
 
+  using Opt = CTkAppOpt;
+
   static CTkAppOpt opts[] = {
-    { "-activebackground"   , "activeBackground"   , "Background"         , "#ececec"    },
-    { "-background"         , "background"         , "Background"         , "#ffffff"    },
-    { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "1"          },
-    { "-buttonbackground"   , "Button.background"  , "Background"         , "#d9d9d9"    },
-    { "-buttoncursor"       , "Button.cursor"      , "Cursor"             , ""           },
-    { "-buttondownrelief"   , "Button.relief"      , "Relief"             , "raised"     },
-    { "-buttonuprelief"     , "Button.relief"      , "Relief"             , "raised"     },
-    { "-command"            , "command"            , "Command"            , ""           },
-    { "-cursor"             , "cursor"             , "Cursor"             , "xterm"      },
-    { "-disabledbackground" , "disabledBackground" , "DisabledBackground" , "#d9d9d9"    },
-    { "-disabledforeground" , "disabledForeground" , "DisabledForeground" , "#a3a3a3"    },
-    { "-exportselection"    , "exportSelection"    , "ExportSelection"    , "1"          },
-    { "-font"               , "font"               , "Font"               , "TkTextFont" },
-    { "-foreground"         , "foreground"         , "Foreground"         , "#000000"    },
-    { "-format"             , "format"             , "Format"             , ""           },
-    { "-from"               , "from"               , "From"               , "0"          },
-    { "-highlightbackground", "highlightBackground", "HighlightBackground", "#d9d9d9"    },
-    { "-highlightcolor"     , "highlightColor"     , "HighlightColor"     , "#000000"    },
-    { "-highlightthickness" , "highlightThickness" , "HighlightThickness" , "1"          },
-    { "-increment"          , "increment"          , "Increment"          , "1"          },
-    { "-insertbackground"   , "insertBackground"   , "Foreground"         , "#000000"    },
-    { "-insertborderwidth"  , "insertBorderWidth"  , "BorderWidth"        , "0"          },
-    { "-insertofftime"      , "insertOffTime"      , "OffTime"            , "300"        },
-    { "-insertontime"       , "insertOnTime"       , "OnTime"             , "600"        },
-    { "-insertwidth"        , "insertWidth"        , "InsertWidth"        , "2"          },
-    { "-invalidcommand"     , "invalidCommand"     , "InvalidCommand"     , ""           },
-    { "-justify"            , "justify"            , "Justify"            , "left"       },
-    { "-relief"             , "relief"             , "Relief"             , "sunken"     },
-    { "-readonlybackground" , "readonlyBackground" , "ReadonlyBackground" , "#d9d9d9"    },
-    { "-repeatdelay"        , "repeatDelay"        , "RepeatDelay"        , "400"        },
-    { "-repeatinterval"     , "repeatInterval"     , "RepeatInterval"     , "100"        },
-    { "-selectbackground"   , "selectBackground"   , "Foreground"         , "#c3c3c3"    },
-    { "-selectborderwidth"  , "selectBorderWidth"  , "BorderWidth"        , "0"          },
-    { "-selectforeground"   , "selectForeground"   , "Background"         , "#000000"    },
-    { "-state"              , "state"              , "State"              , "normal"     },
-    { "-takefocus"          , "takeFocus"          , "TakeFocus"          , ""           },
-    { "-textvariable"       , "textVariable"       , "Variable"           , ""           },
-    { "-to"                 , "to"                 , "To"                 , "0"          },
-    { "-validate"           , "validate"           , "Validate"           , "none"       },
-    { "-validatecommand"    , "validateCommand"    , "ValidateCommand"    , ""           },
-    { "-values"             , "values"             , "Values"             , ""           },
-    { "-width"              , "width"              , "Width"              , "20"         },
-    { "-wrap"               , "wrap"               , "Wrap"               , "0"          },
-    { "-xscrollcommand"     , "xScrollCommand"     , "ScrollCommand"      , ""           },
+  Opt::optColor( "-activebackground"   , "activeBackground"   , "Background"         , "#ececec"),
+  Opt::optColor( "-background"         , "background"         , "Background"         , "#ffffff"),
+  { "-borderwidth"        , "borderWidth"        , "BorderWidth"        , "1"          },
+  Opt::optColor( "-buttonbackground"   , "Button.background"  , "Background"         , "#d9d9d9"),
+  Opt::optCursor("-buttoncursor"       , "Button.cursor"      , "Cursor"             , ""),
+  { "-buttondownrelief"   , "Button.relief"      , "Relief"             , "raised"     },
+  { "-buttonuprelief"     , "Button.relief"      , "Relief"             , "raised"     },
+  { "-command"            , "command"            , "Command"            , ""           },
+  { "-cursor"             , "cursor"             , "Cursor"             , "xterm"      },
+  Opt::optColor( "-disabledbackground" , "disabledBackground" , "DisabledBackground" , "#d9d9d9"),
+  Opt::optColor( "-disabledforeground" , "disabledForeground" , "DisabledForeground" , "#a3a3a3"),
+  { "-exportselection"    , "exportSelection"    , "ExportSelection"    , "1"          },
+  Opt::optFont( "-font"             , "font"               , "Font"               , "TkTextFont"),
+  { "-foreground"         , "foreground"         , "Foreground"         , "#000000"    },
+  { "-format"             , "format"             , "Format"             , ""           },
+  { "-from"               , "from"               , "From"               , "0"          },
+  Opt::optColor( "-highlightbackground", "highlightBackground", "HighlightBackground", "#d9d9d9"),
+  Opt::optColor( "-highlightcolor"     , "highlightColor"     , "HighlightColor"     , "#000000"),
+  { "-highlightthickness" , "highlightThickness" , "HighlightThickness" , "1"          },
+  { "-increment"          , "increment"          , "Increment"          , "1"          },
+  Opt::optColor( "-insertbackground"   , "insertBackground"   , "Foreground"         , "#000000"),
+  { "-insertborderwidth"  , "insertBorderWidth"  , "BorderWidth"        , "0"          },
+  { "-insertofftime"      , "insertOffTime"      , "OffTime"            , "300"        },
+  { "-insertontime"       , "insertOnTime"       , "OnTime"             , "600"        },
+  { "-insertwidth"        , "insertWidth"        , "InsertWidth"        , "2"          },
+  { "-invalidcommand"     , "invalidCommand"     , "InvalidCommand"     , ""           },
+  { "-justify"            , "justify"            , "Justify"            , "left"       },
+  { "-relief"             , "relief"             , "Relief"             , "sunken"     },
+  Opt::optColor( "-readonlybackground" , "readonlyBackground" , "ReadonlyBackground" , "#d9d9d9"),
+  { "-repeatdelay"        , "repeatDelay"        , "RepeatDelay"        , "400"        },
+  { "-repeatinterval"     , "repeatInterval"     , "RepeatInterval"     , "100"        },
+  Opt::optColor( "-selectbackground"   , "selectBackground"   , "Foreground"         , "#c3c3c3"),
+  { "-selectborderwidth"  , "selectBorderWidth"  , "BorderWidth"        , "0"          },
+  Opt::optColor( "-selectforeground"   , "selectForeground"   , "Background"         , "#000000"),
+  { "-state"              , "state"              , "State"              , "normal"     },
+  { "-takefocus"          , "takeFocus"          , "TakeFocus"          , ""           },
+  { "-textvariable"       , "textVariable"       , "Variable"           , ""           },
+  { "-to"                 , "to"                 , "To"                 , "0"          },
+  { "-validate"           , "validate"           , "Validate"           , "none"       },
+  { "-validatecommand"    , "validateCommand"    , "ValidateCommand"    , ""           },
+  { "-values"             , "values"             , "Values"             , ""           },
+  { "-width"              , "width"              , "Width"              , "20"         },
+  { "-wrap"               , "wrap"               , "Wrap"               , "0"          },
+  { "-xscrollcommand"     , "xScrollCommand"     , "ScrollCommand"      , ""           },
 
-    CTkAppOpt::optSynonym("bd"     , "-borderwidth"    ),
-    CTkAppOpt::optSynonym("-bg"    , "-background"     ),
-    CTkAppOpt::optSynonym("-fg"    , "-foreground"     ),
-    CTkAppOpt::optSynonym("-invcmd", "-invalidcommand" ),
-    CTkAppOpt::optSynonym("-vcmd"  , "-validatecommand"),
+  CTkAppOpt::optSynonym("-bd"    , "-borderwidth"    ),
+  CTkAppOpt::optSynonym("-bg"    , "-background"     ),
+  CTkAppOpt::optSynonym("-fg"    , "-foreground"     ),
+  CTkAppOpt::optSynonym("-invcmd", "-invalidcommand" ),
+  CTkAppOpt::optSynonym("-vcmd"  , "-validatecommand"),
 
-    CTkAppOpt::optEnd()
+  CTkAppOpt::optEnd()
   };
 
   QVariant widgetName;
@@ -6086,10 +6091,13 @@ run(const Args &args)
 {
   tk_->debugCmd(name_, args);
 
+  tk_->showToplevels();
+
   uint numArgs = args.size();
 
-  if      (numArgs == 0)
+  if      (numArgs == 0) {
     tk_->processEvents();
+  }
   else if (numArgs == 1) {
     static auto optionNames = std::vector<QString>({
       "idletasks"});
@@ -7219,7 +7227,9 @@ run(const Args &args)
     if (! w->isTopLevel())
       return tk_->throwError(tk_->msg() + "window \"" + args[1] + "\" isn't a top-level window");
 
-    auto *toplevel = w->toplevel();
+    auto *toplevel = dynamic_cast<CTkAppWidgetRoot *>(w);
+//  auto *toplevel = w->toplevel();
+    if (! toplevel) return false;
 
     auto itoplevel = toplevel->iconWindowP();
 
@@ -7602,7 +7612,7 @@ setOptValue(const QString &name, const QVariant &value)
   if (! opts_.setOptValue(name, value, &opt))
     return false;
 
-  if (! root()->execConfig(opt->name, value))
+  if (! root()->execConfig(opt->name(), value))
     return false;
 
   return true;

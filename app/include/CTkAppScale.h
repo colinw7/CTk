@@ -20,6 +20,14 @@ class CTkAppScale : public CTkAppWidget {
   const QColor &troughColor() const { return troughColor_; }
   void setTroughColor(const QColor &c) { troughColor_ = c; }
 
+  double sliderLength() const { return sliderLength_; }
+  void setSliderLength(double r) { sliderLength_ = r; }
+
+  const Relief &sliderRelief() const { return sliderRelief_; }
+  void setSliderRelief(const Relief &v) { sliderRelief_ = v; }
+
+  //---
+
   bool execConfig(const QString &name, const QVariant &value) override;
 
   bool execOp(const Args &args) override;
@@ -39,6 +47,8 @@ class CTkAppScale : public CTkAppWidget {
 
   void updateSize();
 
+  void runValueCommand();
+
  private Q_SLOTS:
   void valueSlot(double);
 
@@ -50,6 +60,8 @@ class CTkAppScale : public CTkAppWidget {
   int                 length_  { 0 };
   int                 width_   { 0 };
   QColor              troughColor_;
+  double              sliderLength_ { -1 };
+  Relief              sliderRelief_ { Relief::NONE };
 };
 
 #endif

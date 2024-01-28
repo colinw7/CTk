@@ -35,6 +35,8 @@ CTkAppScale(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
 {
   qscale_ = new CQRealSlider(parent ? parent->getQWidget() : nullptr);
 
+  qscale_->setRange(0, 100);
+
   qscale_->setValuePosition(CQSliderBase::ValuePosition::NONE);
 
   setQWidget(qscale_);
@@ -72,6 +74,7 @@ execConfig(const QString &name, const QVariant &var)
     if (! tk_->getOptionInt(name, var, n))
       return tk_->invalidInteger(var);
 
+    // TODO: <= 0 then auto precision
     qscale_->setPrecision(n);
   }
   else if (name == "-from") {
@@ -131,7 +134,7 @@ execConfig(const QString &name, const QVariant &var)
     if (! tk_->variantToDistanceI(var, w))
       return tk_->invalidDistance(var);
 
-    tk_->TODO(name);
+    setSliderLength(w.rvalue);
   }
   else if (name == "-sliderrelief") {
     Relief relief { Relief::NONE };
@@ -139,7 +142,7 @@ execConfig(const QString &name, const QVariant &var)
       return tk_->throwError(tk_->msg() + "bad relief \"" + var + "\": must be "
                              "flat, groove, raised, ridge, solid, or sunken");
 
-    tk_->TODO(name);
+    setSliderRelief(relief);
   }
   else if (name == "-state") {
     auto value = tk_->variantToString(var);
@@ -281,7 +284,13 @@ execOp(const Args &args)
       if (! tk_->variantToReal(args[1], value))
         return tk_->invalidReal(args[1]);
 
-      qscale_->setValue(value);
+      if (qscale_->isEnabled()) {
+        qscale_->setValue(value);
+
+        updateToVar();
+
+        runValueCommand();
+      }
     }
     else
       return tk_->wrongNumArgs(getFullName() + " set value");
@@ -306,13 +315,20 @@ updateSize()
 
 void
 CTkAppScale::
-valueSlot(double value)
+valueSlot(double)
 {
   updateToVar();
 
+  runValueCommand();
+}
+
+void
+CTkAppScale::
+runValueCommand()
+{
   Args args;
 
-  args.push_back(QString::number(value));
+  args.push_back(QString::number(qscale_->value()));
 
   runCommand(args);
 }
@@ -338,7 +354,7 @@ updateToVar()
     if (varProc_)
       varProc_->setEnabled(false);
 
-    tk_->setIntegerGlobalVar(varName(), qscale_->value());
+    tk_->setRealGlobalVar(varName(), qscale_->value());
 
     if (varProc_)
       varProc_->setEnabled(true);

@@ -78,17 +78,18 @@ class CTclApp {
 
   bool hasResult() const { return resultSet_; }
 
-  void setIntegerResult(int value);
+  void setIntegerResult(long value);
   void setRealResult   (double value);
   void setStringResult (const QString &value);
   void setBytesResult  (const QByteArray &value);
   void setBoolResult   (bool b);
+  void setColorResult  (const QColor &c);
   void setResult       (const QVariant &var);
 
-  void setIntegerArrayResult(int *values, int num_values);
-  void setIntegerArrayResult(const std::vector<int> &values);
-  void setIntegerArrayResult(std::initializer_list<int> l);
-  void setRealArrayResult   (double *values, int num_values);
+  void setIntegerArrayResult(long *values, uint num_values);
+  void setIntegerArrayResult(const std::vector<long> &values);
+  void setIntegerArrayResult(std::initializer_list<long> l);
+  void setRealArrayResult   (double *values, uint num_values);
   void setRealArrayResult   (const std::vector<double> &values);
   void setStringArrayResult (const std::vector<QString> &strs);
   void setVariantArrayResult(const std::vector<QVariant> &vars);
@@ -102,7 +103,7 @@ class CTclApp {
 
   //---
 
-  void setIntegerGlobalVar(const QString &name, int value);
+  void setIntegerGlobalVar(const QString &name, long value);
   void setRealGlobalVar   (const QString &name, double value);
   void setBoolGlobalVar   (const QString &name, bool value);
   void setStringGlobalVar (const QString &name, const QString &value);
@@ -112,10 +113,10 @@ class CTclApp {
   void setLocalVar      (const QString &name, const QVariant &var);
 
   void setStringArrayGlobalVar (const QString &name, const std::vector<QString> &strs);
-  void setIntegerArrayGlobalVar(const QString &name, const std::vector<int> &strs);
+  void setIntegerArrayGlobalVar(const QString &name, const std::vector<long> &values);
 
   void setStringArrayLocalVar (const QString &name, const std::vector<QString> &strs);
-  void setIntegerArrayLocalVar(const QString &name, const std::vector<int> &strs);
+  void setIntegerArrayLocalVar(const QString &name, const std::vector<long> &values);
 
   //---
 

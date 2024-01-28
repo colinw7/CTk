@@ -384,6 +384,7 @@ class CTkApp : public QObject, public CTclApp {
   bool invalidDistance(const QVariant &var) const;
   bool invalidQColor  (const QVariant &var) const;
   bool invalidQColor1 (const QVariant &var) const;
+  bool invalidCursor  (const QVariant &var) const;
   bool unknownOption  (const QVariant &var) const;
 
   bool throwError(const Msg &msg) const;

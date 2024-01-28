@@ -5,7 +5,7 @@
 
 class CTkAppRootWidget;
 
-class CTkAppRoot : public CTkAppWidget {
+class CTkAppRoot : public CTkAppWidgetRoot {
   Q_OBJECT
 
  public:
@@ -16,13 +16,6 @@ class CTkAppRoot : public CTkAppWidget {
   const char *getClassName() const override { return "Root"; }
 
   bool isRoot() const override { return true; }
-  bool isTopLevel() const override { return true; }
-
-  bool isNeedsShow() const { return needsShow_; }
-  void setNeedsShow(bool b) override { needsShow_ = b; }
-
-  const QString &menuName() const { return menuName_; }
-  void setMenuName(const QString &s) { menuName_ = s; }
 
   bool show() override;
 

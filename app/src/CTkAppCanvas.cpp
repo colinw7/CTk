@@ -298,8 +298,8 @@ execOp(const Args &args)
     }
 
     if (! bbox.isNull())
-      tk_->setIntegerArrayResult({{ int(bbox.left()), int(bbox.top()),
-                                    int(bbox.right()), int(bbox.bottom()) }});
+      tk_->setIntegerArrayResult({{ long(bbox.left()), long(bbox.top()),
+                                    long(bbox.right()), long(bbox.bottom()) }});
   }
   else if (option == "bind") {
     if (numArgs < 2 || numArgs > 4)
@@ -921,7 +921,7 @@ execOp(const Args &args)
   }
   else if (option == "find") {
     auto setShapesResult = [&](const CTkAppCanvasWidget::Shapes &shapes) {
-      std::vector<int> ids;
+      std::vector<long> ids;
       for (auto *shape : shapes)
         ids.push_back(shape->id());
 

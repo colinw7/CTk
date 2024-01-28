@@ -53,7 +53,7 @@ deleteCommand()
 
 void
 CTclAppCommand::
-setIntegerResult(int value)
+setIntegerResult(long value)
 {
   app_->setIntegerResult(value);
 }
@@ -88,21 +88,21 @@ setResult(const QVariant &var)
 
 void
 CTclAppCommand::
-setIntegerArrayResult(int *values, int num_values)
+setIntegerArrayResult(long *values, uint num_values)
 {
   app_->setIntegerArrayResult(values, num_values);
 }
 
 void
 CTclAppCommand::
-setIntegerArrayResult(const std::vector<int> &values)
+setIntegerArrayResult(const std::vector<long> &values)
 {
   app_->setIntegerArrayResult(values);
 }
 
 void
 CTclAppCommand::
-setRealArrayResult(double *values, int num_values)
+setRealArrayResult(double *values, uint num_values)
 {
   app_->setRealArrayResult(values, num_values);
 }
@@ -125,7 +125,7 @@ setStringArrayResult(const std::vector<QString> &values)
 
 void
 CTclAppCommand::
-setIntegerVar(const QString &name, int value)
+setIntegerVar(const QString &name, long value)
 {
   app_->setIntegerGlobalVar(name, value);
 }

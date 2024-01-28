@@ -490,7 +490,7 @@ execOp(const Args &args)
       if (numArgs == 3 || numArgs == 4) {
         auto mark = tk_->variantToString(args[2]);
 
-        if (numArgs == 2) {
+        if (numArgs == 3) {
           QString gravity;
           if (! getMarkGravity(mark, gravity))
             return tk_->throwError("there is no mark named \"" + mark + "\"");
@@ -674,7 +674,7 @@ execOp(const Args &args)
     setCurrentInd(startInd);
 
     std::vector<QString> startInds;
-    std::vector<int>     counts;
+    std::vector<long>    counts;
 
     while (true) {
       bool rc;
@@ -968,7 +968,7 @@ execOp(const Args &args)
     }
   }
   else if (option == "window") {
-    if (numArgs < 1)
+    if (numArgs < 2)
       return tk_->wrongNumArgs(getFullName() + " window option ?arg ...?");
 
     auto opt = tk_->variantToString(args[1]);

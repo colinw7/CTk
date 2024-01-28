@@ -14,10 +14,10 @@ const CTkAppOpt *
 CTkAppOptData::
 opt(const QString &name) const
 {
-  for (uint i = 0; opts_[i].name != nullptr; ++i) {
+  for (uint i = 0; ! opts_[i].isEOF(); ++i) {
     const auto &opt = opts_[i];
 
-    if (opt.name == name)
+    if (opt.name() == name)
       return &opt;
   }
 
@@ -30,19 +30,19 @@ getOptsVar() const
 {
   std::map<QString, QVariant> vars;
 
-  for (uint i = 0; opts_[i].name != nullptr; ++i) {
+  for (uint i = 0; ! opts_[i].isEOF(); ++i) {
     const auto &opt = opts_[i];
 
     QVariantList vars1;
 
-    vars1.push_back(opt.name);
-    vars1.push_back(opt.dname);
+    vars1.push_back(opt.name());
+    vars1.push_back(opt.dname());
 
     if (! opt.isAlias()) {
-      vars1.push_back(opt.cname);
-      vars1.push_back(opt.def);
+      vars1.push_back(opt.cname());
+      vars1.push_back(opt.def());
 
-      auto p = values_.find(opt.name);
+      auto p = values_.find(opt.name());
 
       if (p != values_.end()) {
         auto s = (*p).second.getString();
@@ -50,10 +50,10 @@ getOptsVar() const
         vars1.push_back(s);
       }
       else
-        vars1.push_back(opt.def);
+        vars1.push_back(opt.def());
     }
 
-    vars[opt.name] = vars1;
+    vars[opt.name()] = vars1;
   }
 
   QVariantList vars1;
@@ -74,20 +74,20 @@ getOptVar(const QString &name, QVariant &var) const
 
   QVariantList vars;
 
-  for (uint i = 0; opts_[i].name != nullptr; ++i) {
+  for (uint i = 0; ! opts_[i].isEOF(); ++i) {
     const auto &opt = opts_[i];
 
-    auto optName = QString(opt.name);
+    auto optName = QString(opt.name());
     if (optName != name1) continue;
 
     if (opt.isAlias())
-      return getOptVar(opt.dname, var);
+      return getOptVar(opt.dname(), var);
 
-    vars.push_back(opt.name);
-    vars.push_back(opt.dname);
+    vars.push_back(opt.name());
+    vars.push_back(opt.dname());
 
-    vars.push_back(opt.cname);
-    vars.push_back(opt.def);
+    vars.push_back(opt.cname());
+    vars.push_back(opt.def());
 
     auto p = values_.find(optName);
 
@@ -97,7 +97,7 @@ getOptVar(const QString &name, QVariant &var) const
       vars.push_back(s);
     }
     else
-      vars.push_back(opt.def);
+      vars.push_back(opt.def());
 
     var = QVariant(vars);
 
@@ -111,13 +111,13 @@ void
 CTkAppOptData::
 getNames(std::vector<QString> &names, bool alias) const
 {
-  for (uint i = 0; opts_[i].name != nullptr; ++i) {
+  for (uint i = 0; ! opts_[i].isEOF(); ++i) {
     const auto &opt = opts_[i];
 
     if (! alias && opt.isAlias())
       continue;
 
-    auto optName = QString(opt.name);
+    auto optName = QString(opt.name());
 
     names.push_back(optName);
   }
@@ -131,21 +131,21 @@ getOptValue(const QString &name, QVariant &value) const
   if (! lookupName(name, name1))
     return false;
 
-  for (uint i = 0; opts_[i].name != nullptr; ++i) {
+  for (uint i = 0; ! opts_[i].isEOF(); ++i) {
     const auto &opt = opts_[i];
 
-    auto optName = QString(opt.name);
+    auto optName = QString(opt.name());
     if (optName != name1) continue;
 
     if (opt.isAlias())
-      return getOptValue(opt.dname, value);
+      return getOptValue(opt.dname(), value);
 
     auto p = values_.find(name1);
 
     if (p != values_.end())
       value = (*p).second.getValue();
     else
-      value = QString(opt.def);
+      value = QString(opt.def());
 
     return true;
   }
@@ -157,9 +157,9 @@ bool
 CTkAppOptData::
 getOptValue(const CTkAppOpt *opt, QVariant &value) const
 {
-  auto optName = QString(opt->name);
+  auto optName = QString(opt->name());
 
-  auto p = values_.find(opt->name);
+  auto p = values_.find(opt->name());
 
   if (p != values_.end()) {
     value = (*p).second.getValue();
@@ -173,20 +173,20 @@ bool
 CTkAppOptData::
 getDefValue(const QString &optName, const QString &optClass, QVariant &value) const
 {
-  for (uint i = 0; opts_[i].name != nullptr; ++i) {
+  for (uint i = 0; ! opts_[i].isEOF(); ++i) {
     const auto &opt = opts_[i];
 
-    if (opt.dname == optName.toStdString()) {
-      value = QString(opt.def);
+    if (opt.dname() == optName.toStdString()) {
+      value = QString(opt.def());
       return true;
     }
   }
 
-  for (uint i = 0; opts_[i].name != nullptr; ++i) {
+  for (uint i = 0; ! opts_[i].isEOF(); ++i) {
     const auto &opt = opts_[i];
 
-    if (! opt.isAlias() && opt.cname == optClass.toStdString()) {
-      value = QString(opt.def);
+    if (! opt.isAlias() && opt.cname() == optClass.toStdString()) {
+      value = QString(opt.def());
       return true;
     }
   }
@@ -203,13 +203,13 @@ setOptValue(const QString &name, const QVariant &value, const CTkAppOpt **opt)
     return false;
 
   // exact match
-  for (uint i = 0; opts_[i].name != nullptr; ++i) {
+  for (uint i = 0; ! opts_[i].isEOF(); ++i) {
     const auto &opt1 = opts_[i];
 
-    if (opt1.name != name1) continue;
+    if (opt1.name() != name1) continue;
 
     if (opt1.isAlias())
-      return setOptValue(opt1.dname, value, opt);
+      return setOptValue(opt1.dname(), value, opt);
 
     *opt = &opt1;
 
@@ -219,12 +219,12 @@ setOptValue(const QString &name, const QVariant &value, const CTkAppOpt **opt)
       pv = values_.emplace_hint(values_.end(), name1, CTkAppOptionValue());
 
     if (value.type() == QVariant::String) {
-      if      (opt1.type == QVariant::Int) {
+      if      (opt1.type() == QVariant::Int) {
         long i;
         if (CTkAppUtil::stringToInt(value.toString(), i))
           (*pv).second.setInteger(i);
       }
-      else if (opt1.type == QVariant::Bool) {
+      else if (opt1.type() == QVariant::Bool) {
         bool b;
         if (CTkAppUtil::stringToBool(value.toString(), b))
           (*pv).second.setBool(b);
@@ -241,10 +241,10 @@ setOptValue(const QString &name, const QVariant &value, const CTkAppOpt **opt)
   // abbrev
   *opt = nullptr;
 
-  for (uint i = 0; opts_[i].name != nullptr; ++i) {
+  for (uint i = 0; ! opts_[i].isEOF(); ++i) {
     const auto &opt1 = opts_[i];
 
-    auto pos = QString(opt1.name).indexOf(name1);
+    auto pos = QString(opt1.name()).indexOf(name1);
     if (pos != 0) continue;
 
     if (opt)
@@ -266,10 +266,10 @@ CTkAppOptData::
 lookupName(const QString &name, QString &name1) const
 {
   if (names_.empty()) {
-    for (uint i = 0; opts_[i].name != nullptr; ++i) {
+    for (uint i = 0; ! opts_[i].isEOF(); ++i) {
       const auto &opt = opts_[i];
 
-      names_.push_back(opt.name);
+      names_.push_back(opt.name());
     }
   }
 

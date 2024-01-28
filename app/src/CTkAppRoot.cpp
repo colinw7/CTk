@@ -8,7 +8,7 @@
 
 CTkAppRoot::
 CTkAppRoot(CTkApp *tk) :
- CTkAppWidget(tk, nullptr, "")
+ CTkAppWidgetRoot(tk, nullptr, "")
 {
   qroot_ = new CTkAppRootWidget(this);
 
@@ -52,16 +52,18 @@ execConfig(const QString &name, const QVariant &var)
   if      (name == "-menu") {
     auto name = tk_->variantToString(var);
 
+    // may be created later
     auto *w = tk_->lookupWidgetByName(name, /*quiet*/true);
-    if (! w) return false;
 
-    auto *menu = dynamic_cast<CTkAppMenu *>(w);
-    if (! menu) return false;
+    if (w) {
+      auto *menu = dynamic_cast<CTkAppMenu *>(w);
+      if (! menu) return false;
 
-    auto *rootWidget = qobject_cast<CTkAppRootWidget *>(qroot_);
-    if (! rootWidget) return false;
+      auto *rootWidget = qobject_cast<CTkAppRootWidget *>(qroot_);
+      if (! rootWidget) return false;
 
-    rootWidget->setMenu(menu->qmenu());
+      rootWidget->setMenu(menu->qmenu());
+    }
 
     setMenuName(name);
   }

@@ -13,6 +13,7 @@ class CQSpinList : public QSpinBox {
  public:
   enum class Mode {
     INTEGER,
+    REAL,
     STRINGS
   };
 
@@ -25,6 +26,16 @@ class CQSpinList : public QSpinBox {
   const QStringList &strings() const { return strings_; }
   void setStrings(const QStringList &s);
 
+  double rmin() const { return rmin_; }
+  void setRMin(double r) { rmin_ = r; }
+
+  double rmax() const { return rmax_; }
+  void setRMax(double r) { rmax_ = r; }
+
+  double rstep() const { return rstep_; }
+  void setRStep(double r) { rstep_ = r; }
+
+  QString getText() const;
   void setText(const QString &text);
 
   void setValidator(QValidator *validator);
@@ -47,8 +58,11 @@ class CQSpinList : public QSpinBox {
   void fixup(QString &input) const override;
 
  private:
+  Mode        mode_  { Mode::INTEGER };
   QStringList strings_;
-  Mode        mode_ { Mode::INTEGER };
+  double      rmin_  { 0 };
+  double      rmax_  { 100 };
+  double      rstep_ { 100 };
 };
 
 #endif

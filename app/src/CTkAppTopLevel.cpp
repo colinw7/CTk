@@ -3,7 +3,7 @@
 
 CTkAppTopLevel::
 CTkAppTopLevel(CTkApp *tk, CTkAppWidget *parent, const QString &name) :
- CTkAppWidget(tk, parent, name)
+ CTkAppWidgetRoot(tk, parent, name)
 {
   qtoplevel_ = new CTkAppTopLevelWidget(this);
 

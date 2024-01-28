@@ -208,7 +208,10 @@ loadXBM(const QString &, const std::string &data)
 
   for (int y = 0; y < height_; ++y) {
     for (int x = 0; x < width_; ++x) {
-      auto ic = image.getColorIndex(x, y);
+      int ic = 0;
+
+      if (x < int(image.getWidth()) && y < int(image.getHeight()))
+        ic = image.getColorIndex(x, y);
 
       qimage_.setPixelColor(x, y, (ic == 0 ? Qt::black : Qt::white));
     }
@@ -240,7 +243,10 @@ loadMaskXBM(const QString &, const std::string &data)
 
   for (int y = 0; y < maskHeight_; ++y) {
     for (int x = 0; x < maskWidth_; ++x) {
-      auto ic = image.getColorIndex(x, y);
+      int ic = 0;
+
+      if (x < int(image.getWidth()) && y < int(image.getHeight()))
+        ic = image.getColorIndex(x, y);
 
       maskQImage_.setPixelColor(x, y, (ic == 0 ? Qt::black : Qt::white));
     }

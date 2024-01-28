@@ -16,7 +16,7 @@ class CTkAppMenuButton : public CTkAppWidget {
  public:
   explicit CTkAppMenuButton(CTkApp *tk, CTkAppWidget *parent=nullptr, const QString &name="");
 
-  const char *getClassName() const override { return "MenuButton"; }
+  const char *getClassName() const override { return "Menubutton"; }
 
   bool execConfig(const QString &name, const QVariant &value) override;
 
@@ -32,6 +32,14 @@ class CTkAppMenuButton : public CTkAppWidget {
 
   bool isShowIndicator() const { return showIndicator_; }
   void setShowIndicator(bool b) { showIndicator_ = b; }
+
+  double userWidth() const { return userWidth_; }
+  void setUserWidth(double r) { userWidth_ = r; }
+
+  double wrapLength() const { return wrapLength_; }
+  void setWrapLength(double r) { wrapLength_ = r; }
+
+  //---
 
   //---
 
@@ -57,6 +65,8 @@ class CTkAppMenuButton : public CTkAppWidget {
   QString                  varName_;
   CTkAppMenuButtonVarProc* varProc_ { nullptr };
   bool                     showIndicator_ { true };
+  double                   userWidth_ { -1 };
+  double                   wrapLength_ { -1 };
 };
 
 //---

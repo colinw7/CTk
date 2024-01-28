@@ -102,7 +102,7 @@ setOptValue(const QString &name, const QVariant &value)
   if (! opts_.setOptValue(name, value, &opt))
     return getTk()->unknownOption(name);
 
-  if (! w_->execConfig(opt->name, value))
+  if (! w_->execConfig(opt->name(), value))
     return false;
 
   return true;

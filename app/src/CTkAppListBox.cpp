@@ -20,6 +20,31 @@ class CTkAppListBoxVarProc : public CTclTraceProc {
   ListBoxP listBox_;
 };
 
+class CTkAppListItem : public QListWidgetItem {
+ public:
+  CTkAppListItem(const QString &str) :
+   QListWidgetItem(str) {
+  }
+
+  const QColor &background() const { return bg_; }
+  void setBackground(const QColor &c) { bg_ = c; }
+
+  const QColor &foreground() const { return fg_; }
+  void setForeground(const QColor &c) { fg_ = c; }
+
+  const QColor &selectBackground() const { return selectBg_; }
+  void setSelectBackground(const QColor &c) { selectBg_ = c; }
+
+  const QColor &selectForeground() const { return selectFg_; }
+  void setSelectForeground(const QColor &c) { selectFg_ = c; }
+
+ private:
+  QColor bg_;
+  QColor fg_;
+  QColor selectBg_;
+  QColor selectFg_;
+};
+
 //---
 
 CTkAppListBox::
@@ -151,60 +176,110 @@ execOp(const Args &args)
     END
   };
 
-  auto varToIndex = [&](const QVariant &var, int &ind, IndexPosition pos=IndexPosition::NONE,
-                        bool rangeCheck=true) {
+  struct IndexData {
+    int           ind        { -1 };
+    long          x          { -1 };
+    long          y          { -1 };
+    bool          isEnd      { false };
+    bool          isPos      { false };
+    IndexPosition pos        { IndexPosition::NONE };
+    bool          rangeCheck { true };
+  };
+
+  auto varToIndexData = [&](const QVariant &var, IndexData &indexData) {
     auto str = tk_->variantToString(var);
 
-    ind = -1;
+    if (str == "") {
+      indexData.ind = -1;
+      return true;
+    }
+
+    indexData.ind   = -1;
+    indexData.x     = -1;
+    indexData.y     = -1;
+    indexData.isEnd = false;
+    indexData.isPos = false;
 
     if (str == "active") {
-      ind = activeIndex();
+      indexData.ind = activeIndex();
       return true;
     }
 
     if (str == "anchor") {
-      ind = selectionIndex();
+      indexData.ind = selectionIndex();
       return true;
     }
 
     if (str == "end") {
-      if (rangeCheck && pos != IndexPosition::END) {
+      if (indexData.rangeCheck && indexData.pos != IndexPosition::END) {
         if (qlist_->count() == 0)
           return false;
       }
 
-      ind = qlist_->count() - 1;
+      indexData.ind   = qlist_->count() - 1;
+      indexData.isEnd = true;
 
       return true;
     }
 
     if (str.length() > 1 && str[0] == '@') {
-      return false; // @x, y
+      auto strs = str.mid(1).split(",");
+      if (strs.size() != 2) return false;
+
+      long x, y;
+      if (! CTkAppUtil::stringToInt(strs[0], x))
+        return false;
+      if (! CTkAppUtil::stringToInt(strs[1], y))
+        return false;
+
+      indexData.x = x;
+      indexData.y = y;
+
+      indexData.isPos = true;
+
+      return true;
     }
 
     long i;
     if (! CTkAppUtil::stringToInt(str, i))
       return false;
 
-    if (rangeCheck) {
+    if (indexData.rangeCheck) {
       if (i < 0 || i >= qlist_->count()) {
-        if (i != 0 || pos != IndexPosition::END)
+        if (i != 0 || indexData.pos != IndexPosition::END)
           return false;
       }
     }
 
-    ind = int(i);
+    indexData.ind = int(i);
 
     return true;
   };
 
-  auto varToItem = [&](const QVariant &var) {
-    int i;
-    if (! varToIndex(var, i))
-      return static_cast<QListWidgetItem *>(nullptr);
-
-    return qlist_->item(i);
+  auto varToIndex = [&](const QVariant &var, int &ind, IndexPosition pos=IndexPosition::NONE,
+                        bool rangeCheck=true) {
+    IndexData indexData;
+    indexData.pos        = pos;
+    indexData.rangeCheck = rangeCheck;
+    if (! varToIndexData(var, indexData))
+      return false;
+    ind = indexData.ind;
+    return true;
   };
+
+  auto indexDataToItem = [&](const IndexData &indexData) {
+    return dynamic_cast<CTkAppListItem *>(qlist_->item(indexData.ind));
+  };
+
+#if 0
+  auto varToItem = [&](const QVariant &var) {
+    IndexData indexData;
+    if (! varToIndexData(var, indexData))
+      return static_cast<CTkAppListItem *>(nullptr);
+
+    return indexDataToItem(indexData);
+  };
+#endif
 
   //---
 
@@ -232,12 +307,21 @@ execOp(const Args &args)
     if (numArgs != 2)
       return tk_->wrongNumArgs(getFullName() + " bbox index");
 
-    auto *item = varToItem(args[1]);
-    if (! item) return true;
+    IndexData indexData;
+    indexData.rangeCheck = false;
+    if (! varToIndexData(args[1], indexData))
+      return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[1] + "\": must be "
+                             "active, anchor, end, @x,y, or an index");
 
-    auto r = qlist_->visualItemRect(item);
+    auto *item = indexDataToItem(indexData);
 
-    tk_->setIntegerArrayResult({{r.x(), r.y(), r.width(), r.height()}});
+    if (item) {
+      auto r = qlist_->visualItemRect(item);
+
+      tk_->setIntegerArrayResult({{r.x(), r.y(), r.width(), r.height()}});
+    }
+    else
+      tk_->setStringResult("");
   }
   else if (option == "curselection") {
     if (numArgs != 1)
@@ -245,7 +329,7 @@ execOp(const Args &args)
 
     auto items = qlist_->selectedItems();
 
-    std::vector<int> rows;
+    std::vector<long> rows;
 
     for (auto *item : items)
       rows.push_back(qlist_->row(item));
@@ -304,123 +388,209 @@ execOp(const Args &args)
     if (numArgs != 2)
       return tk_->wrongNumArgs(getFullName() + " index index");
 
-    int index;
-    if (! varToIndex(args[1], index, IndexPosition::NONE, /*rangeCheck*/false))
+    IndexData indexData;
+    indexData.rangeCheck = false;
+    if (! varToIndexData(args[1], indexData))
       return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[1] + "\": must be "
                              "active, anchor, end, @x,y, or an index");
 
-    tk_->setIntegerResult(index);
+    if (indexData.isEnd)
+      ++indexData.ind;
+
+    tk_->setIntegerResult(indexData.ind);
   }
   else if (option == "insert") {
     if (numArgs < 2)
       return tk_->wrongNumArgs(getFullName() + " insert index ?element ...?");
 
-    int ind;
-    if (! varToIndex(args[1], ind, IndexPosition::END))
+    IndexData indexData;
+    indexData.pos        = IndexPosition::END;
+    indexData.rangeCheck = false;
+    if (! varToIndexData(args[1], indexData))
       return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[1] + "\": must be "
                              "active, anchor, end, @x,y, or an index");
+
+    if (indexData.isEnd)
+      indexData.ind = qlist_->count();
 
     uint i = 2;
 
     for ( ; i < numArgs; ++i) {
       auto str = tk_->variantToString(args[i]);
 
-      qlist_->insertItem(ind++, str);
+      auto *item = new CTkAppListItem(str);
+
+      qlist_->insertItem(indexData.ind++, item);
     }
   }
   else if (option == "itemcget") {
     if (numArgs != 3)
       return tk_->wrongNumArgs(getFullName() + " itemcget index option");
 
-    int ind;
-    if (! varToIndex(args[1], ind))
+    IndexData indexData;
+    if (! varToIndexData(args[1], indexData))
       return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[1] + "\": must be "
                              "active, anchor, end, @x,y, or an index");
 
-    auto opt = tk_->variantToString(args[2]);
+    auto *item = indexDataToItem(indexData);
+    if (! item) return false;
+
+    QString opt;
+    auto str = tk_->variantToString(args[2]);
+    if      (str == "-bg") opt = "-background";
+    else if (str == "-fg") opt = "-foreground";
+    else {
+      static auto optNames = std::vector<QString>({
+        "-background", "-foreground", "-selectbackground", "-selectforeground"});
+      if (! tk_->lookupOptionName(optNames, args[2], opt))
+        return false;
+    }
 
     if      (opt == "-background") {
-      QColor c;
-      if (! tk_->variantToQColor(args[2], c))
-        return tk_->invalidQColor(args[2]);
-
-      tk_->TODO(option + " " + opt);
+      tk_->setColorResult(item->background());
     }
     else if (opt == "-foreground") {
-      QColor c;
-      if (! tk_->variantToQColor(args[2], c))
-        return tk_->invalidQColor(args[2]);
-
-      tk_->TODO(option + " " + opt);
+      tk_->setColorResult(item->foreground());
     }
     else if (opt == "-selectbackground") {
-      QColor c;
-      if (! tk_->variantToQColor(args[2], c))
-        return tk_->invalidQColor(args[2]);
-
-      tk_->TODO(option + " " + opt);
+      tk_->setColorResult(item->selectBackground());
     }
     else if (opt == "-selectforeground") {
-      QColor c;
-      if (! tk_->variantToQColor(args[2], c))
-        return tk_->invalidQColor(args[2]);
-
-      tk_->TODO(option + " " + opt);
+      tk_->setColorResult(item->selectForeground());
     }
-    else
-      return false;
   }
   else if (option == "itemconfigure") {
-    if (numArgs <= 2)
-      return tk_->wrongNumArgs(getFullName() + " itemcget index option");
+    if (numArgs < 2)
+      return tk_->wrongNumArgs(getFullName() +
+               " itemconfigure index ?option? ?value? ?option value ...?");
 
-    int ind;
-    if (! varToIndex(args[1], ind))
+    IndexData indexData;
+    if (! varToIndexData(args[1], indexData))
       return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[1] + "\": must be "
                              "active, anchor, end, @x,y, or an index");
 
+    auto *item = indexDataToItem(indexData);
+    if (! item) return false;
+
     if      (numArgs == 2) {
-      tk_->TODO(args);
+      std::vector<QVariant> res;
+
+      auto addData = [&](const QString &name, const QString &type, const QString &ctype,
+                         const QVariant &value) {
+        QVariantList vars;
+
+        vars.push_back(name);
+        vars.push_back(type);
+        vars.push_back(ctype);
+        vars.push_back("");
+        vars.push_back(value);
+
+        res.push_back(vars);
+      };
+
+      auto addAlias = [&](const QString &alias, const QString &name) {
+        QVariantList vars;
+
+        vars.push_back(alias);
+        vars.push_back(name);
+
+        res.push_back(vars);
+      };
+
+      addData ("-background"      , "background"      , "Background", item->background());
+      addAlias("-bg"              , "-background");
+      addAlias("-fg"              , "-foreground");
+      addData ("-foreground"      , "foreground"      , "Foreground", item->foreground());
+      addData ("-selectbackground", "selectBackground", "Foreground", item->selectBackground());
+      addData ("-selectforeground", "selectForeground", "Background", item->selectForeground());
+
+      tk_->setVariantArrayResult(res);
     }
     else if (numArgs == 3) {
-      tk_->TODO(tk_->msg() + option + " " + args[2]);
+      QString name;
+      auto str = tk_->variantToString(args[2]);
+      if      (str == "-bg") name = "-background";
+      else if (str == "-fg") name = "-foreground";
+      else {
+        static auto optNames = std::vector<QString>({
+          "-background", "-foreground", "-selectbackground", "-selectforeground"});
+        if (! tk_->lookupOptionName(optNames, args[2], name))
+          return false;
+      }
+
+      std::vector<QVariant> res;
+
+      auto addData = [&](const QString &name, const QString &type, const QString &ctype,
+                         const QVariant &value) {
+        res.push_back(name);
+        res.push_back(type);
+        res.push_back(ctype);
+        res.push_back("");
+        res.push_back(value);
+      };
+
+      if      (name == "-background")
+        addData("-background"      , "background"      , "Background", item->background());
+      else if (name == "-foreground")
+        addData("-foreground"      , "foreground"      , "Foreground", item->foreground());
+      else if (name == "-selectbackground")
+        addData("-selectbackground", "selectBackground", "Foreground", item->selectBackground());
+      else if (name == "-selectforeground")
+        addData("-selectforeground", "selectForeground", "Background", item->selectForeground());
+
+      tk_->setVariantArrayResult(res);
     }
     else {
       uint i = 2;
 
-      for ( ; i < numArgs; ++i) {
-        auto name = tk_->variantToString(args[i]);
+      while (i < numArgs) {
+        QString name;
+        auto str = tk_->variantToString(args[i]);
+        if      (str == "-bg") name = "-background";
+        else if (str == "-fg") name = "-foreground";
+        else {
+          static auto optNames = std::vector<QString>({
+            "-background", "-foreground", "-selectbackground", "-selectforeground"});
+          if (! tk_->lookupOptionName(optNames, args[i], name))
+            return false;
+        }
+        ++i;
+
+        if (i >= numArgs)
+          return tk_->throwError(tk_->msg() + "Missing value for \"" + args[i] + "\"");
 
         if      (name == "-background") {
           QColor c;
-          if (i >= numArgs - 1 || ! tk_->variantToQColor(args[++i], c))
+          if (! tk_->variantToQColor(args[i], c))
             return tk_->invalidQColor(args[i]);
+          ++i;
 
-          tk_->TODO(args);
+          item->setBackground(c);
         }
         else if (name == "-foreground") {
           QColor c;
-          if (i >= numArgs - 1 || ! tk_->variantToQColor(args[++i], c))
+          if (! tk_->variantToQColor(args[i], c))
             return tk_->invalidQColor(args[i]);
+          ++i;
 
-          tk_->TODO(args);
+          item->setForeground(c);
         }
         else if (name == "-selectbackground") {
           QColor c;
-          if (i >= numArgs - 1 || ! tk_->variantToQColor(args[++i], c))
+          if (! tk_->variantToQColor(args[i], c))
             return tk_->invalidQColor(args[i]);
+          ++i;
 
-          tk_->TODO(args);
+          item->setSelectBackground(c);
         }
         else if (name == "-selectforeground") {
           QColor c;
-          if (i >= numArgs - 1 || ! tk_->variantToQColor(args[++i], c))
+          if (! tk_->variantToQColor(args[i], c))
             return tk_->invalidQColor(args[i]);
+          ++i;
 
-          tk_->TODO(args);
+          item->setSelectForeground(c);
         }
-        else
-          return false;
       }
     }
   }
@@ -430,13 +600,46 @@ execOp(const Args &args)
 
     long y;
     if (! tk_->variantToInt(args[1], y))
-      return false;
+      return tk_->invalidInteger(args[1]);
 
-    tk_->TODO(args);
+    int d   = 0;
+    int ind = -1;
+
+    for (int i = 0; i < qlist_->count(); ++i) {
+      auto *item = qlist_->item(i);
+
+      auto r = qlist_->visualItemRect(item);
+
+      int d1 = 0;
+
+      if      (y <= r.top())
+        d1 = r.top() - y;
+      else if (y >= r.bottom())
+        d1 = y - r.bottom();
+
+      if (d1 < d) {
+        ind = i;
+        d   = d1;
+      }
+    }
+
+    tk_->setIntegerResult(ind);
   }
   else if (option == "scan") {
     if (numArgs != 4)
       return tk_->wrongNumArgs(getFullName() + " scan mark|dragto x y");
+
+    static auto optNames = std::vector<QString>({ "dragto", "mark" });
+
+    QString opt;
+    if (! tk_->lookupOptionName(optNames, args[1], opt))
+      return false;
+
+    long x, y;
+    if (! tk_->variantToInt(args[2], x))
+      return tk_->invalidInteger(args[2]);
+    if (! tk_->variantToInt(args[3], y))
+      return tk_->invalidInteger(args[3]);
 
     tk_->TODO(args);
   }
@@ -444,26 +647,50 @@ execOp(const Args &args)
     if (numArgs != 2)
       return tk_->wrongNumArgs(getFullName() + " see index");
 
-    auto *item = varToItem(args[1]);
-    if (! item) return true;
+    IndexData indexData;
+    indexData.rangeCheck = false;
+    if (! varToIndexData(args[1], indexData))
+      return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[1] + "\": must be "
+                             "active, anchor, end, @x,y, or an index");
 
-    qlist_->scrollToItem(item);
+    auto *item = indexDataToItem(indexData);
+
+    if (item)
+      qlist_->scrollToItem(item);
   }
   else if (option == "selection") {
-    if (numArgs < 3)
+    if (numArgs < 3 || numArgs > 4)
       return tk_->wrongNumArgs(getFullName() + " selection option index ?index?");
 
-    auto option = tk_->variantToString(args[1]);
+    static auto optNames = std::vector<QString>({ "anchor", "clear", "includes", "set" });
 
-    if      (option == "anchor") {
-      int index;
-      if (! varToIndex(args[2], index, IndexPosition::NONE, /*rangeCheck*/false))
+    QString opt;
+    if (! tk_->lookupOptionName(optNames, args[1], opt))
+      return false;
+
+    if      (opt == "anchor") {
+      if (numArgs > 4)
+        return tk_->wrongNumArgs(getFullName() + " selection anchor index ?index?");
+
+      int index1, index2;
+      if (! varToIndex(args[2], index1, IndexPosition::NONE, /*rangeCheck*/false))
         return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[2] + "\": must be "
                                "active, anchor, end, @x,y, or an index");
 
-      setSelectionIndex(index);
+      if (numArgs > 3) {
+        if (! varToIndex(args[3], index2, IndexPosition::NONE, /*rangeCheck*/false))
+          return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[3] + "\": must be "
+                                 "active, anchor, end, @x,y, or an index");
+      }
+      else
+        index2 = index1;
+
+      setSelectionIndex(index1);
     }
-    else if (option == "clear") {
+    else if (opt == "clear") {
+      if (numArgs > 4)
+        return tk_->wrongNumArgs(getFullName() + " selection clear index ?index?");
+
       int startIndex;
       if (! varToIndex(args[2], startIndex, IndexPosition::NONE, /*rangeCheck*/false))
         return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[2] + "\": must be "
@@ -481,7 +708,10 @@ execOp(const Args &args)
           qlist_->setCurrentItem(qlist_->item(i), QItemSelectionModel::Deselect);
       }
     }
-    else if (option == "includes") {
+    else if (opt == "includes") {
+      if (numArgs != 3)
+        return tk_->wrongNumArgs(getFullName() + " selection includes index");
+
       int ind;
       if (! varToIndex(args[2], ind, IndexPosition::NONE, /*rangeCheck*/false))
         return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[2] + "\": must be "
@@ -501,7 +731,10 @@ execOp(const Args &args)
 
       tk_->setBoolResult(includes);
     }
-    else if (option == "set") {
+    else if (opt == "set") {
+      if (numArgs > 4)
+        return tk_->wrongNumArgs(getFullName() + " selection set index ?index?");
+
       int startIndex;
       if (! varToIndex(args[2], startIndex, IndexPosition::NONE, /*rangeCheck*/false))
         return tk_->throwError(tk_->msg() + "bad listbox index \"" + args[2] + "\": must be "
@@ -519,8 +752,6 @@ execOp(const Args &args)
           qlist_->setCurrentItem(qlist_->item(i), QItemSelectionModel::Select);
       }
     }
-    else
-      return false;
   }
   else if (option == "size") {
     if (numArgs != 1)
@@ -576,8 +807,8 @@ execOp(const Args &args)
       }
       else {
         double x;
-        if (! CTkAppUtil::stringToReal(opt, x))
-          return tk_->throwError("unknown option \"" + opt + "\": must be moveto or scroll");
+        if (! tk_->variantToReal(args[1], x))
+          return tk_->invalidReal(args[1]);
 
         qlist_->horizontalScrollBar()->setValue(min + (max - min)*x);
       }
@@ -632,8 +863,8 @@ execOp(const Args &args)
       }
       else {
         double y;
-        if (! CTkAppUtil::stringToReal(opt, y))
-          return tk_->throwError("unknown option \"" + opt + "\": must be moveto or scroll");
+        if (! tk_->variantToReal(args[1], y))
+          return tk_->invalidReal(args[1]);
 
         qlist_->verticalScrollBar()->setValue(min + (max - min)*y);
       }
@@ -703,13 +934,24 @@ updateFromVar()
     if (! tk_->getStringArrayGlobalVar(varName(), strs))
       return;
 
-     qlist_->clear();
+    while (qlist_->count() > int(strs.size())) {
+      auto *item = qlist_->takeItem(qlist_->count() - 1);
 
-     for (const auto &str : strs) {
-       auto *item = new QListWidgetItem(str);
+      delete item;
+    }
 
-       qlist_->addItem(item);
-     }
+    while (qlist_->count() < int(strs.size()))
+      qlist_->addItem(new CTkAppListItem(""));
+
+    int i = 0;
+
+    for (const auto &str : strs) {
+      auto *item = dynamic_cast<CTkAppListItem *>(qlist_->item(i));
+
+      item->setText(str);
+
+      ++i;
+    }
   }
 }
 

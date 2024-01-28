@@ -32,3 +32,5 @@
 + list selected to variable ? test
 
 + GIF meta data (comment)
+
++ vwait fix or override

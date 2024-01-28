@@ -944,9 +944,9 @@ updateOptions()
 
     auto valueStr = tk_->variantToString(var);
 
-    setTableItem(1, QString(opt->dname));
-    setTableItem(2, QString(opt->cname));
-    setTableItem(3, QString(opt->def));
+    setTableItem(1, QString(opt->dname()));
+    setTableItem(2, QString(opt->cname()));
+    setTableItem(3, QString(opt->def()));
     setTableItem(4, valueStr);
 
     ++row;
@@ -1469,7 +1469,7 @@ paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &
     QVariant value;
 
     if (col == 3)
-      value = QString(opt->def);
+      value = QString(opt->def());
     else
       value = debug_->getOptValue(opt);
 

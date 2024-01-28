@@ -2212,7 +2212,8 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 		../include/CTkAppSpinBoxWidget.h \
 		../include/CQSpinList.h \
 		../../../CQUtil/include/CQUtil.h \
-		../../../CQUtil/include/CQUtilMeta.h
+		../../../CQUtil/include/CQUtilMeta.h \
+		../../../CQUtil/include/CQStrParse.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ../obj/CTkAppSpinBox.o CTkAppSpinBox.cpp
 
 ../obj/CTkAppText.o: CTkAppText.cpp ../include/CTkAppText.h \
